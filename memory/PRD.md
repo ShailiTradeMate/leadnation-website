@@ -45,7 +45,21 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 - [x] **Trade Intelligence Hub** `/intelligence` — gold, silver, oil (Brent + WTI), copper, natural gas + 8 currency pairs + 6 global market trends.
 - [x] **SEO Infrastructure** — sitemap.xml, robots.txt, react-helmet-async dynamic meta (title + description + keywords + canonical), Open Graph + Twitter cards, JSON-LD structured schema (Organization, WebApplication, Country, EducationalOrganization) on each page.
 - [x] **Nav Tools dropdown** + Footer expanded with new tool links.
-- [x] All 28/28 backend API tests pass · all frontend flows verified across Phase 1 + Phase 2.
+
+**Phase 3 + 4 — Trade Intelligence Ecosystem** (Jan 2026)
+- [x] **Trade Tools Hub** `/tools` + 7 individual tools: HSN Finder, Duty Calculator, Landed Cost Calculator, Export Incentive Finder, Product Research, Buyer Discovery, Export Readiness Score (3-step funnel with lead capture).
+- [x] **AI Trade Copilot** `/ai-assistant` — chat UI with suggested prompts; mocked-but-realistic responses with `MOCKED RESPONSE — LIVE AI COMING SOON` badge; suggested-tools links per answer. Ready for GPT integration.
+- [x] **Product Trade Profiles** `/products` + `/products/{slug}` — Basmati Rice, Agarbatti, Spices, Textiles, Pharmaceuticals (overview, HSN link, top importers/exporters, demand, opportunities, compliance, logistics, related corridors).
+- [x] **Trade Corridor Pages** `/corridors` + `/corridors/{slug}` — India-to-UAE/USA/Australia/Armenia (export & import process, customs, duties, docs, opportunities, popular products, logistics).
+- [x] **HSN Landing Pages** `/hsn/{code}` — 5 codes (10063020, 33074100, 09024020, 30049099, 62034299) with GST, RoDTEP, drawback, benefits, docs, customs notes, related products.
+- [x] **Industries** `/industries` + `/industries/{slug}` — 8 sectors (Agriculture, Food Processing, Textiles, Chemicals, Pharma, Engineering, Handicrafts, FMCG).
+- [x] **Blog / Knowledge Center** `/blog` + `/blog/{slug}` — 6 long-form posts across export guides, compliance, trade news, logistics, international marketing.
+- [x] **Supplier Discovery** `/suppliers` — searchable directory with verified badges, q/country/category filters, locked-CTA for full database.
+- [x] **Marketplace Preview** `/marketplace` — featured listings (6), trade reels (4), live buyer RFQs (3 with WhatsApp reply).
+- [x] **Trade Network** `/network` — featured members (6) with avatars + stats (48K+ members, 92 countries).
+- [x] **Mega-Nav** rebuilt: Home · Tools · AI Copilot · Explore▾ (Products/Corridors/Countries/Industries/Expos/Customs) · Platform▾ (Marketplace/Network/Suppliers/Intelligence) · Learn▾ (Academy/Blog/Trade News) · Contact.
+- [x] **Sitemap.xml** expanded to 50+ URLs covering every new route.
+- [x] All 60/60 backend API tests pass · all frontend flows verified across Phase 1 + 2 + 3 + 4.
 
 ## Backlog / Next
 - **P0** Connect real engines (customs, trade news, expo, product info, search) once API docs are shared by user.
