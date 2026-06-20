@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
+import SEO from "@/components/SEO";
 import { fetchTradeNews } from "@/lib/api";
 import { Clock, ArrowUpRight } from "@phosphor-icons/react";
 
@@ -13,6 +14,12 @@ export default function TradeNews() {
 
   return (
     <>
+      <SEO
+        title="Global Trade News · Tariffs, FTAs, Logistics & Policy"
+        description="Curated global trade news for exporters and importers — tariffs, FTAs, customs, logistics and supply chain headlines, deduped daily."
+        path="/trade-news"
+        keywords="trade news today, India exports news, UAE trade news, customs policy update, FTA news, supply chain news"
+      />
       <PageHero
         testIdPrefix="news"
         label="Trade News Engine"

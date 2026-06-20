@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import TradeGlobe from "@/components/TradeGlobe";
 import DownloadCTA from "@/components/DownloadCTA";
+import SEO, { baseOrgSchema } from "@/components/SEO";
 import { SectionLabel } from "@/components/PageHero";
 import { searchAll, fetchIndiaFeatures } from "@/lib/api";
 import {

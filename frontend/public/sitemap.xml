@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://leadnation.app/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://leadnation.app/customs-compliance</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/product-info</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/expo</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://leadnation.app/trade-news</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://leadnation.app/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+
+  <url><loc>https://leadnation.app/tools/duty-calculator</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://leadnation.app/intelligence</loc><changefreq>hourly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/academy</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+
+  <url><loc>https://leadnation.app/countries</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/countries/india</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/countries/uae</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/countries/usa</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/countries/australia</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/countries/armenia</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+</urlset>

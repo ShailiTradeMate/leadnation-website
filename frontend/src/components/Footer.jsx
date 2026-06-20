@@ -59,6 +59,10 @@ export default function Footer() {
             <li><Link to="/product-info" className="hover:text-cyan-300" data-testid="footer-link-products">Product Info</Link></li>
             <li><Link to="/expo" className="hover:text-cyan-300" data-testid="footer-link-expo">Expos &amp; Events</Link></li>
             <li><Link to="/trade-news" className="hover:text-cyan-300" data-testid="footer-link-news">Trade News</Link></li>
+            <li><Link to="/tools/duty-calculator" className="hover:text-cyan-300" data-testid="footer-link-duty">Duty Calculator</Link></li>
+            <li><Link to="/intelligence" className="hover:text-cyan-300" data-testid="footer-link-intelligence">Intelligence Hub</Link></li>
+            <li><Link to="/academy" className="hover:text-cyan-300" data-testid="footer-link-academy">Academy</Link></li>
+            <li><Link to="/countries" className="hover:text-cyan-300" data-testid="footer-link-countries">Country Profiles</Link></li>
             <li><Link to="/contact" className="hover:text-cyan-300" data-testid="footer-link-contact">Contact</Link></li>
           </ul>
         </div>

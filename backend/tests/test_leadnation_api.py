@@ -153,3 +153,105 @@ class TestIndiaFeatures:
         assert isinstance(d, list) and len(d) == 6
         for item in d:
             assert {"title", "description", "icon"} <= set(item.keys())
+
+
+
+# ---------- PHASE 2 ----------
+
+# Duty Calculator
+class TestDutyCalculator:
+    def test_duty_calc_in_ae_agri(self, client):
+        payload = {"exportCountry": "IN", "importCountry": "AE", "category": "Agriculture & Food", "value": 10000, "currency": "USD"}
+        r = client.post(f"{API}/duty-calc", json=payload, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        for k in ["estimatedDuty", "estimatedTaxes", "estimatedHandling", "estimatedLandedCost", "ftaApplied", "dutyRate", "vatRate"]:
+            assert k in d, f"missing key {k}"
+        assert d["ftaApplied"] is True, "IN->AE should be preferential"
+        # Agriculture 0.06 + (-0.04) = 0.02 -> 2%
+        assert d["dutyRate"] == 2.0
+        assert d["vatRate"] == 5.0  # AE VAT
+        assert d["estimatedDuty"] == 200.0
+        # taxes = (10000 + 200) * 0.05 = 510
+        assert d["estimatedTaxes"] == 510.0
+        assert d["estimatedHandling"] == 50.0
+        assert d["estimatedLandedCost"] == 10760.0
+
+    def test_duty_calc_electronics_rate(self, client):
+        r = client.post(f"{API}/duty-calc", json={"exportCountry": "CN", "importCountry": "US", "category": "Electronics", "value": 5000}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["dutyRate"] == 5.0
+        assert d["ftaApplied"] is False
+
+    def test_duty_calc_pharma_rate(self, client):
+        r = client.post(f"{API}/duty-calc", json={"exportCountry": "IN", "importCountry": "US", "category": "Pharmaceuticals", "value": 1000}, timeout=20)
+        assert r.status_code == 200
+        assert r.json()["dutyRate"] == 3.0
+
+    def test_duty_calc_autos_rate(self, client):
+        r = client.post(f"{API}/duty-calc", json={"exportCountry": "DE", "importCountry": "IN", "category": "Automobiles & Parts", "value": 20000}, timeout=20)
+        assert r.status_code == 200
+        assert r.json()["dutyRate"] == 15.0
+
+
+# Country Profiles
+class TestCountryProfiles:
+    def test_list_country_profiles(self, client):
+        r = client.get(f"{API}/country-profiles", timeout=20)
+        assert r.status_code == 200
+        data = r.json()
+        assert isinstance(data, list) and len(data) == 5
+        slugs = sorted(d["slug"] for d in data)
+        assert slugs == sorted(["india", "uae", "usa", "australia", "armenia"])
+        for d in data:
+            assert {"slug", "code", "name", "flag", "tagline"} <= set(d.keys())
+
+    @pytest.mark.parametrize("slug", ["india", "uae", "usa", "australia", "armenia"])
+    def test_country_profile_detail(self, client, slug):
+        r = client.get(f"{API}/country/{slug}", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        for k in ["overview", "majorImports", "majorExports", "opportunities", "customs", "compliance", "marketplace"]:
+            assert k in d, f"missing {k}"
+        assert isinstance(d["majorExports"], list) and len(d["majorExports"]) > 0
+        assert isinstance(d["majorImports"], list) and len(d["majorImports"]) > 0
+        assert isinstance(d["opportunities"], list) and len(d["opportunities"]) > 0
+        assert isinstance(d["marketplace"], list) and len(d["marketplace"]) > 0
+        assert isinstance(d["customs"], dict)
+        assert d["overview"]
+
+    def test_country_profile_unknown(self, client):
+        r = client.get(f"{API}/country/unknown", timeout=20)
+        assert r.status_code == 404
+
+
+# Academy
+class TestAcademy:
+    def test_academy(self, client):
+        r = client.get(f"{API}/academy", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        for level in ["Beginner", "Intermediate", "Advanced"]:
+            assert level in d
+            assert isinstance(d[level], list) and len(d[level]) >= 3
+            for c in d[level]:
+                assert {"title", "slug", "duration", "lessons", "summary", "image"} <= set(c.keys())
+
+
+# Intelligence
+class TestIntelligence:
+    def test_intelligence(self, client):
+        r = client.get(f"{API}/intelligence", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert "commodities" in d and len(d["commodities"]) == 6
+        assert "currencies" in d and len(d["currencies"]) == 8
+        assert "trends" in d and len(d["trends"]) == 6
+        assert "updatedAt" in d
+        for c in d["commodities"]:
+            assert {"name", "price", "change"} <= set(c.keys())
+        for c in d["currencies"]:
+            assert {"pair", "rate", "change"} <= set(c.keys())
+        for t in d["trends"]:
+            assert {"title", "impact"} <= set(t.keys())

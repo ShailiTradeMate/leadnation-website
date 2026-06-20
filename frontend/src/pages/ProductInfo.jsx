@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
+import SEO from "@/components/SEO";
 import {
   fetchCountries,
   fetchBusinessTypes,
@@ -54,6 +55,12 @@ export default function ProductInfo() {
 
   return (
     <>
+      <SEO
+        title="Product Trade Intelligence · Market Size, Buyers, Tariffs"
+        description="Pick a country, business type and product. Get market size, top buyers, certifications and tariffs — instantly."
+        path="/product-info"
+        keywords="product market size, top buyers, HS code, certifications, FOB price, MOQ, export market intelligence"
+      />
       <PageHero
         testIdPrefix="pi"
         label="Product Info Engine"

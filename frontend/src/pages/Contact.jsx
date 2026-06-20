@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
+import SEO from "@/components/SEO";
 import { CONTACT } from "@/data/contact";
 import { createLead } from "@/lib/api";
 import {
@@ -36,6 +37,12 @@ export default function Contact() {
 
   return (
     <>
+      <SEO
+        title="Contact LeadNation · WhatsApp, Email & HQ"
+        description="Reach LeadNation on WhatsApp +91 82371 61088, email admin@leadnation.app, or visit our HQ in Ahilyanagar, Maharashtra, India."
+        path="/contact"
+        keywords="LeadNation contact, LeadNation WhatsApp, LeadNation email, Ahilyanagar office, LeadNation HQ"
+      />
       <PageHero
         testIdPrefix="contact"
         label="Contact · Create Account"

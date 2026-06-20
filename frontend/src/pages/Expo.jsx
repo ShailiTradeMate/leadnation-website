@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
+import SEO from "@/components/SEO";
 import { fetchExpos } from "@/lib/api";
 import { MapPin, CalendarBlank, Users } from "@phosphor-icons/react";
 
@@ -21,6 +22,12 @@ export default function Expo() {
 
   return (
     <>
+      <SEO
+        title="Global Trade Expos & Events · 2026 Calendar"
+        description="Every major global trade show — Gulfood, Canton Fair, Hannover Messe, IITF, CES — filtered by sector, country and date. Plan your year."
+        path="/expo"
+        keywords="trade expo 2026, Gulfood Dubai, Canton Fair, Hannover Messe, India trade fair, global expo calendar"
+      />
       <PageHero
         testIdPrefix="expo"
         label="Expo & Events Engine"

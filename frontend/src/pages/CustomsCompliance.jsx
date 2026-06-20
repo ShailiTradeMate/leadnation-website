@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
+import SEO from "@/components/SEO";
 import { fetchCountries, fetchCustoms } from "@/lib/api";
 import { Compass, CheckCircle, FileText, Truck, Clock, Lightbulb } from "@phosphor-icons/react";
 
@@ -24,6 +25,12 @@ export default function CustomsCompliance() {
 
   return (
     <>
+      <SEO
+        title="Customs & Compliance Engine · 186+ Countries"
+        description="Look up customs duty rates, document checklists and incoterms for any trade corridor. Live regulatory data for 186+ markets."
+        path="/customs-compliance"
+        keywords="customs duty by country, import documents required, export documentation, FTA benefits, DGFT, ICEGATE"
+      />
       <PageHero
         testIdPrefix="customs"
         label="Customs & Compliance Engine"
