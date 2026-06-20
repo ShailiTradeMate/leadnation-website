@@ -24,6 +24,7 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 7. India-first features section.
 
 ## Implemented (2026-01)
+**Phase 1 — Core portal**
 - [x] Cinematic dark UI, Manrope + IBM Plex font pairing, custom logo, gradient text.
 - [x] Animated 3D globe with country outlines + 10 trade-route arcs + 12 hub points.
 - [x] Home: hero, search w/ live autocomplete, suggestion chips, stats, marquee, feature bento (6), India features (6 dynamic), Apple-style image storytelling, download CTA.
@@ -36,7 +37,15 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 - [x] Production-ready App Store / Play Store CTA badges (Coming Soon).
 - [x] Footer with all contact + nav + download badges.
 - [x] data-testid attributes throughout for QA.
-- [x] All 15 backend API tests pass · All frontend flows verified.
+
+**Phase 2 — SEO Growth Engine** (Jan 2026)
+- [x] **Customs Duty Calculator** `/tools/duty-calculator` — country, category, value, currency → duty, VAT, handling, landed cost. FTA detection per corridor.
+- [x] **Country Profile Pages** `/countries/{slug}` for India, UAE, USA, Australia, Armenia + index at `/countries`. Each has overview, imports, exports, opportunities, customs, compliance, news, events, marketplaces. Built to scale to 250+ countries.
+- [x] **Learning Academy** `/academy` — Beginner / Intermediate / Advanced. 9 premium course cards with topics on import/export process, documentation, customs clearance, FTA arbitrage, supply chain finance, global compliance.
+- [x] **Trade Intelligence Hub** `/intelligence` — gold, silver, oil (Brent + WTI), copper, natural gas + 8 currency pairs + 6 global market trends.
+- [x] **SEO Infrastructure** — sitemap.xml, robots.txt, react-helmet-async dynamic meta (title + description + keywords + canonical), Open Graph + Twitter cards, JSON-LD structured schema (Organization, WebApplication, Country, EducationalOrganization) on each page.
+- [x] **Nav Tools dropdown** + Footer expanded with new tool links.
+- [x] All 28/28 backend API tests pass · all frontend flows verified across Phase 1 + Phase 2.
 
 ## Backlog / Next
 - **P0** Connect real engines (customs, trade news, expo, product info, search) once API docs are shared by user.
