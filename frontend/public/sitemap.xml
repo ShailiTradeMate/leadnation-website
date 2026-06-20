@@ -7,7 +7,16 @@
   <url><loc>https://leadnation.app/trade-news</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
   <url><loc>https://leadnation.app/contact</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 
+  <url><loc>https://leadnation.app/tools</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>https://leadnation.app/tools/duty-calculator</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://leadnation.app/tools/hsn-finder</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://leadnation.app/tools/landed-cost-calculator</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/tools/export-incentive-finder</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/tools/product-research</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/tools/find-buyers</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://leadnation.app/tools/export-readiness</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+
+  <url><loc>https://leadnation.app/ai-assistant</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://leadnation.app/intelligence</loc><changefreq>hourly</changefreq><priority>0.9</priority></url>
   <url><loc>https://leadnation.app/academy</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
 
@@ -17,4 +26,39 @@
   <url><loc>https://leadnation.app/countries/usa</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://leadnation.app/countries/australia</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
   <url><loc>https://leadnation.app/countries/armenia</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+
+  <url><loc>https://leadnation.app/products</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/products/basmati-rice</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/products/agarbatti</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/products/spices</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/products/textiles</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/products/pharmaceuticals</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+
+  <url><loc>https://leadnation.app/corridors</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/corridors/india-to-uae</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/corridors/india-to-usa</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/corridors/india-to-australia</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/corridors/india-to-armenia</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+
+  <url><loc>https://leadnation.app/hsn/10063020</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/hsn/33074100</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/hsn/09024020</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/hsn/30049099</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/hsn/62034299</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+
+  <url><loc>https://leadnation.app/industries</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/agriculture</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/food-processing</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/textiles</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/chemicals</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/pharmaceuticals</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/engineering</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/handicrafts</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/industries/fmcg</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+
+  <url><loc>https://leadnation.app/suppliers</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/marketplace</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/network</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+
+  <url><loc>https://leadnation.app/blog</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
 </urlset>

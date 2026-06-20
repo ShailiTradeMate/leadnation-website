@@ -255,3 +255,253 @@ class TestIntelligence:
             assert {"pair", "rate", "change"} <= set(c.keys())
         for t in d["trends"]:
             assert {"title", "impact"} <= set(t.keys())
+
+
+# ---------- PHASE 3 & 4 ----------
+
+class TestHsnFinder:
+    def test_hsn_finder_rice(self, client):
+        r = client.post(f"{API}/hsn-finder", json={"productName": "rice", "description": "long grain", "category": "Agriculture & Food"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert isinstance(d["results"], list) and len(d["results"]) >= 1
+        assert all("code" in x and "matchScore" in x for x in d["results"])
+        # rice should match basmati
+        assert any("Basmati" in x["title"] for x in d["results"])
+
+    def test_hsn_finder_fallback(self, client):
+        r = client.post(f"{API}/hsn-finder", json={"productName": "zzzunmatchable123"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert len(d["results"]) >= 1
+
+
+class TestLandedCost:
+    def test_landed_cost(self, client):
+        payload = {"productCost": 1000, "freight": 200, "insurance": 50, "duty": 100, "localCharges": 50, "currency": "USD"}
+        r = client.post(f"{API}/landed-cost", json=payload, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["total"] == 1400.0
+        assert len(d["breakdown"]) == 5
+        # shares should sum to ~100
+        s = sum(b["share"] for b in d["breakdown"])
+        assert 99 <= s <= 101
+
+
+class TestExportIncentive:
+    def test_export_incentive(self, client):
+        r = client.post(f"{API}/export-incentive", json={"product": "Basmati Rice", "destination": "AE"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["rodtep"]["eligible"] is True
+        assert d["dutyDrawback"]["eligible"] is True
+        assert isinstance(d["incentives"], list) and len(d["incentives"]) >= 1
+        assert isinstance(d["govBenefits"], list) and len(d["govBenefits"]) >= 1
+
+
+class TestProductResearch:
+    def test_product_research(self, client):
+        r = client.post(f"{API}/product-research", json={"product": "Basmati Rice", "hsnCode": "10063020"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert "demandOverview" in d
+        assert len(d["topImporting"]) == 5
+        assert len(d["topExporting"]) == 5
+        assert len(d["trends"]) == 3
+        assert "opportunity" in d
+
+
+class TestFindBuyers:
+    def test_find_buyers_all(self, client):
+        r = client.post(f"{API}/find-buyers", json={"product": "Basmati Rice"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert isinstance(d["buyers"], list) and len(d["buyers"]) >= 1
+        assert d["lockedExtras"] is True
+        for b in d["buyers"]:
+            assert {"company", "country", "city", "volume", "fit"} <= set(b.keys())
+        assert "marketPotential" in d
+
+    def test_find_buyers_filter(self, client):
+        r = client.post(f"{API}/find-buyers", json={"product": "Rice", "country": "AE"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        # all returned should be AE
+        assert all(b["country"] == "AE" for b in d["buyers"])
+
+
+class TestExportReadiness:
+    def test_all_true_100(self, client):
+        r = client.post(f"{API}/export-readiness", json={"iec": True, "gst": True, "website": True, "packagingReady": True, "certifications": True, "experience": True}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["score"] == 100
+        assert d["band"] == "Export-ready"
+
+    def test_all_false_0(self, client):
+        r = client.post(f"{API}/export-readiness", json={}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["score"] == 0
+        assert isinstance(d["recommendations"], list) and len(d["recommendations"]) >= 1
+
+    def test_lead_captured(self, client):
+        r = client.post(f"{API}/export-readiness", json={"iec": True, "name": "TEST_Readiness", "email": "test_readiness@example.com", "phone": "+919999999999"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["leadCaptured"] is True
+
+
+class TestAiAsk:
+    def test_ai_documents(self, client):
+        r = client.post(f"{API}/ai-ask", json={"question": "What documents do I need?"}, timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["isMock"] is True
+        assert "Commercial Invoice" in d["answer"] or "Packing List" in d["answer"]
+        assert isinstance(d["suggestedTools"], list) and len(d["suggestedTools"]) >= 1
+
+    def test_ai_fallback(self, client):
+        r = client.post(f"{API}/ai-ask", json={"question": "tell me a joke"}, timeout=20)
+        assert r.status_code == 200
+        assert r.json()["isMock"] is True
+
+
+class TestProductsCatalog:
+    def test_list(self, client):
+        r = client.get(f"{API}/products-catalog", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert isinstance(d, list) and len(d) == 5
+        for p in d:
+            assert {"slug", "name", "hsn", "image", "category"} <= set(p.keys())
+
+    def test_detail_basmati(self, client):
+        r = client.get(f"{API}/product/basmati-rice", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        for k in ["overview", "topExporters", "topImporters", "demand", "opportunities", "compliance", "certifications", "logistics", "relatedCorridors"]:
+            assert k in d
+
+    def test_unknown(self, client):
+        r = client.get(f"{API}/product/unknown-xyz", timeout=20)
+        assert r.status_code == 404
+
+
+class TestCorridors:
+    def test_list(self, client):
+        r = client.get(f"{API}/corridors", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert isinstance(d, list) and len(d) == 4
+
+    def test_detail_uae(self, client):
+        r = client.get(f"{API}/corridor/india-to-uae", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        for k in ["exportProcess", "importProcess", "customsInfo", "documents", "dutiesTaxes", "opportunities", "popularProducts", "logistics"]:
+            assert k in d
+
+    def test_unknown(self, client):
+        r = client.get(f"{API}/corridor/unknown-xyz", timeout=20)
+        assert r.status_code == 404
+
+
+class TestHsn:
+    def test_list(self, client):
+        r = client.get(f"{API}/hsn", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert isinstance(d, list) and len(d) == 5
+
+    def test_detail(self, client):
+        r = client.get(f"{API}/hsn/10063020", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert d["code"] == "10063020"
+        assert "Basmati" in d["title"]
+
+    def test_unknown(self, client):
+        r = client.get(f"{API}/hsn/00000000", timeout=20)
+        assert r.status_code == 404
+
+
+class TestIndustries:
+    def test_list(self, client):
+        r = client.get(f"{API}/industries", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert len(d) == 8
+
+    def test_detail(self, client):
+        r = client.get(f"{API}/industry/agriculture", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        for k in ["overview", "exports", "topMarkets", "compliance"]:
+            assert k in d
+
+    def test_unknown(self, client):
+        r = client.get(f"{API}/industry/unknown-xyz", timeout=20)
+        assert r.status_code == 404
+
+
+class TestBlog:
+    def test_list(self, client):
+        r = client.get(f"{API}/blog", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert len(d) == 6
+
+    def test_detail(self, client):
+        r = client.get(f"{API}/blog/complete-guide-to-iec-code-india", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert "body" in d and isinstance(d["body"], list) and len(d["body"]) > 0
+
+
+class TestSuppliers:
+    def test_list(self, client):
+        r = client.get(f"{API}/suppliers", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert "suppliers" in d and d["lockedExtras"] is True
+        assert isinstance(d["suppliers"], list) and len(d["suppliers"]) >= 1
+
+    def test_filter_country(self, client):
+        r = client.get(f"{API}/suppliers", params={"country": "IN"}, timeout=20)
+        assert r.status_code == 200
+
+    def test_filter_q(self, client):
+        r = client.get(f"{API}/suppliers", params={"q": "KRBL"}, timeout=20)
+        assert r.status_code == 200
+        assert any("KRBL" in s["company"] for s in r.json()["suppliers"])
+
+
+class TestMarketplace:
+    def test_marketplace(self, client):
+        r = client.get(f"{API}/marketplace", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert len(d["listings"]) == 6
+        assert len(d["reels"]) == 4
+        assert len(d["buyerRequests"]) == 3
+
+
+class TestNetwork:
+    def test_network(self, client):
+        r = client.get(f"{API}/network", timeout=20)
+        assert r.status_code == 200
+        d = r.json()
+        assert len(d["members"]) == 6
+        assert len(d["stats"]) == 4
+
+
+class TestSitemap:
+    def test_sitemap(self, client):
+        r = client.get(f"{BASE_URL}/sitemap.xml", timeout=20)
+        assert r.status_code == 200
+        text = r.text
+        # check key new paths
+        for path in ["/tools", "/ai-assistant", "/products", "/corridors", "/hsn/", "/industries", "/blog", "/suppliers", "/marketplace", "/network"]:
+            assert path in text, f"sitemap missing {path}"

@@ -55,14 +55,21 @@ export default function Footer() {
           </div>
           <ul className="space-y-2.5 text-sm text-slate-300">
             <li><Link to="/" className="hover:text-cyan-300" data-testid="footer-link-home">Home</Link></li>
+            <li><Link to="/tools" className="hover:text-cyan-300" data-testid="footer-link-tools">Trade Tools Hub</Link></li>
+            <li><Link to="/ai-assistant" className="hover:text-cyan-300" data-testid="footer-link-ai">AI Trade Copilot</Link></li>
+            <li><Link to="/products" className="hover:text-cyan-300" data-testid="footer-link-products-index">Products</Link></li>
+            <li><Link to="/corridors" className="hover:text-cyan-300" data-testid="footer-link-corridors">Trade Corridors</Link></li>
+            <li><Link to="/countries" className="hover:text-cyan-300" data-testid="footer-link-countries">Country Profiles</Link></li>
+            <li><Link to="/industries" className="hover:text-cyan-300" data-testid="footer-link-industries">Industries</Link></li>
+            <li><Link to="/marketplace" className="hover:text-cyan-300" data-testid="footer-link-marketplace">Marketplace</Link></li>
+            <li><Link to="/network" className="hover:text-cyan-300" data-testid="footer-link-network">Network</Link></li>
+            <li><Link to="/suppliers" className="hover:text-cyan-300" data-testid="footer-link-suppliers">Suppliers</Link></li>
             <li><Link to="/customs-compliance" className="hover:text-cyan-300" data-testid="footer-link-customs">Customs &amp; Compliance</Link></li>
-            <li><Link to="/product-info" className="hover:text-cyan-300" data-testid="footer-link-products">Product Info</Link></li>
+            <li><Link to="/intelligence" className="hover:text-cyan-300" data-testid="footer-link-intelligence">Intelligence</Link></li>
+            <li><Link to="/academy" className="hover:text-cyan-300" data-testid="footer-link-academy">Academy</Link></li>
+            <li><Link to="/blog" className="hover:text-cyan-300" data-testid="footer-link-blog">Blog</Link></li>
             <li><Link to="/expo" className="hover:text-cyan-300" data-testid="footer-link-expo">Expos &amp; Events</Link></li>
             <li><Link to="/trade-news" className="hover:text-cyan-300" data-testid="footer-link-news">Trade News</Link></li>
-            <li><Link to="/tools/duty-calculator" className="hover:text-cyan-300" data-testid="footer-link-duty">Duty Calculator</Link></li>
-            <li><Link to="/intelligence" className="hover:text-cyan-300" data-testid="footer-link-intelligence">Intelligence Hub</Link></li>
-            <li><Link to="/academy" className="hover:text-cyan-300" data-testid="footer-link-academy">Academy</Link></li>
-            <li><Link to="/countries" className="hover:text-cyan-300" data-testid="footer-link-countries">Country Profiles</Link></li>
             <li><Link to="/contact" className="hover:text-cyan-300" data-testid="footer-link-contact">Contact</Link></li>
           </ul>
         </div>

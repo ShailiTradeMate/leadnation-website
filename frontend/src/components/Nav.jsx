@@ -1,28 +1,48 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  Globe, Compass, Newspaper, CalendarBlank, Package, Phone, List, X,
-  GraduationCap, Calculator, ChartLine, MapPin, CaretDown,
+  Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
+  GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Robot,
+  Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
 } from "@phosphor-icons/react";
 
 const PRIMARY = [
   { to: "/", label: "Home", icon: Globe },
-  { to: "/customs-compliance", label: "Customs", icon: Compass },
-  { to: "/product-info", label: "Products", icon: Package },
-  { to: "/expo", label: "Expos", icon: CalendarBlank },
-  { to: "/trade-news", label: "News", icon: Newspaper },
+  { to: "/tools", label: "Tools", icon: Calculator },
+  { to: "/ai-assistant", label: "AI Copilot", icon: Robot },
 ];
 
-const TOOLS = [
-  { to: "/tools/duty-calculator", label: "Duty Calculator", icon: Calculator, desc: "Free customs & tax estimator" },
-  { to: "/intelligence", label: "Intelligence Hub", icon: ChartLine, desc: "Gold, oil, FX & trends" },
-  { to: "/academy", label: "Academy", icon: GraduationCap, desc: "Free trade courses" },
-  { to: "/countries", label: "Country Profiles", icon: MapPin, desc: "India, UAE, USA + 250 more" },
+const EXPLORE = [
+  { to: "/products", label: "Products", icon: Package, desc: "Product trade profiles" },
+  { to: "/corridors", label: "Corridors", icon: ArrowsLeftRight, desc: "India → World trade lanes" },
+  { to: "/countries", label: "Countries", icon: MapPin, desc: "Country trade profiles" },
+  { to: "/industries", label: "Industries", icon: ShoppingBag, desc: "Sector deep-dives" },
+  { to: "/expo", label: "Expos & Events", icon: CalendarBlank, desc: "Worldwide trade fairs" },
+  { to: "/customs-compliance", label: "Customs", icon: Compass, desc: "Duty & document engine" },
+];
+
+const PLATFORM = [
+  { to: "/marketplace", label: "Marketplace", icon: ShoppingBag, desc: "Listings & RFQs" },
+  { to: "/network", label: "Network", icon: UsersThree, desc: "Verified traders worldwide" },
+  { to: "/suppliers", label: "Suppliers", icon: Package, desc: "Verified Indian manufacturers" },
+  { to: "/intelligence", label: "Intelligence", icon: ChartLine, desc: "Commodities · FX · trends" },
+];
+
+const LEARN = [
+  { to: "/academy", label: "Academy", icon: GraduationCap, desc: "Trade courses (free)" },
+  { to: "/blog", label: "Blog", icon: BookOpen, desc: "Guides & playbooks" },
+  { to: "/trade-news", label: "Trade News", icon: Newspaper, desc: "Live global trade feed" },
+];
+
+const MENUS = [
+  { label: "Explore", items: EXPLORE },
+  { label: "Platform", items: PLATFORM },
+  { label: "Learn", items: LEARN },
 ];
 
 export default function Nav({ active = "/" }) {
   const [open, setOpen] = React.useState(false);
-  const [toolsOpen, setToolsOpen] = React.useState(false);
+  const [openMenu, setOpenMenu] = React.useState(null);
   const navigate = useNavigate();
 
   return (
@@ -33,83 +53,73 @@ export default function Nav({ active = "/" }) {
             <LogoMark />
             <div className="leading-none">
               <div className="text-[15px] font-display font-extrabold tracking-tight">LeadNation</div>
-              <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase mt-0.5">
-                Trade Intelligence
-              </div>
+              <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase mt-0.5">Trade Intelligence</div>
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5">
             {PRIMARY.map((l) => {
               const Icon = l.icon;
-              const isActive = active === l.to;
+              const isActive = active === l.to || (l.to === "/tools" && active.startsWith("/tools"));
               return (
                 <Link key={l.to} to={l.to}
-                  data-testid={`nav-link-${l.label.toLowerCase()}`}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-medium transition-all ${
+                  data-testid={`nav-link-${l.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-full text-[13px] font-medium transition-all ${
                     isActive ? "tab-active text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}>
-                  <Icon size={15} weight="duotone" />
-                  {l.label}
+                  <Icon size={14} weight="duotone" />{l.label}
                 </Link>
               );
             })}
 
-            {/* Tools dropdown */}
-            <div className="relative" onMouseEnter={() => setToolsOpen(true)} onMouseLeave={() => setToolsOpen(false)}>
-              <button
-                data-testid="nav-tools-toggle"
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-medium transition-all ${
-                  TOOLS.some(t => active === t.to) ? "tab-active text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Calculator size={15} weight="duotone" />
-                Tools
-                <CaretDown size={11} className={`transition-transform ${toolsOpen ? "rotate-180" : ""}`} />
-              </button>
-              {toolsOpen && (
-                <div className="absolute top-full right-0 pt-3 w-[330px]">
-                  <div className="glass-strong rounded-2xl p-3 border border-white/10 shadow-2xl">
-                    {TOOLS.map((t) => {
-                      const Icon = t.icon;
-                      return (
-                        <Link key={t.to} to={t.to}
-                          data-testid={`nav-tools-${t.label.toLowerCase().replace(/\s+/g, "-")}`}
-                          className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5">
-                          <div className="w-9 h-9 rounded-lg grid place-items-center bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-white/10 shrink-0">
-                            <Icon size={16} weight="duotone" className="text-cyan-300" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold">{t.label}</div>
-                            <div className="text-[11px] text-slate-400">{t.desc}</div>
-                          </div>
-                        </Link>
-                      );
-                    })}
+            {MENUS.map((m) => (
+              <div key={m.label} className="relative"
+                onMouseEnter={() => setOpenMenu(m.label)} onMouseLeave={() => setOpenMenu(null)}>
+                <button
+                  data-testid={`nav-menu-${m.label.toLowerCase()}`}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium text-slate-300 hover:text-white hover:bg-white/5">
+                  {m.label}
+                  <CaretDown size={11} className={`transition-transform ${openMenu === m.label ? "rotate-180" : ""}`} />
+                </button>
+                {openMenu === m.label && (
+                  <div className="absolute top-full right-0 pt-2 w-[340px]">
+                    <div className="glass-strong rounded-2xl p-2 border border-white/10 shadow-2xl">
+                      {m.items.map((t) => {
+                        const Icon = t.icon;
+                        return (
+                          <Link key={t.to} to={t.to}
+                            data-testid={`nav-menu-item-${t.label.toLowerCase().replace(/\s+/g, "-")}`}
+                            className="flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-white/5">
+                            <div className="w-9 h-9 rounded-lg grid place-items-center bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-white/10 shrink-0">
+                              <Icon size={16} weight="duotone" className="text-cyan-300" />
+                            </div>
+                            <div>
+                              <div className="text-sm font-semibold">{t.label}</div>
+                              <div className="text-[11px] text-slate-400">{t.desc}</div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            ))}
 
             <Link to="/contact"
               data-testid="nav-link-contact"
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-full text-[13px] font-medium transition-all ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-full text-[13px] font-medium transition-all ${
                 active === "/contact" ? "tab-active text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
               }`}>
-              <Phone size={15} weight="duotone" />
-              Contact
+              <Phone size={14} weight="duotone" />Contact
             </Link>
           </nav>
 
           <div className="flex items-center gap-3">
             <button data-testid="nav-cta-create-account" onClick={() => navigate("/contact")}
-              className="hidden sm:inline-flex btn-ghost !py-2.5 !px-5 text-[13px]">
-              Create Account
-            </button>
+              className="hidden sm:inline-flex btn-ghost !py-2 !px-4 text-[12px]">Create Account</button>
             <button data-testid="nav-cta-download" onClick={() => navigate("/#download")}
-              className="btn-primary !py-2.5 !px-5 text-[13px]">
-              Download App
-            </button>
+              className="btn-primary !py-2 !px-4 text-[12px]">Download App</button>
             <button data-testid="nav-mobile-toggle" className="lg:hidden text-white p-2" onClick={() => setOpen(!open)}>
               {open ? <X size={22} /> : <List size={22} />}
             </button>
@@ -117,16 +127,20 @@ export default function Nav({ active = "/" }) {
         </div>
 
         {open && (
-          <div className="lg:hidden border-t border-white/5">
+          <div className="lg:hidden border-t border-white/5 max-h-[70vh] overflow-y-auto">
             <div className="px-5 py-4 grid gap-1">
-              {[...PRIMARY, ...TOOLS, { to: "/contact", label: "Contact", icon: Phone }].map((l) => {
+              {[
+                ...PRIMARY,
+                ...EXPLORE,
+                ...PLATFORM,
+                ...LEARN,
+                { to: "/contact", label: "Contact", icon: Phone }
+              ].map((l) => {
                 const Icon = l.icon;
                 return (
-                  <Link key={l.to} to={l.to} onClick={() => setOpen(false)}
-                    data-testid={`nav-mobile-link-${l.label.toLowerCase().replace(/\s+/g, "-")}`}
+                  <Link key={l.to + l.label} to={l.to} onClick={() => setOpen(false)}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-200 hover:bg-white/5">
-                    <Icon size={18} weight="duotone" />
-                    {l.label}
+                    <Icon size={16} weight="duotone" />{l.label}
                   </Link>
                 );
               })}
