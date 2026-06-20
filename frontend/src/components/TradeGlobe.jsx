@@ -103,13 +103,17 @@ export default function TradeGlobe({ height = 540 }) {
         pointRadius={"size"}
         pointLabel={(p) => `<div style="font-family:'JetBrains Mono';color:#00C2FF;background:rgba(5,8,22,0.9);padding:4px 8px;border:1px solid rgba(0,194,255,0.3);border-radius:8px;font-size:11px">${p.label}</div>`}
         onGlobeReady={() => {
-          if (globeRef.current) {
-            const globeMat = globeRef.current.globeMaterial();
-            globeMat.color.set("#0a2540");
-            globeMat.emissive.set("#0a2540");
-            globeMat.emissiveIntensity = 0.15;
-            globeMat.shininess = 12;
-          }
+          try {
+            if (globeRef.current && typeof globeRef.current.globeMaterial === "function") {
+              const globeMat = globeRef.current.globeMaterial();
+              if (globeMat) {
+                globeMat.color && globeMat.color.set("#0a2540");
+                globeMat.emissive && globeMat.emissive.set("#0a2540");
+                globeMat.emissiveIntensity = 0.15;
+                globeMat.shininess = 12;
+              }
+            }
+          } catch (_) {}
         }}
       />
       {/* Soft halo overlay */}

@@ -49,17 +49,24 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 **Phase 3 + 4 — Trade Intelligence Ecosystem** (Jan 2026)
 - [x] **Trade Tools Hub** `/tools` + 7 individual tools: HSN Finder, Duty Calculator, Landed Cost Calculator, Export Incentive Finder, Product Research, Buyer Discovery, Export Readiness Score (3-step funnel with lead capture).
 - [x] **AI Trade Copilot** `/ai-assistant` — chat UI with suggested prompts; mocked-but-realistic responses with `MOCKED RESPONSE — LIVE AI COMING SOON` badge; suggested-tools links per answer. Ready for GPT integration.
-- [x] **Product Trade Profiles** `/products` + `/products/{slug}` — Basmati Rice, Agarbatti, Spices, Textiles, Pharmaceuticals (overview, HSN link, top importers/exporters, demand, opportunities, compliance, logistics, related corridors).
-- [x] **Trade Corridor Pages** `/corridors` + `/corridors/{slug}` — India-to-UAE/USA/Australia/Armenia (export & import process, customs, duties, docs, opportunities, popular products, logistics).
-- [x] **HSN Landing Pages** `/hsn/{code}` — 5 codes (10063020, 33074100, 09024020, 30049099, 62034299) with GST, RoDTEP, drawback, benefits, docs, customs notes, related products.
-- [x] **Industries** `/industries` + `/industries/{slug}` — 8 sectors (Agriculture, Food Processing, Textiles, Chemicals, Pharma, Engineering, Handicrafts, FMCG).
-- [x] **Blog / Knowledge Center** `/blog` + `/blog/{slug}` — 6 long-form posts across export guides, compliance, trade news, logistics, international marketing.
-- [x] **Supplier Discovery** `/suppliers` — searchable directory with verified badges, q/country/category filters, locked-CTA for full database.
-- [x] **Marketplace Preview** `/marketplace` — featured listings (6), trade reels (4), live buyer RFQs (3 with WhatsApp reply).
-- [x] **Trade Network** `/network` — featured members (6) with avatars + stats (48K+ members, 92 countries).
-- [x] **Mega-Nav** rebuilt: Home · Tools · AI Copilot · Explore▾ (Products/Corridors/Countries/Industries/Expos/Customs) · Platform▾ (Marketplace/Network/Suppliers/Intelligence) · Learn▾ (Academy/Blog/Trade News) · Contact.
-- [x] **Sitemap.xml** expanded to 50+ URLs covering every new route.
-- [x] All 60/60 backend API tests pass · all frontend flows verified across Phase 1 + 2 + 3 + 4.
+- [x] **Product Trade Profiles** `/products` + `/products/{slug}` — Basmati Rice, Agarbatti, Spices, Textiles, Pharmaceuticals.
+- [x] **Trade Corridor Pages** `/corridors` + `/corridors/{slug}` — India-to-UAE/USA/Australia/Armenia.
+- [x] **HSN Landing Pages** `/hsn/{code}` — 5 codes with GST, RoDTEP, drawback, benefits, docs, customs notes, related products.
+- [x] **Industries** `/industries` + `/industries/{slug}` — 8 sectors.
+- [x] **Blog / Knowledge Center** `/blog` + `/blog/{slug}` — 6 long-form posts.
+- [x] **Supplier Discovery** `/suppliers`, **Marketplace** `/marketplace`, **Network** `/network`.
+- [x] **Mega-Nav** rebuilt: Home · Tools · AI Copilot · Explore▾ · Platform▾ · Learn▾ · Contact.
+
+**Phase 5 — Revenue Engine, Admin CMS & Business Scale** (Jan 2026)
+- [x] **Analytics architecture**: env-driven loaders for GA4 / GTM / Microsoft Clarity / Meta Pixel + first-party event tracking via `/api/track` + `trackEvent()` wired into Create-Account, Download-App, WhatsApp, Contact form, Service Request submissions, page views.
+- [x] **Admin CMS** `/admin-login` → `/admin-cms` (token-gated, default `leadnation-admin-2026`): Dashboard (8 stat cards), Content (6 collections with create/edit/delete via JSON editor — countries, products, corridors, hsn_codes, industries, blog), Leads tab (search + CSV export at `/api/admin/leads.csv`), Service Requests tab (status dropdown + CA assignment input), Events tab (page views + custom events).
+- [x] **MongoDB content migration**: all 6 collections auto-seeded on startup if empty; CMS reads/writes go to MongoDB; no more hardcoded reads for those collections.
+- [x] **Business Services** `/services` + `/services/{slug}` — 10 services (RCMC, GST, IEC, Company Registration + 6 consulting: Export, Import, Compliance, Market Entry, Product Sourcing, Buyer Discovery Service). FAQ accordion + lead form → creates `service_request` + `lead` (linked CA workflow: new → assigned → in-progress → completed/cancelled).
+- [x] **Directory** `/directory` + `/directory/{kind}` — exporters, importers, suppliers, CHA, export-agents with search + country filter + locked-CTA.
+- [x] **Global Search** `/search` — searches products, countries, corridors, industries, blogs, HSN, services, tools with typed result badges.
+- [x] **Sitemap.xml** expanded to ~70 URLs (services + directories + everything from Phase 1–4).
+- [x] All admin endpoints token-gated via `X-Admin-Token` header (query token for CSV downloads only).
+- [x] **Testing**: 29/30 backend pytest pass · all frontend flows verified · 2 bugs caught and fixed (Home Globe regression + global-search type singularisation).
 
 ## Backlog / Next
 - **P0** Connect real engines (customs, trade news, expo, product info, search) once API docs are shared by user.

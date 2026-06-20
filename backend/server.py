@@ -1636,15 +1636,17 @@ async def global_search(q: str = Query(min_length=1)):
         results.append({"type": typ, "label": label, "to": to, "sub": sub})
 
     # CMS-backed collections (if seeded) — search products
+    type_map = {"products": "product", "corridors": "corridor", "countries": "country", "industries": "industry"}
+
     async def _scan(collection_name, prefix, slug_field="slug", title_field="name"):
         try:
             cursor = db[f"cms_{collection_name}"].find({}, {"_id": 0, slug_field: 1, title_field: 1, "category": 1, "tagline": 1})
             async for d in cursor:
                 title = (d.get(title_field) or "").lower()
                 if ql in title:
-                    _add(collection_name.rstrip("s"), d.get(title_field, ""), f"/{prefix}/{d.get(slug_field, '')}", d.get("tagline") or d.get("category", ""))
+                    _add(type_map.get(collection_name, collection_name), d.get(title_field, ""), f"/{prefix}/{d.get(slug_field, '')}", d.get("tagline") or d.get("category", ""))
         except Exception:
-            pass
+            logging.exception("global search scan failed for %s", collection_name)
 
     await _scan("products", "products")
     await _scan("corridors", "corridors")
