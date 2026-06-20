@@ -6,7 +6,7 @@ import csv as csv_mod
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://nation-deploy.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://global-trade-hub-176.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 ADMIN_TOKEN = "leadnation-admin-2026"
 HDR = {"X-Admin-Token": ADMIN_TOKEN}
