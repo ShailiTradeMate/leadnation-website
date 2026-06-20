@@ -30,6 +30,10 @@ import BlogDetail, { BlogIndex } from "@/pages/Blog";
 import Suppliers from "@/pages/Suppliers";
 import Marketplace from "@/pages/Marketplace";
 import Network from "@/pages/Network";
+import ServiceDetail, { ServicesHub } from "@/pages/Services";
+import DirectoryDetail, { DirectoryHub } from "@/pages/Directory";
+import GlobalSearch from "@/pages/GlobalSearch";
+import AdminDashboard, { AdminLogin } from "@/pages/admin/AdminDashboard";
 
 function App() {
   return (
@@ -43,6 +47,7 @@ function App() {
             <Route path="/expo" element={<Expo />} />
             <Route path="/product-info" element={<ProductInfo />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/search" element={<GlobalSearch />} />
 
             {/* Tools */}
             <Route path="/tools" element={<ToolsHub />} />
@@ -73,11 +78,24 @@ function App() {
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/network" element={<Network />} />
 
+            {/* Business Services */}
+            <Route path="/services" element={<ServicesHub />} />
+            <Route path="/services/:slug" element={<ServiceDetail />} />
+
+            {/* Directory */}
+            <Route path="/directory" element={<DirectoryHub />} />
+            <Route path="/directory/:kind" element={<DirectoryDetail />} />
+
             {/* Content */}
             <Route path="/academy" element={<Academy />} />
             <Route path="/intelligence" element={<Intelligence />} />
             <Route path="/blog" element={<BlogIndex />} />
             <Route path="/blog/:slug" element={<BlogDetail />} />
+
+            {/* Admin */}
+            <Route path="/admin-login" element={<AdminLogin />} />
+            <Route path="/admin-cms" element={<AdminDashboard />} />
+            <Route path="/admin/leads" element={<AdminDashboard />} />
           </Routes>
         </Layout>
       </BrowserRouter>

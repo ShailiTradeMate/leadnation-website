@@ -1,6 +1,7 @@
 import React from "react";
 import { CONTACT } from "@/data/contact";
 import { WhatsappLogo } from "@phosphor-icons/react";
+import { trackEvent } from "@/lib/analytics";
 
 export default function WhatsAppButton() {
   const href = `https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
@@ -11,6 +12,7 @@ export default function WhatsAppButton() {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => trackEvent("whatsapp_click", { location: "floating" })}
       data-testid="whatsapp-floating-btn"
       className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 group"
       aria-label="Chat on WhatsApp"

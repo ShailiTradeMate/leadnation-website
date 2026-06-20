@@ -61,4 +61,25 @@
   <url><loc>https://leadnation.app/network</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
 
   <url><loc>https://leadnation.app/blog</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+
+  <url><loc>https://leadnation.app/services</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/services/rcmc-registration</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/services/gst-registration</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/services/iec-registration</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/services/company-registration</loc><changefreq>weekly</changefreq><priority>0.95</priority></url>
+  <url><loc>https://leadnation.app/services/export-consulting</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/services/import-consulting</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/services/compliance-consulting</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/services/market-entry</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/services/product-sourcing</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/services/buyer-discovery-service</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+
+  <url><loc>https://leadnation.app/directory</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/directory/exporters</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/directory/importers</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/directory/suppliers</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leadnation.app/directory/cha</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+  <url><loc>https://leadnation.app/directory/export-agents</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
+
+  <url><loc>https://leadnation.app/search</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
 </urlset>

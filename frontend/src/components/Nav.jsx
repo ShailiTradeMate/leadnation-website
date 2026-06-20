@@ -4,11 +4,14 @@ import {
   Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
   GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Robot,
   Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
+  Briefcase, AddressBook, MagnifyingGlass,
 } from "@phosphor-icons/react";
+import { trackEvent } from "@/lib/analytics";
 
 const PRIMARY = [
   { to: "/", label: "Home", icon: Globe },
   { to: "/tools", label: "Tools", icon: Calculator },
+  { to: "/services", label: "Services", icon: Briefcase },
   { to: "/ai-assistant", label: "AI Copilot", icon: Robot },
 ];
 
@@ -24,6 +27,7 @@ const EXPLORE = [
 const PLATFORM = [
   { to: "/marketplace", label: "Marketplace", icon: ShoppingBag, desc: "Listings & RFQs" },
   { to: "/network", label: "Network", icon: UsersThree, desc: "Verified traders worldwide" },
+  { to: "/directory", label: "Directories", icon: AddressBook, desc: "Exporters · Importers · CHA" },
   { to: "/suppliers", label: "Suppliers", icon: Package, desc: "Verified Indian manufacturers" },
   { to: "/intelligence", label: "Intelligence", icon: ChartLine, desc: "Commodities · FX · trends" },
 ];
@@ -116,9 +120,12 @@ export default function Nav({ active = "/" }) {
           </nav>
 
           <div className="flex items-center gap-3">
-            <button data-testid="nav-cta-create-account" onClick={() => navigate("/contact")}
+            <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
+              <MagnifyingGlass size={16} weight="bold" />
+            </Link>
+            <button data-testid="nav-cta-create-account" onClick={() => { trackEvent("create_account_click", { location: "nav" }); navigate("/contact"); }}
               className="hidden sm:inline-flex btn-ghost !py-2 !px-4 text-[12px]">Create Account</button>
-            <button data-testid="nav-cta-download" onClick={() => navigate("/#download")}
+            <button data-testid="nav-cta-download" onClick={() => { trackEvent("download_app_click", { location: "nav" }); navigate("/#download"); }}
               className="btn-primary !py-2 !px-4 text-[12px]">Download App</button>
             <button data-testid="nav-mobile-toggle" className="lg:hidden text-white p-2" onClick={() => setOpen(!open)}>
               {open ? <X size={22} /> : <List size={22} />}

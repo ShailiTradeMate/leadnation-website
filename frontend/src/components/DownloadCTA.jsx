@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { AppleLogo, AndroidLogo, ArrowRight } from "@phosphor-icons/react";
 import { APP_LINKS } from "@/data/contact";
+import { trackEvent } from "@/lib/analytics";
 
 export default function DownloadCTA({ compact = false, id }) {
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ export default function DownloadCTA({ compact = false, id }) {
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href={APP_LINKS.ios}
+                onClick={() => trackEvent("download_app_click", { store: "ios", location: "cta_section" })}
                 data-testid={`cta-download-ios${compact ? "-compact" : ""}`}
                 className="glass rounded-2xl px-5 py-3 flex items-center gap-3 hover:border-cyan-400/50 hover:-translate-y-0.5 transition-all"
               >
@@ -37,6 +39,7 @@ export default function DownloadCTA({ compact = false, id }) {
               </a>
               <a
                 href={APP_LINKS.android}
+                onClick={() => trackEvent("download_app_click", { store: "android", location: "cta_section" })}
                 data-testid={`cta-download-android${compact ? "-compact" : ""}`}
                 className="glass rounded-2xl px-5 py-3 flex items-center gap-3 hover:border-cyan-400/50 hover:-translate-y-0.5 transition-all"
               >
@@ -47,7 +50,7 @@ export default function DownloadCTA({ compact = false, id }) {
                 </div>
               </a>
               <button
-                onClick={() => navigate("/contact")}
+                onClick={() => { trackEvent("create_account_click", { location: "cta_section" }); navigate("/contact"); }}
                 data-testid={`cta-create-account${compact ? "-compact" : ""}`}
                 className="btn-primary"
               >

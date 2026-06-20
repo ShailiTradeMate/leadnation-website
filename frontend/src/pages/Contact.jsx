@@ -4,6 +4,7 @@ import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { CONTACT } from "@/data/contact";
 import { createLead } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import {
   EnvelopeSimple,
   WhatsappLogo,
@@ -24,6 +25,7 @@ export default function Contact() {
     setErrorMsg("");
     try {
       await createLead({ ...form, source: "contact-page" });
+      trackEvent("contact_form_submitted", { source: "contact-page" });
       setStatus("done");
       setForm({ name: "", email: "", phone: "", country: "", message: "" });
     } catch (err) {
