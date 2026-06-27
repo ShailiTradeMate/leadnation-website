@@ -24,7 +24,18 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 7. India-first features section.
 
 ## Implemented (2026-06)
-**Phase 7 — LeadNation Brain & Intelligence Layer** (Jun 2026)
+**Phase 8 — Brain Production Activation (LIVE AI + RAG)** (Jun 2026)
+- [x] **Live AI ON** via Emergent Universal LLM key. Default model `gpt-5.4-mini` (cheapest reliable). Env-configurable: `BRAIN_AI_PROVIDER` (openai/anthropic/gemini/local), `BRAIN_AI_MODEL`, `BRAIN_AI_ENABLED`. Zero app-code change to switch providers.
+- [x] **RAG**: every answer retrieves Knowledge Base + engine context BEFORE generation; LLM reasons over LeadNation data only and states when info is insufficient (no fabrication). Source attribution preserved (enginesUsed + sources).
+- [x] **Cost controls (CTO)**: 24h response caching (`brain_cache`) → repeat questions cost $0; deterministic engine-composition fallback if LLM fails/zero-budget → never breaks. Retry-once on transient errors.
+- [x] **Brain Universal Search** replaces global search: KB → DB(CMS) → Engines/Network(suppliers,buyers,tools) → External APIs(off) → Web(off); relevance-ranked; new types: supplier, buyer, faq, learning, compliance, scheme. Frontend `/search` now calls `/api/brain/search`.
+- [x] **Memory**: conversation_memory + user_context (preferred country/products/industries, role, recent searches, saved items) injected into RAG context.
+- [x] **Monitoring**: `brain_usage` logs tokens + estimated cost + cached flag per call. Rate limiting (20 req/60s per session). Logging + retry.
+- [x] **Admin `/admin/brain` expanded**: AI Health (live status, cache hit rate, degraded calls), Cost Monitoring (total + by model), Token Usage, Engine Health, KB stats (79 entries incl FAQs), Most Asked / Trending, Top + Most-Viewed Countries/Products, Most Used Services, Failed Queries, Knowledge Gaps, Reseed.
+- [x] **Tested**: testing_agent iteration_6 — 100% (62/62 backend + all frontend), zero issues.
+- Approx cost @ gpt-5.4-mini ≈ $0.0004–0.0005 per uncached query (caching drives effective cost far lower).
+
+
 - [x] **Backend refactor**: monolithic `server.py` (1.7k lines) split into thin entrypoint + domain modules — `core.py`, `reference.py`, `engines.py`, `search.py`, `leads.py`, `trade_tools.py`, `ai.py`, `content.py`, `services.py`, `admin.py`, `analytics.py`. ZERO regressions (38/38 backend tests pass).
 - [x] **`brain/` package** — the central reusable intelligence layer (shared by website, app, future portals):
   - `knowledge.py` — `knowledge_base` collection as Single Source of Truth (SSOT); auto-seeds ~61 entries from countries/products/HSN/corridors/industries/services/blog/academy + curated compliance & schemes. `kb_search` / `kb_get` / `kb_stats`.
