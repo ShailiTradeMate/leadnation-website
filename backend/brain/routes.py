@@ -1,7 +1,9 @@
 """Brain public API — /api/brain/*"""
+import time
+from collections import defaultdict
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request, HTTPException
 from pydantic import BaseModel
 
 from brain.router import orchestrate
@@ -12,6 +14,19 @@ from brain.engines import ENGINES
 
 router = APIRouter(prefix="/brain")
 
+# Lightweight in-memory rate limiter (single-process): 20 requests / 60s per key.
+_HITS = defaultdict(list)
+_RL_WINDOW = 60
+_RL_MAX = 20
+
+
+def _rate_limit(key: str):
+    now = time.time()
+    _HITS[key] = [t for t in _HITS[key] if now - t < _RL_WINDOW]
+    if len(_HITS[key]) >= _RL_MAX:
+        raise HTTPException(status_code=429, detail="Too many requests — please slow down.")
+    _HITS[key].append(now)
+
 
 class AskRequest(BaseModel):
     question: str
@@ -20,7 +35,9 @@ class AskRequest(BaseModel):
 
 
 @router.post("/ask")
-async def brain_ask(payload: AskRequest):
+async def brain_ask(payload: AskRequest, request: Request):
+    key = payload.session_id or payload.user_id or (request.client.host if request.client else "anon")
+    _rate_limit(key)
     return await orchestrate(payload.question, payload.session_id, payload.user_id)
 
 

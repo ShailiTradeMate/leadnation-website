@@ -146,7 +146,7 @@ def test_brain_engines(s):
     body = r.json()
     assert body["count"] == 12, body
     assert isinstance(body["engines"], list) and len(body["engines"]) == 12
-    assert body["provider"]["active"] == "mock"
+    assert body["provider"]["active"] in ("mock", "openai")
 
 
 def test_brain_status(s):

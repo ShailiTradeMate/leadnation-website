@@ -15,6 +15,12 @@ const TYPE_COLORS = {
   hsn: "bg-blue-500/15 text-blue-300",
   service: "bg-fuchsia-500/15 text-fuchsia-300",
   tool: "bg-teal-500/15 text-teal-300",
+  supplier: "bg-lime-500/15 text-lime-300",
+  buyer: "bg-orange-500/15 text-orange-300",
+  faq: "bg-sky-500/15 text-sky-300",
+  learning: "bg-indigo-500/15 text-indigo-300",
+  compliance: "bg-pink-500/15 text-pink-300",
+  scheme: "bg-yellow-500/15 text-yellow-300",
 };
 
 export default function GlobalSearch() {
@@ -28,7 +34,7 @@ export default function GlobalSearch() {
     const term = (params.get("q") || "").trim();
     if (!term) { setData(null); return; }
     setLoading(true);
-    api.get("/global-search", { params: { q: term } }).then((r) => setData(r.data)).finally(() => setLoading(false));
+    api.get("/brain/search", { params: { q: term } }).then((r) => setData(r.data)).finally(() => setLoading(false));
   }, [params]);
 
   const submit = (e) => {
@@ -43,9 +49,9 @@ export default function GlobalSearch() {
         path="/search"
         keywords="LeadNation search, trade search, HSN search, product search"
       />
-      <PageHero testIdPrefix="search" label="Global search"
-        title="Find anything. Anywhere."
-        sub="Search across countries, products, HSN codes, corridors, industries, services, blogs and tools — one box."
+      <PageHero testIdPrefix="search" label="LeadNation Brain · Universal Search"
+        title="Search the entire trade brain."
+        sub="One box across countries, products, HSN, corridors, industries, services, suppliers, buyers, learning, FAQs, blogs and tools — ranked by relevance."
       >
         <form onSubmit={submit} className="glass-strong rounded-2xl flex items-center gap-3 px-4 py-3 max-w-2xl">
           <MagnifyingGlass size={20} className="text-cyan-300" />

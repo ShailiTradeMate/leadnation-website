@@ -96,6 +96,10 @@ async def seed_knowledge_base(force: bool = False):
         entries.append(_entry("service", slug, s["name"],
                               s.get("overview", "") + " " + s.get("tagline", ""),
                               [s.get("category", ""), "service"], s))
+        for n, faq in enumerate(s.get("faqs", [])):
+            entries.append(_entry("faq", f"{slug}-{n}", faq["q"], faq["a"],
+                                  [s["name"], "faq", s.get("category", "")],
+                                  {"service": slug, "answer": faq["a"]}))
 
     for b in BLOG_DB:
         entries.append(_entry("blog", b["slug"], b["title"], b.get("excerpt", ""),

@@ -65,14 +65,20 @@ export default function AdminBrain() {
 
       {/* Provider + KB + AI usage */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-8">
-        <Stat label="AI Provider" value={<span className="capitalize">{data.provider.active}</span>} />
-        <Stat label="Knowledge Base" value={data.knowledgeBase.total} />
+        <Stat label="AI Provider" value={<span className="capitalize">{data.aiHealth.status === "live" ? data.provider.active : "mock"}</span>} />
+        <Stat label="Model" value={<span className="text-base">{data.aiHealth.model || "—"}</span>} />
         <Stat label="Total Queries" value={data.aiUsage.totalQueries} />
         <Stat label="Answer Rate" value={`${data.aiUsage.answerRate}%`} />
+        <Stat label="Est. AI Cost" value={`$${(data.costMonitoring.totalCostUsd || 0).toFixed(4)}`} />
+        <Stat label="Tokens Used" value={data.tokenUsage.totalTokens.toLocaleString()} />
+        <Stat label="Cache Hit Rate" value={`${data.aiHealth.cacheHitRate}%`} />
+        <Stat label="Knowledge Base" value={data.knowledgeBase.total} />
       </div>
 
       <div className="mt-4 glass rounded-xl px-4 py-3 text-xs text-slate-400" data-testid="brain-provider-note">
-        Provider <span className="text-cyan-300 capitalize">{data.provider.active}</span> · live AI {data.provider.live ? "enabled" : "deferred (mock orchestration)"} · supports {data.provider.supported.join(", ")}.
+        AI Health: <span className={data.aiHealth.status === "live" ? "text-emerald-300" : "text-amber-300"}>{data.aiHealth.status.toUpperCase()}</span>
+        {" · "}RAG {data.aiHealth.ragEnabled ? "enabled" : "off"} · provider <span className="text-cyan-300 capitalize">{data.provider.active}</span>
+        {" · "}degraded calls: {data.aiHealth.degradedCalls} · supports {data.provider.supported.join(", ")}.
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4 mt-6">
@@ -110,6 +116,22 @@ export default function AdminBrain() {
         <Panel title="Top Products" testid="brain-top-products"><Bars items={data.topProducts} /></Panel>
         <Panel title="Top HSN Codes" testid="brain-top-hsn"><Bars items={data.topHsn} /></Panel>
         <Panel title="Top Business Services" testid="brain-top-services"><Bars items={data.topServices} /></Panel>
+
+        <Panel title="Cost by Model" icon={Cpu} testid="brain-cost-model">
+          <div className="space-y-2">
+            {(!data.costMonitoring.byModel || data.costMonitoring.byModel.length === 0) && <div className="text-sm text-slate-500">No live AI calls yet.</div>}
+            {data.costMonitoring.byModel?.map((m, i) => (
+              <div key={i} className="flex items-center justify-between text-sm glass rounded-lg px-3 py-2">
+                <span className="text-slate-300">{m.model}</span>
+                <span className="text-cyan-300 font-mono-display text-xs">${m.cost.toFixed(4)} · {m.calls} calls · {m.tokens.toLocaleString()} tok</span>
+              </div>
+            ))}
+          </div>
+        </Panel>
+
+        <Panel title="Most Viewed Countries" testid="brain-viewed-countries"><Bars items={data.mostViewedCountries} /></Panel>
+        <Panel title="Most Viewed Products" testid="brain-viewed-products"><Bars items={data.mostViewedProducts} /></Panel>
+        <Panel title="Most Used Services" testid="brain-used-services"><Bars items={data.mostUsedServices} /></Panel>
 
         <Panel title="Failed Queries" icon={Warning} testid="brain-failed">
           <div className="space-y-1.5">

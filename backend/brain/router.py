@@ -20,6 +20,9 @@ from brain import memory
 
 QUERIES = db.brain_queries
 USAGE = db.brain_usage
+CACHE = db.brain_cache
+
+CACHE_TTL_SECONDS = 24 * 3600
 
 
 def _now():
@@ -113,6 +116,9 @@ def _detect_intents(question, entities, engines):
 
 
 async def orchestrate(question: str, session_id: str = None, user_id: str = None):
+    import hashlib
+    from datetime import datetime as _dt
+
     entities = extract_entities(question)
     engine_keys = select_engines(question, entities)
     intent = _detect_intents(question, entities, engine_keys)
@@ -123,10 +129,6 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
         if out:
             engine_outputs[key] = out
 
-    context = await build_context(entities, session_id, user_id)
-    provider = get_provider()
-    result = provider.generate(question, intent, entities, engine_outputs, context)
-
     sources, suggestions = [], []
     for out in engine_outputs.values():
         for s in out.get("sources", []):
@@ -135,6 +137,24 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
     for s in sources[:5]:
         suggestions.append({"label": s["title"], "to": s["to"]})
 
+    provider = get_provider()
+    cache_key = hashlib.sha256(f"{provider.name}:{getattr(provider,'model',None)}:{question.strip().lower()}".encode()).hexdigest()
+
+    cached = await CACHE.find_one({"_id": cache_key})
+    if cached:
+        age = (_dt.now(timezone.utc) - _dt.fromisoformat(cached["createdAt"])).total_seconds()
+        if age < CACHE_TTL_SECONDS:
+            result = cached["result"]
+            await USAGE.insert_one({"provider": result.get("provider"), "model": result.get("model"),
+                                    "live": result.get("live", False), "cached": True,
+                                    "tokens": result.get("tokens", {}), "cost": 0.0, "createdAt": _now()})
+            if session_id:
+                await memory.append_message(session_id, "user", question)
+                await memory.append_message(session_id, "assistant", result["answer"])
+            return _shape(question, result, intent, entities, engine_keys, engine_outputs, sources, suggestions, cached=True)
+
+    context = await build_context(entities, session_id, user_id)
+    result = await provider.generate(question, intent, entities, engine_outputs, context)
     answered = bool(engine_outputs)
 
     if session_id:
@@ -146,16 +166,29 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
     await QUERIES.insert_one({
         "question": question, "intents": intent, "engines": engine_keys,
         "entities": entities, "answered": answered, "session_id": session_id,
+        "provider": result.get("provider"), "model": result.get("model"),
         "createdAt": _now(),
     })
-    await USAGE.insert_one({"provider": result.get("provider"), "live": result.get("live", False),
+    await USAGE.insert_one({"provider": result.get("provider"), "model": result.get("model"),
+                            "live": result.get("live", False), "cached": False,
+                            "tokens": result.get("tokens", {}), "cost": result.get("cost", 0.0),
                             "engines": len(engine_keys), "createdAt": _now()})
 
+    if answered and not result.get("degraded"):
+        await CACHE.replace_one({"_id": cache_key},
+                                {"_id": cache_key, "result": result, "createdAt": _now()}, upsert=True)
+
+    return _shape(question, result, intent, entities, engine_keys, engine_outputs, sources, suggestions, cached=False)
+
+
+def _shape(question, result, intent, entities, engine_keys, engine_outputs, sources, suggestions, cached):
     return {
         "question": question,
         "answer": result["answer"],
         "provider": result.get("provider"),
+        "model": result.get("model"),
         "live": result.get("live", False),
+        "cached": cached,
         "note": result.get("note"),
         "isMock": not result.get("live", False),
         "intent": intent,
