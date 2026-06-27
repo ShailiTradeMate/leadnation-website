@@ -32,13 +32,16 @@ class AskRequest(BaseModel):
     question: str
     session_id: Optional[str] = None
     user_id: Optional[str] = None
+    page_context: Optional[dict] = None
+    language: Optional[str] = "en"
 
 
 @router.post("/ask")
 async def brain_ask(payload: AskRequest, request: Request):
     key = payload.session_id or payload.user_id or (request.client.host if request.client else "anon")
     _rate_limit(key)
-    return await orchestrate(payload.question, payload.session_id, payload.user_id)
+    return await orchestrate(payload.question, payload.session_id, payload.user_id,
+                             page_context=payload.page_context, language=payload.language or "en")
 
 
 @router.get("/search")

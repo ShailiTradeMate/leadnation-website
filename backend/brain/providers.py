@@ -78,6 +78,13 @@ class PromptManager:
         if mem:
             recent = " | ".join(f"{m['role']}: {m['text'][:80]}" for m in mem[-4:])
             lines.append(f"\nRECENT CONVERSATION: {recent}")
+        role = context.get("role")
+        if role:
+            lines.append(f"\nUSER ROLE: {role} — tailor priorities accordingly.")
+        lang = context.get("language", "en")
+        if lang and lang != "en":
+            lang_names = {"hi": "Hindi", "ar": "Arabic", "fr": "French", "es": "Spanish"}
+            lines.append(f"\nIMPORTANT: Respond entirely in {lang_names.get(lang, lang)}.")
         lines.append("\nWrite the answer now.")
         return "\n".join(lines)
 
