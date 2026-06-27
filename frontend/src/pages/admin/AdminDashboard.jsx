@@ -3,7 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { adminApi, adminLogin, isAdminLoggedIn, setAdminToken, getAdminToken } from "@/lib/admin";
 import { API } from "@/lib/api";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain,
 } from "@phosphor-icons/react";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
@@ -76,6 +76,10 @@ export default function AdminDashboard() {
             <t.I size={14} weight="duotone" />{t.l}
           </button>
         ))}
+        <button data-testid="admin-tab-brain" onClick={() => navigate("/admin/brain")}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap text-violet-200 hover:bg-violet-500/10 border border-violet-400/20">
+          <Brain size={14} weight="duotone" />Brain
+        </button>
       </div>
 
       <div className="mt-6">

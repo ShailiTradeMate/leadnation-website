@@ -2,7 +2,7 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
-  GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Robot,
+  GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Brain,
   Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
   Briefcase, AddressBook, MagnifyingGlass,
 } from "@phosphor-icons/react";
@@ -12,7 +12,7 @@ const PRIMARY = [
   { to: "/", label: "Home", icon: Globe },
   { to: "/tools", label: "Tools", icon: Calculator },
   { to: "/services", label: "Services", icon: Briefcase },
-  { to: "/ai-assistant", label: "AI Copilot", icon: Robot },
+  { to: "/brain", label: "LeadNation Brain", icon: Brain },
 ];
 
 const EXPLORE = [

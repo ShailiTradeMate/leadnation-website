@@ -1,6 +1,6 @@
 import React from "react";
 import "@/index.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import Layout from "@/components/Layout";
 import Home from "@/pages/Home";
@@ -22,6 +22,7 @@ import ProductResearch from "@/pages/tools/ProductResearch";
 import FindBuyers from "@/pages/tools/FindBuyers";
 import ExportReadiness from "@/pages/tools/ExportReadiness";
 import AiAssistant from "@/pages/AiAssistant";
+import BrainPage from "@/pages/Brain";
 import ProductDetail, { ProductsIndex } from "@/pages/Products";
 import CorridorDetail, { CorridorsIndex } from "@/pages/Corridors";
 import HsnDetail from "@/pages/HsnDetail";
@@ -34,6 +35,7 @@ import ServiceDetail, { ServicesHub } from "@/pages/Services";
 import DirectoryDetail, { DirectoryHub } from "@/pages/Directory";
 import GlobalSearch from "@/pages/GlobalSearch";
 import AdminDashboard, { AdminLogin } from "@/pages/admin/AdminDashboard";
+import AdminBrain from "@/pages/admin/AdminBrain";
 
 function App() {
   return (
@@ -60,7 +62,9 @@ function App() {
             <Route path="/tools/export-readiness" element={<ExportReadiness />} />
 
             {/* AI */}
-            <Route path="/ai-assistant" element={<AiAssistant />} />
+            <Route path="/brain" element={<BrainPage />} />
+            <Route path="/ai-assistant" element={<Navigate to="/brain" replace />} />
+            <Route path="/ai-assistant-legacy" element={<AiAssistant />} />
 
             {/* Discovery layer */}
             <Route path="/countries" element={<CountriesIndex />} />
@@ -95,6 +99,7 @@ function App() {
             {/* Admin */}
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin-cms" element={<AdminDashboard />} />
+            <Route path="/admin/brain" element={<AdminBrain />} />
             <Route path="/admin/leads" element={<AdminDashboard />} />
           </Routes>
         </Layout>

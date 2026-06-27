@@ -57,7 +57,7 @@ export default function Footer() {
             <li><Link to="/" className="hover:text-cyan-300" data-testid="footer-link-home">Home</Link></li>
             <li><Link to="/tools" className="hover:text-cyan-300" data-testid="footer-link-tools">Trade Tools Hub</Link></li>
             <li><Link to="/services" className="hover:text-cyan-300" data-testid="footer-link-services">Business Services</Link></li>
-            <li><Link to="/ai-assistant" className="hover:text-cyan-300" data-testid="footer-link-ai">AI Trade Copilot</Link></li>
+            <li><Link to="/brain" className="hover:text-cyan-300" data-testid="footer-link-ai">LeadNation Brain</Link></li>
             <li><Link to="/products" className="hover:text-cyan-300" data-testid="footer-link-products-index">Products</Link></li>
             <li><Link to="/corridors" className="hover:text-cyan-300" data-testid="footer-link-corridors">Trade Corridors</Link></li>
             <li><Link to="/countries" className="hover:text-cyan-300" data-testid="footer-link-countries">Country Profiles</Link></li>
