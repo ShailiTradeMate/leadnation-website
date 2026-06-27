@@ -24,7 +24,17 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 7. India-first features section.
 
 ## Implemented (2026-06)
-**Phase 8 — Brain Production Activation (LIVE AI + RAG)** (Jun 2026)
+**Phase 9 — Brain Everywhere** (Jun 2026)
+- [x] **Global Brain Widget** on every page (desktop floating bottom-right above WhatsApp; mobile FAB). Hidden on /admin and /brain. Mounted in Layout.
+- [x] **Context-aware**: widget detects current route → page_context {type, slug}; backend `_resolve_page_entity` injects the country/product/HSN/service entity so short questions ("What documents are required?") work in-context.
+- [x] **Page-specific suggested prompts** per page type (country/product/hsn/service/corridor/industry/marketplace/academy/default).
+- [x] **Recommendation engine**: `recommendations` (related products/countries/HSN/services/blogs/academy/corridors/industries from KB) on every answer.
+- [x] **Smart lead-gen CTAs**: `ctas` (Create Account, Download App, Book Consultation, Apply IEC, Contact) surfaced naturally by detected intent — no pop-ups.
+- [x] **Personalization by role** (exporter/importer/cha/buyer/supplier) from user_context → boosts relevant engines.
+- [x] **Multilingual-ready** (`language` param → en/hi/ar/fr/es prompt instruction) + **voice-ready** architecture (no STT implemented). Cache key includes page+lang+role.
+- [x] Same Brain APIs reused by web/app/portals. Tested: testing_agent iteration_7 — 100% backend + frontend, zero issues.
+
+
 - [x] **Live AI ON** via Emergent Universal LLM key. Default model `gpt-5.4-mini` (cheapest reliable). Env-configurable: `BRAIN_AI_PROVIDER` (openai/anthropic/gemini/local), `BRAIN_AI_MODEL`, `BRAIN_AI_ENABLED`. Zero app-code change to switch providers.
 - [x] **RAG**: every answer retrieves Knowledge Base + engine context BEFORE generation; LLM reasons over LeadNation data only and states when info is insufficient (no fabrication). Source attribution preserved (enginesUsed + sources).
 - [x] **Cost controls (CTO)**: 24h response caching (`brain_cache`) → repeat questions cost $0; deterministic engine-composition fallback if LLM fails/zero-budget → never breaks. Retry-once on transient errors.
