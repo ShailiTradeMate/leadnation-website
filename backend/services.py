@@ -142,7 +142,15 @@ SERVICES_DB = {
 
 @router.get("/services")
 async def services_list():
-    return [{"slug": s["slug"], "name": s["name"], "category": s["category"], "tagline": s["tagline"], "image": s["image"], "priceFrom": s["priceFrom"]} for s in SERVICES_DB.values()]
+    overrides = await _rate_overrides()
+    return [{"slug": s["slug"], "name": s["name"], "category": s["category"], "tagline": s["tagline"],
+             "image": s["image"], "priceFrom": overrides.get(s["slug"], s["priceFrom"])}
+            for s in SERVICES_DB.values()]
+
+
+async def _rate_overrides():
+    doc = await db.site_settings.find_one({"_id": "site"}, {"serviceRates": 1})
+    return (doc or {}).get("serviceRates", {}) or {}
 
 
 @router.get("/service/{slug}")
@@ -150,6 +158,9 @@ async def service_detail(slug: str):
     s = SERVICES_DB.get(slug)
     if not s:
         return JSONResponse(status_code=404, content={"error": "Service not found"})
+    overrides = await _rate_overrides()
+    if slug in overrides:
+        s = {**s, "priceFrom": overrides[slug]}
     return s
 
 

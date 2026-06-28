@@ -332,3 +332,41 @@ async def cha_directory(port: str = ""):
     if port:
         chas = [c for c in chas if port.lower() in c["port"].lower() or port.lower() in c["city"].lower()] or chas
     return {"total": len(chas), "chas": chas}
+
+
+# ---------------- Incoterms & trade terms ----------------
+@router.get("/trade-terms")
+async def trade_terms():
+    return {
+        "incoterms": [
+            {"code": "EXW", "name": "Ex Works", "risk": "Buyer (from seller's door)", "desc": "Seller makes goods available at their premises; buyer bears all cost & risk from there."},
+            {"code": "FOB", "name": "Free On Board", "risk": "Transfers when loaded on vessel", "desc": "Seller clears for export and loads onto the ship; risk passes once on board. Most common for Indian sea exports."},
+            {"code": "CFR", "name": "Cost & Freight", "risk": "Transfers at loading port", "desc": "Seller pays freight to destination port; risk passes at origin once loaded."},
+            {"code": "CIF", "name": "Cost, Insurance & Freight", "risk": "Transfers at loading port", "desc": "Like CFR but seller also pays marine insurance to destination. Very common for India exports."},
+            {"code": "CIP", "name": "Carriage & Insurance Paid To", "risk": "Transfers at first carrier", "desc": "Seller pays carriage + insurance to named destination; for any transport mode."},
+            {"code": "DAP", "name": "Delivered At Place", "risk": "Seller until destination", "desc": "Seller delivers ready for unloading at the named place; buyer handles import duty."},
+            {"code": "DDP", "name": "Delivered Duty Paid", "risk": "Seller (full)", "desc": "Seller bears everything incl. import duty & clearance — max obligation on seller."},
+        ],
+        "paymentTerms": [
+            {"term": "Advance Payment (TT)", "risk": "Lowest for exporter", "desc": "Buyer pays before shipment via telegraphic transfer. Safest for the seller."},
+            {"term": "Letter of Credit (LC)", "risk": "Low (bank-guaranteed)", "desc": "Issuing bank guarantees payment against compliant documents. Most secure for large deals."},
+            {"term": "Documents against Payment (D/P)", "risk": "Medium", "desc": "Bank releases shipping docs to buyer only on payment."},
+            {"term": "Documents against Acceptance (D/A)", "risk": "Higher", "desc": "Docs released on the buyer's acceptance of a time draft; payment later."},
+            {"term": "Open Account", "risk": "Highest for exporter", "desc": "Goods shipped & delivered before payment due (e.g. 30–90 days). Use with trusted buyers."},
+        ],
+        "insurance": [
+            {"type": "Marine Cargo (ICC A)", "desc": "All-risk cover for sea/air cargo loss or damage in transit. Standard for CIF/CIP."},
+            {"type": "ICC B / C", "desc": "Restricted cover for named perils only — lower premium, narrower protection."},
+            {"type": "ECGC Credit Insurance", "desc": "Export Credit Guarantee Corp. covers buyer default / political risk on receivables."},
+            {"type": "Warehouse-to-Warehouse", "desc": "Covers goods from seller's warehouse to buyer's warehouse, end to end."},
+        ],
+        "keyTerms": [
+            {"term": "CIF Value", "desc": "Cost + Insurance + Freight — the basis on which Indian customs duty is assessed."},
+            {"term": "FOB Value", "desc": "Free On Board value — goods value at the port of loading, excluding freight & insurance."},
+            {"term": "Assessable Value", "desc": "CIF + 1% landing charges — the value customs uses to compute BCD."},
+            {"term": "Bill of Lading (B/L)", "desc": "Carrier's receipt + title document for sea cargo (Airway Bill for air)."},
+            {"term": "Shipping Bill / Bill of Entry", "desc": "Export / import declaration filed on ICEGATE for customs clearance."},
+        ],
+        "note": "Indicative guidance — confirm Incoterms® 2020 and payment terms in your sales contract.",
+    }
+
