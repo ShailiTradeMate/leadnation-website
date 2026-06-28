@@ -1,0 +1,31 @@
+{
+  "summary": "Full backend + frontend verification of the rebuilt /customs-compliance hub and the global Back button. 14/14 pytest cases pass against the live backend; every one of the 8 tabs renders a working result, and the Back button visibility rule (hidden on / and /admin, shown everywhere else) is correct. Ask-the-Brain deep-link navigates to /brain?q=... and the answer thread renders.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_customs.py",
+    "/app/test_reports/pytest/iteration_10_customs.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ReportTool local state resets on tab switch (component unmounts when `tab !== 'report'`). Not a bug — but if you want results to persist across tab navigation, lift the form/data state into the parent CustomsCompliance component.",
+    "BackButton uses window.history.length>2 fallback to '/'; this is reliable inside SPA but on a hard-refresh of a deep route the user is sent to home — acceptable, just noting.",
+    "TradeDataProvider.duty() is a stub returning None; correct for free tier. When flipping the env vars on, ensure the curated path is still used as a fallback to avoid 5xx if the paid provider errors.",
+    "/customs/fx caches per-base only — target currency missing in cache returns ok=false even if another base could serve it. Minor; acceptable for an hourly-refresh layer."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_customs.py (new)",
+    "/app/test_reports/pytest/iteration_10_customs.xml (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14 pytest)", "frontend": "100% — every tab + back-button + Ask-Brain flow verified"},
+  "test_credentials": "Public pages, no auth.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Customs hub testids: customs-tab-{report|fx|cbm|cha|price|freight|benefits|chas}; report-{product,country,hsn,dir-export,dir-import,submit,result,ask-brain}; fx-{amount,base,target,submit,result}; cbm-{length_cm,width_cm,height_cm,quantity,weight_kg,submit,result}; cha-{value,mode,dir,containers,submit,result}; price-{productCost,quantity,freight,insurance,dutyPct,marginPct,submit,result}; freight-{to,submit,result}; benefits-{dir,submit,result}; chas-{port,submit,result}. Back button: data-testid='global-back-btn', fixed top-left, hidden on '/' and any path starting with '/admin'. FX is genuinely live via open.er-api.com (1h cache). Compliance is curated India ruleset (DGFT/ICEGATE deep-links). Import to UAE returns FTA preferential 0.0% BCD (CEPA).",
+  "rca_of_the_issue": "n/a — feature verification only."
+}

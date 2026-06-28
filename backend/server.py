@@ -7,7 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from core import client, db  # noqa: F401  (db kept for shell/debug)
 
 # Domain routers
-import reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics
+import reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs
 from admin import CMS_COLLECTIONS, _seed_collection
 
 # Brain (Phase 7 intelligence layer)
@@ -18,7 +18,7 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="LeadNation — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
