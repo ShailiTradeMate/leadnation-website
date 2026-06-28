@@ -24,7 +24,17 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 7. India-first features section.
 
 ## Implemented (2026-06)
-**Fix — "Nothing is connected" dead-link sweep** (Jun 2026)
+**Global Back Button + Customs/Compliance/CHA Hub** (Jun 2026)
+- [x] **Global back button** — top-left on every page except Home and Admin (`BackButton.jsx` in Layout; navigate(-1) with home fallback).
+- [x] **Rebuilt `/customs-compliance`** as a product-based India hub with 8 tools (all buttons functional, loop closed):
+  - **Compliance Report** — filters: product / direction (Export·Import) / country / HSN(optional) → `POST /api/customs/profile`: BCD+IGST+SWS, FTA detection, documents (product-specific), CHA clearance steps, government benefits, official ICEGATE/DGFT/Indian-Trade-Portal deep links + "Ask the Brain".
+  - **Currency Exchange** — `GET /api/customs/fx` GENUINELY LIVE via open.er-api.com (no key, 1h cache).
+  - **CBM Calculator**, **CHA Charges Estimator**, **Landed/Selling Price Calculator**, **Freight Routes**, **Government Benefits Finder**, **CHA Directory** (WhatsApp connect).
+- [x] **Real-Time Trade Data Engine** (`customs.py`): live FX + curated India ruleset + Brain; **paid-API adapter** (`TradeDataProvider`, env `TRADE_DATA_PROVIDER`/`TRADE_DATA_API_KEY`) ready to flip on Seair/Export Genius/Volza with zero code change (Option C).
+- Note: DGFT/ICEGATE have NO free public API and scraping isn't allowed — duty data is curated+Brain, clearly labelled "indicative" with official deep-links; upgradeable via the adapter.
+- Verified: testing_agent iteration_10 — 100% (14/14 backend + all 8 tabs + back button), zero issues.
+
+
 - Root cause: several cards looked clickable (cursor/arrow/play affordances) but had no destination. Core flows (nav, forms, detail pages, search, Brain) were actually working.
 - Built automated full-site interaction audit via testing_agent (clicks every button/link/form, reports dead elements) — iterations 8 (audit) + 9 (verify).
 - [x] **Academy**: new `/academy/:slug` lesson page (backend `GET /api/academy/{slug}` with generated curriculum + related courses); course cards now link; per-lesson "Ask the Brain to teach this" + "Learn with the Brain" → `/brain?q=` auto-ask.
