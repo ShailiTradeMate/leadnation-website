@@ -24,7 +24,17 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 7. India-first features section.
 
 ## Implemented (2026-06)
-**Global Back Button + Customs/Compliance/CHA Hub** (Jun 2026)
+**Batch — Product Info Engine + cleanup + search fix** (Jun 2026)
+- [x] **#1 Product Info Engine** (`/product-info`) rebuilt: free-text filters (Import/Export · Product · Origin · Destination · HSN optional), NO dropdowns, fully Brain-powered — works for ANY product worldwide (verified: saffron→USA, lithium battery→Germany). Clean markdown rendering (headings/bullets), sources + related + CTAs.
+- [x] **#5** Home hero search fixed — was always navigating to /product-info; now routes the typed query to `/brain?q=` (Brain auto-answers). Different queries → different answers.
+- [x] **#2** Removed Suppliers + Directory (fake data) — nav/footer links gone; `/suppliers` + `/directory` redirect to home.
+- [x] **#3** Removed Network + Marketplace from nav/footer; pages now show an "in the app" note (`AppFeatureNote`) with download CTAs.
+- [x] **#6** Home "Business Services" highlight section (Explore Services + IEC/GST/RCMC/Company tiles).
+- [x] Nav "Platform" menu removed; Intelligence moved into Explore. Brain page + widget markdown rendering upgraded.
+- Verified: testing_agent iteration_11 — 100% (6/6 areas), zero issues.
+- DEFERRED to next batch: #4 (Incoterms/Insurance/Payment/CIF/FOB in Customs) and #7 (admin login 00001/Shiv@12345 via "I am admin" in Brain + Admin Control Center). Auth playbook (JWT) already obtained.
+
+
 - [x] **Global back button** — top-left on every page except Home and Admin (`BackButton.jsx` in Layout; navigate(-1) with home fallback).
 - [x] **Rebuilt `/customs-compliance`** as a product-based India hub with 8 tools (all buttons functional, loop closed):
   - **Compliance Report** — filters: product / direction (Export·Import) / country / HSN(optional) → `POST /api/customs/profile`: BCD+IGST+SWS, FTA detection, documents (product-specific), CHA clearance steps, government benefits, official ICEGATE/DGFT/Indian-Trade-Portal deep links + "Ask the Brain".
