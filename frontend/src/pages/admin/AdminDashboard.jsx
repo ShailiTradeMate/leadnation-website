@@ -3,40 +3,50 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { adminApi, adminLogin, isAdminLoggedIn, setAdminToken, getAdminToken } from "@/lib/admin";
 import { API } from "@/lib/api";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal,
 } from "@phosphor-icons/react";
+import { useSettings } from "@/lib/SettingsContext";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
 
 export function AdminLogin() {
-  const [token, setToken] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   if (isAdminLoggedIn()) return <Navigate to="/admin-cms" replace />;
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    setErr("");
-    try { await adminLogin(token); navigate("/admin-cms"); }
-    catch (_) { setErr("Invalid token"); }
+    setErr(""); setLoading(true);
+    try { await adminLogin(username.trim(), password); navigate("/admin-cms"); }
+    catch (_) { setErr("Invalid username or password"); }
+    finally { setLoading(false); }
   };
 
   return (
-    <section className="min-h-[70vh] grid place-items-center px-6">
-      <form onSubmit={onSubmit} className="glass-strong rounded-3xl p-8 w-full max-w-md">
-        <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Login</div>
-        <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to LeadNation CMS</h1>
-        <p className="text-slate-400 text-sm mt-2">Enter the admin token to access the dashboard, CMS, leads and service requests.</p>
+    <section className="min-h-[80vh] grid place-items-center px-6">
+      <form onSubmit={onSubmit} data-testid="admin-login-form" className="glass-strong rounded-3xl p-8 w-full max-w-md">
+        <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Control Center</div>
+        <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to LeadNation</h1>
+        <p className="text-slate-400 text-sm mt-2">Secure access to the CMS, leads, services, Brain and site controls.</p>
         <input
-          data-testid="admin-token-input"
-          autoFocus type="password"
-          value={token} onChange={(e) => setToken(e.target.value)}
-          placeholder="Admin token"
+          data-testid="admin-username-input"
+          autoFocus type="text" autoComplete="username"
+          value={username} onChange={(e) => setUsername(e.target.value)}
+          placeholder="Admin ID"
           className="mt-5 w-full glass rounded-xl px-4 py-3 outline-none"
         />
+        <input
+          data-testid="admin-password-input"
+          type="password" autoComplete="current-password"
+          value={password} onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          className="mt-3 w-full glass rounded-xl px-4 py-3 outline-none"
+        />
         {err && <div data-testid="admin-login-error" className="text-rose-300 text-sm mt-2">{err}</div>}
-        <button data-testid="admin-login-submit" className="btn-primary w-full justify-center mt-4">Sign in</button>
-        <div className="mt-4 text-[10px] text-slate-500 font-mono-display tracking-widest uppercase">Default · leadnation-admin-2026</div>
+        <button data-testid="admin-login-submit" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? "Signing in…" : "Sign in"}</button>
       </form>
     </section>
   );
@@ -70,6 +80,7 @@ export default function AdminDashboard() {
           { k: "leads", l: "Leads", I: UserList },
           { k: "service-requests", l: "Service Requests", I: Briefcase },
           { k: "events", l: "Events", I: Eye },
+          { k: "control-center", l: "Control Center", I: SlidersHorizontal },
         ].map((t) => (
           <button key={t.k} data-testid={`admin-tab-${t.k}`} onClick={() => setTab(t.k)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap ${tab === t.k ? "tab-active text-white" : "text-slate-300 hover:bg-white/5"}`}>
@@ -88,6 +99,7 @@ export default function AdminDashboard() {
         {tab === "leads" && <Leads />}
         {tab === "service-requests" && <ServiceRequests />}
         {tab === "events" && <Events />}
+        {tab === "control-center" && <ControlCenter />}
       </div>
     </section>
   );
@@ -322,6 +334,141 @@ function Events() {
           {items.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-slate-500">No events tracked yet — interact with the website to generate events.</td></tr>}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+
+const FEATURE_LABELS = {
+  tools: "Tools Hub", services: "Business Services", brain: "LeadNation Brain",
+  customs: "Customs & Compliance", intelligence: "Intelligence", expo: "Expos & Events",
+  academy: "Academy", blog: "Blog", trade_news: "Trade News",
+};
+
+function ControlCenter() {
+  const { refresh } = useSettings();
+  const [form, setForm] = useState(null);
+  const [services, setServices] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [pwd, setPwd] = useState("");
+  const [pwdMsg, setPwdMsg] = useState("");
+
+  useEffect(() => {
+    adminApi.get("/settings").then((r) => setForm({
+      accentColor: r.data.accentColor || "#00C2FF",
+      maintenance: !!r.data.maintenance,
+      maintenanceMessage: r.data.maintenanceMessage || "",
+      features: r.data.features || {},
+      serviceRates: r.data.serviceRates || {},
+    }));
+    adminApi.get("/services").then((r) => setServices(r.data)).catch(() => {});
+  }, []);
+
+  if (!form) return <div className="text-slate-400">Loading…</div>;
+
+  const setF = (patch) => setForm((p) => ({ ...p, ...patch }));
+  const toggleFeature = (k) => setF({ features: { ...form.features, [k]: !(form.features[k] !== false) } });
+  const setRate = (slug, val) => setF({ serviceRates: { ...form.serviceRates, [slug]: val } });
+
+  const save = async () => {
+    setSaving(true); setMsg("");
+    try {
+      const rates = Object.fromEntries(Object.entries(form.serviceRates).filter(([, v]) => v && v.trim()));
+      await adminApi.put("/admin/settings", {
+        accentColor: form.accentColor,
+        maintenance: form.maintenance,
+        maintenanceMessage: form.maintenanceMessage,
+        features: form.features,
+        serviceRates: rates,
+      });
+      await refresh();
+      setMsg("Saved — changes are live across the site.");
+    } catch (e) {
+      setMsg(e?.response?.data?.detail || "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  const changePassword = async () => {
+    setPwdMsg("");
+    if (pwd.length < 6) { setPwdMsg("Password must be at least 6 characters"); return; }
+    try { await adminApi.post("/auth/admin/password", { newPassword: pwd }); setPwd(""); setPwdMsg("Password updated."); }
+    catch (e) { setPwdMsg(e?.response?.data?.detail || "Failed"); }
+  };
+
+  const PRESETS = ["#00C2FF", "#7C3AED", "#10B981", "#F59E0B", "#EF4444", "#EC4899"];
+
+  return (
+    <div className="space-y-6" data-testid="control-center">
+      <div className="glass-strong rounded-3xl p-6 space-y-4">
+        <div className="font-display font-bold text-xl flex items-center gap-2"><SlidersHorizontal size={18} weight="duotone" className="text-cyan-300" /> Site Branding</div>
+        <div>
+          <div className="text-[11px] font-mono-display tracking-widest uppercase text-slate-400 mb-2">Accent colour (live)</div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <input data-testid="cc-accent-color" type="color" value={form.accentColor} onChange={(e) => setF({ accentColor: e.target.value })} className="w-12 h-12 rounded-xl bg-transparent border border-white/10 cursor-pointer" />
+            <input data-testid="cc-accent-hex" value={form.accentColor} onChange={(e) => setF({ accentColor: e.target.value })} className="glass rounded-xl px-3 py-2 w-32 font-mono-display text-sm" />
+            {PRESETS.map((c) => (
+              <button key={c} data-testid={`cc-preset-${c}`} onClick={() => setF({ accentColor: c })} className="w-8 h-8 rounded-full border border-white/20" style={{ background: c }} aria-label={c} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-strong rounded-3xl p-6 space-y-4">
+        <div className="font-display font-bold text-xl">Maintenance Mode</div>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input data-testid="cc-maintenance-toggle" type="checkbox" checked={form.maintenance} onChange={(e) => setF({ maintenance: e.target.checked })} className="w-5 h-5 accent-cyan-400" />
+          <span className="text-sm text-slate-300">Take the public site offline (admin stays accessible)</span>
+        </label>
+        <input data-testid="cc-maintenance-message" value={form.maintenanceMessage} onChange={(e) => setF({ maintenanceMessage: e.target.value })} placeholder="Maintenance message" className="w-full glass rounded-xl px-4 py-3 outline-none text-sm" />
+      </div>
+
+      <div className="glass-strong rounded-3xl p-6">
+        <div className="font-display font-bold text-xl mb-4">Feature Toggles</div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Object.keys(FEATURE_LABELS).map((k) => {
+            const on = form.features[k] !== false;
+            return (
+              <button key={k} data-testid={`cc-feature-${k}`} onClick={() => toggleFeature(k)}
+                className={`flex items-center justify-between glass rounded-xl px-4 py-3 text-sm transition-all ${on ? "border-cyan-400/40" : "opacity-60"}`}>
+                <span>{FEATURE_LABELS[k]}</span>
+                <span className={`text-[10px] font-mono-display uppercase px-2 py-0.5 rounded-full ${on ? "bg-emerald-500/20 text-emerald-300" : "bg-rose-500/20 text-rose-300"}`}>{on ? "On" : "Off"}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="glass-strong rounded-3xl p-6">
+        <div className="font-display font-bold text-xl mb-1">Service Rate Overrides</div>
+        <p className="text-xs text-slate-400 mb-4">Override the "from" price shown on service pages. Leave blank to use the default.</p>
+        <div className="space-y-2">
+          {services.map((s) => (
+            <div key={s.slug} className="flex items-center gap-3 flex-wrap">
+              <div className="flex-1 min-w-[180px]">
+                <div className="text-sm font-medium">{s.name}</div>
+                <div className="text-[11px] text-slate-500 font-mono-display">{s.slug} · default {s.priceFrom}</div>
+              </div>
+              <input data-testid={`cc-rate-${s.slug}`} value={form.serviceRates[s.slug] || ""} onChange={(e) => setRate(s.slug, e.target.value)} placeholder={s.priceFrom} className="glass rounded-xl px-3 py-2 w-48 text-sm" />
+            </div>
+          ))}
+          {services.length === 0 && <div className="text-slate-500 text-sm">No services found.</div>}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-4 flex-wrap">
+        <button data-testid="cc-save" onClick={save} disabled={saving} className="btn-primary disabled:opacity-50"><FloppyDisk size={16} weight="bold" /> {saving ? "Saving…" : "Save changes"}</button>
+        {msg && <span data-testid="cc-save-msg" className="text-sm text-emerald-300">{msg}</span>}
+      </div>
+
+      <div className="glass-strong rounded-3xl p-6 space-y-3">
+        <div className="font-display font-bold text-xl">Change Admin Password</div>
+        <div className="flex items-center gap-3 flex-wrap">
+          <input data-testid="cc-new-password" type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="New password" className="glass rounded-xl px-4 py-3 w-64 outline-none" />
+          <button data-testid="cc-change-password" onClick={changePassword} className="btn-ghost !py-2.5 text-sm">Update password</button>
+          {pwdMsg && <span className="text-sm text-cyan-300">{pwdMsg}</span>}
+        </div>
+      </div>
     </div>
   );
 }

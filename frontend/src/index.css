@@ -102,7 +102,7 @@ body {
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #ffffff 0%, #00C2FF 60%, #7C3AED 100%);
+  background: linear-gradient(135deg, #ffffff 0%, var(--ln-secondary, #00C2FF) 60%, #7C3AED 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -113,7 +113,7 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #00C2FF, #00a3d6);
+  background: linear-gradient(135deg, var(--ln-secondary, #00C2FF), #00a3d6);
   color: #050816;
   font-weight: 700;
   padding: 14px 28px;
@@ -216,8 +216,8 @@ body {
 
 /* Tab indicator */
 .tab-active {
-  background: linear-gradient(135deg, rgba(0,194,255,0.18), rgba(124,58,237,0.15));
-  border: 1px solid rgba(0,194,255,0.3);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ln-secondary, #00C2FF) 18%, transparent), rgba(124,58,237,0.15));
+  border: 1px solid color-mix(in srgb, var(--ln-secondary, #00C2FF) 30%, transparent);
 }
 
 /* Section divider line */

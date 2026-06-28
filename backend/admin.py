@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Any
 from datetime import datetime, timezone
 import uuid, io, csv, logging
-from core import db, require_admin, ADMIN_TOKEN
+from core import db, require_admin, ADMIN_TOKEN, decode_token
 
 router = APIRouter()
 
@@ -115,7 +115,8 @@ async def admin_leads(_: bool = Depends(require_admin)):
 
 @router.get("/admin/leads.csv")
 async def admin_leads_csv(token: str = Query(...)):
-    if token != ADMIN_TOKEN:
+    claims = decode_token(token)
+    if not (token == ADMIN_TOKEN or (claims and claims.get("role") == "admin")):
         raise HTTPException(status_code=401, detail="Unauthorised")
     items = await db.leads.find({}, {"_id": 0}).sort("createdAt", -1).to_list(5000)
     buf = io.StringIO()

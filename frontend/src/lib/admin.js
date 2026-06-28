@@ -1,7 +1,7 @@
 import axios from "axios";
 import { API } from "@/lib/api";
 
-const KEY = "ln_admin_token";
+const KEY = "ln_admin_jwt";
 
 export function getAdminToken() {
   try { return localStorage.getItem(KEY) || ""; } catch (_) { return ""; }
@@ -16,12 +16,12 @@ export function isAdminLoggedIn() {
 export const adminApi = axios.create({ baseURL: API, timeout: 15000 });
 adminApi.interceptors.request.use((cfg) => {
   const t = getAdminToken();
-  if (t) cfg.headers["X-Admin-Token"] = t;
+  if (t) cfg.headers["Authorization"] = `Bearer ${t}`;
   return cfg;
 });
 
-export async function adminLogin(token) {
-  const { data } = await adminApi.post("/admin/login", { token });
-  setAdminToken(token);
+export async function adminLogin(username, password) {
+  const { data } = await adminApi.post("/auth/admin/login", { username, password });
+  setAdminToken(data.token);
   return data;
 }

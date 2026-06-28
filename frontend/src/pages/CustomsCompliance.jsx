@@ -6,7 +6,7 @@ import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import {
   ShieldCheck, CurrencyCircleDollar, Cube, Calculator, Path, Gift, Users,
-  FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch,
+  FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch, Handshake,
 } from "@phosphor-icons/react";
 
 const COUNTRIES = [
@@ -17,6 +17,7 @@ const COUNTRIES = [
 
 const TABS = [
   ["report", "Compliance Report", ShieldCheck],
+  ["terms", "Trade Terms", Handshake],
   ["fx", "Currency Exchange", CurrencyCircleDollar],
   ["cbm", "CBM Calculator", Cube],
   ["cha", "CHA Charges", Calculator],
@@ -58,6 +59,7 @@ export default function CustomsCompliance() {
         </div>
 
         {tab === "report" && <ReportTool />}
+        {tab === "terms" && <TradeTermsTool />}
         {tab === "fx" && <FxTool />}
         {tab === "cbm" && <CbmTool />}
         {tab === "cha" && <ChaTool />}
@@ -342,6 +344,71 @@ function ChaDirectory() {
         </div>
       )}
     </ToolCard>
+  );
+}
+
+/* ---------------- Trade Terms (Incoterms / Payment / Insurance) ---------------- */
+function TradeTermsTool() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  React.useEffect(() => {
+    api.get("/customs/trade-terms").then(({ data }) => setData(data)).finally(() => setLoading(false));
+  }, []);
+  if (loading) return <div className="glass rounded-3xl p-10 text-center text-slate-400"><CircleNotch size={20} className="animate-spin inline" /> Loading trade terms…</div>;
+  if (!data) return <div className="glass rounded-3xl p-10 text-center text-slate-400">Unable to load trade terms.</div>;
+  return (
+    <div className="space-y-5" data-testid="terms-result">
+      <ToolCard title="Incoterms® 2020" desc="Who bears cost and risk, and where it transfers between seller and buyer.">
+        <div className="grid sm:grid-cols-2 gap-3">
+          {data.incoterms.map((t) => (
+            <div key={t.code} data-testid={`terms-incoterm-${t.code}`} className="glass rounded-2xl p-4">
+              <div className="flex items-center justify-between">
+                <span className="font-mono-display font-bold text-cyan-300">{t.code}</span>
+                <span className="text-[10px] uppercase tracking-wider text-slate-400">{t.name}</span>
+              </div>
+              <div className="text-xs text-emerald-300/90 mt-2">Risk: {t.risk}</div>
+              <p className="text-sm text-slate-300 mt-1.5">{t.desc}</p>
+            </div>
+          ))}
+        </div>
+      </ToolCard>
+
+      <ToolCard title="Payment Terms" desc="Methods to get paid — from safest to riskiest for the exporter.">
+        <div className="space-y-2">
+          {data.paymentTerms.map((p, i) => (
+            <div key={i} className="glass rounded-xl px-4 py-3 flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-white">{p.term}</span>
+              <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-400/30 text-violet-200">{p.risk}</span>
+              <p className="text-sm text-slate-400 w-full">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+      </ToolCard>
+
+      <div className="grid lg:grid-cols-2 gap-5">
+        <ToolCard title="Cargo Insurance" desc="Protecting goods in transit.">
+          <div className="space-y-2">
+            {data.insurance.map((it, i) => (
+              <div key={i} className="glass rounded-xl px-4 py-3">
+                <div className="font-medium text-cyan-300 text-sm">{it.type}</div>
+                <p className="text-sm text-slate-400 mt-1">{it.desc}</p>
+              </div>
+            ))}
+          </div>
+        </ToolCard>
+        <ToolCard title="Key Trade Terms" desc="The vocabulary customs and banks use.">
+          <div className="space-y-2">
+            {data.keyTerms.map((it, i) => (
+              <div key={i} className="glass rounded-xl px-4 py-3">
+                <div className="font-medium text-white text-sm">{it.term}</div>
+                <p className="text-sm text-slate-400 mt-1">{it.desc}</p>
+              </div>
+            ))}
+          </div>
+        </ToolCard>
+      </div>
+      <div className="text-xs text-amber-300/80 px-1">{data.note}</div>
+    </div>
   );
 }
 

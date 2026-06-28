@@ -78,6 +78,14 @@ export default function BrainWidget() {
 
   const ask = async (question) => {
     if (!question.trim() || loading) return;
+    const norm = question.trim().toLowerCase().replace(/[.!]/g, "");
+    if (["i am admin", "i'm admin", "im admin", "admin login", "i am an admin"].includes(norm)) {
+      setQ("");
+      setOpen(false);
+      trackEvent("brain_admin_trigger", {});
+      navigate("/admin-login");
+      return;
+    }
     setThread((t) => [...t, { role: "user", answer: question }]);
     setQ("");
     setLoading(true);

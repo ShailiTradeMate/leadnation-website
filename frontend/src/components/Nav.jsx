@@ -7,6 +7,13 @@ import {
   Briefcase, AddressBook, MagnifyingGlass,
 } from "@phosphor-icons/react";
 import { trackEvent } from "@/lib/analytics";
+import { useSettings } from "@/lib/SettingsContext";
+
+const ROUTE_FEATURE = {
+  "/tools": "tools", "/services": "services", "/brain": "brain",
+  "/customs-compliance": "customs", "/intelligence": "intelligence", "/expo": "expo",
+  "/academy": "academy", "/blog": "blog", "/trade-news": "trade_news",
+};
 
 const PRIMARY = [
   { to: "/", label: "Home", icon: Globe },
@@ -40,6 +47,17 @@ export default function Nav({ active = "/" }) {
   const [open, setOpen] = React.useState(false);
   const [openMenu, setOpenMenu] = React.useState(null);
   const navigate = useNavigate();
+  const { settings } = useSettings();
+
+  const allowed = (to) => {
+    const f = ROUTE_FEATURE[to];
+    return !f || settings.features?.[f] !== false;
+  };
+  const primary = PRIMARY.filter((l) => allowed(l.to));
+  const menus = MENUS
+    .map((m) => ({ ...m, items: m.items.filter((t) => allowed(t.to)) }))
+    .filter((m) => m.items.length > 0);
+  const mobileLinks = [...primary, ...menus.flatMap((m) => m.items), { to: "/contact", label: "Contact", icon: Phone }];
 
   return (
     <header className="fixed top-0 inset-x-0 z-50">
@@ -54,7 +72,7 @@ export default function Nav({ active = "/" }) {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-0.5">
-            {PRIMARY.map((l) => {
+            {primary.map((l) => {
               const Icon = l.icon;
               const isActive = active === l.to || (l.to === "/tools" && active.startsWith("/tools"));
               return (
@@ -68,7 +86,7 @@ export default function Nav({ active = "/" }) {
               );
             })}
 
-            {MENUS.map((m) => (
+            {menus.map((m) => (
               <div key={m.label} className="relative"
                 onMouseEnter={() => setOpenMenu(m.label)} onMouseLeave={() => setOpenMenu(null)}>
                 <button
@@ -128,12 +146,7 @@ export default function Nav({ active = "/" }) {
         {open && (
           <div className="lg:hidden border-t border-white/5 max-h-[70vh] overflow-y-auto">
             <div className="px-5 py-4 grid gap-1">
-              {[
-                ...PRIMARY,
-                ...EXPLORE,
-                ...LEARN,
-                { to: "/contact", label: "Contact", icon: Phone }
-              ].map((l) => {
+              {mobileLinks.map((l) => {
                 const Icon = l.icon;
                 return (
                   <Link key={l.to + l.label} to={l.to} onClick={() => setOpen(false)}
