@@ -31,22 +31,21 @@ function sessionId() {
 }
 
 function FormattedAnswer({ text }) {
-  return (
-    <div className="space-y-3">
-      {text.split("\n\n").map((para, i) => {
-        const parts = para.split(/(\*\*[^*]+\*\*)/g);
-        return (
-          <p key={i} className="text-sm leading-relaxed text-slate-200">
-            {parts.map((p, j) =>
-              p.startsWith("**") && p.endsWith("**")
-                ? <span key={j} className="font-semibold text-cyan-300">{p.slice(2, -2)}</span>
-                : <span key={j}>{p}</span>
-            )}
-          </p>
-        );
-      })}
-    </div>
-  );
+  const lines = (text || "").split("\n");
+  const out = [];
+  let bullets = [];
+  const inline = (s) => s.split(/(\*\*[^*]+\*\*)/g).map((p, j) => p.startsWith("**") && p.endsWith("**") ? <span key={j} className="font-semibold text-cyan-300">{p.slice(2, -2)}</span> : <span key={j}>{p}</span>);
+  const flush = (k) => { if (bullets.length) { out.push(<ul key={"u" + k} className="list-disc pl-5 space-y-1 text-sm text-slate-300">{bullets.map((b, i) => <li key={i}>{inline(b)}</li>)}</ul>); bullets = []; } };
+  lines.forEach((raw, k) => {
+    const l = raw.trim();
+    if (!l || l === "---") { flush(k); return; }
+    if (l.startsWith("### ")) { flush(k); out.push(<h4 key={k} className="font-display font-bold text-base mt-4 text-white">{inline(l.slice(4))}</h4>); }
+    else if (l.startsWith("## ")) { flush(k); out.push(<h3 key={k} className="font-display font-bold text-lg mt-5 text-cyan-200">{inline(l.slice(3))}</h3>); }
+    else if (l.startsWith("- ") || l.startsWith("* ")) { bullets.push(l.slice(2)); }
+    else { flush(k); out.push(<p key={k} className="text-sm leading-relaxed text-slate-200">{inline(l)}</p>); }
+  });
+  flush("end");
+  return <div className="space-y-2">{out}</div>;
 }
 
 export default function BrainPage() {

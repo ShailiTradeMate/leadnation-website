@@ -30,7 +30,7 @@ import CorridorDetail, { CorridorsIndex } from "@/pages/Corridors";
 import HsnDetail from "@/pages/HsnDetail";
 import IndustryDetail, { IndustriesIndex } from "@/pages/Industries";
 import BlogDetail, { BlogIndex } from "@/pages/Blog";
-import Suppliers from "@/pages/Suppliers";
+import Suppliers from "@/pages/Suppliers";  // retired route
 import Marketplace from "@/pages/Marketplace";
 import Network from "@/pages/Network";
 import ServiceDetail, { ServicesHub } from "@/pages/Services";
@@ -80,8 +80,8 @@ function App() {
             <Route path="/industries" element={<IndustriesIndex />} />
             <Route path="/industries/:slug" element={<IndustryDetail />} />
 
-            {/* Network & Marketplace */}
-            <Route path="/suppliers" element={<Suppliers />} />
+            {/* In-app features */}
+            <Route path="/suppliers" element={<Navigate to="/" replace />} />
             <Route path="/marketplace" element={<Marketplace />} />
             <Route path="/network" element={<Network />} />
 
@@ -89,9 +89,9 @@ function App() {
             <Route path="/services" element={<ServicesHub />} />
             <Route path="/services/:slug" element={<ServiceDetail />} />
 
-            {/* Directory */}
-            <Route path="/directory" element={<DirectoryHub />} />
-            <Route path="/directory/:kind" element={<DirectoryDetail />} />
+            {/* Directory (retired — fake data removed) */}
+            <Route path="/directory" element={<Navigate to="/" replace />} />
+            <Route path="/directory/:kind" element={<Navigate to="/" replace />} />
 
             {/* Content */}
             <Route path="/academy" element={<Academy />} />

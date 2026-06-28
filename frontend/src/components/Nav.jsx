@@ -22,13 +22,6 @@ const EXPLORE = [
   { to: "/industries", label: "Industries", icon: ShoppingBag, desc: "Sector deep-dives" },
   { to: "/expo", label: "Expos & Events", icon: CalendarBlank, desc: "Worldwide trade fairs" },
   { to: "/customs-compliance", label: "Customs", icon: Compass, desc: "Duty & document engine" },
-];
-
-const PLATFORM = [
-  { to: "/marketplace", label: "Marketplace", icon: ShoppingBag, desc: "Listings & RFQs" },
-  { to: "/network", label: "Network", icon: UsersThree, desc: "Verified traders worldwide" },
-  { to: "/directory", label: "Directories", icon: AddressBook, desc: "Exporters · Importers · CHA" },
-  { to: "/suppliers", label: "Suppliers", icon: Package, desc: "Verified Indian manufacturers" },
   { to: "/intelligence", label: "Intelligence", icon: ChartLine, desc: "Commodities · FX · trends" },
 ];
 
@@ -40,7 +33,6 @@ const LEARN = [
 
 const MENUS = [
   { label: "Explore", items: EXPLORE },
-  { label: "Platform", items: PLATFORM },
   { label: "Learn", items: LEARN },
 ];
 
@@ -139,7 +131,6 @@ export default function Nav({ active = "/" }) {
               {[
                 ...PRIMARY,
                 ...EXPLORE,
-                ...PLATFORM,
                 ...LEARN,
                 { to: "/contact", label: "Contact", icon: Phone }
               ].map((l) => {

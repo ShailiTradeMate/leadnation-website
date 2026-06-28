@@ -76,15 +76,16 @@ export default function Home() {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   onFocus={() => setFocused(true)}
-                  placeholder="Search Basmati rice, India to UAE, HS code 1006…"
+                  placeholder="Ask anything — Can I export Agarbatti to UAE? HS code for basmati?"
                   className="flex-1 bg-transparent outline-none text-white placeholder:text-slate-500 text-[15px]"
+                  onKeyDown={(e) => { if (e.key === "Enter" && q.trim()) navigate(`/brain?q=${encodeURIComponent(q)}`); }}
                 />
                 <button
                   data-testid="home-search-submit"
                   className="hidden sm:inline-flex btn-primary !py-2 !px-4 text-[13px]"
-                  onClick={() => navigate("/product-info")}
+                  onClick={() => navigate(q.trim() ? `/brain?q=${encodeURIComponent(q)}` : "/brain")}
                 >
-                  Explore <ArrowRight size={14} weight="bold" />
+                  Ask the Brain <ArrowRight size={14} weight="bold" />
                 </button>
               </div>
               {focused && results.length > 0 && (
@@ -182,6 +183,30 @@ export default function Home() {
             desc="GST, RoDTEP, ICEGATE and full Hindi + regional language support." link="/contact" testId="feat-india" />
         </div>
       </section>
+
+      {/* SERVICES HIGHLIGHT */}
+      <section className="relative max-w-7xl mx-auto px-6 sm:px-10 py-12" data-testid="home-services-highlight">
+        <div className="glass-strong rounded-3xl p-8 sm:p-10 grid lg:grid-cols-2 gap-8 items-center border border-cyan-400/20">
+          <div>
+            <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Done-for-you · Business Services</div>
+            <h2 className="font-display font-extrabold text-3xl sm:text-4xl mt-3 leading-tight">IEC, GST, RCMC & company setup — handled end-to-end.</h2>
+            <p className="mt-3 text-slate-300 text-sm sm:text-base">Skip the paperwork. Our experts get your export business registration-ready, fast. Transparent pricing, real humans, full compliance.</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/services" data-testid="home-services-cta" className="btn-primary">Explore Services <ArrowRight size={16} weight="bold" /></Link>
+              <Link to="/services/iec-registration" className="btn-ghost">Apply for IEC</Link>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {[["IEC Registration", "/services/iec-registration"], ["GST Registration", "/services/gst-registration"], ["RCMC", "/services/rcmc-registration"], ["Company Setup", "/services"]].map(([t, to]) => (
+              <Link key={t} to={to} className="glass rounded-2xl px-4 py-5 hover:border-cyan-400/40 hover:-translate-y-0.5 transition-all">
+                <div className="font-display font-bold">{t}</div>
+                <div className="text-xs text-cyan-300 mt-1 flex items-center gap-1">Get started <ArrowRight size={12} /></div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* INDIA FEATURES */}
       <section className="relative max-w-7xl mx-auto px-6 sm:px-10 py-16">

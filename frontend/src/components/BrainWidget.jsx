@@ -41,18 +41,21 @@ function sessionId() {
 }
 
 function Formatted({ text }) {
-  return (
-    <div className="space-y-2">
-      {text.split("\n\n").map((para, i) => {
-        const parts = para.split(/(\*\*[^*]+\*\*)/g);
-        return <p key={i} className="text-[13px] leading-relaxed text-slate-200">
-          {parts.map((p, j) => p.startsWith("**") && p.endsWith("**")
-            ? <span key={j} className="font-semibold text-cyan-300">{p.slice(2, -2)}</span>
-            : <span key={j}>{p}</span>)}
-        </p>;
-      })}
-    </div>
-  );
+  const lines = (text || "").split("\n");
+  const out = [];
+  let bullets = [];
+  const inline = (s) => s.split(/(\*\*[^*]+\*\*)/g).map((p, j) => p.startsWith("**") && p.endsWith("**") ? <span key={j} className="font-semibold text-cyan-300">{p.slice(2, -2)}</span> : <span key={j}>{p}</span>);
+  const flush = (k) => { if (bullets.length) { out.push(<ul key={"u" + k} className="list-disc pl-4 space-y-0.5 text-[12px] text-slate-300">{bullets.map((b, i) => <li key={i}>{inline(b)}</li>)}</ul>); bullets = []; } };
+  lines.forEach((raw, k) => {
+    const l = raw.trim();
+    if (!l || l === "---") { flush(k); return; }
+    if (l.startsWith("### ")) { flush(k); out.push(<div key={k} className="font-semibold text-[13px] mt-2 text-white">{inline(l.slice(4))}</div>); }
+    else if (l.startsWith("## ")) { flush(k); out.push(<div key={k} className="font-bold text-[13px] mt-2 text-cyan-200">{inline(l.slice(3))}</div>); }
+    else if (l.startsWith("- ") || l.startsWith("* ")) { bullets.push(l.slice(2)); }
+    else { flush(k); out.push(<p key={k} className="text-[13px] leading-relaxed text-slate-200">{inline(l)}</p>); }
+  });
+  flush("end");
+  return <div className="space-y-1.5">{out}</div>;
 }
 
 export default function BrainWidget() {

@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only verification of LeadNation batch: Product Info Engine (free-text Brain-powered), Home hero search fix, Services Highlight, removals of Suppliers/Directory/Marketplace/Network, Intelligence in Explore, and customs/back-button regression. All 6 areas pass against the live preview.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "ProductInfo.jsx Formatted renderer strips '**bold**' into a styled span and handles '## ' / '### ' / list bullets — verified no raw markdown leaks into the DOM. Good.",
+    "ProductInfo Sources & Related panels render conditionally on res.sources?.length and res.recommendations?.length. For the two arbitrary products tested (saffron→USA, lithium battery→Germany) the Brain response did NOT include sources/recommendations arrays — so these panels were absent. Not a frontend bug, but if E1 wants those panels to ALWAYS appear, the backend /brain/ask must guarantee at least some sources/recommendations even for off-catalog products. Currently the engine pills, CTA chips and main answer all render fine.",
+    "Home.jsx hero search correctly navigates to /brain?q=<encoded> on both Enter key and home-search-submit click — the previous always-/product-info bug is fixed.",
+    "Nav 'Platform' menu fully removed; Intelligence moved into the Explore dropdown (data-testid nav-menu-item-intelligence) and routes to /intelligence (200, no 404).",
+    "App routes for /suppliers and /directory both redirect to /; /marketplace and /network render AppFeatureNote with appnote-ios + appnote-android testids — no fake data anywhere.",
+    "Customs hub regression: all 8 tabs (report, fx, cbm, cha, price, freight, benefits, chas) present; global-back-btn visible on content pages.",
+    "Minor: Footer still lists 'Trade Corridors' / 'Country Profiles' / 'Industries' which depend on /corridors, /countries, /industries existing. Not tested for 404 in this iteration — recommend a quick link-walker pass next."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100% (6/6 feature areas verified)"},
+  "test_credentials": "n/a — public pages.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Live Brain AI responses for off-catalog products (saffron, lithium battery) return clean Markdown-free text via the Formatted renderer but do NOT populate `sources`/`recommendations` arrays — so the Sources & Related side panels render empty/hidden. CTA chips and engine pills do render. Latency was ~10-15s for first call, ~4-6s subsequently. Useful testids: pi-dir-export, pi-dir-import, pi-product, pi-origin, pi-destination, pi-hsn, pi-submit, pi-result, pi-ask-brain, home-search-input, home-search-submit, home-services-highlight, home-services-cta, appnote-ios, appnote-android, nav-menu-explore, nav-menu-item-intelligence, customs-tab-{report|fx|cbm|cha|price|freight|benefits|chas}, global-back-btn.",
+  "rca_of_the_issue": "n/a — feature verification only; all targeted batch items passed."
+}
