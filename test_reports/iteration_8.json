@@ -1,0 +1,41 @@
+{
+  "summary": "Comprehensive interaction audit per user's 'nothing is connected' complaint. NAV (20 targets), FOOTER, DETAIL PAGES, SEARCH, BRAIN, CONTACT/LEAD forms, and SERVICE-REQUEST all WORK and post to backend correctly (zero 4xx/5xx network errors observed). The user's complaint is rooted in a small but visible set of look-clickable cards that have no onClick handler and no destination route. Identified 5 distinct dead-card patterns across 3 pages plus 2 informational-but-misleading patterns. All other interactive elements (nav links, CTAs, mega-menu items, forms, Brain FAB+widget) are wired and functional.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Academy.jsx", "issue": "Course cards have cursor-pointer + 'Start lesson →' CTA but NO onClick and NO /academy/:slug route exists. Clicking does nothing. CRITICAL — exactly the bug the user reported.", "selector": "[data-testid='academy-course-0..N']", "priority": "CRITICAL"},
+      {"component": "TradeNews.jsx (featured)", "issue": "Featured hero article is cursor-pointer but has no onClick, href, or Link wrapper. Looks clickable, does nothing.", "selector": "[data-testid='news-featured']", "priority": "HIGH"},
+      {"component": "TradeNews.jsx (cards)", "issue": "News cards are cursor-pointer and even render an ArrowUpRight icon implying external/internal navigation, but have no onClick / href. Dead.", "selector": "[data-testid='news-card-0..N']", "priority": "HIGH"},
+      {"component": "Marketplace.jsx (reels)", "issue": "Reel tiles are cursor-pointer with a large PlayCircle overlay implying video playback, but have no onClick. Clicking does nothing.", "selector": "[data-testid='mp-reel-0..N']", "priority": "HIGH"},
+      {"component": "Marketplace.jsx (listings)", "issue": "Listing cards hover-lift like links but have no onClick / no destination. There is no product-listing detail page or modal.", "selector": "[data-testid='mp-listing-0..N']", "priority": "MEDIUM"},
+      {"component": "Network.jsx (member cards)", "issue": "Member cards look like profile previews but are non-interactive (no cursor-pointer, no click). Could mislead users expecting profile detail. No /network/:id route exists.", "selector": "[data-testid='nw-member-0..N']", "priority": "LOW"},
+      {"component": "Suppliers.jsx (cards)", "issue": "Supplier cards display company info with verification seal — users will likely try to click them for a supplier profile. No detail page exists.", "selector": "[data-testid='suppliers-card-0..N']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/industries/textiles", "issues": ["Body length only 1457 chars — looks thinner than other industry pages; verify content completeness."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "FIX (CRITICAL): Academy course cards — either add /academy/:slug route + lesson detail page and wrap each card in <Link to={`/academy/${c.slug}`}>, OR remove cursor-pointer + 'Start lesson' CTA and replace with a 'Coming soon — get notified' button that opens a lead modal.",
+    "FIX (HIGH): TradeNews featured + news cards — wire each to a real source URL (target=_blank) or to a /news/:slug detail page. If neither exists, remove cursor-pointer and the ArrowUpRight icon so the card is clearly informational.",
+    "FIX (HIGH): Marketplace reels — implement an inline video/lightbox player on click, or remove the PlayCircle + cursor-pointer.",
+    "FIX (MEDIUM): Marketplace listings — wire to a listing detail page (or open a 'request quote' modal) on click; otherwise remove hover-lift class so they don't look clickable.",
+    "FIX (LOW): Network member cards and Suppliers cards — either expose a /directory/:kind/:slug detail page on click, or visually downgrade them (remove hover styles) so users don't expect navigation.",
+    "VERIFY: /industries/textiles content depth (body=1457 chars vs ~2000 for sibling pages)."
+  ],
+  "critical_code_review_comments": [
+    "Pattern repeated across Academy, TradeNews, Marketplace: `<article className=\"...cursor-pointer...\">` with no onClick/Link is the single root cause of the user's 'nothing is connected' complaint. Recommend a lint rule or codemod that fails CI when a cursor-pointer element has neither onClick nor href nor is wrapped in a Link.",
+    "Academy.jsx (line 96) uses <a href=\"#download\"> which only scrolls on /academy page (DownloadCTA has id=download) — works as intended but inconsistent with the nav 'Download App' which navigates to /#download (cross-page).",
+    "Nav.jsx 'Download App' button navigates to '/#download' via useNavigate — when already on /, this won't trigger scroll because hash routing on same page doesn't re-fire scrollIntoView. Consider explicit scroll behavior."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100% (via response monitoring; 0 of ~30 distinct API calls returned 4xx/5xx)", "frontend": "Routing 100% (20/20 nav targets load 200), Forms 100% (contact /api/leads + service-request /api/service-request both succeed), Brain 100% (/brain + widget both answer with CTAs), Detail pages 100% (7/7 entities load real content). Dead-card defects: 5 distinct patterns across 3 pages."},
+  "test_credentials": "No login was needed for public-page audit. Admin token leadnation-admin-2026 available per /app/memory/test_credentials.md but not used in this audit.",
+  "seed_data_creation": "None. Created TEST_ prefixed lead via /contact (one /api/leads POST) and TEST_ service-request via /services/iec-registration (one /api/service-request POST) — both as part of submission verification.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "User's #1 complaint is dead-looking clickable cards (NOT broken APIs / NOT routing). All backend integrations and routed pages work. The fix scope is purely frontend: wire onClick/Link to the 5 dead-card patterns listed in ui_bugs (Academy, TradeNews x2, Marketplace x2). Tool-form submit buttons (duty-calc, landed-cost, EIF, PR, find-buyers, export-readiness) were not exhaustively verified by my generic 'name match' Playwright loop because their CTAs use product-specific labels (e.g. 'Show me my score', 'Calculate landed cost'). HSN finder is confirmed working per user. If a deeper tool-form audit is needed next iteration, target each tool's specific submit data-testid. Brain widget messages testid is 'brain-widget-msg-N' and CTA container is 'brain-widget-ctas-N' (note the trailing 's').",
+  "rca of the issue": "ROOT CAUSE: Five components render decorative <article>/<div> elements with className containing 'cursor-pointer' (and in some cases hover translate/scale animations + arrow icons) but with neither (a) an onClick handler, (b) an href, nor (c) a wrapping <Link>. The browser shows a pointer cursor and the user clicks expecting navigation/action — nothing happens. The Academy case is worst because the visible CTA text literally says 'Start lesson →' implying lesson navigation, but no /academy/:slug route exists in App.js. REPRO: visit /academy, hover any course card (cursor becomes pointer), click — URL does not change, no modal opens, no console activity. Same on /trade-news (featured + cards) and /marketplace (reels + listings). MITIGATION: Either wire each card to a real destination (route, modal, external URL, or in-app deeplink) OR remove the cursor-pointer class and any CTA text/icon that implies interactivity."
+}
