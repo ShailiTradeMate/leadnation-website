@@ -397,6 +397,49 @@ async def academy():
     return ACADEMY
 
 
+_LESSON_SPINE = [
+    ("Introduction & why it matters", "Get the big picture of {t} and why it is critical for traders today."),
+    ("Key concepts & terminology", "The essential vocabulary, players and frameworks behind {t}."),
+    ("Step-by-step process", "Walk through the complete end-to-end workflow for {t}."),
+    ("Documents & compliance", "Exactly which paperwork, approvals and checks {t} requires."),
+    ("Costs, duties & incentives", "How money moves — fees, duties and the schemes you can claim around {t}."),
+    ("Common mistakes to avoid", "Real-world pitfalls traders hit with {t} — and how to dodge them."),
+    ("Tools & templates", "The LeadNation tools and templates that automate {t}."),
+    ("Practical checklist", "A ready-to-use checklist to execute {t} with confidence."),
+    ("Summary & next steps", "A recap of {t} plus your concrete next actions."),
+]
+
+
+@router.get("/academy/{slug}")
+async def academy_detail(slug: str):
+    course, level = None, None
+    for lvl, courses in ACADEMY.items():
+        for c in courses:
+            if c["slug"] == slug:
+                course, level = c, lvl
+                break
+        if course:
+            break
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    topic = course["title"]
+    n = max(3, int(course.get("lessons", 6)))
+    spine = _LESSON_SPINE[:]
+    while len(spine) < n:
+        spine = spine + _LESSON_SPINE
+    outline = [{"n": i + 1, "title": t, "blurb": b.format(t=topic)}
+               for i, (t, b) in enumerate(spine[:n])]
+
+    # related courses from the same level
+    related = [{"slug": c["slug"], "title": c["title"], "duration": c["duration"],
+                "lessons": c["lessons"], "image": c.get("image")}
+               for c in ACADEMY.get(level, []) if c["slug"] != slug][:3]
+
+    return {**course, "level": level, "outline": outline, "related": related}
+
+
+
 # Trade Intelligence Hub
 @router.get("/intelligence")
 async def intelligence():

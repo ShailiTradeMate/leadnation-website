@@ -39,7 +39,7 @@ export default function Suppliers() {
             <div className="mt-6 text-sm text-slate-400">{data.total} suppliers found</div>
             <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {data.suppliers.map((s, i) => (
-                <div key={i} data-testid={`suppliers-card-${i}`} className="glass rounded-3xl p-5">
+                <div key={i} data-testid={`suppliers-card-${i}`} className="glass rounded-3xl p-5 flex flex-col">
                   <div className="flex items-center justify-between">
                     <div className="font-display font-bold">{s.company}</div>
                     {s.verified && <SealCheck size={20} weight="fill" className="text-cyan-300" />}
@@ -47,6 +47,9 @@ export default function Suppliers() {
                   <div className="text-xs text-slate-400 mt-1">{s.city} · {s.country}</div>
                   <div className="mt-3 text-sm">{s.products}</div>
                   <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-500 mt-2">{s.category}</div>
+                  <a href={`https://wa.me/918237161088?text=${encodeURIComponent(`Hi LeadNation, please connect me with supplier: ${s.company} (${s.products}).`)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="btn-ghost !py-2 text-xs mt-4 inline-flex justify-center">Connect with supplier</a>
                 </div>
               ))}
             </div>

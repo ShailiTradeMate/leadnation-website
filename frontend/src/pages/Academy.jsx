@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
@@ -60,10 +61,11 @@ export default function Academy() {
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {(data[level] || []).map((c, i) => (
-            <article
+            <Link
+              to={`/academy/${c.slug}`}
               key={c.slug}
               data-testid={`academy-course-${i}`}
-              className="glass rounded-3xl overflow-hidden hover:border-cyan-400/30 hover:-translate-y-1 transition-all group cursor-pointer"
+              className="block glass rounded-3xl overflow-hidden hover:border-cyan-400/30 hover:-translate-y-1 transition-all group cursor-pointer"
             >
               <div className="relative h-44 overflow-hidden">
                 <img src={c.image} alt={c.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" />
@@ -83,7 +85,7 @@ export default function Academy() {
                   Start lesson <ArrowRight size={14} weight="bold" className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
 

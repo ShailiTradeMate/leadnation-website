@@ -28,7 +28,10 @@ export default function Marketplace() {
             <div className="flex items-center gap-2 mb-4"><ShoppingBag size={20} className="text-cyan-300" weight="duotone" /><h2 className="font-display font-bold text-2xl">Featured listings</h2></div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {data.listings.map((l, i) => (
-                <div key={l.id} data-testid={`mp-listing-${i}`} className="glass rounded-3xl overflow-hidden hover:border-cyan-400/30 hover:-translate-y-1 transition-all">
+                <a key={l.id} data-testid={`mp-listing-${i}`}
+                  href={`https://wa.me/918237161088?text=${encodeURIComponent(`Hi LeadNation, I'm interested in the marketplace listing: ${l.title} by ${l.supplier}.`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="block glass rounded-3xl overflow-hidden hover:border-cyan-400/30 hover:-translate-y-1 transition-all cursor-pointer">
                   <div className="h-40 relative overflow-hidden">
                     <img src={l.image} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f24] via-transparent to-transparent" />
@@ -40,8 +43,9 @@ export default function Marketplace() {
                       <div className="text-sm font-display font-bold text-cyan-300">{l.price}</div>
                       <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-500">MOQ {l.moq}</div>
                     </div>
+                    <div className="mt-3 text-xs text-cyan-300 font-medium">Enquire on WhatsApp →</div>
                   </div>
-                </div>
+                </a>
               ))}
             </div>
           </div>
@@ -50,12 +54,14 @@ export default function Marketplace() {
             <div className="flex items-center gap-2 mb-4"><PlayCircle size={20} className="text-cyan-300" weight="duotone" /><h2 className="font-display font-bold text-2xl">Trade reels</h2></div>
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {data.reels.map((r, i) => (
-                <div key={r.id} data-testid={`mp-reel-${i}`} className="relative rounded-3xl overflow-hidden h-72 group cursor-pointer">
+                <a key={r.id} data-testid={`mp-reel-${i}`} href="#download"
+                  className="block relative rounded-3xl overflow-hidden h-72 group cursor-pointer">
                   <img src={r.thumb} alt={r.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-[#050816]/40 to-transparent" />
-                  <PlayCircle size={56} weight="fill" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/90" />
+                  <PlayCircle size={56} weight="fill" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/90 group-hover:scale-110 transition-transform" />
+                  <div className="absolute top-3 right-3 glass px-2 py-1 rounded-full text-[9px] font-mono-display tracking-widest uppercase text-cyan-300">Watch in app</div>
                   <div className="absolute bottom-3 left-3 right-3 text-sm font-display font-bold drop-shadow">{r.title}</div>
-                </div>
+                </a>
               ))}
             </div>
           </div>
@@ -75,7 +81,7 @@ export default function Marketplace() {
         </section>
       )}
 
-      <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
+      <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA id="download" /></section>
     </>
   );
 }

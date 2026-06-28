@@ -3,6 +3,7 @@ import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { fetchTradeNews } from "@/lib/api";
+import { Link } from "react-router-dom";
 import { Clock, ArrowUpRight } from "@phosphor-icons/react";
 
 export default function TradeNews() {
@@ -29,9 +30,10 @@ export default function TradeNews() {
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         {items.length > 0 && (
-          <article
+          <Link
+            to={`/trade-news/${items[0].id}`}
             data-testid="news-featured"
-            className="relative rounded-3xl overflow-hidden border border-white/10 mb-8 group cursor-pointer"
+            className="block relative rounded-3xl overflow-hidden border border-white/10 mb-8 group cursor-pointer"
           >
             <img src={items[0].image} alt="" className="absolute inset-0 w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-[2s]" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#050816] via-[#050816]/70 to-transparent" />
@@ -47,15 +49,16 @@ export default function TradeNews() {
                 <span>{items[0].source}</span>
               </div>
             </div>
-          </article>
+          </Link>
         )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
           {items.slice(1).map((n, i) => (
-            <article
+            <Link
+              to={`/trade-news/${n.id}`}
               key={n.id}
               data-testid={`news-card-${i}`}
-              className="glass rounded-3xl overflow-hidden hover:border-cyan-400/30 hover:-translate-y-1 transition-all group cursor-pointer"
+              className="block glass rounded-3xl overflow-hidden hover:border-cyan-400/30 hover:-translate-y-1 transition-all group cursor-pointer"
             >
               <div className="relative h-48 overflow-hidden">
                 <img src={n.image} alt="" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" />
@@ -72,7 +75,7 @@ export default function TradeNews() {
                   <ArrowUpRight size={14} className="text-cyan-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                 </div>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Brain, PaperPlaneTilt, Sparkle, Cpu, Lightning, ArrowUpRight, CircleNotch } from "@phosphor-icons/react";
 import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
@@ -57,8 +57,15 @@ export default function BrainPage() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const sid = useRef(sessionId());
+  const [searchParams] = useSearchParams();
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [thread, loading]);
+
+  useEffect(() => {
+    const preset = searchParams.get("q");
+    if (preset) ask(preset);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const ask = async (question) => {
     if (!question.trim() || loading) return;

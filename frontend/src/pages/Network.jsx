@@ -4,6 +4,7 @@ import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import { Users } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
 
 export default function Network() {
   const [data, setData] = useState(null);
@@ -38,11 +39,12 @@ export default function Network() {
               {data.members.map((m, i) => (
                 <div key={i} data-testid={`nw-member-${i}`} className="glass rounded-3xl p-5 flex items-center gap-4">
                   <img src={m.avatar} alt={m.name} className="w-14 h-14 rounded-full border border-white/10 object-cover" />
-                  <div>
+                  <div className="flex-1">
                     <div className="font-display font-bold">{m.name}</div>
                     <div className="text-xs text-cyan-300 font-mono-display tracking-widest uppercase mt-0.5">{m.role}</div>
                     <div className="text-xs text-slate-400 mt-0.5">{m.city}</div>
                   </div>
+                  <Link to="/contact" className="btn-ghost !py-1.5 !px-3 text-xs shrink-0">Connect</Link>
                 </div>
               ))}
             </div>

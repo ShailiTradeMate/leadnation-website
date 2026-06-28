@@ -6,6 +6,7 @@ import Layout from "@/components/Layout";
 import Home from "@/pages/Home";
 import CustomsCompliance from "@/pages/CustomsCompliance";
 import TradeNews from "@/pages/TradeNews";
+import TradeNewsDetail from "@/pages/TradeNewsDetail";
 import Expo from "@/pages/Expo";
 import ProductInfo from "@/pages/ProductInfo";
 import Contact from "@/pages/Contact";
@@ -13,6 +14,7 @@ import DutyCalculator from "@/pages/DutyCalculator";
 import CountryProfile from "@/pages/CountryProfile";
 import CountriesIndex from "@/pages/CountriesIndex";
 import Academy from "@/pages/Academy";
+import AcademyDetail from "@/pages/AcademyDetail";
 import Intelligence from "@/pages/Intelligence";
 import ToolsHub from "@/pages/ToolsHub";
 import HsnFinder from "@/pages/tools/HsnFinder";
@@ -46,6 +48,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/customs-compliance" element={<CustomsCompliance />} />
             <Route path="/trade-news" element={<TradeNews />} />
+            <Route path="/trade-news/:id" element={<TradeNewsDetail />} />
             <Route path="/expo" element={<Expo />} />
             <Route path="/product-info" element={<ProductInfo />} />
             <Route path="/contact" element={<Contact />} />
@@ -92,6 +95,7 @@ function App() {
 
             {/* Content */}
             <Route path="/academy" element={<Academy />} />
+            <Route path="/academy/:slug" element={<AcademyDetail />} />
             <Route path="/intelligence" element={<Intelligence />} />
             <Route path="/blog" element={<BlogIndex />} />
             <Route path="/blog/:slug" element={<BlogDetail />} />
