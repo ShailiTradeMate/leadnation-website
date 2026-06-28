@@ -24,7 +24,17 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 7. India-first features section.
 
 ## Implemented (2026-06)
-**Phase 9 — Brain Everywhere** (Jun 2026)
+**Fix — "Nothing is connected" dead-link sweep** (Jun 2026)
+- Root cause: several cards looked clickable (cursor/arrow/play affordances) but had no destination. Core flows (nav, forms, detail pages, search, Brain) were actually working.
+- Built automated full-site interaction audit via testing_agent (clicks every button/link/form, reports dead elements) — iterations 8 (audit) + 9 (verify).
+- [x] **Academy**: new `/academy/:slug` lesson page (backend `GET /api/academy/{slug}` with generated curriculum + related courses); course cards now link; per-lesson "Ask the Brain to teach this" + "Learn with the Brain" → `/brain?q=` auto-ask.
+- [x] **Trade News**: new `/trade-news/:id` detail page; featured + cards now link; "Ask the Brain about this story" + "More headlines".
+- [x] **Marketplace**: listings → WhatsApp enquiry links; reels → `#download` with "Watch in app" badge.
+- [x] **Suppliers**: per-card "Connect with supplier" WhatsApp action. **Network**: per-member "Connect" → /contact.
+- [x] **Brain page** reads `?q=` and auto-submits.
+- Verified: testing_agent iteration_9 — 100%, zero dead elements remaining, zero console/network errors, no regressions.
+
+
 - [x] **Global Brain Widget** on every page (desktop floating bottom-right above WhatsApp; mobile FAB). Hidden on /admin and /brain. Mounted in Layout.
 - [x] **Context-aware**: widget detects current route → page_context {type, slug}; backend `_resolve_page_entity` injects the country/product/HSN/service entity so short questions ("What documents are required?") work in-context.
 - [x] **Page-specific suggested prompts** per page type (country/product/hsn/service/corridor/industry/marketplace/academy/default).
