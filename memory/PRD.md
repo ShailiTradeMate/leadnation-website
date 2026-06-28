@@ -23,6 +23,17 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 6. Contact page with email/whatsapp/Instagram/address + embedded OpenStreetMap.
 7. India-first features section.
 
+## Implemented (2026-06-28) — Unified Admin Control Center + Trade Terms
+**Admin auth unified under JWT** (ID `00001` / pwd `Shiv@12345`)
+- [x] AdminLogin now uses ID + password → POST `/api/auth/admin/login`, JWT stored as `ln_admin_jwt`, sent as `Authorization: Bearer`. Legacy `X-Admin-Token` still accepted server-side; CSV export accepts JWT in `?token=`.
+- [x] Unified `/admin-cms` dashboard: Dashboard, Content, Leads, Service Requests, Events, **Control Center**, Brain.
+- [x] **Control Center** (new tab): live accent colour (CSS var `--ln-secondary`), maintenance mode + message, feature toggles (tools/services/brain/customs/intelligence/expo/academy/blog/trade_news), service-rate overrides, change-password. Saves via PUT `/api/admin/settings`.
+- [x] **Live propagation**: `SettingsContext` fetches `/api/settings`; Nav hides toggled-off features; Layout renders maintenance screen for public site (admin stays accessible).
+- [x] **Brain widget**: typing "I am admin" redirects to `/admin-login`.
+- [x] **Customs Trade Terms** tab on `/customs-compliance`: Incoterms 2020, Payment Terms, Cargo Insurance, Key Trade Terms (from `/api/customs/trade-terms`).
+- Verified end-to-end (test_reports/iteration_12.json — all 7 items PASS, site restored clean).
+
+
 ## Implemented (2026-06)
 **Batch — Product Info Engine + cleanup + search fix** (Jun 2026)
 - [x] **#1 Product Info Engine** (`/product-info`) rebuilt: free-text filters (Import/Export · Product · Origin · Destination · HSN optional), NO dropdowns, fully Brain-powered — works for ANY product worldwide (verified: saffron→USA, lithium battery→Germany). Clean markdown rendering (headings/bullets), sources + related + CTAs.

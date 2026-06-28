@@ -32,14 +32,14 @@ export function AdminLogin() {
         <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to LeadNation</h1>
         <p className="text-slate-400 text-sm mt-2">Secure access to the CMS, leads, services, Brain and site controls.</p>
         <input
-          data-testid="admin-username-input"
+          data-testid="admin-login-username"
           autoFocus type="text" autoComplete="username"
           value={username} onChange={(e) => setUsername(e.target.value)}
           placeholder="Admin ID"
           className="mt-5 w-full glass rounded-xl px-4 py-3 outline-none"
         />
         <input
-          data-testid="admin-password-input"
+          data-testid="admin-login-password"
           type="password" autoComplete="current-password"
           value={password} onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
