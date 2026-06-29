@@ -1,0 +1,38 @@
+{
+  "summary": "Phase B Duty & Benefits engine — full backend + frontend testing PASSED. All 9 pytest cases pass; UI Duty tab returns real WITS tariffs (USA→India coffee 100% MFN, USA→Germany car 10%), India BCD/IGST/SWS breakdown computes correctly, RoDTEP (India→Germany coffee 1.4%) renders, Admin Control Center 'Refresh data now' button updates the lastRefresh timestamp, and Trade Statistics regression still works.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_duty_engine.py",
+    "/app/test_reports/pytest/iteration_14_duty.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "duty_engine.py _wits_obs has a 20s timeout per year × up to 10 years sequentially → worst-case ~200s on a cold lookup with a fully-unreachable WITS. Acceptable today (HTTP usually returns NoRecordsFound fast), but consider asyncio.gather with bounded concurrency or breaking after first 5xx to fail faster.",
+    "RODTEP rates are chapter-level only — when a user enters HS8/HS6 within a chapter that has a special line (e.g. textiles 6203 vs 6204) the rate may differ in reality. Schedule a TODO to ingest the full Appendix 4R 8-digit table when DGFT publishes a structured feed.",
+    "IGST_BY_CHAPTER hardcodes Indian slabs in code — fine for now but should be Mongo-seeded so admins can update without redeploy (same pattern as RoDTEP).",
+    "duty_meta has only one document keyed _id='duty' — refresh_all swallows exceptions silently and still bumps lastRefresh on failure. Consider distinguishing 'refresh attempted' vs 'refresh succeeded' for ops visibility."
+  ],
+  "updated_files": ["/app/backend/tests/test_duty_engine.py"],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100%"},
+  "test_credentials": "Admin 00001 / Shiv@12345 used for /api/duty/refresh and Control Center test.",
+  "seed_data_creation": "None new. RoDTEP collection was already seeded by server startup; duty_cache populated organically by lookups.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase B duty engine is fully live: WITS XML parsing returns real MFN rates (US→IN coffee=100%, US→DE car=10%). RoDTEP chapter-level (e.g. HS 09 = 1.4%). Manual refresh restamps lastRefresh in duty_meta. Brain duty_benefits engine is wired into router KEYWORD_ENGINES — POST /api/brain/ask with HS code + 'import duty' / 'RoDTEP' triggers it. If you re-test, the first-ever WITS call for a new HS+country pair can take 10-25s; cached calls <0.2s.",
+  "verified_flows": [
+    "GET /api/duty/countries → 56 countries including 356 India, 842 USA, 276 Germany",
+    "GET /api/duty/meta → lastRefresh/nextRefresh ISO + sources list",
+    "GET /api/duty/lookup hs=090111 origin=842 dest=356 → MFN 100% (2023, WITS), India breakdown BCD 100 / SWS 10 / IGST 5",
+    "GET /api/duty/lookup hs=870323 origin=842 dest=276 → MFN 10% (2023, WITS), indiaBreakdown null",
+    "GET /api/duty/lookup hs=090111 origin=356 dest=276 → exportBenefit RoDTEP 1.4% % of FOB, source 'DGFT Appendix 4R...'",
+    "GET /api/duty/lookup hs=999999 origin=032 dest=204 → ok:true, importDuty null, notes populated (no 500)",
+    "POST /api/duty/refresh without auth → 401",
+    "POST /api/duty/refresh with admin JWT → 200, lastRefresh advances",
+    "POST /api/brain/ask 'import duty on coffee HS 090111 into India and RoDTEP' → enginesUsed includes duty_benefits, engineOutputs.duty_benefits populated",
+    "Frontend /customs-compliance → Duty & Benefits tab → 'coffee' search → suggestions dropdown (8 items) → click suggestion → dropdown closes and stays closed → select dest India + origin USA → submit → duty-result renders 100% MFN + India breakdown (BCD/SWS/IGST)",
+    "Frontend Duty tab origin=India destination=Germany → duty-benefit shows RoDTEP 1.4% % of FOB",
+    "Admin /admin-login (00001/Shiv@12345) → Control Center tab → cc-data-refresh card shows 'Last refreshed: 2026-06-29 12:24 UTC' → click cc-refresh-data → timestamp updates to 12:26 UTC",
+    "Regression: customs-tab-trade → search 'coffee' → trade-result renders"
+  ]
+}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import {
   ShieldCheck, CurrencyCircleDollar, Cube, Calculator, Path, Gift, Users,
   FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch, Handshake,
-  ChartLineUp, TrendUp, TrendDown, Globe,
+  ChartLineUp, TrendUp, TrendDown, Globe, Scales, ArrowRight,
 } from "@phosphor-icons/react";
 
 const COUNTRIES = [
@@ -19,6 +19,7 @@ const COUNTRIES = [
 const TABS = [
   ["report", "Compliance Report", ShieldCheck],
   ["trade", "Trade Statistics", ChartLineUp],
+  ["duty", "Duty & Benefits", Scales],
   ["terms", "Trade Terms", Handshake],
   ["fx", "Currency Exchange", CurrencyCircleDollar],
   ["cbm", "CBM Calculator", Cube],
@@ -62,6 +63,7 @@ export default function CustomsCompliance() {
 
         {tab === "report" && <ReportTool />}
         {tab === "trade" && <TradeStatsTool />}
+        {tab === "duty" && <DutyBenefitsTool />}
         {tab === "terms" && <TradeTermsTool />}
         {tab === "fx" && <FxTool />}
         {tab === "cbm" && <CbmTool />}
@@ -359,6 +361,140 @@ const fmtUSD = (v) => {
   return `$${v.toFixed(0)}`;
 };
 
+/* ---------------- Duty & Benefits (global tariffs + India + RoDTEP) ---------------- */
+function DutyBenefitsTool() {
+  const [q, setQ] = useState("");
+  const [sugg, setSugg] = useState([]);
+  const [openSugg, setOpenSugg] = useState(false);
+  const [hs, setHs] = useState("");
+  const [origin, setOrigin] = useState("356");
+  const [dest, setDest] = useState("842");
+  const [countries, setCountries] = useState([]);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const lastPick = useRef("");
+
+  React.useEffect(() => { api.get("/duty/countries").then(({ data }) => setCountries(data.countries || [])); }, []);
+  React.useEffect(() => {
+    const text = q.trim();
+    if (text === lastPick.current) return;
+    if (text.length < 2 || /^\d+$/.test(text)) { setSugg([]); return; }
+    const t = setTimeout(async () => {
+      try { const { data } = await api.get("/trade-intel/hs-search", { params: { q: text, limit: 8 } }); setSugg(data.results || []); setOpenSugg(true); } catch (_) {}
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const run = async (code) => {
+    const hs6 = (code || hs || q.replace(/\D/g, "")).slice(0, 6);
+    if (hs6.length < 6) { setErr("Search a product or enter a 6-digit HS code."); return; }
+    setLoading(true); setErr(""); setData(null); setOpenSugg(false);
+    try {
+      const { data } = await api.get("/duty/lookup", { params: { hs: hs6, origin, destination: dest } });
+      if (data.ok) setData(data); else setErr(data.error || "No data.");
+    } catch (_) { setErr("Unable to fetch duty data."); }
+    finally { setLoading(false); }
+  };
+  const pick = (s) => { const label = `${s.hs6} · ${s.description}`; lastPick.current = label; setQ(label); setHs(s.hs6); setSugg([]); setOpenSugg(false); };
+
+  return (
+    <div className="space-y-5">
+      <ToolCard title="Duty & Benefits — any country, any product" desc="Real import tariffs worldwide (World Bank WITS / UNCTAD TRAINS) with India BCD/IGST/SWS breakdown and DGFT RoDTEP export benefit. Pick your origin and destination country.">
+        <div className="grid lg:grid-cols-4 gap-3 items-end">
+          <div className="lg:col-span-2 relative">
+            <Field label="Product or HS code">
+              <input data-testid="duty-search" className={inputCls} value={q}
+                onChange={(e) => { setQ(e.target.value); setHs(""); }} onFocus={() => sugg.length && setOpenSugg(true)}
+                placeholder="e.g. Coffee, Cars, or 090111" />
+            </Field>
+            {openSugg && sugg.length > 0 && (
+              <div data-testid="duty-suggestions" className="absolute z-20 mt-1 w-full glass-strong rounded-2xl border border-white/10 max-h-72 overflow-auto shadow-2xl">
+                {sugg.map((s) => (
+                  <button key={s.hs6} type="button" data-testid={`duty-sugg-${s.hs6}`} onClick={() => pick(s)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-white/5 flex items-center gap-3 border-b border-white/5 last:border-0">
+                    <span className="font-mono-display text-xs text-cyan-300 shrink-0">{s.hs6}</span>
+                    <span className="text-sm text-slate-200 truncate">{s.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <Field label="Origin (export from)">
+            <select data-testid="duty-origin" className={inputCls} value={origin} onChange={(e) => setOrigin(e.target.value)}>
+              <option value="">— Any —</option>
+              {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Destination (import to)">
+            <select data-testid="duty-dest" className={inputCls} value={dest} onChange={(e) => setDest(e.target.value)}>
+              {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
+          </Field>
+        </div>
+        <button data-testid="duty-submit" onClick={() => run()} disabled={loading} className="btn-primary mt-4 disabled:opacity-50">
+          {loading ? <CircleNotch size={16} className="animate-spin" /> : <Scales size={16} weight="bold" />} Check duty & benefits
+        </button>
+        {err && <div data-testid="duty-error" className="mt-3 text-amber-300 text-sm">{err}</div>}
+      </ToolCard>
+
+      {data && (
+        <div className="space-y-4" data-testid="duty-result">
+          <div className="glass-strong rounded-3xl p-6">
+            <div className="flex items-center gap-3 flex-wrap text-sm">
+              <span className="font-mono-display text-cyan-300">HS {data.hsCode}</span>
+              <span className="flex items-center gap-2 text-slate-300">
+                {data.origin.name || "Any origin"} <ArrowRight size={14} className="text-cyan-300" /> {data.destination.name}
+              </span>
+              {data.refreshedAt && <span className="ml-auto text-[10px] text-slate-500 font-mono-display">updated {String(data.refreshedAt).slice(0, 10)}</span>}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3 mt-4">
+              {data.importDuty ? (
+                <div className="glass rounded-2xl p-5" data-testid="duty-import">
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider">Import duty into {data.destination.name}</div>
+                  <div className="font-display font-extrabold text-3xl gradient-text mt-1">{data.importDuty.rate}%</div>
+                  <div className="text-xs text-slate-400 mt-1">{data.importDuty.type} · {data.importDuty.year} · {data.importDuty.source}</div>
+                  {data.preferential && <div className="text-sm text-emerald-300 mt-2">Preferential available: {data.preferential.rate}% ({data.preferential.type})</div>}
+                </div>
+              ) : (
+                <div className="glass rounded-2xl p-5 text-sm text-amber-300/90">No WITS tariff record for this pair/product. Try "Any" origin or another country.</div>
+              )}
+              {data.exportBenefit && (
+                <div className="glass rounded-2xl p-5" data-testid="duty-benefit">
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider flex items-center gap-1"><Gift size={12} weight="duotone" className="text-cyan-300" /> Export benefit ({data.origin.name})</div>
+                  <div className="font-display font-extrabold text-3xl text-emerald-300 mt-1">{data.exportBenefit.rate}%</div>
+                  <div className="text-xs text-slate-400 mt-1">{data.exportBenefit.scheme} · {data.exportBenefit.unit} · {data.exportBenefit.source}</div>
+                </div>
+              )}
+            </div>
+
+            {data.indiaBreakdown && (
+              <div className="mt-3" data-testid="duty-india-breakdown">
+                <div className="text-xs font-mono-display tracking-widest uppercase text-cyan-300 mb-2">India import breakdown</div>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  <Stat label="Basic Customs Duty" value={`${data.indiaBreakdown.basicCustomsDuty}%`} />
+                  <Stat label="Social Welfare Surcharge" value={`${data.indiaBreakdown.socialWelfareSurcharge}%`} />
+                  <Stat label="IGST" value={`${data.indiaBreakdown.igst}%`} />
+                </div>
+                <div className="text-[11px] text-slate-500 mt-2">{data.indiaBreakdown.note}</div>
+              </div>
+            )}
+
+            {data.exportBenefit?.note && <div className="text-[11px] text-amber-300/80 mt-3">{data.exportBenefit.note}</div>}
+          </div>
+
+          <div className="glass-strong rounded-3xl p-5 flex items-center gap-4 flex-wrap">
+            <Brain size={28} weight="duotone" className="text-cyan-300" />
+            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Ask the Brain for a full duty, documentation and savings plan for this trade lane.</div>
+            <Link to={`/brain?q=${encodeURIComponent(`Duty, documents and benefits for HS ${data.hsCode} from ${data.origin.name || "any country"} to ${data.destination.name}`)}`} className="btn-primary" data-testid="duty-ask-brain">Ask the Brain</Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ---------------- Live Trade Statistics (global) ---------------- */
 function TradeStatsTool() {
   const [q, setQ] = useState("");
@@ -367,9 +503,11 @@ function TradeStatsTool() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const lastPick = useRef("");
 
   React.useEffect(() => {
     const text = q.trim();
+    if (text === lastPick.current) return;
     if (text.length < 2 || /^\d+$/.test(text)) { setSugg([]); return; }
     const t = setTimeout(async () => {
       try { const { data } = await api.get("/trade-intel/hs-search", { params: { q: text, limit: 8 } }); setSugg(data.results || []); setOpenSugg(true); }
@@ -396,7 +534,7 @@ function TradeStatsTool() {
     else setErr("Search a product or enter a 6-digit HS code.");
   };
 
-  const pick = (s) => { setQ(`${s.hs6} · ${s.description}`); run(s.hs6); };
+  const pick = (s) => { const label = `${s.hs6} · ${s.description}`; lastPick.current = label; setQ(label); setSugg([]); run(s.hs6); };
   const maxImp = data?.topImporters?.[0]?.value || 1;
   const maxExp = data?.topExporters?.[0]?.value || 1;
   const maxTrend = Math.max(...(data?.trend || []).map((t) => t.value), 1);

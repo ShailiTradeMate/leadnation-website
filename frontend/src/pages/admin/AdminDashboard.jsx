@@ -353,6 +353,8 @@ function ControlCenter() {
   const [msg, setMsg] = useState("");
   const [pwd, setPwd] = useState("");
   const [pwdMsg, setPwdMsg] = useState("");
+  const [dutyMeta, setDutyMeta] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     adminApi.get("/settings").then((r) => setForm({
@@ -363,7 +365,15 @@ function ControlCenter() {
       serviceRates: r.data.serviceRates || {},
     }));
     adminApi.get("/services").then((r) => setServices(r.data)).catch(() => {});
+    adminApi.get("/duty/meta").then((r) => setDutyMeta(r.data)).catch(() => {});
   }, []);
+
+  const refreshData = async () => {
+    setRefreshing(true);
+    try { const { data } = await adminApi.post("/duty/refresh"); setDutyMeta(data); }
+    catch (_) {}
+    finally { setRefreshing(false); }
+  };
 
   if (!form) return <div className="text-slate-400">Loading…</div>;
 
@@ -459,6 +469,15 @@ function ControlCenter() {
       <div className="flex items-center gap-4 flex-wrap">
         <button data-testid="cc-save" onClick={save} disabled={saving} className="btn-primary disabled:opacity-50"><FloppyDisk size={16} weight="bold" /> {saving ? "Saving…" : "Save changes"}</button>
         {msg && <span data-testid="cc-save-msg" className="text-sm text-emerald-300">{msg}</span>}
+      </div>
+
+      <div className="glass-strong rounded-3xl p-6 space-y-3" data-testid="cc-data-refresh">
+        <div className="font-display font-bold text-xl">Trade & Duty Data</div>
+        <p className="text-xs text-slate-400">Global tariffs (WITS), trade stats (OEC/Comtrade) and RoDTEP refresh automatically every 7 days. You can force a refresh now.</p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button data-testid="cc-refresh-data" onClick={refreshData} disabled={refreshing} className="btn-ghost !py-2.5 text-sm disabled:opacity-50">{refreshing ? "Refreshing…" : "Refresh data now"}</button>
+          {dutyMeta && <span className="text-sm text-slate-400">Last refreshed: <span className="text-cyan-300">{String(dutyMeta.lastRefresh).slice(0, 16).replace("T", " ")} UTC</span></span>}
+        </div>
       </div>
 
       <div className="glass-strong rounded-3xl p-6 space-y-3">

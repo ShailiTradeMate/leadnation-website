@@ -7,7 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from core import client, db  # noqa: F401  (db kept for shell/debug)
 
 # Domain routers
-import reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel
+import reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_admin
 
@@ -19,7 +19,7 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="LeadNation — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
@@ -54,6 +54,11 @@ async def _startup():
         await seed_admin()
     except Exception as exc:
         logging.warning("Admin seed failed: %s", exc)
+    try:
+        await duty_engine.seed_rodtep()
+        duty_engine.start_scheduler()
+    except Exception as exc:
+        logging.warning("Duty engine init failed: %s", exc)
 
 
 @app.on_event("shutdown")

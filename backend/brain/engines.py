@@ -149,38 +149,6 @@ async def network_engine(kind=None, **_):
     }
 
 
-async def trade_statistics_engine(product=None, hsn=None, **_):
-    """REAL global trade data (OEC World / UN Comtrade) by HS code."""
-    from trade_intel import trade_stats, hs_search
-    hs6 = None
-    if hsn:
-        from trade_intel import _norm_hs
-        hs6 = _norm_hs(hsn)
-    if not hs6 and product:
-        hits = await hs_search(product, limit=1)
-        if hits:
-            hs6 = hits[0]["hs6"]
-    if not hs6 or len(hs6) < 6:
-        return None
-    stats = await trade_stats(hs6)
-    if not stats.get("ok"):
-        return None
-    imp = ", ".join(f"{i['country']} (${_fmt(i['value'])})" for i in stats["topImporters"][:4])
-    exp = ", ".join(e["country"] for e in stats["topExporters"][:4])
-    return {
-        "summary": (f"Global trade in {stats['description'] or ('HS ' + stats['hsCode'])} "
-                    f"({stats['year']}): world imports ≈ ${_fmt(stats['totalWorldTradeUSD'])}. "
-                    f"Top importers: {imp}. Leading exporters: {exp}. "
-                    f"Source: {stats['source']}."),
-        "data": {"hsCode": stats["hsCode"], "year": stats["year"],
-                 "totalWorldTradeUSD": stats["totalWorldTradeUSD"],
-                 "topImporters": stats["topImporters"], "topExporters": stats["topExporters"],
-                 "trend": stats["trend"], "source": stats["source"]},
-        "sources": [{"kind": "tool", "slug": "trade-stats", "title": "Live Trade Statistics",
-                     "to": "/customs-compliance"}],
-    }
-
-
 def _fmt(v):
     try:
         v = float(v)
@@ -190,6 +158,80 @@ def _fmt(v):
         if abs(v) >= div:
             return f"{v / div:.1f}{unit}"
     return f"{v:.0f}"
+
+
+async def _resolve_hs6(product, hsn):
+    from trade_intel import _norm_hs, hs_search
+    if hsn:
+        h = _norm_hs(hsn)
+        if len(h) >= 6:
+            return h
+    if product:
+        hits = await hs_search(product, limit=1)
+        if hits:
+            return hits[0]["hs6"]
+    return None
+
+
+async def trade_statistics_engine(product=None, hsn=None, **_):
+    """REAL global trade data (OEC World / UN Comtrade) by HS code."""
+    from trade_intel import trade_stats
+    hs6 = await _resolve_hs6(product, hsn)
+    if not hs6:
+        return None
+    stats = await trade_stats(hs6)
+    if not stats.get("ok"):
+        return None
+    imp = ", ".join(f"{i['country']} (${_fmt(i['value'])})" for i in stats["topImporters"][:4])
+    exp = ", ".join(e["country"] for e in stats["topExporters"][:4])
+    return {
+        "summary": (f"Global trade in {stats['description'] or ('HS ' + stats['hsCode'])} "
+                    f"({stats['year']}): world imports ≈ ${_fmt(stats['totalWorldTradeUSD'])}. "
+                    f"Top importers: {imp}. Leading exporters: {exp}. Source: {stats['source']}."),
+        "data": {"hsCode": stats["hsCode"], "year": stats["year"],
+                 "totalWorldTradeUSD": stats["totalWorldTradeUSD"],
+                 "topImporters": stats["topImporters"], "topExporters": stats["topExporters"],
+                 "trend": stats["trend"], "source": stats["source"]},
+        "sources": [{"kind": "tool", "slug": "trade-stats", "title": "Live Trade Statistics",
+                     "to": "/customs-compliance"}],
+    }
+
+
+async def duty_benefits_engine(product=None, hsn=None, countries=None, **_):
+    """REAL duty & benefits: global WITS tariffs + India BCD/IGST/SWS + RoDTEP."""
+    from duty_engine import duty_and_benefits, NAME_BY_CODE
+    hs6 = await _resolve_hs6(product, hsn)
+    if not hs6:
+        return None
+    code_by_name = {n.lower(): c for c, n in NAME_BY_CODE.items()}
+    matched = [code_by_name[c.lower()] for c in (countries or []) if c.lower() in code_by_name]
+    origin = destination = None
+    if len(matched) >= 2:
+        origin, destination = matched[0], matched[1]
+    elif len(matched) == 1:
+        destination = matched[0]  # treat a single country as the import destination
+    res = await duty_and_benefits(hs6, origin=origin or "", destination=destination or "356")
+    if not res.get("ok"):
+        return None
+    parts = []
+    d = res["importDuty"]
+    if d:
+        parts.append(f"Import duty into {res['destination']['name'] or 'destination'}: {d['rate']}% {d['type']} ({d['year']})")
+    if res.get("preferential"):
+        parts.append(f"preferential {res['preferential']['rate']}% ({res['preferential']['type']})")
+    if res.get("indiaBreakdown"):
+        b = res["indiaBreakdown"]
+        parts.append(f"India: BCD {b['basicCustomsDuty']}% + SWS {b['socialWelfareSurcharge']}% + IGST {b['igst']}%")
+    if res.get("exportBenefit"):
+        e = res["exportBenefit"]
+        parts.append(f"India export benefit {e['scheme']} {e['rate']}% of FOB")
+    if not parts:
+        return None
+    return {
+        "summary": "; ".join(parts) + ". Source: World Bank WITS / DGFT RoDTEP.",
+        "data": res,
+        "sources": [{"kind": "tool", "slug": "duty-benefits", "title": "Duty & Benefits", "to": "/customs-compliance"}],
+    }
 
 
 ENGINES = {
@@ -206,6 +248,7 @@ ENGINES = {
     "marketplace": marketplace_engine,
     "network": network_engine,
     "trade_statistics": trade_statistics_engine,
+    "duty_benefits": duty_benefits_engine,
 }
 
 
@@ -217,6 +260,7 @@ async def run_engine(key: str, entities: dict):
         "product": (entities.get("products") or [None])[0],
         "country": (entities.get("countries") or [None])[0],
         "destination": (entities.get("countries") or [None])[0],
+        "countries": entities.get("countries") or [],
         "hsn": (entities.get("hsn") or [None])[0],
         "need": (entities.get("services") or [None])[0],
         "topic": (entities.get("topics") or [None])[0],

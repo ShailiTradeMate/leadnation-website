@@ -71,7 +71,8 @@ def extract_entities(q: str) -> dict:
 
 # ---------------- Intent → engines ----------------
 KEYWORD_ENGINES = [
-    (("duty", "tariff", "tax", "landed cost", "import duty"), ["tariff"]),
+    (("duty", "tariff", "tax", "landed cost", "import duty", "customs duty", "duty rate", "how much duty"), ["duty_benefits", "tariff"]),
+    (("rodtep", "export benefit", "export incentive", "drawback", "rebate"), ["duty_benefits", "policy"]),
     (("document", "certif", "compliance", "license", "licence", "iec", "gst", "rcmc", "required to export", "what do i need"), ["compliance"]),
     (("hsn", "hs code", "classif", "which code"), ["product_intelligence"]),
     (("buyer", "importer", "who imports", "which countries import", "demand", "market for"), ["product_intelligence", "market_intelligence", "trade_statistics"]),
@@ -103,7 +104,7 @@ def select_engines(question: str, entities: dict):
     if entities["hsn"]:
         add(["trade_statistics", "product_intelligence"])
     if entities["products"] and entities["countries"]:
-        add(["compliance", "tariff", "trade_news", "logistics"])
+        add(["duty_benefits", "compliance", "tariff", "trade_news", "logistics"])
 
     for kws, engs in KEYWORD_ENGINES:
         if any(k in ql for k in kws):
