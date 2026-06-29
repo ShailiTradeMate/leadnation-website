@@ -23,6 +23,23 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 6. Contact page with email/whatsapp/Instagram/address + embedded OpenStreetMap.
 7. India-first features section.
 
+## Implemented (2026-06-29) — SHARED LOGIN PHASE (Firebase + Atlas, app-interoperable)
+- [x] **ONE identity, ONE database** with the mobile app: switched backend to shared **MongoDB Atlas DB `leadnation`** + shared **Firebase project `trademate-new`** (Email/Password + Google). Passwords live ONLY in Firebase.
+- [x] `firebase_auth.py` — inits Firebase Admin from `FIREBASE_SERVICE_ACCOUNT_B64`, verifies `Authorization: Bearer <firebaseIdToken>` on protected routes.
+- [x] `accounts.py` — `/api/auth/resolve-customer-id`, `/api/onboarding/register` (idempotent Customer-ID allocation via shared `_counters`, one uid→one customer_id), `/api/auth/me`, `/api/admin_v2/users`, `DELETE /api/admin_v2/users/{cid}/hard-delete` (purges Mongo + Firebase Auth + Firestore; protects 00001 & self). users/profiles schema matches the app exactly (additive).
+- [x] Admin migrated from JWT/bcrypt → **shared Firebase admin** (`admin@leadnation.app` / `00001` / role:admin). `core.require_admin` now verifies Firebase token + `users.role=='admin'` (legacy X-Admin-Token kept as emergency fallback only). Removed the separate `admin_users` store.
+- [x] Frontend: `firebase.js` + `AuthContext` (email/pw, Google, Customer-ID login, password reset, email verify, session persistence) + axios Bearer interceptor. New `/login`, `/signup` (with business role), `/forgot-password`, `/account` pages. Nav shows Sign in/Account. Admin login at `/admin-login` now uses Firebase.
+- Verified end-to-end against PRODUCTION shared Firebase+Atlas: test_reports/iteration_16.json — 9/9 backend + all UI flows PASS (resolve, token gate, admin list, register idempotency, hard-delete + 00001 protection). Throwaway test users cleaned up (DB back to 1 user = admin).
+- ⏳ Firebase authorized domains already include leadnation.app/Vercel; add any NEW website domain in Firebase Console → Auth → Settings → Authorized domains.
+
+## Deferred (next phases, per user's production-readiness spec)
+- Compile Data → premium 19-section Trade Intelligence Report; PDF download + Print (client-side) + Lead Capture gate.
+- My Reports history + shareable public/private links (uses the now-live accounts).
+- Legal pages (Privacy/Terms/Cookie/Disclaimer/Refund); Analytics activation (env scaffolding present: GA4/GTM/Clarity/Meta).
+- Brain rich feedback → Admin "Knowledge Gaps"; Knowledge-quality indicators (engines used, live vs estimated).
+- Security review, SEO/perf/a11y reports, Integration Matrix, Go-Live checklist.
+
+
 ## Implemented (2026-06-29) — Brain goes GLOBAL + Compile Data + Phase C
 - [x] **BUG FIX — Brain global & non-repetitive**: rewrote `brain/providers.py` SYSTEM prompt (global, answer-the-specific-question, ground numbers in live engines, use own expertise for any country's compliance, never default to India). Made `trade_news/market_intelligence/logistics/policy/tariff` engines global & dynamic (removed hardcoded India boilerplate like "$450B exports", "Mundra"). Tightened `router.py` engine selection (cap 5, dropped legacy `tariff`/`network`/`marketplace` from auto-select) and added global country detection (scans `duty_engine.COUNTRIES`). Verified: 3 distinct queries → 3 distinct, country-specific, non-India answers.
 - [x] **Compile Data master tab** (`compile_engine.py`, `/api/compile/report`): one-click brief for product + export country + import country + currency → aggregates trade stats, duty & benefits, tariff comparison across 6 markets, live FX, sample landed-cost, freight, + a Brain-written **Executive Brief** (LLM). New default tab `CompileDataTool` on `/customs-compliance` with `MarkdownLite` renderer.

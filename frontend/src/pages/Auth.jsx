@@ -155,7 +155,7 @@ export function Account() {
           </span>
         </div>
         {!verified && (
-          <button data-testid="account-resend-verify" onClick={async () => { try { await resendVerification(); setVmsg("Verification email sent."); } catch (_) { setVmsg("Could not send."); } }} className="btn-ghost w-full justify-center text-sm">Resend verification email</button>
+          <button data-testid="resend-verify" onClick={async () => { try { await resendVerification(); setVmsg("Verification email sent."); } catch (_) { setVmsg("Could not send."); } }} className="btn-ghost w-full justify-center text-sm">Resend verification email</button>
         )}
         {vmsg && <div className="text-cyan-300 text-sm">{vmsg}</div>}
         {u.role === "admin" && <button onClick={() => navigate("/admin-cms")} className="btn-ghost w-full justify-center text-sm" data-testid="account-admin-link">Open Admin Console</button>}
