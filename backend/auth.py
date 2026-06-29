@@ -1,19 +1,15 @@
-"""Admin authentication (JWT) + Site Settings control center backend."""
-import bcrypt
+"""Site Settings control center backend. Admin identity = shared Firebase user
+(users.role == 'admin'); passwords live ONLY in Firebase — no separate admin store."""
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from core import db, create_access_token, require_admin
+from core import db, require_admin
 
 router = APIRouter()
 
-ADMINS = db.admin_users
 SETTINGS = db.site_settings
-
-DEFAULT_USERNAME = "00001"
-DEFAULT_PASSWORD = "Shiv@12345"
 
 DEFAULT_SETTINGS = {
     "_id": "site",
@@ -29,58 +25,9 @@ DEFAULT_SETTINGS = {
 }
 
 
-def _hash(pw: str) -> str:
-    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
-
-
-def _verify(pw: str, hashed: str) -> bool:
-    try:
-        return bcrypt.checkpw(pw.encode(), hashed.encode())
-    except Exception:
-        return False
-
-
-async def seed_admin():
-    existing = await ADMINS.find_one({"username": DEFAULT_USERNAME})
-    if not existing:
-        await ADMINS.insert_one({
-            "username": DEFAULT_USERNAME, "passwordHash": _hash(DEFAULT_PASSWORD),
-            "role": "superadmin", "createdAt": datetime.now(timezone.utc).isoformat(),
-        })
+async def seed_settings():
     if not await SETTINGS.find_one({"_id": "site"}):
         await SETTINGS.insert_one(dict(DEFAULT_SETTINGS))
-
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-
-@router.post("/auth/admin/login")
-async def admin_login(payload: LoginRequest):
-    user = await ADMINS.find_one({"username": payload.username.strip()})
-    if not user or not _verify(payload.password, user["passwordHash"]):
-        raise HTTPException(status_code=401, detail="Invalid username or password")
-    token = create_access_token(sub=user["username"], role="admin")
-    return {"token": token, "username": user["username"], "role": user.get("role", "admin")}
-
-
-@router.get("/auth/admin/me")
-async def admin_me(claims: dict = Depends(require_admin)):
-    return {"username": claims.get("sub"), "role": claims.get("role")}
-
-
-class PasswordChange(BaseModel):
-    newPassword: str
-
-
-@router.post("/auth/admin/password")
-async def change_password(body: PasswordChange, claims: dict = Depends(require_admin)):
-    if len(body.newPassword) < 6:
-        raise HTTPException(status_code=400, detail="Password too short")
-    await ADMINS.update_one({"username": claims.get("sub")},
-                            {"$set": {"passwordHash": _hash(body.newPassword)}})
-    return {"ok": True}
 
 
 # ---------------- Site settings ----------------
@@ -113,3 +60,4 @@ async def update_settings(body: SettingsUpdate, claims: dict = Depends(require_a
     patch["updatedAt"] = datetime.now(timezone.utc).isoformat()
     await SETTINGS.update_one({"_id": "site"}, {"$set": patch}, upsert=True)
     return await _get_settings()
+

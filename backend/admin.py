@@ -115,8 +115,14 @@ async def admin_leads(_: bool = Depends(require_admin)):
 
 @router.get("/admin/leads.csv")
 async def admin_leads_csv(token: str = Query(...)):
-    claims = decode_token(token)
-    if not (token == ADMIN_TOKEN or (claims and claims.get("role") == "admin")):
+    from firebase_auth import verify_token
+    ok = token == ADMIN_TOKEN
+    if not ok:
+        claims = verify_token(token)
+        if claims:
+            u = await db.users.find_one({"uid": claims.get("uid")})
+            ok = bool(u and u.get("role") == "admin")
+    if not ok:
         raise HTTPException(status_code=401, detail="Unauthorised")
     items = await db.leads.find({}, {"_id": 0}).sort("createdAt", -1).to_list(5000)
     buf = io.StringIO()

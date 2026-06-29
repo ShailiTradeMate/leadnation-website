@@ -1,27 +1,49 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { adminApi, adminLogin, isAdminLoggedIn, setAdminToken, getAdminToken } from "@/lib/admin";
+import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
+import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, GoogleLogo,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
 
 export function AdminLogin() {
-  const [username, setUsername] = useState("");
+  const [ident, setIdent] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  if (isAdminLoggedIn()) return <Navigate to="/admin-cms" replace />;
+  const { login, loginWithCustomerId, google, isAuthed, isAdmin, refreshAccount, logout } = useAuth();
+
+  useEffect(() => {
+    if (isAuthed && isAdmin) navigate("/admin-cms");
+  }, [isAuthed, isAdmin, navigate]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr(""); setLoading(true);
-    try { await adminLogin(username.trim(), password); navigate("/admin-cms"); }
-    catch (_) { setErr("Invalid username or password"); }
+    try {
+      const id = ident.trim();
+      if (/^\d{1,6}$/.test(id)) await loginWithCustomerId(id.padStart(5, "0"), password);
+      else await login(id, password);
+      const acc = await refreshAccount();
+      if (acc?.user?.role !== "admin") { setErr("This account is not an admin."); await logout(); return; }
+      navigate("/admin-cms");
+    } catch (_) { setErr("Invalid credentials. Check your Admin ID/email and password."); }
+    finally { setLoading(false); }
+  };
+
+  const onGoogle = async () => {
+    setErr(""); setLoading(true);
+    try {
+      await google();
+      const acc = await refreshAccount();
+      if (acc?.user?.role !== "admin") { setErr("This Google account is not an admin."); await logout(); return; }
+      navigate("/admin-cms");
+    } catch (_) { setErr("Google sign-in failed."); }
     finally { setLoading(false); }
   };
 
@@ -30,12 +52,12 @@ export function AdminLogin() {
       <form onSubmit={onSubmit} data-testid="admin-login-form" className="glass-strong rounded-3xl p-8 w-full max-w-md">
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Control Center</div>
         <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to LeadNation</h1>
-        <p className="text-slate-400 text-sm mt-2">Secure access to the CMS, leads, services, Brain and site controls.</p>
+        <p className="text-slate-400 text-sm mt-2">Shared admin identity — use your Admin ID or email + password.</p>
         <input
           data-testid="admin-login-username"
           autoFocus type="text" autoComplete="username"
-          value={username} onChange={(e) => setUsername(e.target.value)}
-          placeholder="Admin ID"
+          value={ident} onChange={(e) => setIdent(e.target.value)}
+          placeholder="Admin ID (e.g. 00001) or email"
           className="mt-5 w-full glass rounded-xl px-4 py-3 outline-none"
         />
         <input
@@ -47,6 +69,7 @@ export function AdminLogin() {
         />
         {err && <div data-testid="admin-login-error" className="text-rose-300 text-sm mt-2">{err}</div>}
         <button data-testid="admin-login-submit" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? "Signing in…" : "Sign in"}</button>
+        <button type="button" data-testid="admin-google" onClick={onGoogle} disabled={loading} className="btn-ghost w-full justify-center mt-3 gap-2"><GoogleLogo size={18} weight="bold" /> Continue with Google</button>
       </form>
     </section>
   );
@@ -56,12 +79,15 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState("dashboard");
   const [stats, setStats] = useState([]);
   const navigate = useNavigate();
-  useEffect(() => {
-    if (!isAdminLoggedIn()) { navigate("/admin-login"); return; }
-    adminApi.get("/admin/collections").then((r) => setStats(r.data)).catch(() => navigate("/admin-login"));
-  }, [navigate]);
+  const { loading, isAuthed, isAdmin, logout: doLogout } = useAuth();
 
-  const logout = () => { setAdminToken(""); navigate("/admin-login"); };
+  useEffect(() => {
+    if (loading) return;
+    if (!isAuthed || !isAdmin) { navigate("/admin-login"); return; }
+    adminApi.get("/admin/collections").then((r) => setStats(r.data)).catch(() => {});
+  }, [loading, isAuthed, isAdmin, navigate]);
+
+  const logout = async () => { await doLogout(); navigate("/admin-login"); };
 
   return (
     <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-24">
@@ -228,13 +254,16 @@ function Leads() {
     if (!ql) return items;
     return items.filter((i) => Object.values(i).some((v) => typeof v === "string" && v.toLowerCase().includes(ql)));
   }, [items, q]);
-  const csvHref = `${API}/admin/leads.csv?token=${encodeURIComponent(getAdminToken())}`;
+  const downloadCsv = async () => {
+    const token = await getAdminToken();
+    window.open(`${API}/admin/leads.csv?token=${encodeURIComponent(token)}`, "_blank");
+  };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3 flex-wrap">
         <input data-testid="admin-leads-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search leads…" className="glass rounded-xl px-4 py-3 outline-none w-72" />
-        <a data-testid="admin-leads-csv" href={csvHref} download className="btn-primary !py-2 text-xs ml-auto"><FileCsv size={14} weight="bold" /> Export CSV</a>
+        <button data-testid="admin-leads-csv" onClick={downloadCsv} className="btn-primary !py-2 text-xs ml-auto"><FileCsv size={14} weight="bold" /> Export CSV</button>
       </div>
       <div className="glass-strong rounded-3xl overflow-hidden">
         <table className="w-full text-sm">
@@ -347,6 +376,8 @@ const FEATURE_LABELS = {
 
 function ControlCenter() {
   const { refresh } = useSettings();
+  const { account, resetPassword } = useAuth();
+  const adminEmail = account?.user?.email || "";
   const [form, setForm] = useState(null);
   const [services, setServices] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -401,9 +432,8 @@ function ControlCenter() {
 
   const changePassword = async () => {
     setPwdMsg("");
-    if (pwd.length < 6) { setPwdMsg("Password must be at least 6 characters"); return; }
-    try { await adminApi.post("/auth/admin/password", { newPassword: pwd }); setPwd(""); setPwdMsg("Password updated."); }
-    catch (e) { setPwdMsg(e?.response?.data?.detail || "Failed"); }
+    try { await resetPassword(adminEmail); setPwdMsg("Password reset email sent via Firebase."); }
+    catch (e) { setPwdMsg("Could not send reset email."); }
   };
 
   const PRESETS = ["#00C2FF", "#7C3AED", "#10B981", "#F59E0B", "#EF4444", "#EC4899"];
@@ -481,10 +511,10 @@ function ControlCenter() {
       </div>
 
       <div className="glass-strong rounded-3xl p-6 space-y-3">
-        <div className="font-display font-bold text-xl">Change Admin Password</div>
+        <div className="font-display font-bold text-xl">Admin Password</div>
+        <p className="text-xs text-slate-400">Passwords are managed by Firebase (shared with the mobile app). Send a secure reset link to {adminEmail || "your admin email"}.</p>
         <div className="flex items-center gap-3 flex-wrap">
-          <input data-testid="cc-new-password" type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="New password" className="glass rounded-xl px-4 py-3 w-64 outline-none" />
-          <button data-testid="cc-change-password" onClick={changePassword} className="btn-ghost !py-2.5 text-sm">Update password</button>
+          <button data-testid="cc-change-password" onClick={changePassword} className="btn-ghost !py-2.5 text-sm">Send password reset email</button>
           {pwdMsg && <span className="text-sm text-cyan-300">{pwdMsg}</span>}
         </div>
       </div>

@@ -4,10 +4,11 @@ import {
   Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
   GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Brain,
   Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
-  Briefcase, AddressBook, MagnifyingGlass,
+  Briefcase, AddressBook, MagnifyingGlass, UserCircle,
 } from "@phosphor-icons/react";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/lib/SettingsContext";
+import { useAuth } from "@/lib/AuthContext";
 
 const ROUTE_FEATURE = {
   "/tools": "tools", "/services": "services", "/brain": "brain",
@@ -48,6 +49,7 @@ export default function Nav({ active = "/" }) {
   const [openMenu, setOpenMenu] = React.useState(null);
   const navigate = useNavigate();
   const { settings } = useSettings();
+  const { isAuthed } = useAuth();
 
   const allowed = (to) => {
     const f = ROUTE_FEATURE[to];
@@ -133,8 +135,8 @@ export default function Nav({ active = "/" }) {
             <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
               <MagnifyingGlass size={16} weight="bold" />
             </Link>
-            <button data-testid="nav-cta-create-account" onClick={() => { trackEvent("create_account_click", { location: "nav" }); navigate("/contact"); }}
-              className="hidden sm:inline-flex btn-ghost !py-2 !px-4 text-[12px]">Create Account</button>
+            <button data-testid="nav-cta-account" onClick={() => { navigate(isAuthed ? "/account" : "/login"); }}
+              className="hidden sm:inline-flex btn-ghost !py-2 !px-4 text-[12px] gap-1.5"><UserCircle size={15} weight="duotone" />{isAuthed ? "Account" : "Sign in"}</button>
             <button data-testid="nav-cta-download" onClick={() => { trackEvent("download_app_click", { location: "nav" }); navigate("/#download"); }}
               className="btn-primary !py-2 !px-4 text-[12px]">Download App</button>
             <button data-testid="nav-mobile-toggle" className="lg:hidden text-white p-2" onClick={() => setOpen(!open)}>

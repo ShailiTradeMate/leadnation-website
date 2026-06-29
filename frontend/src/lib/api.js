@@ -5,7 +5,20 @@ export const API = `${BACKEND_URL}/api`;
 
 export const api = axios.create({
   baseURL: API,
-  timeout: 15000,
+  timeout: 30000,
+});
+
+// Attach the current Firebase ID token (if signed in) to every request.
+api.interceptors.request.use(async (config) => {
+  try {
+    const { auth } = await import("@/lib/firebase");
+    const u = auth.currentUser;
+    if (u) {
+      const token = await u.getIdToken();
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (_) { /* unauthenticated */ }
+  return config;
 });
 
 export const fetchCountries = () => api.get("/countries").then((r) => r.data);

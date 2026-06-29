@@ -37,11 +37,16 @@ def decode_token(token: str) -> Optional[dict]:
 
 async def require_admin(authorization: Optional[str] = Header(default=None),
                         x_admin_token: Optional[str] = Header(default=None)):
-    """Accept either a valid JWT (Authorization: Bearer ...) or the legacy admin token."""
+    """Admin gate — shared identity: a verified Firebase user whose Mongo users.role == 'admin'.
+    Legacy X-Admin-Token kept only as an emergency fallback."""
+    from firebase_auth import verify_token
     if authorization and authorization.lower().startswith("bearer "):
-        claims = decode_token(authorization.split(" ", 1)[1])
-        if claims and claims.get("role") == "admin":
-            return claims
+        claims = verify_token(authorization.split(" ", 1)[1].strip())
+        if claims:
+            u = await db.users.find_one({"uid": claims.get("uid")})
+            if u and u.get("role") == "admin" and not u.get("is_deleted"):
+                return {"uid": claims["uid"], "email": u.get("email"),
+                        "customer_id": u.get("customer_id"), "role": "admin"}
     if x_admin_token and x_admin_token == ADMIN_TOKEN:
         return {"sub": "legacy", "role": "admin"}
-    raise HTTPException(status_code=401, detail="Unauthorised")
+    raise HTTPException(status_code=401, detail="Admin access required")

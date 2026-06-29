@@ -38,12 +38,15 @@ import DirectoryDetail, { DirectoryHub } from "@/pages/Directory";
 import GlobalSearch from "@/pages/GlobalSearch";
 import AdminDashboard, { AdminLogin } from "@/pages/admin/AdminDashboard";
 import AdminBrain from "@/pages/admin/AdminBrain";
+import { AuthProvider } from "@/lib/AuthContext";
+import { Login, Signup, ForgotPassword, Account } from "@/pages/Auth";
 
 function App() {
   return (
     <HelmetProvider>
       <BrowserRouter>
-        <Layout>
+        <AuthProvider>
+          <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/customs-compliance" element={<CustomsCompliance />} />
@@ -100,6 +103,12 @@ function App() {
             <Route path="/blog" element={<BlogIndex />} />
             <Route path="/blog/:slug" element={<BlogDetail />} />
 
+            {/* Accounts (shared Firebase identity) */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/account" element={<Account />} />
+
             {/* Admin */}
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin-cms" element={<AdminDashboard />} />
@@ -107,6 +116,7 @@ function App() {
             <Route path="/admin/leads" element={<AdminDashboard />} />
           </Routes>
         </Layout>
+        </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>
   );

@@ -1,0 +1,39 @@
+{
+  "summary": "Iteration 16 — Shared Firebase login phase fully verified end-to-end against the SHARED PRODUCTION Firebase project 'trademate-new' + Atlas DB 'leadnation'. 9/9 pytest backend cases PASS (~14s): resolve-customer-id (00001→admin email, 99999→404), /auth/me (401 without token; admin token returns onboarded:true, customer_id=00001, role=admin, no _id leak), /admin_v2/users (admin token returns users+total; without token → 401/403), onboarding/register lifecycle (allocated 00007, second call returned same id with new:false → idempotent), hard-delete protection (00001 → 403) and hard-delete throwaway 00007 (Firebase+Mongo purged, /auth/me afterward returns onboarded:false). Frontend: admin-login (00001+password) → /admin-cms → Control Center tab shows site-branding panel; /login with 'admin@leadnation.app' + password → /account customer_id=00001; logout then /login by Customer ID '00001' → /account customer_id=00001; /signup created webqa2_1782767607@leadnation.test, allocated 00008, /account shows 'Not verified' + 'Resend verification email' button. Nav when signed out shows 'Sign in' linking to /login. BOTH throwaway accounts (00007 backend + 00008 frontend signup) were HARD-DELETED before finishing — Firebase Auth + Mongo users/profiles purged.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/account (resend verification)", "issues": ["The 'Resend verification email' button is visually correct but missing data-testid='resend-verify' (requested by the spec). It renders text but query_selector for data-testid finds nothing. Low priority."]},
+      {"screen": "Nav signed-out CTA", "issues": ["data-testid='nav-cta-account' is a <button>, not an <a> — href attribute is null. Click works because of JS navigation, but spec implies a link. Cosmetic only."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_auth_firebase.py",
+    "/app/test_reports/pytest/iteration_16_auth.xml"
+  ],
+  "action_items": [
+    "Add data-testid='resend-verify' to the 'Resend verification email' button on /account (Auth.jsx) so automated tests can target it directly.",
+    "Optional: render nav-cta-account as an <a href='/login'> (or add aria-label) for accessibility + selector consistency."
+  ],
+  "critical_code_review_comments": [
+    "firebase_auth.verify_token swallows all exceptions and only logs a warning — a Firebase outage will look identical to an expired token (both → 401). Consider distinguishing token-validation errors from infrastructure errors (502/503) for observability.",
+    "accounts.hard_delete_user purges Mongo collections best-effort but does NOT raise if Firebase delete fails (returns firebase_deleted:false). For super-admin hard-delete that should be loud — log + alert when fb_ok is False to prevent orphan Firebase accounts.",
+    "accounts.require_admin_user re-fetches the admin user doc on every protected admin call — fine at this scale, but consider a 30–60s in-process LRU cache keyed by uid to cut Mongo round-trips for admin dashboards.",
+    "accounts.resolve_customer_id is PUBLIC and leaks an account's email given a Customer ID. Acceptable given Customer IDs are sequential & not secret, but consider rate-limiting (e.g. 30/min/IP) to slow enumeration attacks that try 00001..99999.",
+    "accounts.register stores user_role from body.role with a hard-coded BUSINESS_ROLES allowlist but Pydantic doesn't enforce it — a Literal[...] on RegisterBody.role would surface the constraint to OpenAPI clients.",
+    "Auth.jsx /account 'Resend verification email' button missing data-testid='resend-verify' — see UI bug above."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_firebase.py",
+    "/app/test_reports/iteration_16.json"
+  ],
+  "success_rate": {"backend": "100% (9/9)", "frontend": "100% (all 5 flows pass)"},
+  "test_credentials": "Admin: admin@leadnation.app / Shiv@12345 (Customer ID 00001). Firebase Web API key from /app/frontend/.env. No new persistent credentials introduced.",
+  "seed_data_creation": "Two throwaway users created and both HARD-DELETED during this run: (1) backend test → customer_id 00007 / email webqa_1782767465@leadnation.test (deleted by test_hard_delete_throwaway_and_verify_purge); (2) frontend /signup → customer_id 00008 / email webqa2_1782767607@leadnation.test (deleted via DELETE /api/admin_v2/users/00008/hard-delete after the UI run). _counters has advanced to seq 8 — expected, IDs are never reused.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 5 login-phase flows are working against shared production Firebase + Atlas. To re-verify quickly: pytest /app/backend/tests/test_auth_firebase.py -v -s — it self-creates a throwaway, exercises register-idempotency, then purges. The Firebase Web API key, admin creds, and preview backend URL are sourced from env / test_credentials.md. Do NOT try to delete 00001 (protected, returns 403 by design). When testing /signup or onboarding lifecycle, ALWAYS hard-delete the throwaway customer_id at the end of the run so _counters doesn't grow without bound — increment is permanent but DB rows must be removed. Google sign-in popup is NOT automated headlessly; only verify the 'Continue with Google' / 'Sign up with Google' buttons render.",
+  "rca of the issue": "No bugs found in this iteration. The first frontend pass had two flaky steps caused by the test script itself (not the app): (a) after clicking account-logout, the SPA briefly remained on /account before the AuthContext cleared, so the immediate goto /login raced the React route guard and the form failed to mount — fixed by adding a 3s wait after logout; (b) the role <select> was attempted with both select_option and click — select_option works directly on signup-role. After those test-script tweaks every flow passed cleanly. Backend has been stable throughout."
+}

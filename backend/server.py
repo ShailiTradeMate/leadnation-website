@@ -7,9 +7,10 @@ from starlette.middleware.cors import CORSMiddleware
 from core import client, db  # noqa: F401  (db kept for shell/debug)
 
 # Domain routers
-import reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine
+import reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, accounts
 from admin import CMS_COLLECTIONS, _seed_collection
-from auth import seed_admin
+from auth import seed_settings
+from firebase_auth import init_firebase
 
 # Brain (Phase 7 intelligence layer)
 from brain.routes import router as brain_router
@@ -19,7 +20,7 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="LeadNation — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, accounts):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
@@ -41,6 +42,7 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def _startup():
+    init_firebase()
     for name, source in CMS_COLLECTIONS.items():
         try:
             await _seed_collection(name, source)
@@ -51,9 +53,9 @@ async def _startup():
     except Exception as exc:
         logging.warning("Knowledge base seed failed: %s", exc)
     try:
-        await seed_admin()
+        await seed_settings()
     except Exception as exc:
-        logging.warning("Admin seed failed: %s", exc)
+        logging.warning("Settings seed failed: %s", exc)
     try:
         await duty_engine.seed_rodtep()
         duty_engine.start_scheduler()
