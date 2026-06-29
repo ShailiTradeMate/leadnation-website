@@ -23,6 +23,13 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 6. Contact page with email/whatsapp/Instagram/address + embedded OpenStreetMap.
 7. India-first features section.
 
+## Implemented (2026-06-29) — Brain goes GLOBAL + Compile Data + Phase C
+- [x] **BUG FIX — Brain global & non-repetitive**: rewrote `brain/providers.py` SYSTEM prompt (global, answer-the-specific-question, ground numbers in live engines, use own expertise for any country's compliance, never default to India). Made `trade_news/market_intelligence/logistics/policy/tariff` engines global & dynamic (removed hardcoded India boilerplate like "$450B exports", "Mundra"). Tightened `router.py` engine selection (cap 5, dropped legacy `tariff`/`network`/`marketplace` from auto-select) and added global country detection (scans `duty_engine.COUNTRIES`). Verified: 3 distinct queries → 3 distinct, country-specific, non-India answers.
+- [x] **Compile Data master tab** (`compile_engine.py`, `/api/compile/report`): one-click brief for product + export country + import country + currency → aggregates trade stats, duty & benefits, tariff comparison across 6 markets, live FX, sample landed-cost, freight, + a Brain-written **Executive Brief** (LLM). New default tab `CompileDataTool` on `/customs-compliance` with `MarkdownLite` renderer.
+- [x] **Phase C — CBIC notified customs FX**: `/api/customs/cbic-fx` returns India CBIC notified import/export rates + notifiedDate. (Data layer live; calculator-UI wiring is a small follow-up.)
+- Verified: test_reports/iteration_15.json — 11/11 backend + all UI flows PASS.
+
+
 ## Implemented (2026-06-29) — Phase B: Duty & Benefits engine (real, weekly-refreshed)
 - [x] New backend `duty_engine.py`: unified **global import tariffs** (World Bank WITS / UNCTAD TRAINS, reporter=destination × partner=origin × HS6), **India duty breakdown** (BCD from WITS + IGST slab + 10% SWS), and **DGFT RoDTEP** export benefit (chapter-level, Mongo `rodtep_rates`). Endpoints: `/api/duty/countries`, `/duty/meta`, `/duty/lookup?hs=&origin=&destination=`, POST `/duty/refresh` (admin-gated).
 - [x] Origin↔destination country filter (56 major countries). Real verified data: USA→India coffee 100% MFN; USA→Germany cars 10%; India→Germany coffee RoDTEP 1.4%.
