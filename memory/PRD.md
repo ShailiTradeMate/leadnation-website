@@ -23,6 +23,12 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 6. Contact page with email/whatsapp/Instagram/address + embedded OpenStreetMap.
 7. India-first features section.
 
+## Fixed (2026-06-29) — Auth bug fixes (email verification + Google)
+- [x] **Email verification via TEST OTP**: `/api/auth/request-otp` + `/api/auth/verify-otp` (code `123456`, env `TEST_OTP`) marks Firebase `email_verified` + Mongo `users.is_email_verified`. Account page shows a verify card (enter 123456 → flips to Verified); frontend force-refreshes the ID token. Verified for account 00009. (Swap TEST_OTP for a real OTP/SMS provider later.)
+- [x] **Google sign-in graceful failure**: `googleErr()` maps `auth/unauthorized-domain` etc. to a friendly message instead of crashing. ROOT CAUSE: the Emergent preview domain is not in Firebase Authorized Domains — Google works on leadnation.app/Vercel (already whitelisted). To test Google in preview, add `global-trade-hub-176.preview.emergentagent.com` in Firebase Console → Auth → Settings → Authorized domains.
+- Verified: test_reports/iteration_17.json — 3/3 backend + UI flows PASS. Throwaway users cleaned (DB = 00001 + 00009).
+
+
 ## Implemented (2026-06-29) — SHARED LOGIN PHASE (Firebase + Atlas, app-interoperable)
 - [x] **ONE identity, ONE database** with the mobile app: switched backend to shared **MongoDB Atlas DB `leadnation`** + shared **Firebase project `trademate-new`** (Email/Password + Google). Passwords live ONLY in Firebase.
 - [x] `firebase_auth.py` — inits Firebase Admin from `FIREBASE_SERVICE_ACCOUNT_B64`, verifies `Authorization: Bearer <firebaseIdToken>` on protected routes.
