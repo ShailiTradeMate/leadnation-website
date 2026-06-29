@@ -23,6 +23,15 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 6. Contact page with email/whatsapp/Instagram/address + embedded OpenStreetMap.
 7. India-first features section.
 
+## Implemented (2026-06-29) — Phase A: Live Global Trade Intelligence
+- [x] New backend engine `trade_intel.py`: REAL global trade stats by HS code. Two sources, freshest wins: **OEC World API** (free, no key, always on) + **UN Comtrade** (activates when `COMTRADE_API_KEY` env set). Endpoints: `/api/trade-intel/status`, `/hs-search?q=`, `/stats?hs=`. HS6 directory (5606 codes) built from OEC and cached in Mongo `trade_hs_map`. Results cached in `trade_cache` (14-day TTL ≈ bi-weekly).
+- [x] Returns: total world trade value, top importing & exporting countries (value + share), multi-year trend, source + year + freshness. GLOBAL (not India-only).
+- [x] Brain engine `trade_statistics` wired into `brain/engines.py` + `router.py` selection (keywords + HS code presence). Brain answers trade-stat questions with real numbers.
+- [x] Frontend: new **"Trade Statistics"** tab on `/customs-compliance` (TradeStatsTool) — product/HS search w/ autocomplete, world value, importer/exporter bars, trend chart, Ask-the-Brain CTA. Customs hero/SEO updated to global framing.
+- Verified: test_reports/iteration_13.json — 8/8 backend + all UI flows PASS (live OEC data).
+- ⏳ Pending: user to add UN Comtrade API key (`COMTRADE_API_KEY` in backend/.env) for fresher data.
+
+
 ## Implemented (2026-06-28) — Unified Admin Control Center + Trade Terms
 **Admin auth unified under JWT** (ID `00001` / pwd `Shiv@12345`)
 - [x] AdminLogin now uses ID + password → POST `/api/auth/admin/login`, JWT stored as `ln_admin_jwt`, sent as `Authorization: Bearer`. Legacy `X-Admin-Token` still accepted server-side; CSV export accepts JWT in `?token=`.
