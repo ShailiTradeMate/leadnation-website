@@ -23,6 +23,15 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 6. Contact page with email/whatsapp/Instagram/address + embedded OpenStreetMap.
 7. India-first features section.
 
+## Implemented (2026-06-29) — Phase B: Duty & Benefits engine (real, weekly-refreshed)
+- [x] New backend `duty_engine.py`: unified **global import tariffs** (World Bank WITS / UNCTAD TRAINS, reporter=destination × partner=origin × HS6), **India duty breakdown** (BCD from WITS + IGST slab + 10% SWS), and **DGFT RoDTEP** export benefit (chapter-level, Mongo `rodtep_rates`). Endpoints: `/api/duty/countries`, `/duty/meta`, `/duty/lookup?hs=&origin=&destination=`, POST `/duty/refresh` (admin-gated).
+- [x] Origin↔destination country filter (56 major countries). Real verified data: USA→India coffee 100% MFN; USA→Germany cars 10%; India→Germany coffee RoDTEP 1.4%.
+- [x] **Weekly APScheduler** (7-day) auto-refresh clears tariff cache + restamps `duty_meta.lastRefresh`; "updated on" shown to users; manual **"Refresh data now"** button in Admin Control Center.
+- [x] Brain engine `duty_benefits` wired (keywords duty/tariff/rodtep + country pairs) — Brain answers duty questions with real numbers.
+- [x] Frontend: new **"Duty & Benefits"** tab on `/customs-compliance` (DutyBenefitsTool) + admin "Trade & Duty Data" refresh card.
+- Verified: test_reports/iteration_14.json — 9/9 backend + all UI + admin refresh + Brain PASS.
+
+
 ## Implemented (2026-06-29) — Phase A: Live Global Trade Intelligence
 - [x] New backend engine `trade_intel.py`: REAL global trade stats by HS code. Two sources, freshest wins: **OEC World API** (free, no key, always on) + **UN Comtrade** (activates when `COMTRADE_API_KEY` env set). Endpoints: `/api/trade-intel/status`, `/hs-search?q=`, `/stats?hs=`. HS6 directory (5606 codes) built from OEC and cached in Mongo `trade_hs_map`. Results cached in `trade_cache` (14-day TTL ≈ bi-weekly).
 - [x] Returns: total world trade value, top importing & exporting countries (value + share), multi-year trend, source + year + freshness. GLOBAL (not India-only).
