@@ -7,6 +7,7 @@ Mirrors the mobile app exactly:
   * Passwords live ONLY in Firebase. Mongo stores profile/account data.
 """
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Optional, List
 
@@ -15,9 +16,11 @@ from pydantic import BaseModel
 from pymongo import ReturnDocument
 
 from core import db
-from firebase_auth import require_user, delete_user as fb_delete_user
+from firebase_auth import require_user, delete_user as fb_delete_user, set_email_verified
 
 router = APIRouter()
+
+TEST_OTP = os.environ.get("TEST_OTP", "123456")
 
 BUSINESS_ROLES = {"exporter", "importer", "supplier", "manufacturer",
                   "farmer", "cha", "export_agent", "consultant"}
@@ -124,6 +127,28 @@ async def me(claims: dict = Depends(require_user)):
     await db.users.update_one({"uid": uid}, {"$set": {"last_activity_at": _now()}})
     profile = await db.profiles.find_one({"uid": uid})
     return {"onboarded": True, "user": _sanitize(u), "profile": _sanitize(profile)}
+
+
+# ---------------- Email verification (TEST OTP until provider connected) ----------------
+class OtpBody(BaseModel):
+    otp: str
+
+
+@router.post("/auth/request-otp")
+async def request_otp(claims: dict = Depends(require_user)):
+    # OTP provider not yet connected — return the test instruction.
+    return {"ok": True, "test_mode": True,
+            "message": "Enter the test code 123456 to verify your email (live OTP provider coming soon)."}
+
+
+@router.post("/auth/verify-otp")
+async def verify_otp(body: OtpBody, claims: dict = Depends(require_user)):
+    if body.otp.strip() != TEST_OTP:
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+    uid = claims["uid"]
+    set_email_verified(uid)
+    await db.users.update_one({"uid": uid}, {"$set": {"is_email_verified": True}})
+    return {"ok": True, "verified": True}
 
 
 # ---------------- Admin (shared) ----------------

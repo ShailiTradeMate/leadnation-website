@@ -54,6 +54,14 @@ export function AuthProvider({ children }) {
     google: async () => { const cred = await signInWithPopup(auth, googleProvider); return cred; },
     resetPassword: (email) => sendPasswordResetEmail(auth, email),
     resendVerification: () => (auth.currentUser ? sendEmailVerification(auth.currentUser) : Promise.reject()),
+    requestOtp: () => api.post("/auth/request-otp").then((r) => r.data),
+    verifyOtp: (otp) => api.post("/auth/verify-otp", { otp }).then(async (r) => {
+      try {
+        if (auth.currentUser) { await auth.currentUser.getIdToken(true); await auth.currentUser.reload(); setFbUser(auth.currentUser); }
+      } catch (_) {}
+      await refreshAccount();
+      return r.data;
+    }),
     logout: () => signOut(auth),
   };
 

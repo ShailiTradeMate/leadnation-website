@@ -86,3 +86,12 @@ def delete_user(uid: str) -> bool:
     except Exception as exc:
         logging.warning("Firebase delete_user failed for %s: %s", uid, exc)
         return False
+
+
+def set_email_verified(uid: str) -> bool:
+    try:
+        fb_auth.update_user(uid, email_verified=True)
+        return True
+    except Exception as exc:
+        logging.warning("Firebase set_email_verified failed for %s: %s", uid, exc)
+        return False

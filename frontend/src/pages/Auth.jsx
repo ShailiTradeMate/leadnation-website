@@ -21,6 +21,14 @@ const Shell = ({ title, sub, children }) => (
 );
 const inp = "w-full glass rounded-xl px-4 py-3 outline-none mt-3";
 
+function googleErr(e) {
+  const c = e?.code || "";
+  if (c.includes("unauthorized-domain")) return "Google sign-in isn't enabled for this domain yet. Please use email/password for now (admin is adding this domain to Firebase).";
+  if (c.includes("popup-blocked")) return "Your browser blocked the Google popup — allow popups and try again.";
+  if (c.includes("popup-closed") || c.includes("cancelled-popup")) return "Google sign-in was cancelled.";
+  return "Google sign-in failed. Please try email/password.";
+}
+
 export function Login() {
   const { login, loginWithCustomerId, google, isAuthed } = useAuth();
   const [ident, setIdent] = useState("");
@@ -40,7 +48,7 @@ export function Login() {
     } catch (_) { setErr("Login failed — check your email/Customer ID and password."); }
     finally { setLoading(false); }
   };
-  const onGoogle = async () => { setErr(""); setLoading(true); try { await google(); navigate("/account"); } catch (_) { setErr("Google sign-in failed."); } finally { setLoading(false); } };
+  const onGoogle = async () => { setErr(""); setLoading(true); try { await google(); navigate("/account"); } catch (e) { setErr(googleErr(e)); } finally { setLoading(false); } };
 
   return (
     <Shell title="Sign in" sub="Use the same account as the LeadNation app.">
@@ -82,7 +90,7 @@ export function Signup() {
   const onGoogle = async () => {
     setErr(""); setLoading(true);
     try { await google(); await register({ role: form.role, provider: "google" }); navigate("/account"); }
-    catch (_) { setErr("Google sign-up failed."); } finally { setLoading(false); }
+    catch (e) { setErr(googleErr(e)); } finally { setLoading(false); }
   };
 
   return (
@@ -131,13 +139,23 @@ export function ForgotPassword() {
 }
 
 export function Account() {
-  const { account, fbUser, loading, logout, resendVerification, isAuthed } = useAuth();
+  const { account, fbUser, loading, logout, requestOtp, verifyOtp, isAuthed } = useAuth();
   const navigate = useNavigate();
+  const [otp, setOtp] = useState("");
   const [vmsg, setVmsg] = useState("");
+  const [verifying, setVerifying] = useState(false);
   if (loading) return <Shell title="Loading…" />;
   if (!isAuthed) return <Navigate to="/login" replace />;
   const u = account?.user || {};
-  const verified = fbUser?.emailVerified;
+  const verified = fbUser?.emailVerified || u.is_email_verified;
+
+  const sendCode = async () => { setVmsg(""); try { const r = await requestOtp(); setVmsg(r.message || "Enter the test code 123456."); } catch (_) { setVmsg("Could not start verification."); } };
+  const doVerify = async () => {
+    setVmsg(""); setVerifying(true);
+    try { await verifyOtp(otp.trim()); setVmsg("Email verified ✓"); setOtp(""); }
+    catch (e) { setVmsg(e?.response?.data?.detail || "Invalid code."); }
+    finally { setVerifying(false); }
+  };
 
   return (
     <Shell title="My Account" sub="Shared with the LeadNation mobile app.">
@@ -150,14 +168,21 @@ export function Account() {
         <Row label="Platform role" value={u.role || "user"} />
         <div className="flex items-center justify-between glass rounded-xl px-4 py-3">
           <span className="text-sm text-slate-400">Email verified</span>
-          <span className={`text-sm flex items-center gap-1 ${verified ? "text-emerald-300" : "text-amber-300"}`}>
+          <span data-testid="account-verified-status" className={`text-sm flex items-center gap-1 ${verified ? "text-emerald-300" : "text-amber-300"}`}>
             {verified ? <><CheckCircle size={15} weight="fill" /> Verified</> : <><WarningCircle size={15} weight="fill" /> Not verified</>}
           </span>
         </div>
         {!verified && (
-          <button data-testid="resend-verify" onClick={async () => { try { await resendVerification(); setVmsg("Verification email sent."); } catch (_) { setVmsg("Could not send."); } }} className="btn-ghost w-full justify-center text-sm">Resend verification email</button>
+          <div className="glass rounded-xl p-4 space-y-3" data-testid="account-verify-card">
+            <div className="text-sm text-slate-300">Verify your email to unlock everything. The live OTP provider isn't connected yet — use the <span className="text-cyan-300 font-mono-display">test code 123456</span>.</div>
+            <div className="flex gap-2">
+              <input data-testid="account-otp-input" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter code (123456)" className="glass rounded-xl px-4 py-2.5 outline-none flex-1" />
+              <button data-testid="account-verify-otp" onClick={doVerify} disabled={verifying} className="btn-primary !py-2.5 disabled:opacity-50">{verifying ? <CircleNotch size={15} className="animate-spin" /> : "Verify"}</button>
+            </div>
+            <button data-testid="account-send-otp" onClick={sendCode} className="text-xs text-cyan-300 hover:underline">Send verification code</button>
+          </div>
         )}
-        {vmsg && <div className="text-cyan-300 text-sm">{vmsg}</div>}
+        {vmsg && <div data-testid="account-verify-msg" className="text-cyan-300 text-sm">{vmsg}</div>}
         {u.role === "admin" && <button onClick={() => navigate("/admin-cms")} className="btn-ghost w-full justify-center text-sm" data-testid="account-admin-link">Open Admin Console</button>}
         <button data-testid="account-logout" onClick={async () => { await logout(); navigate("/"); }} className="btn-primary w-full justify-center mt-2 gap-2"><SignOut size={16} weight="bold" /> Sign out</button>
       </div>
