@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import {
   ShieldCheck, CurrencyCircleDollar, Cube, Calculator, Path, Gift, Users,
   FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch, Handshake,
+  ChartLineUp, TrendUp, TrendDown, Globe,
 } from "@phosphor-icons/react";
 
 const COUNTRIES = [
@@ -17,6 +18,7 @@ const COUNTRIES = [
 
 const TABS = [
   ["report", "Compliance Report", ShieldCheck],
+  ["trade", "Trade Statistics", ChartLineUp],
   ["terms", "Trade Terms", Handshake],
   ["fx", "Currency Exchange", CurrencyCircleDollar],
   ["cbm", "CBM Calculator", Cube],
@@ -39,14 +41,14 @@ export default function CustomsCompliance() {
   const [tab, setTab] = useState("report");
   return (
     <>
-      <SEO title="Customs & Compliance + CHA Hub · India Import-Export"
-        description="India-first customs & compliance engine — duty, HSN, documents, RoDTEP & government benefits, CHA charges, CBM, live currency exchange and freight routes. Powered by the LeadNation Brain."
+      <SEO title="Customs, Compliance & Global Trade Data · Any Country"
+        description="Global trade intelligence — real import/export statistics for any product (UN Comtrade / OEC), Incoterms, live currency, duty, HSN, documents, CHA charges, CBM and freight. India-first compliance plus worldwide trade data. Powered by the LeadNation Brain."
         path="/customs-compliance"
-        keywords="India customs duty calculator, ICEGATE DGFT, HSN compliance, CHA charges, CBM calculator, RoDTEP benefits, freight routes, currency exchange" />
+        keywords="global trade statistics, UN Comtrade data, top importing countries, HS code trade value, customs duty calculator, Incoterms 2020, HSN compliance, CHA charges, CBM calculator, currency exchange" />
 
-      <PageHero testIdPrefix="customs" label="Customs · Compliance · CHA"
-        title="Clear any product. Any border."
-        sub="A product-based India customs engine: duty, documents, HSN, RoDTEP & government benefits, plus CHA charges, CBM, live currency and freight routes — closed loop, all in one place." />
+      <PageHero testIdPrefix="customs" label="Customs · Compliance · Global Trade Data"
+        title="Trade any product. Any border."
+        sub="Real global trade statistics for any HS code — top importers, exporters and world trade value — alongside Incoterms, live currency, duty, documents, HSN, RoDTEP benefits, CHA charges, CBM and freight. Worldwide data, India-first compliance, one place." />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
@@ -59,6 +61,7 @@ export default function CustomsCompliance() {
         </div>
 
         {tab === "report" && <ReportTool />}
+        {tab === "trade" && <TradeStatsTool />}
         {tab === "terms" && <TradeTermsTool />}
         {tab === "fx" && <FxTool />}
         {tab === "cbm" && <CbmTool />}
@@ -344,6 +347,158 @@ function ChaDirectory() {
         </div>
       )}
     </ToolCard>
+  );
+}
+
+const fmtUSD = (v) => {
+  v = Number(v) || 0;
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${v.toFixed(0)}`;
+};
+
+/* ---------------- Live Trade Statistics (global) ---------------- */
+function TradeStatsTool() {
+  const [q, setQ] = useState("");
+  const [sugg, setSugg] = useState([]);
+  const [openSugg, setOpenSugg] = useState(false);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  React.useEffect(() => {
+    const text = q.trim();
+    if (text.length < 2 || /^\d+$/.test(text)) { setSugg([]); return; }
+    const t = setTimeout(async () => {
+      try { const { data } = await api.get("/trade-intel/hs-search", { params: { q: text, limit: 8 } }); setSugg(data.results || []); setOpenSugg(true); }
+      catch (_) { setSugg([]); }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const run = async (hs) => {
+    setLoading(true); setErr(""); setData(null); setOpenSugg(false);
+    try {
+      const { data } = await api.get("/trade-intel/stats", { params: { hs } });
+      if (data.ok) setData(data);
+      else setErr(data.error || "No data found for this HS code.");
+    } catch (_) { setErr("Unable to fetch trade data. Try again."); }
+    finally { setLoading(false); }
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    const digits = q.replace(/\D/g, "");
+    if (digits.length >= 6) run(digits.slice(0, 6));
+    else if (sugg.length) run(sugg[0].hs6);
+    else setErr("Search a product or enter a 6-digit HS code.");
+  };
+
+  const pick = (s) => { setQ(`${s.hs6} · ${s.description}`); run(s.hs6); };
+  const maxImp = data?.topImporters?.[0]?.value || 1;
+  const maxExp = data?.topExporters?.[0]?.value || 1;
+  const maxTrend = Math.max(...(data?.trend || []).map((t) => t.value), 1);
+
+  return (
+    <div className="space-y-5">
+      <ToolCard title="Live Global Trade Statistics" desc="Real bilateral trade data for any product worldwide — top importing & exporting countries, total world trade value and multi-year trend. Powered by UN Comtrade / OEC World; the freshest source is used automatically.">
+        <form onSubmit={onSubmit} className="relative">
+          <div className="flex gap-3 items-end">
+            <div className="flex-1 relative">
+              <Field label="Product or HS code (global)">
+                <input data-testid="trade-search" className={inputCls} value={q}
+                  onChange={(e) => { setQ(e.target.value); }} onFocus={() => sugg.length && setOpenSugg(true)}
+                  placeholder="e.g. Coffee, Smartphones, Crude Oil, or 090111" />
+              </Field>
+              {openSugg && sugg.length > 0 && (
+                <div data-testid="trade-suggestions" className="absolute z-20 mt-1 w-full glass-strong rounded-2xl border border-white/10 max-h-72 overflow-auto shadow-2xl">
+                  {sugg.map((s) => (
+                    <button key={s.hs6} type="button" data-testid={`trade-sugg-${s.hs6}`} onClick={() => pick(s)}
+                      className="w-full text-left px-4 py-2.5 hover:bg-white/5 flex items-center gap-3 border-b border-white/5 last:border-0">
+                      <span className="font-mono-display text-xs text-cyan-300 shrink-0">{s.hs6}</span>
+                      <span className="text-sm text-slate-200 truncate">{s.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button data-testid="trade-submit" type="submit" disabled={loading} className="btn-primary justify-center disabled:opacity-50">
+              {loading ? <CircleNotch size={16} className="animate-spin" /> : <MagnifyingGlass size={16} weight="bold" />} Get data
+            </button>
+          </div>
+        </form>
+        {err && <div data-testid="trade-error" className="mt-4 text-amber-300 text-sm">{err}</div>}
+      </ToolCard>
+
+      {data && (
+        <div className="space-y-5" data-testid="trade-result">
+          <div className="glass-strong rounded-3xl p-6">
+            <div className="flex items-start justify-between flex-wrap gap-3">
+              <div>
+                <div className="text-[11px] font-mono-display tracking-widest uppercase text-cyan-300">HS {data.hsCode}</div>
+                <h3 className="font-display font-bold text-2xl mt-1">{data.description || `HS ${data.hsCode}`}</h3>
+              </div>
+              <div className="text-right">
+                <span data-testid="trade-source-badge" className="inline-flex items-center gap-1.5 text-[11px] font-mono-display uppercase px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">
+                  <Globe size={12} weight="duotone" /> {data.source} · {data.year}
+                </span>
+                <div className="text-[10px] text-slate-500 mt-1">{data.comtradeEnabled ? "UN Comtrade + OEC" : "OEC World (add Comtrade key for fresher data)"}</div>
+              </div>
+            </div>
+            <div className="mt-4 grid sm:grid-cols-3 gap-3">
+              <div className="glass rounded-2xl px-5 py-4 sm:col-span-1">
+                <div className="text-[10px] text-slate-400 uppercase tracking-wider">World trade value ({data.year})</div>
+                <div className="font-display font-extrabold text-3xl gradient-text mt-1" data-testid="trade-world-value">{fmtUSD(data.totalWorldTradeUSD)}</div>
+              </div>
+              {data.trend?.length > 1 && (
+                <div className="glass rounded-2xl px-5 py-4 sm:col-span-2">
+                  <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">World trade trend</div>
+                  <div className="flex items-end gap-3 h-16">
+                    {data.trend.map((t) => (
+                      <div key={t.year} className="flex-1 flex flex-col items-center gap-1">
+                        <div className="w-full rounded-t bg-gradient-to-t from-cyan-500/40 to-violet-500/60" style={{ height: `${Math.max(8, (t.value / maxTrend) * 100)}%` }} title={fmtUSD(t.value)} />
+                        <div className="text-[9px] text-slate-400 font-mono-display">{t.year}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-5">
+            <Panel title="Top Importing Countries" icon={TrendUp}>
+              <div className="space-y-2.5" data-testid="trade-importers">
+                {data.topImporters.map((c, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm"><span>{c.country}</span><span className="text-cyan-300">{fmtUSD(c.value)}{c.share ? ` · ${c.share}%` : ""}</span></div>
+                    <div className="h-1.5 rounded-full bg-white/5 mt-1 overflow-hidden"><div className="h-full bg-gradient-to-r from-cyan-400 to-cyan-500" style={{ width: `${(c.value / maxImp) * 100}%` }} /></div>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+            <Panel title="Top Exporting Countries" icon={TrendDown}>
+              <div className="space-y-2.5" data-testid="trade-exporters">
+                {data.topExporters.map((c, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-sm"><span>{c.country}</span><span className="text-violet-300">{fmtUSD(c.value)}</span></div>
+                    <div className="h-1.5 rounded-full bg-white/5 mt-1 overflow-hidden"><div className="h-full bg-gradient-to-r from-violet-400 to-violet-500" style={{ width: `${(c.value / maxExp) * 100}%` }} /></div>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          </div>
+
+          <div className="glass-strong rounded-3xl p-5 flex items-center gap-4 flex-wrap">
+            <Brain size={28} weight="duotone" className="text-cyan-300" />
+            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Ask the LeadNation Brain for a deeper read on demand, tariffs and opportunities for this product.</div>
+            <Link to={`/brain?q=${encodeURIComponent(`Give me a full trade analysis for HS code ${data.hsCode} (${data.description}) — demand, top markets and opportunities`)}`} className="btn-primary" data-testid="trade-ask-brain">Ask the Brain</Link>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 

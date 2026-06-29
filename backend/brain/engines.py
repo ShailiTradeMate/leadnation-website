@@ -149,6 +149,49 @@ async def network_engine(kind=None, **_):
     }
 
 
+async def trade_statistics_engine(product=None, hsn=None, **_):
+    """REAL global trade data (OEC World / UN Comtrade) by HS code."""
+    from trade_intel import trade_stats, hs_search
+    hs6 = None
+    if hsn:
+        from trade_intel import _norm_hs
+        hs6 = _norm_hs(hsn)
+    if not hs6 and product:
+        hits = await hs_search(product, limit=1)
+        if hits:
+            hs6 = hits[0]["hs6"]
+    if not hs6 or len(hs6) < 6:
+        return None
+    stats = await trade_stats(hs6)
+    if not stats.get("ok"):
+        return None
+    imp = ", ".join(f"{i['country']} (${_fmt(i['value'])})" for i in stats["topImporters"][:4])
+    exp = ", ".join(e["country"] for e in stats["topExporters"][:4])
+    return {
+        "summary": (f"Global trade in {stats['description'] or ('HS ' + stats['hsCode'])} "
+                    f"({stats['year']}): world imports ≈ ${_fmt(stats['totalWorldTradeUSD'])}. "
+                    f"Top importers: {imp}. Leading exporters: {exp}. "
+                    f"Source: {stats['source']}."),
+        "data": {"hsCode": stats["hsCode"], "year": stats["year"],
+                 "totalWorldTradeUSD": stats["totalWorldTradeUSD"],
+                 "topImporters": stats["topImporters"], "topExporters": stats["topExporters"],
+                 "trend": stats["trend"], "source": stats["source"]},
+        "sources": [{"kind": "tool", "slug": "trade-stats", "title": "Live Trade Statistics",
+                     "to": "/customs-compliance"}],
+    }
+
+
+def _fmt(v):
+    try:
+        v = float(v)
+    except Exception:
+        return v
+    for unit, div in (("T", 1e12), ("B", 1e9), ("M", 1e6), ("K", 1e3)):
+        if abs(v) >= div:
+            return f"{v / div:.1f}{unit}"
+    return f"{v:.0f}"
+
+
 ENGINES = {
     "country_context": country_context_engine,
     "trade_news": trade_news_engine,
@@ -162,6 +205,7 @@ ENGINES = {
     "business_services": business_services_engine,
     "marketplace": marketplace_engine,
     "network": network_engine,
+    "trade_statistics": trade_statistics_engine,
 }
 
 

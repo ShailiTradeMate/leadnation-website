@@ -74,7 +74,8 @@ KEYWORD_ENGINES = [
     (("duty", "tariff", "tax", "landed cost", "import duty"), ["tariff"]),
     (("document", "certif", "compliance", "license", "licence", "iec", "gst", "rcmc", "required to export", "what do i need"), ["compliance"]),
     (("hsn", "hs code", "classif", "which code"), ["product_intelligence"]),
-    (("buyer", "importer", "who imports", "which countries import", "demand", "market for"), ["product_intelligence", "market_intelligence"]),
+    (("buyer", "importer", "who imports", "which countries import", "demand", "market for"), ["product_intelligence", "market_intelligence", "trade_statistics"]),
+    (("trade value", "trade data", "trade statistic", "trade flow", "world trade", "top importers", "top exporters", "how much is traded", "export value", "import value", "trade volume", "biggest exporters", "largest importers"), ["trade_statistics"]),
     (("learn", "how do i start", "how to start", "beginner", "course", "guide", "teach"), ["learning"]),
     (("news", "update", "notification", "latest"), ["trade_news"]),
     (("ship", "freight", "logistic", "container", "port", "transit"), ["logistics"]),
@@ -99,6 +100,8 @@ def select_engines(question: str, entities: dict):
         add(["product_intelligence"])
     if entities["countries"]:
         add(["country_context"])
+    if entities["hsn"]:
+        add(["trade_statistics", "product_intelligence"])
     if entities["products"] and entities["countries"]:
         add(["compliance", "tariff", "trade_news", "logistics"])
 
