@@ -34,9 +34,15 @@ def extract_entities(q: str) -> dict:
     ql = q.lower()
     countries, products, services, topics = [], [], [], []
 
+    from duty_engine import COUNTRIES as DUTY_COUNTRIES
+    for _code, name in DUTY_COUNTRIES:
+        if name.lower() in ql and name not in countries:
+            countries.append(name)
+
     for slug, p in COUNTRY_PROFILES.items():
         if p["name"].lower() in ql or slug in ql or f" {p['code'].lower()} " in f" {ql} ":
-            countries.append(p["name"])
+            if p["name"] not in countries:
+                countries.append(p["name"])
     for c in COUNTRIES:
         if c["name"].lower() in ql and c["name"] not in countries:
             countries.append(c["name"])
@@ -71,19 +77,17 @@ def extract_entities(q: str) -> dict:
 
 # ---------------- Intent → engines ----------------
 KEYWORD_ENGINES = [
-    (("duty", "tariff", "tax", "landed cost", "import duty", "customs duty", "duty rate", "how much duty"), ["duty_benefits", "tariff"]),
-    (("rodtep", "export benefit", "export incentive", "drawback", "rebate"), ["duty_benefits", "policy"]),
-    (("document", "certif", "compliance", "license", "licence", "iec", "gst", "rcmc", "required to export", "what do i need"), ["compliance"]),
-    (("hsn", "hs code", "classif", "which code"), ["product_intelligence"]),
-    (("buyer", "importer", "who imports", "which countries import", "demand", "market for"), ["product_intelligence", "market_intelligence", "trade_statistics"]),
+    (("duty", "tariff", "tax", "landed cost", "import duty", "customs duty", "duty rate", "how much duty"), ["duty_benefits"]),
+    (("rodtep", "export benefit", "export incentive", "drawback", "rebate", "scheme", "incentive", "subsidy", "policy"), ["duty_benefits", "policy"]),
+    (("document", "certif", "compliance", "license", "licence", "iec", "gst", "rcmc", "required to export", "what do i need", "how to import", "how to export"), ["compliance"]),
+    (("hsn", "hs code", "classif", "which code"), ["product_intelligence", "trade_statistics"]),
+    (("buyer", "importer", "who imports", "which countries import", "demand", "market for"), ["trade_statistics", "product_intelligence"]),
     (("trade value", "trade data", "trade statistic", "trade flow", "world trade", "top importers", "top exporters", "how much is traded", "export value", "import value", "trade volume", "biggest exporters", "largest importers"), ["trade_statistics"]),
     (("learn", "how do i start", "how to start", "beginner", "course", "guide", "teach"), ["learning"]),
     (("news", "update", "notification", "latest"), ["trade_news"]),
     (("ship", "freight", "logistic", "container", "port", "transit"), ["logistics"]),
-    (("scheme", "incentive", "subsidy", "rodtep", "policy", "benefit"), ["policy"]),
     (("register", "registration", "service", "help me get", "apply for"), ["business_services", "compliance"]),
-    (("supplier", "manufacturer", "network", "find seller"), ["network"]),
-    (("rfq", "marketplace", "sell my", "listing"), ["marketplace"]),
+    (("supplier", "manufacturer", "find seller"), ["business_services"]),
     (("gold", "silver", "oil", "currency", "commodity", "exchange rate", "price of"), ["market_intelligence"]),
 ]
 
@@ -104,15 +108,15 @@ def select_engines(question: str, entities: dict):
     if entities["hsn"]:
         add(["trade_statistics", "product_intelligence"])
     if entities["products"] and entities["countries"]:
-        add(["duty_benefits", "compliance", "tariff", "trade_news", "logistics"])
+        add(["duty_benefits", "compliance"])
 
     for kws, engs in KEYWORD_ENGINES:
         if any(k in ql for k in kws):
             add(engs)
 
     if not selected:
-        add(["compliance", "learning", "business_services"])
-    return selected[:6]
+        add(["compliance", "business_services"])
+    return selected[:5]
 
 
 def _detect_intents(question, entities, engines):

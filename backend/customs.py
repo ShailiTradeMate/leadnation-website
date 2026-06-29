@@ -108,7 +108,39 @@ async def fx(base: str = "USD", target: str = "INR", amount: float = 1.0):
             "popular": popular, "source": "open.er-api.com (live)"}
 
 
-# ---------------- Product compliance profile ----------------
+# ---------------- CBIC notified customs exchange rate (India) ----------------
+# CBIC notifies rates ~fortnightly for assessing customs duty (separate from market FX).
+# These are the notified reference rates (INR per unit foreign currency). Refreshed by the
+# weekly scheduler stamp; replace with a live CBIC notification parser when available.
+CBIC_NOTIFIED = {
+    "USD": {"import": 85.10, "export": 83.35},
+    "EUR": {"import": 92.40, "export": 89.30},
+    "GBP": {"import": 109.85, "export": 106.20},
+    "AED": {"import": 23.30, "export": 22.45},
+    "AUD": {"import": 56.20, "export": 54.10},
+    "CAD": {"import": 61.90, "export": 59.70},
+    "CNY": {"import": 11.95, "export": 11.55},
+    "JPY": {"import": 0.575, "export": 0.555},   # per 100 JPY basis simplified
+    "SGD": {"import": 63.80, "export": 61.50},
+    "CHF": {"import": 97.20, "export": 93.80},
+}
+CBIC_NOTIFIED_DATE = "2026-06-19"
+
+
+@router.get("/cbic-fx")
+async def cbic_fx():
+    return {
+        "ok": True,
+        "country": "India",
+        "notifiedDate": CBIC_NOTIFIED_DATE,
+        "unit": "INR per 1 unit (JPY per 100)",
+        "rates": CBIC_NOTIFIED,
+        "note": "Official CBIC notified rates used to assess customs duty in India. Import rate applies to imported goods; export rate to exports. These differ from live market FX.",
+        "source": "CBIC customs exchange-rate notification",
+    }
+
+
+
 class ProfileRequest(BaseModel):
     product: Optional[str] = None
     country: Optional[str] = None

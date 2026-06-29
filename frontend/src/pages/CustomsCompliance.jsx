@@ -7,7 +7,7 @@ import { api } from "@/lib/api";
 import {
   ShieldCheck, CurrencyCircleDollar, Cube, Calculator, Path, Gift, Users,
   FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch, Handshake,
-  ChartLineUp, TrendUp, TrendDown, Globe, Scales, ArrowRight,
+  ChartLineUp, TrendUp, TrendDown, Globe, Scales, ArrowRight, Sparkle,
 } from "@phosphor-icons/react";
 
 const COUNTRIES = [
@@ -17,6 +17,7 @@ const COUNTRIES = [
 ];
 
 const TABS = [
+  ["compile", "Compile Data", Sparkle],
   ["report", "Compliance Report", ShieldCheck],
   ["trade", "Trade Statistics", ChartLineUp],
   ["duty", "Duty & Benefits", Scales],
@@ -39,7 +40,7 @@ const Field = ({ label, children }) => (
 const inputCls = "w-full glass rounded-xl px-4 py-3 outline-none text-white focus:border-cyan-400/40";
 
 export default function CustomsCompliance() {
-  const [tab, setTab] = useState("report");
+  const [tab, setTab] = useState("compile");
   return (
     <>
       <SEO title="Customs, Compliance & Global Trade Data · Any Country"
@@ -61,6 +62,7 @@ export default function CustomsCompliance() {
           ))}
         </div>
 
+        {tab === "compile" && <CompileDataTool />}
         {tab === "report" && <ReportTool />}
         {tab === "trade" && <TradeStatsTool />}
         {tab === "duty" && <DutyBenefitsTool />}
@@ -360,6 +362,180 @@ const fmtUSD = (v) => {
   if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
   return `$${v.toFixed(0)}`;
 };
+
+/* ---------------- lightweight markdown for Brain narrative ---------------- */
+function MarkdownLite({ text }) {
+  const lines = (text || "").split("\n");
+  const out = []; let bullets = [];
+  const inline = (s) => s.split(/(\*\*[^*]+\*\*)/g).map((p, j) => p.startsWith("**") && p.endsWith("**")
+    ? <span key={j} className="font-semibold text-cyan-300">{p.slice(2, -2)}</span> : <span key={j}>{p}</span>);
+  const flush = (k) => { if (bullets.length) { out.push(<ul key={"u" + k} className="list-disc pl-5 space-y-1 text-sm text-slate-300">{bullets.map((b, i) => <li key={i}>{inline(b)}</li>)}</ul>); bullets = []; } };
+  lines.forEach((raw, k) => {
+    const l = raw.trim();
+    if (!l || l === "---") { flush(k); return; }
+    if (l.startsWith("### ")) { flush(k); out.push(<div key={k} className="font-display font-bold text-base mt-3 text-white">{inline(l.slice(4))}</div>); }
+    else if (l.startsWith("## ")) { flush(k); out.push(<div key={k} className="font-display font-bold text-lg mt-4 text-cyan-200">{inline(l.slice(3))}</div>); }
+    else if (l.startsWith("- ") || l.startsWith("* ")) { bullets.push(l.replace(/^[-*]\s/, "")); }
+    else { flush(k); out.push(<p key={k} className="text-sm leading-relaxed text-slate-200">{inline(l)}</p>); }
+  });
+  flush("end");
+  return <div className="space-y-1.5">{out}</div>;
+}
+
+/* ---------------- Compile Data — one-click master report ---------------- */
+function CompileDataTool() {
+  const [q, setQ] = useState("");
+  const [sugg, setSugg] = useState([]);
+  const [openSugg, setOpenSugg] = useState(false);
+  const [hs, setHs] = useState("");
+  const [exporter, setExporter] = useState("356");
+  const [importer, setImporter] = useState("276");
+  const [currency, setCurrency] = useState("USD");
+  const [countries, setCountries] = useState([]);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
+  const lastPick = useRef("");
+  const CUR = ["USD", "EUR", "GBP", "INR", "AED", "CNY", "JPY", "AUD", "SGD"];
+
+  React.useEffect(() => { api.get("/duty/countries").then(({ data }) => setCountries(data.countries || [])); }, []);
+  React.useEffect(() => {
+    const text = q.trim();
+    if (text === lastPick.current) return;
+    if (text.length < 2 || /^\d+$/.test(text)) { setSugg([]); return; }
+    const t = setTimeout(async () => {
+      try { const { data } = await api.get("/trade-intel/hs-search", { params: { q: text, limit: 8 } }); setSugg(data.results || []); setOpenSugg(true); } catch (_) {}
+    }, 300);
+    return () => clearTimeout(t);
+  }, [q]);
+
+  const pick = (s) => { const label = `${s.hs6} · ${s.description}`; lastPick.current = label; setQ(label); setHs(s.hs6); setSugg([]); setOpenSugg(false); };
+
+  const run = async () => {
+    if (!q.trim()) { setErr("Enter a product or HS code."); return; }
+    setLoading(true); setErr(""); setData(null); setOpenSugg(false);
+    try {
+      const { data } = await api.get("/compile/report", {
+        params: { hs, product: hs ? "" : q.trim(), exporter, importer, currency },
+      });
+      if (data.ok) setData(data); else setErr(data.error || "Could not compile data.");
+    } catch (_) { setErr("Compile failed — please try again."); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="space-y-5">
+      <ToolCard title="Compile Data — your full trade brief in one click"
+        desc="Pick a product and a trade lane. The LeadNation Brain compiles trade statistics, duty & benefits, a tariff comparison, live currency, a landed-cost estimate, freight and an executive action plan — for any two countries.">
+        <div className="grid lg:grid-cols-5 gap-3 items-end">
+          <div className="lg:col-span-2 relative">
+            <Field label="Product or HS code">
+              <input data-testid="compile-search" className={inputCls} value={q}
+                onChange={(e) => { setQ(e.target.value); setHs(""); }} onFocus={() => sugg.length && setOpenSugg(true)}
+                placeholder="e.g. Basmati Rice, Solar Panels, or 100630" />
+            </Field>
+            {openSugg && sugg.length > 0 && (
+              <div data-testid="compile-suggestions" className="absolute z-20 mt-1 w-full glass-strong rounded-2xl border border-white/10 max-h-72 overflow-auto shadow-2xl">
+                {sugg.map((s) => (
+                  <button key={s.hs6} type="button" data-testid={`compile-sugg-${s.hs6}`} onClick={() => pick(s)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-white/5 flex items-center gap-3 border-b border-white/5 last:border-0">
+                    <span className="font-mono-display text-xs text-cyan-300 shrink-0">{s.hs6}</span>
+                    <span className="text-sm text-slate-200 truncate">{s.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <Field label="Export country (from)">
+            <select data-testid="compile-exporter" className={inputCls} value={exporter} onChange={(e) => setExporter(e.target.value)}>
+              <option value="">— Any —</option>
+              {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Import country (to)">
+            <select data-testid="compile-importer" className={inputCls} value={importer} onChange={(e) => setImporter(e.target.value)}>
+              {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+            </select>
+          </Field>
+          <Field label="Currency">
+            <select data-testid="compile-currency" className={inputCls} value={currency} onChange={(e) => setCurrency(e.target.value)}>
+              {CUR.map((c) => <option key={c}>{c}</option>)}
+            </select>
+          </Field>
+        </div>
+        <button data-testid="compile-submit" onClick={run} disabled={loading} className="btn-primary mt-4 disabled:opacity-50">
+          {loading ? <><CircleNotch size={16} className="animate-spin" /> Compiling your brief…</> : <><Sparkle size={16} weight="bold" /> Compile data</>}
+        </button>
+        {err && <div data-testid="compile-error" className="mt-3 text-amber-300 text-sm">{err}</div>}
+        {loading && <div className="mt-2 text-xs text-slate-500">Pulling live tariffs, trade flows and FX, then writing your plan — first run for a new lane can take ~15s.</div>}
+      </ToolCard>
+
+      {data && (
+        <div className="space-y-5" data-testid="compile-result">
+          {/* Executive brief */}
+          <div className="glass-strong rounded-3xl p-6">
+            <div className="flex items-center gap-2 text-sm flex-wrap">
+              <Brain size={18} weight="duotone" className="text-cyan-300" />
+              <span className="font-display font-bold text-lg">Executive Brief</span>
+              <span className="ml-auto font-mono-display text-xs text-cyan-300">HS {data.hsCode} · {data.exporter.name} → {data.importer.name}</span>
+            </div>
+            <div className="mt-4">{data.narrative ? <MarkdownLite text={data.narrative} /> : <p className="text-slate-400 text-sm">Narrative unavailable.</p>}</div>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-5">
+            {/* Duty */}
+            {data.duty && (
+              <Panel title="Duty & Benefits" icon={Scales}>
+                {data.duty.importDuty ? (
+                  <div className="text-sm">Import into {data.importer.name}: <span className="text-cyan-300 font-semibold">{data.duty.importDuty.rate}%</span> {data.duty.importDuty.type} ({data.duty.importDuty.year})</div>
+                ) : <div className="text-sm text-amber-300/90">No tariff record for this lane.</div>}
+                {data.duty.preferential && <div className="text-sm text-emerald-300 mt-1">Preferential: {data.duty.preferential.rate}%</div>}
+                {data.duty.indiaBreakdown && <div className="text-xs text-slate-400 mt-2">India: BCD {data.duty.indiaBreakdown.basicCustomsDuty}% + SWS {data.duty.indiaBreakdown.socialWelfareSurcharge}% + IGST {data.duty.indiaBreakdown.igst}%</div>}
+                {data.duty.exportBenefit && <div className="text-sm mt-2"><Gift size={13} className="inline text-cyan-300" /> {data.duty.exportBenefit.scheme}: <span className="text-emerald-300">{data.duty.exportBenefit.rate}% of FOB</span></div>}
+              </Panel>
+            )}
+            {/* Tariff comparison */}
+            {data.tariffComparison?.length > 0 && (
+              <Panel title="Tariff Comparison (by market)" icon={Scales}>
+                <div className="space-y-1.5" data-testid="compile-comparison">
+                  {data.tariffComparison.map((c, i) => (
+                    <div key={i} className="flex justify-between text-sm"><span>{c.country}</span><span className="text-cyan-300">{c.rate}% <span className="text-slate-500 text-xs">({c.year})</span></span></div>
+                  ))}
+                </div>
+              </Panel>
+            )}
+            {/* Trade stats */}
+            {data.tradeStats && (
+              <Panel title="Trade Statistics" icon={ChartLineUp}>
+                <div className="text-sm">World trade ({data.tradeStats.year}): <span className="gradient-text font-display font-bold">{fmtUSD(data.tradeStats.totalWorldTradeUSD)}</span></div>
+                <div className="text-xs text-slate-400 mt-2">Top importers: {data.tradeStats.topImporters.slice(0, 4).map((i) => i.country).join(", ")}</div>
+                <div className="text-xs text-slate-400 mt-1">Leading exporters: {data.tradeStats.topExporters.slice(0, 4).map((e) => e.country).join(", ")}</div>
+              </Panel>
+            )}
+            {/* FX + price */}
+            <Panel title="Currency & Landed Cost" icon={CurrencyCircleDollar}>
+              {data.fx && <div className="text-sm">1 USD = <span className="text-cyan-300">{data.fx.rate} {data.fx.target}</span> <span className="text-slate-500 text-xs">(live)</span></div>}
+              {data.price && (
+                <div className="text-xs text-slate-400 mt-2 space-y-0.5">
+                  <div>Sample $10,000 FOB → CIF ${data.price.cifUSD.toLocaleString()}</div>
+                  <div>Duty @ {data.price.dutyRatePct}% = ${data.price.dutyUSD.toLocaleString()}</div>
+                  <div className="text-slate-200">Landed: <span className="text-emerald-300 font-semibold">${data.price.landedUSD.toLocaleString()}</span>{data.price.landedInCurrency ? ` · ${data.price.landedInCurrency.toLocaleString()} ${data.currency}` : ""}</div>
+                </div>
+              )}
+              <div className="text-[11px] text-slate-500 mt-2">Freight: {data.freightModes.join(" · ")}</div>
+            </Panel>
+          </div>
+
+          <div className="glass-strong rounded-3xl p-5 flex items-center gap-4 flex-wrap">
+            <Brain size={28} weight="duotone" className="text-cyan-300" />
+            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Need a deeper dive, supplier intros or document templates for this lane? Ask the Brain.</div>
+            <Link to={`/brain?q=${encodeURIComponent(`Full export plan for HS ${data.hsCode} (${data.description}) from ${data.exporter.name} to ${data.importer.name}`)}`} className="btn-primary" data-testid="compile-ask-brain">Ask the Brain</Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ---------------- Duty & Benefits (global tariffs + India + RoDTEP) ---------------- */
 function DutyBenefitsTool() {

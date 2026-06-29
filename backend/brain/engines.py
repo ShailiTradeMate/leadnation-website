@@ -30,23 +30,18 @@ async def country_context_engine(country=None, state=None, city=None, **_):
 
 
 async def trade_news_engine(product=None, country=None, **_):
-    kws = [w for w in [product, country] if w]
+    focus = ", ".join([w for w in [product, country] if w]) or "global trade"
     return {
-        "summary": "Latest movers: India exports crossed $450B; UAE–India CEPA past $100B; Red Sea reroutes lifted freight 38%; EU CBAM reporting live.",
-        "data": {"keywords": kws, "headlines": [
-            "India merchandise exports cross record $450B",
-            "UAE–India CEPA pushes bilateral trade past $100B",
-            "Red Sea reroutes lift container rates 38%",
-            "EU CBAM enters reporting phase",
-        ]},
+        "summary": f"For live developments on {focus}, see the LeadNation Trade News feed (tariff changes, freight rates, sanctions, FTAs and demand shifts updated continuously).",
+        "data": {"focus": focus, "topics": ["tariff changes", "freight & shipping rates", "FTAs & trade deals", "sanctions & controls", "commodity demand"]},
         "sources": [{"kind": "news", "slug": "trade-news", "title": "Trade News", "to": "/trade-news"}],
     }
 
 
 async def market_intelligence_engine(**_):
     return {
-        "summary": "Gold $2,418/oz (+0.9%), Brent $84.2/bbl, USD/INR 83.42. Asia-Europe ocean freight +38% YoY.",
-        "data": {"gold": 2418.5, "silver": 31.22, "brent": 84.15, "wti": 80.42, "usdinr": 83.42},
+        "summary": "Live commodity and FX benchmarks (gold, oil, major currency pairs) and ocean/air freight indices are tracked in LeadNation Intelligence.",
+        "data": {"covers": ["commodities", "currencies (FX)", "freight indices"]},
         "sources": [{"kind": "intelligence", "slug": "intelligence", "title": "Trade Intelligence", "to": "/intelligence"}],
     }
 
@@ -73,30 +68,38 @@ async def compliance_engine(topic=None, product=None, country=None, **_):
     }
 
 
-async def tariff_engine(product=None, origin="India", destination=None, value=None, **_):
-    dest = (destination or "").lower()
-    fta = any(k in dest for k in ["uae", "united arab", "australia", "armenia", "eaeu"])
-    rate = "0% (FTA preferential — e.g. CEPA/ECTA)" if fta else "0–8% MFN depending on HS line"
+async def tariff_engine(product=None, origin=None, destination=None, value=None, **_):
     return {
-        "summary": f"Estimated duty for {product or 'this product'} into {destination or 'destination'}: {rate}. Use the Duty Calculator for an exact landed cost.",
-        "data": {"dutyRate": rate, "ftaApplicable": fta, "origin": origin, "destination": destination},
-        "sources": [{"kind": "tool", "slug": "duty-calculator", "title": "Duty Calculator", "to": "/tools/duty-calculator"}],
+        "summary": f"For exact import duty on {product or 'this product'} into {destination or 'the destination'}, "
+                   "use the Duty & Benefits tool (live WITS/TRAINS applied & preferential rates by country pair).",
+        "data": {"origin": origin, "destination": destination, "product": product},
+        "sources": [{"kind": "tool", "slug": "duty-benefits", "title": "Duty & Benefits", "to": "/customs-compliance"}],
     }
 
 
-async def logistics_engine(origin="India", destination=None, **_):
+async def logistics_engine(origin=None, destination=None, **_):
+    o, d = origin or "the origin country", destination or "the destination"
     return {
-        "summary": f"Typical route: Mundra → destination port by sea (4–35 days depending on lane); air freight for time-sensitive cargo.",
-        "data": {"recommendedPorts": ["Mundra", "Nhava Sheva", "Chennai"], "modes": ["FCL", "LCL", "Air"], "origin": origin, "destination": destination},
+        "summary": f"Plan the {o} → {d} lane by sea (FCL/LCL) or air depending on value and urgency; "
+                   "use the nearest major gateway port/airport and confirm transit time with a freight forwarder.",
+        "data": {"modes": ["FCL", "LCL", "Air"], "origin": origin, "destination": destination,
+                 "considerations": ["transit time", "freight cost", "Incoterms", "insurance"]},
         "sources": [{"kind": "tool", "slug": "landed-cost-calculator", "title": "Landed Cost Calculator", "to": "/tools/landed-cost-calculator"}],
     }
 
 
-async def policy_engine(country="India", **_):
+async def policy_engine(country=None, destination=None, **_):
+    involved = " ".join([c for c in [country, destination] if c]).lower()
+    if "india" in involved:
+        return {
+            "summary": "India export incentives: RoDTEP scrip, EPCG (0% duty on capital goods), interest equalisation, Advance Authorisation.",
+            "data": {"country": "India", "schemes": [s["title"] for s in await kb_by_kind("scheme", limit=10)]},
+            "sources": [{"kind": "tool", "slug": "export-incentive-finder", "title": "Export Incentive Finder", "to": "/tools/export-incentive-finder"}],
+        }
     return {
-        "summary": "India incentives: RoDTEP scrip, EPCG (0% duty on capital goods), 2% interest equalisation, Advance Authorisation.",
-        "data": {"schemes": [s["title"] for s in await kb_by_kind("scheme", limit=10)]},
-        "sources": [{"kind": "tool", "slug": "export-incentive-finder", "title": "Export Incentive Finder", "to": "/tools/export-incentive-finder"}],
+        "summary": "Most countries offer export-support instruments — duty drawback/rebates, FTA preferential tariffs, GSP/GSP+ access, and export-credit insurance. Check the destination's FTA status for preferential duty.",
+        "data": {"common": ["duty drawback", "FTA preferential tariff", "GSP / GSP+", "export credit insurance"]},
+        "sources": [{"kind": "tool", "slug": "duty-benefits", "title": "Duty & Benefits", "to": "/customs-compliance"}],
     }
 
 
