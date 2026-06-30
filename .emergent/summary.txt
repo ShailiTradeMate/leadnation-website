@@ -1,125 +1,128 @@
-<analysis>**original_problem_statement**: 
-The user requested to build a comprehensive Global Trade Intelligence portal for the LeadNation app. The website needs a premium, 3D, Apple/Jacob & Co-style aesthetic. It must function as an SEO discovery layer, driving organic traffic and app downloads. Core features include a 3D interactive trade globe, Trade Tools Hub (duty calculators, HSN finder, export readiness), dynamic SEO pages for countries, products, and corridors, an Admin CMS with Lead Management, and Business Services workflows.
-
-PRODUCT REQUIREMENTS:
-- Premium 3D dark-mode UI with smooth scroll and animations.
-- API-ready backend connected to MongoDB for content management.
-- SEO architecture with dynamic routing (thousands of pages support), , and .
-- Admin CMS for managing leads, service requests, and dynamic site content.
-- AI Trade Copilot UI (mocked responses, deferred actual GPT integration).
+<analysis>**original_problem_statement**: The user requested to build a comprehensive Global Trade Intelligence portal for the LeadNation app with a premium, 3D, dark-mode aesthetic. The website functions as an SEO discovery layer, driving organic traffic and app downloads. Core features include a 3D interactive trade globe, Trade Tools Hub, dynamic SEO pages, an Admin CMS, and a LeadNation Brain AI Orchestrator providing universal search and context-aware assistance.
+**PRODUCT REQUIREMENTS:**
+- Premium 3D dark-mode UI with smooth scroll.
+- Universal LLM Key integration (LeadNation Brain) for global trade compliance data.
+- Context-Aware floating widgets and comprehensive Customs & Compliance Hub.
+- Secure Admin Control Center for site branding and toggles.
+- **CRITICAL ARCHITECTURAL PIVOT:** The website is a FRONTEND ONLY for authentication and user profiles. It must call an already-deployed backend () and use a shared Firebase project () so that website users and mobile app users share the exact same database/identity. DO NOT create local backend auth databases.
 
 **User's preferred language**: English (INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-A highly functional, full-stack (React + FastAPI + MongoDB) web portal acting as a Global Trade Intelligence platform. Phases 1 through 5 are complete. It features an animated 3D Trade Globe, a comprehensive Trade Tools Hub, AI Assistant interface (mocked), extensive SEO-optimized pages for countries/products/corridors, an Admin CMS dashboard, a lead generation/management system, and business services workflows. Event tracking architecture (GA4, Pixel) is also in place.
+A mature, full-stack React + FastAPI platform. Phases 1-9 (Globe, Brain, widgets, SEO) are complete. The website has been successfully converted into a pure frontend client for authentication, communicating directly with the external deployed DO backend via Firebase ID tokens. Local auth identity has been completely removed. The Customs & Compliance tab now includes dual-currency support (user transaction + exporter local currency) and a Premium Trade Intelligence Report (with client-side PDF generation) protected by a Lead Capture Gate.
 
 **Last working item**:
-- Last item agent was working: Answering the user's inquiry regarding how to create a new GitHub repository and push their current project progress safely without affecting their mobile app repo.
-- Status: USER VERIFICATION PENDING
-- Agent Testing Done: NA
-- Which testing method agent to use? NA
+- Last item agent was working: Implementing the P1 Compile Data Enhancements: Dual currency conversion and the Premium Trade Intelligence Report (PDF generation) with a Lead Capture gate.
+- Status: COMPLETED
+- Agent Testing Done: Y
+- Which testing method agent to use? NA (Testing was completed successfully via  and / validations).
 - User Testing Done: N
 
-**All Pending/In progress Issue list**:  
-None. All functional bugs flagged in previous phases have been successfully resolved.
-
-**In progress Task List**: 
-Task 1: GitHub Push Verification
-- Where to resume: Wait for the user to confirm if they have successfully pushed their code to the new repository using the Save to Github UI button.
-- What will be achieved with this? Ensuring the codebase is safely backed up before moving to the next set of features.
-- Status: USER VERIFICATION PENDING
-- Should Test frontend/backend/both after fix? NA
-- Blocked on something: Waiting for user response.
-
-**Upcoming and Future Tasks**
-- P1: Integrate real AI models (OpenAI GPT) for the AI Trade Copilot. (CRITICAL: Wait for the user's explicit instruction to start this; the user previously commanded to *NOT* integrate GPT until systems generate revenue/leads).
-- P2: Add CSV export functionality for leads and data from the Admin CMS.
-- P2: Complete the end-to-end workflow for Business Services (Admin allocating a CA to the user's RCMC/GST registration requests).
-- P2: Connect the website to a live domain and production hosting.
-- P2: Add actual tracking IDs for Google Analytics, GTM, and Meta Pixel.
-
-**Completed work in this session**
-- Phase 1: 3D Trade Globe, Core routing, Contact maps, layout (DONE)
-- Phase 2: SEO Growth Engine, Duty Calculator, Country profiles, Academy, Intelligence Hub, Sitemap/Robots (DONE)
-- Phase 3 & 4: Trade Tools Hub, Corridors, HSN Landing, Industries, AI Assistant Mock, Marketplace/Network previews (DONE)
-- Phase 5: Admin CMS, Lead Management System, Business Services, Directory Architecture, Global Search, MongoDB content migration, Tracking snippets (DONE)
-- Addressed user inquiry on creating a new Github repo and detailed instructions on how to use the Emergent Save to Github button (DONE)
-
-**Earlier issues found/mentioned but not fixed**
+**All Pending/In progress Issue list**:
 None.
 
-**Known issue recurrence from previous fork**
+**In progress Task List**:
+None.
+
+**Upcoming and Future Tasks**:
+- P1: My Reports history + shareable public/private links with expiry.
+- P1: Legal pages (Privacy, Terms, Cookie, Disclaimer, Refund - international scope).
+- P1: Activate Analytics scaffolding (GA4/GTM/Clarity/Meta via ).
+- P1: Brain Feedback Mechanism: Rate/comment/flag/suggest logic feeding an Admin Knowledge Gaps dashboard. Add Knowledge Quality labels (estimated vs confirmed data). *(User noted: increase the brain involvement in this... add a few more things - needs follow-up with user).*
+- P2: Phase C: CBIC notified customs FX feeding all duty/landed-cost calculators.
+- P2: Pre-launch Production Readiness (Security, SEO, Performance Lighthouse audits).
+
+**Completed work in this session**:
+- Repointed Frontend Auth/Profiles to Deployed DO Backend directly without local proxy (DONE)
+- Removed local authentication DB writes and  (DONE)
+- Fixed Auth race condition UI bug showing — for  upon signup (DONE)
+- Dual currency selection: auto-detects exporter's currency + user transaction currency in Compile Data (DONE)
+- Premium Trade Intelligence Report: 12-section branded report with client-side PDF/Print generation (DONE)
+- Lead Capture Gate: Required Name/Email/Company/Country before report preview, saves to Lead CMS (DONE)
+
+**Earlier issues found/mentioned but not fixed**:
+None.
+
+**Known issue recurrence from previous fork**:
 - Issue recurrence in previous fork: None
 - Recurrence count: 0
 - Status: NA
 
-**Code Architecture**
+**Code Architecture**:
 
 
-**Key Technical Concepts**
-React, FastAPI, MongoDB, TailwindCSS, Three.js (), SEO Meta management (), event tracking (GA4/Meta Pixel structure).
+**Key Technical Concepts**:
+React, FastAPI, Firebase Authentication (Client SDK), MongoDB Atlas, WITS API, OEC API, RAG, Universal-LLM Key, Client-side Print/PDF CSS.
 
-**key DB schema**
-- : {name, email, mobile, country, interest, source, date}
-- : {service, details, status}
-- , , , , , , ,  (Content collections accessible via Admin CMS).
+**key DB schema**:
+- Auth identity strictly handled via external DO backend.
+- Local  collection handles captured leads from the gated report UI.
 
-**changes in tech stack**
-None in this session. (Previously added  and  for the 3D globe visualization).
+**changes in tech stack**:
+- The platform's local database does not store user profiles anymore. Frontend directly hits the DigitalOcean endpoint for , , and  using the Firebase ID Token.
 
-**All files of reference**
--  (Core backend routing and MongoDB schemas)
--  (Frontend routing map)
--  (Core 3D component)
--  (Admin CMS interface)
--  (Product specs and phase tracking)
--  (Admin login credentials)
+**All files of reference**:
+-  (Strict rules for deployed backend integration)
+-  (Optimistic profile updates post-registration)
+-  (Created to route specifically to the DO backend)
+-  (Dual currency UI & Lead Capture Gate)
+-  &  (Dual currency FX conversions)
+-  (Created for the print-friendly PDF report)
 
 **Areas that need refactoring**:
-The  initialization threw a minor warning previously regarding material loading, which was hotfixed with a  guard. Keep an eye on  if further 3D features are requested.
+None explicitly required.
 
-**key api endpoints**
-- GET 
+**key api endpoints**:
+*External DO Backend (Auth)*:
+- POST 
 - POST 
 - GET 
+*Local Backend*:
 - GET 
-- Content endpoints: , , , etc.
+- POST 
 
-**Critical Info for New Agent**
-1. **AI RESTRICTION:** The user explicitly requested in Phase 5: *Do NOT integrate GPT or any paid AI provider yet. Build systems that generate revenue and leads before implementing paid AI integrations.* **Do NOT implement real LLM/Integration logic** until the user explicitly commands you to do so in the next phase.
-2. Wait for the user to confirm they have pushed their code to GitHub, or let them pick the next task (e.g., CSV export, AI Copilot, or Business Services workflow). Do not begin work until they direct you.
-3. Use the  file for any admin login testing.
-4. Keep in mind that agents do not have direct push access to GitHub; all saving must be done by the user via the Save to Github button in the Emergent UI.
+**Critical Info for New Agent**:
+1. Read . The website relies purely on the external shared DigitalOcean backend for all User/Admin auth. DO NOT try to re-create local MongoDB auth collections.
+2. The user's Admin account ( / ) is shared with the mobile app and is strictly delete-protected by the DO backend. 
+3. User specifically mentioned they want to increase the brain involvement regarding the reports/tools next. Clarify these exact requirements via  before implementing.
 
-**documents and test reports created in this job**
-- 
-- 
-- 
-- 
-- 
-- 
+**documents and test reports created in this job**:
+-  (Updated)
+-  (Updated)
 
-**Last 10 User Messages and any pending HUMAN messages** 
-- (Message 6) User: I am creating a new repository hence give me the directions and next steps for this. Short ans only. Also make sure you have access to this so you can push the details to new repository -> Assistant provided steps and clarified agent doesn't have direct access but UI handles it. **PENDING: User response to confirm push or specify next task.**
-- (Message 3) User: Please use ask_human tool and confirm your plan now. -> Completed.
-- (Message 2) User: Provided previous handoff summary. -> Completed.
+**Last 10 User Messages and any pending HUMAN messages**:
+1. Agent investigated external endpoints and proposed plan to migrate to DO Backend without local DB.
+2. User instructed agent to call the DO backend directly with NO pass-through proxy. Mentioned CORS is fixed.
+3. Agent checked CORS (found preview still blocked) but implemented direct connection and removed local DB writes anyway.
+4. User fixed DO server CORS explicitly for the preview domain.
+5. Agent verified CORS fix and successfully ran E2E login/signup testing, but noticed — customer_id display race condition.
+6. User asked if test email ids caused the failure.
+7. Agent clarified it was just a frontend UI state race condition (fixed it) and proved the admin ID (00001) was safe and test accounts were deleted successfully.
+8. User confirmed and said to resume work.
+9. Agent asked whether to prioritize (a) dual currency or (b) premium report from the P1 backlog.
+10. User chose to do both (a then b). Requested to increase Brain involvement after both are completed.
+*(No pending human messages. Next agent should proceed with P1 tasks or clarify the Brain involvement request via ask_human)*.
 
-**Project Health Check:**
-- Broken: None.
-- Mocked: AI Assistant responses (GPT integration deferred), Actual CA allocation logic for business services (currently just creates a DB request).
+**Project Health Check**:
+- Broken: None
+- Mocked: None
 
-**3rd Party Integrations** 
-- Google Analytics 4, Meta Pixel, Microsoft Clarity (Added structure/script logic only. User will need to provide actual tracking IDs later).
-- No Emergent LLM Key integrations used yet.
+**3rd Party Integrations**:
+- OpenAI gpt-5.4-mini — uses Emergent LLM Key
+- Firebase Auth (Client SDK) — requires User API Key
+- OEC World API (Trade Stats) — Free/Public
+- WITS World Bank API (Duty) — Free/Public
 
-**Testing status**
-- Testing agent used after significant changes: YES (iterations 1-4 completed in previous forks)
+**Testing status**:
+- Testing agent used after significant changes: NO (Thorough self-testing via  and  scripts was performed).
 - Troubleshoot agent used after agent stuck in loop: NO
 - Test files created: None
 - Known regressions: None
 
-**Credentials to test flow:**
-Available in 
+**Credentials to test flow**:
+- Admin Login:  /  (ID: )
+- Test user:  / 
+*(Check )*
 
-**What agent forgot to execute**
-Nothing. The agent accurately answered the user's query regarding Github repository creation and properly explained the limitation of the agent's push access versus using the Emergent Platform's Save to Github UI button.</analysis>
+**What agent forgot to execute**:
+Nothing was forgotten. The P1 items selected by the user were successfully implemented and verified.</analysis>
