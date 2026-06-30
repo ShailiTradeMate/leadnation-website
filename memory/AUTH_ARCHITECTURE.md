@@ -54,9 +54,22 @@ Same admin works on the website automatically. Admin panel manages the website A
 1. Firebase Console → Authentication → Authorized domains (for login). leadnation.app/www allowed; preview domain `global-trade-hub-176.preview.emergentagent.com` added.
 2. Deployed backend **CORS allow-list** — leadnation.app allowed. ANY other domain (incl. the Emergent preview) must be added by the app owner, else auth calls are CORS-blocked.
 
-## Frontend wiring in THIS repo
-- `REACT_APP_AUTH_API_BASE` (frontend/.env) = `https://leadnation-lfrhs.ondigitalocean.app/api` → used for all auth/profile/admin-user calls (see `src/lib/authApi.js`).
-- `REACT_APP_BACKEND_URL` → our own backend, used ONLY for website-specific content (Brain, trade-intel, duty, compile, customs, CMS settings/leads). It does NOT own identity.
+## Frontend wiring in THIS repo (IMPLEMENTED — direct calls, NO proxy)
+- `REACT_APP_AUTH_API_BASE` (frontend/.env) = `https://leadnation-lfrhs.ondigitalocean.app/api` → ALL auth/profile/admin-user calls go here directly (see `src/lib/authApi.js` + `AuthContext.jsx`). Firebase `Bearer` token attached automatically.
+- `REACT_APP_BACKEND_URL` → our own content backend (Brain, trade-intel, duty, compile, customs, CMS settings/leads). It owns NO identity.
+- Local `accounts.py` DELETED. The website performs NO identity DB writes. Local `core.require_admin` only READS the shared `users.role` (same Atlas) to gate website-only CMS endpoints.
+
+## Verified DO backend contract (June 2026 — empirically confirmed)
+- POST `/api/auth/resolve-customer-id` {customer_id} → {email, customer_id}  ✅
+- POST `/api/onboarding/register` (Bearer) → idempotent; returns {customer_id, role, onboarding_status, verification_status, is_existing}  ✅
+- GET `/api/v1/profiles/{uid}` (Bearer) → full current-user profile {customer_id, role, email, name, verification_status, ...}. **Used as the "current user" source — DO backend has NO `/api/auth/me`.**  ✅
+- POST `/api/auth/send-otp` {type:"email", value:<email>} (Bearer) → sends email OTP. (There is NO `/api/auth/request-otp`.)  ✅
+- POST `/api/auth/verify-otp` {type:"email", value:<email>, otp} (Bearer) → verifies.  ✅
+- GET `/api/admin_v2/users` (admin Bearer) + DELETE `/{cid}/hard-delete`  ✅
+
+## CORS status (June 2026)
+- ✅ Production `https://www.leadnation.app` / `https://leadnation.app` → preflight 200 + allow-origin. Login works in production.
+- ❌ Emergent preview origin `https://global-trade-hub-176.preview.emergentagent.com` → preflight 400, NO allow-origin. **Browser login in the Emergent preview is CORS-blocked.** The backend owner must add the exact preview origin to the DO CORS allow-list to test in-preview. (Integration is correct — verified server-side via curl.)
 
 ## Scope (this phase)
 Login/auth + profile + admin (incl. hard delete) ONLY. No payments/reports/marketplace yet.

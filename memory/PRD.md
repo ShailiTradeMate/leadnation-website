@@ -1,5 +1,12 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## Implemented (2026-06-30) — Auth FINALIZED: website is a pure client of the deployed shared backend (NO proxy, NO local DB)
+- [x] Frontend now calls `https://leadnation-lfrhs.ondigitalocean.app/api` DIRECTLY for ALL identity (env `REACT_APP_AUTH_API_BASE`, never hardcoded). New `src/lib/authApi.js` (Firebase Bearer interceptor); `AuthContext` repointed.
+- [x] Endpoints wired & E2E-verified server-side: resolve-customer-id → Firebase login → `GET /api/v1/profiles/{uid}` (current-user source; DO has NO `/auth/me`) → idempotent `onboarding/register` → admin `admin_v2/users`. OTP via `send-otp`/`verify-otp` (body `{type:"email",value,otp}`; DO has NO `request-otp`).
+- [x] Deleted local `accounts.py` — website does ZERO identity DB writes. Local backend retained ONLY for website content (Brain, trade-intel, duty, compile, customs, CMS). `core.require_admin` only READS shared `users.role`.
+- ⚠️ CORS: production `leadnation.app` allowed (login works in prod); **Emergent preview origin still CORS-blocked (400)** → backend owner must whitelist `global-trade-hub-176.preview.emergentagent.com` to test login in-preview. Integration verified via curl.
+
+
 ## Problem Statement (verbatim)
 Build a premium 3D website for the LeadNation app to drive organic traffic, account registrations and app downloads. Tabs: Home (3D animated globe, moving pictures/videos, search bar), Customs & Compliance, Trade News, Contact Us (with map + Instagram), Expo, Product Info. Floating WhatsApp on all pages. India-focused features. Every page has Download App + Create Account CTAs. References: Apple, Jacob & Co, Tesla, Stripe, OpenAI. Color palette: #0A2540 / #00C2FF / #7C3AED / #050816. Hosting: DigitalOcean (deployment-ready). Engines are mocked Phase-1; API-ready for real backend later.
 

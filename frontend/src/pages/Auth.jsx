@@ -149,7 +149,7 @@ export function Account() {
   const u = account?.user || {};
   const verified = fbUser?.emailVerified || u.is_email_verified;
 
-  const sendCode = async () => { setVmsg(""); try { const r = await requestOtp(); setVmsg(r.message || "Enter the test code 123456."); } catch (_) { setVmsg("Could not start verification."); } };
+  const sendCode = async () => { setVmsg(""); try { const r = await requestOtp(); setVmsg(r.message || "We've emailed you a verification code."); } catch (_) { setVmsg("Could not start verification."); } };
   const doVerify = async () => {
     setVmsg(""); setVerifying(true);
     try { await verifyOtp(otp.trim()); setVmsg("Email verified ✓"); setOtp(""); }
@@ -174,9 +174,9 @@ export function Account() {
         </div>
         {!verified && (
           <div className="glass rounded-xl p-4 space-y-3" data-testid="account-verify-card">
-            <div className="text-sm text-slate-300">Verify your email to unlock everything. The live OTP provider isn't connected yet — use the <span className="text-cyan-300 font-mono-display">test code 123456</span>.</div>
+            <div className="text-sm text-slate-300">Verify your email to unlock everything. Tap <span className="text-cyan-300">Send verification code</span> and enter the code we email you.</div>
             <div className="flex gap-2">
-              <input data-testid="account-otp-input" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter code (123456)" className="glass rounded-xl px-4 py-2.5 outline-none flex-1" />
+              <input data-testid="account-otp-input" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter verification code" className="glass rounded-xl px-4 py-2.5 outline-none flex-1" />
               <button data-testid="account-verify-otp" onClick={doVerify} disabled={verifying} className="btn-primary !py-2.5 disabled:opacity-50">{verifying ? <CircleNotch size={15} className="animate-spin" /> : "Verify"}</button>
             </div>
             <button data-testid="account-send-otp" onClick={sendCode} className="text-xs text-cyan-300 hover:underline">Send verification code</button>
