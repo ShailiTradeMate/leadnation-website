@@ -184,6 +184,43 @@ export default function Home() {
         </div>
       </section>
 
+      {/* TRADE COMMAND CENTER — flagship */}
+      <section className="relative max-w-7xl mx-auto px-6 sm:px-10 py-12" data-testid="home-command-center">
+        <div className="relative glass-strong rounded-3xl p-8 sm:p-12 overflow-hidden border border-cyan-400/25">
+          <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
+              <Lightning size={14} weight="duotone" /> LeadNation Trade Command Center™
+            </div>
+            <h2 className="font-display font-extrabold text-3xl sm:text-5xl mt-4 leading-[1.05] max-w-3xl">
+              The World's First <span className="gradient-text">AI-Powered Global Trade Operating System.</span>
+            </h2>
+            <p className="mt-4 text-slate-300 text-sm sm:text-base max-w-2xl">
+              Stop juggling ten different tools. Build your full FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in any two currencies, and let the LeadNation Brain flag savings, risks and the best market — for any product across 195 countries.
+            </p>
+            <div className="mt-7 grid sm:grid-cols-3 gap-3 max-w-2xl">
+              {[
+                ["FOB · CIF · Landed cost", "Transparent cost waterfall"],
+                ["Buyer landed-cost comparison", "Find your best market"],
+                ["Dual-currency AI quote", "Your currency + any global one"],
+              ].map(([t, s]) => (
+                <div key={t} className="glass rounded-2xl px-4 py-3">
+                  <div className="font-display font-bold text-sm">{t}</div>
+                  <div className="text-[11px] text-cyan-300 mt-0.5">{s}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link to="/customs-compliance" data-testid="home-command-center-cta" className="btn-primary">
+                Open Trade Command Center <ArrowRight size={16} weight="bold" />
+              </Link>
+              <Link to="/brain" className="btn-ghost">Ask the LeadNation Brain</Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SERVICES HIGHLIGHT */}
       <section className="relative max-w-7xl mx-auto px-6 sm:px-10 py-12" data-testid="home-services-highlight">
         <div className="glass-strong rounded-3xl p-8 sm:p-10 grid lg:grid-cols-2 gap-8 items-center border border-cyan-400/20">

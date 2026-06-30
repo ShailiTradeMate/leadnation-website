@@ -9,7 +9,16 @@ import {
   ShieldCheck, CurrencyCircleDollar, Cube, Calculator, Path, Gift, Users,
   FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch, Handshake,
   ChartLineUp, TrendUp, TrendDown, Globe, Scales, ArrowRight, Sparkle,
+  Truck, Coins, Lightning, Stack, Printer, ChartBar, Strategy,
 } from "@phosphor-icons/react";
+
+const CUR = ["USD", "EUR", "GBP", "INR", "AED", "CNY", "JPY", "AUD", "SGD", "SAR", "CAD", "CHF"];
+const fmtCur = (v, cur) => {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  try { return new Intl.NumberFormat(undefined, { style: "currency", currency: cur, maximumFractionDigits: 2 }).format(v); }
+  catch (_) { return `${Number(v).toLocaleString()} ${cur}`; }
+};
+const num = (v) => (v === "" || v === null || v === undefined ? 0 : parseFloat(v) || 0);
 
 const COUNTRIES = [
   ["AE", "United Arab Emirates"], ["US", "United States"], ["GB", "United Kingdom"],
@@ -18,7 +27,7 @@ const COUNTRIES = [
 ];
 
 const TABS = [
-  ["compile", "Compile Data", Sparkle],
+  ["compile", "Trade Command Center", Lightning],
   ["report", "Compliance Report", ShieldCheck],
   ["trade", "Trade Statistics", ChartLineUp],
   ["duty", "Duty & Benefits", Scales],
@@ -44,14 +53,14 @@ export default function CustomsCompliance() {
   const [tab, setTab] = useState("compile");
   return (
     <>
-      <SEO title="Customs, Compliance & Global Trade Data · Any Country"
-        description="Global trade intelligence — real import/export statistics for any product (UN Comtrade / OEC), Incoterms, live currency, duty, HSN, documents, CHA charges, CBM and freight. India-first compliance plus worldwide trade data. Powered by the LeadNation Brain."
+      <SEO title="LeadNation Trade Command Center™ — AI Global Trade Operating System"
+        description="The world's first AI-powered global trade operating system. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across 195 markets, quote in your currency and any global currency, check duty, FTA benefits, incentives and routes — analysed by the LeadNation Brain."
         path="/customs-compliance"
-        keywords="global trade statistics, UN Comtrade data, top importing countries, HS code trade value, customs duty calculator, Incoterms 2020, HSN compliance, CHA charges, CBM calculator, currency exchange" />
+        keywords="FOB CIF calculator, landed cost calculator, export costing tool, buyer landed cost comparison, customs duty calculator, FTA checker, RoDTEP incentives, global trade operating system, export quotation tool, dual currency trade quote" />
 
-      <PageHero testIdPrefix="customs" label="Customs · Compliance · Global Trade Data"
-        title="Trade any product. Any border."
-        sub="Real global trade statistics for any HS code — top importers, exporters and world trade value — alongside Incoterms, live currency, duty, documents, HSN, RoDTEP benefits, CHA charges, CBM and freight. Worldwide data, India-first compliance, one place." />
+      <PageHero testIdPrefix="customs" label="LeadNation Trade Command Center™"
+        title="The World's First AI-Powered Global Trade Operating System."
+        sub="Plan, cost, comply, price and ship from one screen. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across markets, quote in your currency and any global currency, and let the LeadNation Brain analyse every number — for any product across 195 countries." />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
@@ -63,7 +72,7 @@ export default function CustomsCompliance() {
           ))}
         </div>
 
-        {tab === "compile" && <CompileDataTool />}
+        {tab === "compile" && <CommandCenterTool />}
         {tab === "report" && <ReportTool />}
         {tab === "trade" && <TradeStatsTool />}
         {tab === "duty" && <DutyBenefitsTool />}
@@ -383,23 +392,29 @@ function MarkdownLite({ text }) {
   return <div className="space-y-1.5">{out}</div>;
 }
 
-/* ---------------- Compile Data — one-click master report ---------------- */
-function CompileDataTool() {
+/* ---------------- Trade Command Center — flagship costing & quotation ---------------- */
+function CommandCenterTool() {
   const [q, setQ] = useState("");
   const [sugg, setSugg] = useState([]);
   const [openSugg, setOpenSugg] = useState(false);
   const [hs, setHs] = useState("");
   const [exporter, setExporter] = useState("356");
-  const [importer, setImporter] = useState("276");
-  const [currency, setCurrency] = useState("USD");
+  const [importer, setImporter] = useState("842");
   const [countries, setCountries] = useState([]);
+  const [qty, setQty] = useState(1);
+  const [unit, setUnit] = useState("unit");
+  const [txnCur, setTxnCur] = useState("USD");
+  const [globalCur, setGlobalCur] = useState("EUR");
+  const [margin, setMargin] = useState("");
+  const [costs, setCosts] = useState({ exw: "", packing: "", inland: "", thc: "", customsDocs: "", freight: "", insurance: "" });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [advisor, setAdvisor] = useState("");
+  const [advLoading, setAdvLoading] = useState(false);
   const lastPick = useRef("");
-  const CUR = ["USD", "EUR", "GBP", "INR", "AED", "CNY", "JPY", "AUD", "SGD"];
 
-  React.useEffect(() => { api.get("/duty/countries").then(({ data }) => setCountries(data.countries || [])); }, []);
+  React.useEffect(() => { api.get("/command-center/markets").then(({ data }) => setCountries(data.countries || [])); }, []);
   React.useEffect(() => {
     const text = q.trim();
     if (text === lastPick.current) return;
@@ -409,36 +424,70 @@ function CompileDataTool() {
     }, 300);
     return () => clearTimeout(t);
   }, [q]);
-
   const pick = (s) => { const label = `${s.hs6} · ${s.description}`; lastPick.current = label; setQ(label); setHs(s.hs6); setSugg([]); setOpenSugg(false); };
 
+  const COST_FIELDS = [
+    ["exw", "Ex-Works (EXW) price", "Factory gate price"],
+    ["packing", "Export packing & labelling", "Cartons, marks, palletising"],
+    ["inland", "Inland / local transport", "Factory → origin port"],
+    ["thc", "Port handling (THC)", "Stuffing, loading, port charges"],
+    ["customsDocs", "Customs & documentation", "CHA, shipping bill, certs"],
+    ["freight", "Ocean / air freight", "Main-leg freight to destination"],
+    ["insurance", "Marine / cargo insurance", "≈0.1%–0.5% of CIF"],
+  ];
+  // live client-side preview as the user types
+  const fobUnit = num(costs.exw) + num(costs.packing) + num(costs.inland) + num(costs.thc) + num(costs.customsDocs);
+  const cifUnit = fobUnit + num(costs.freight) + num(costs.insurance);
+
   const run = async () => {
-    if (!q.trim()) { setErr("Enter a product or HS code."); return; }
-    setLoading(true); setErr(""); setData(null); setOpenSugg(false);
+    if (!hs && !q.trim()) { setErr("Search and pick a product, or enter an HS code."); return; }
+    if (fobUnit <= 0) { setErr("Enter at least the Ex-Works price to build your cost waterfall."); return; }
+    setLoading(true); setErr(""); setData(null); setAdvisor(""); setOpenSugg(false);
     try {
-      const { data } = await api.get("/compile/report", {
-        params: { hs, product: hs ? "" : q.trim(), exporter, importer, currency },
+      const { data } = await api.post("/command-center/quote", {
+        hs, product: hs ? "" : q.trim(), exporter, importer,
+        quantity: num(qty) || 1, unit,
+        costs: { exw: num(costs.exw), packing: num(costs.packing), inland: num(costs.inland), thc: num(costs.thc), customsDocs: num(costs.customsDocs), freight: num(costs.freight), insurance: num(costs.insurance) },
+        marginPct: num(margin), transactionCurrency: txnCur, globalCurrency: globalCur,
       });
-      if (data.ok) setData(data); else setErr(data.error || "Could not compile data.");
-    } catch (_) { setErr("Compile failed — please try again."); }
+      if (data.ok) {
+        setData(data);
+        setAdvLoading(true);
+        api.post("/command-center/insights", { quote: data })
+          .then(({ data: ins }) => { if (ins.ok) setAdvisor(ins.advisor || ""); })
+          .catch(() => {}).finally(() => setAdvLoading(false));
+      } else setErr(data.error || "Could not build your quote.");
+    } catch (_) { setErr("Quote failed — please try again."); }
     finally { setLoading(false); }
   };
 
+  const tc = txnCur;
+  const d = data;
+
   return (
     <div className="space-y-5">
-      <ToolCard title="Compile Data — your full trade brief in one click"
-        desc="Pick a product and a trade lane. The LeadNation Brain compiles trade statistics, duty & benefits, a tariff comparison, live currency, a landed-cost estimate, freight and an executive action plan — for any two countries.">
-        <div className="grid lg:grid-cols-5 gap-3 items-end">
+      {/* INTRO */}
+      <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-cyan-400/20">
+        <div className="flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
+          <Lightning size={14} weight="duotone" /> LeadNation Trade Command Center™
+        </div>
+        <h3 className="font-display font-extrabold text-2xl sm:text-3xl mt-2">Your entire deal, costed and analysed in one screen.</h3>
+        <p className="text-sm text-slate-400 mt-2 max-w-3xl">Build the full Ex-Works → FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in your own currency <span className="text-cyan-300">and</span> any globally-traded currency, and let the LeadNation Brain flag savings, risks and the best market — for any product across 195 countries.</p>
+      </div>
+
+      {/* SETUP */}
+      <ToolCard title="1 · Define your trade lane" desc="Pick the product, the route, quantity and the two currencies you want to quote in.">
+        <div className="grid lg:grid-cols-6 gap-3 items-end">
           <div className="lg:col-span-2 relative">
             <Field label="Product or HS code">
-              <input data-testid="compile-search" className={inputCls} value={q}
+              <input data-testid="cc-search" className={inputCls} value={q}
                 onChange={(e) => { setQ(e.target.value); setHs(""); }} onFocus={() => sugg.length && setOpenSugg(true)}
-                placeholder="e.g. Basmati Rice, Solar Panels, or 100630" />
+                placeholder="e.g. Basmati Rice, Turmeric, or 100630" />
             </Field>
             {openSugg && sugg.length > 0 && (
-              <div data-testid="compile-suggestions" className="absolute z-20 mt-1 w-full glass-strong rounded-2xl border border-white/10 max-h-72 overflow-auto shadow-2xl">
+              <div data-testid="cc-suggestions" className="absolute z-30 mt-1 w-full glass-strong rounded-2xl border border-white/10 max-h-72 overflow-auto shadow-2xl">
                 {sugg.map((s) => (
-                  <button key={s.hs6} type="button" data-testid={`compile-sugg-${s.hs6}`} onClick={() => pick(s)}
+                  <button key={s.hs6} type="button" data-testid={`cc-sugg-${s.hs6}`} onClick={() => pick(s)}
                     className="w-full text-left px-4 py-2.5 hover:bg-white/5 flex items-center gap-3 border-b border-white/5 last:border-0">
                     <span className="font-mono-display text-xs text-cyan-300 shrink-0">{s.hs6}</span>
                     <span className="text-sm text-slate-200 truncate">{s.description}</span>
@@ -447,110 +496,197 @@ function CompileDataTool() {
               </div>
             )}
           </div>
-          <Field label="Export country (from)">
-            <select data-testid="compile-exporter" className={inputCls} value={exporter} onChange={(e) => setExporter(e.target.value)}>
-              <option value="">— Any —</option>
+          <Field label="Export from">
+            <select data-testid="cc-exporter" className={inputCls} value={exporter} onChange={(e) => setExporter(e.target.value)}>
               {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
             </select>
           </Field>
-          <Field label="Import country (to)">
-            <select data-testid="compile-importer" className={inputCls} value={importer} onChange={(e) => setImporter(e.target.value)}>
+          <Field label="Import to">
+            <select data-testid="cc-importer" className={inputCls} value={importer} onChange={(e) => setImporter(e.target.value)}>
               {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
             </select>
           </Field>
-          <Field label="Your currency (transaction)">
-            <select data-testid="compile-currency" className={inputCls} value={currency} onChange={(e) => setCurrency(e.target.value)}>
-              {CUR.map((c) => <option key={c}>{c}</option>)}
-            </select>
+          <Field label="Quantity">
+            <div className="flex gap-2">
+              <input data-testid="cc-qty" type="number" className={inputCls} value={qty} onChange={(e) => setQty(e.target.value)} />
+              <input data-testid="cc-unit" className={`${inputCls} w-24`} value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="unit" />
+            </div>
           </Field>
         </div>
-        <button data-testid="compile-submit" onClick={run} disabled={loading} className="btn-primary mt-4 disabled:opacity-50">
-          {loading ? <><CircleNotch size={16} className="animate-spin" /> Compiling your brief…</> : <><Sparkle size={16} weight="bold" /> Compile data</>}
-        </button>
-        {err && <div data-testid="compile-error" className="mt-3 text-amber-300 text-sm">{err}</div>}
-        {loading && <div className="mt-2 text-xs text-slate-500">Pulling live tariffs, trade flows and FX, then writing your plan — first run for a new lane can take ~15s.</div>}
+        <div className="grid sm:grid-cols-3 gap-3 mt-3">
+          <Field label="Your currency (transaction)">
+            <select data-testid="cc-txn-currency" className={inputCls} value={txnCur} onChange={(e) => setTxnCur(e.target.value)}>{CUR.map((c) => <option key={c}>{c}</option>)}</select>
+          </Field>
+          <Field label="Quote also in (global currency)">
+            <select data-testid="cc-global-currency" className={inputCls} value={globalCur} onChange={(e) => setGlobalCur(e.target.value)}>{CUR.map((c) => <option key={c}>{c}</option>)}</select>
+          </Field>
+          <Field label="Your margin %">
+            <input data-testid="cc-margin" type="number" className={inputCls} value={margin} onChange={(e) => setMargin(e.target.value)} placeholder="e.g. 15" />
+          </Field>
+        </div>
       </ToolCard>
 
-      {data && (
-        <div className="space-y-5" data-testid="compile-result">
-          {/* Executive brief */}
+      {/* COST BUILD-UP */}
+      <ToolCard title="2 · Cost build-up — Ex-Works → FOB → CIF" desc="Enter your costs per unit (in your transaction currency). FOB and CIF update live as you type.">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {COST_FIELDS.map(([k, label, note]) => (
+            <div key={k}>
+              <Field label={`${label} (per ${unit})`}>
+                <input data-testid={`cc-cost-${k}`} type="number" className={inputCls} value={costs[k]}
+                  onChange={(e) => setCosts({ ...costs, [k]: e.target.value })} placeholder="0" />
+              </Field>
+              <div className="text-[10px] text-slate-500 mt-1">{note}</div>
+            </div>
+          ))}
+        </div>
+        <div className="grid sm:grid-cols-2 gap-3 mt-4">
+          <div className="glass rounded-2xl px-5 py-4 flex items-center justify-between" data-testid="cc-fob-preview">
+            <div><div className="text-[10px] text-slate-400 uppercase tracking-wider">FOB / {unit}</div><div className="text-[10px] text-slate-500">Items 1–5 · price at origin port</div></div>
+            <div className="font-display font-extrabold text-2xl text-cyan-300">{fmtCur(fobUnit, tc)}</div>
+          </div>
+          <div className="glass rounded-2xl px-5 py-4 flex items-center justify-between" data-testid="cc-cif-preview">
+            <div><div className="text-[10px] text-slate-400 uppercase tracking-wider">CIF / {unit}</div><div className="text-[10px] text-slate-500">FOB + freight + insurance</div></div>
+            <div className="font-display font-extrabold text-2xl text-gradient">{fmtCur(cifUnit, tc)}</div>
+          </div>
+        </div>
+        <button data-testid="cc-submit" onClick={run} disabled={loading} className="btn-primary mt-5 disabled:opacity-50">
+          {loading ? <><CircleNotch size={16} className="animate-spin" /> Building your command center…</> : <><Lightning size={16} weight="bold" /> Generate Command Center</>}
+        </button>
+        {err && <div data-testid="cc-error" className="mt-3 text-amber-300 text-sm">{err}</div>}
+        {loading && <div className="mt-2 text-xs text-slate-500">Pulling live tariffs, FX and buyer landed costs across markets — first run for a new lane can take ~10s.</div>}
+      </ToolCard>
+
+      {d && (
+        <div className="space-y-5" data-testid="cc-result" id="cc-print">
+          {/* KPI cards */}
           <div className="glass-strong rounded-3xl p-6">
+            <div className="flex items-center gap-2 text-sm flex-wrap mb-4">
+              <Lightning size={18} weight="duotone" className="text-cyan-300" />
+              <span className="font-display font-bold text-lg">Quote summary</span>
+              <span className="ml-auto font-mono-display text-xs text-cyan-300">HS {d.hsCode} · {d.exporter.name} → {d.importer.name} · {d.quantity} {d.unit}</span>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3" data-testid="cc-kpis">
+              <KpiCard label="FOB value" main={fmtCur(d.fob.total, tc)} sub1={fmtCur(d.currency.converted.fob.global, d.currency.global)} sub2={d.currency.converted.fob.exporterLocal} subCur={d.currency.exporterLocal} accent="text-cyan-300" />
+              <KpiCard label="CIF value" main={fmtCur(d.cif.total, tc)} sub1={fmtCur(d.currency.converted.cif.global, d.currency.global)} sub2={d.currency.converted.cif.exporterLocal} subCur={d.currency.exporterLocal} accent="text-gradient" />
+              <KpiCard label={`Landed in ${d.importer.name}`} main={fmtCur(d.destination.landed, tc)} sub1={fmtCur(d.currency.converted.landed.global, d.currency.global)} sub2={d.currency.converted.landed.exporterLocal} subCur={d.currency.exporterLocal} accent="text-emerald-300" />
+              <KpiCard label={`Your selling price (${d.pricing.marginPct}% margin)`} main={fmtCur(d.pricing.selling, tc)} sub1={fmtCur(d.currency.converted.selling.global, d.currency.global)} sub2={d.pricing.profit} subCur={tc} subLabel="profit" accent="text-violet-300" />
+            </div>
+            <div className="flex flex-wrap gap-2 mt-4 no-print">
+              <button data-testid="cc-print-btn" onClick={() => window.print()} className="btn-ghost"><Printer size={15} weight="bold" /> Print / Save quote (PDF)</button>
+              <Link to={`/brain?q=${encodeURIComponent(`Full export plan for HS ${d.hsCode} (${d.description}) from ${d.exporter.name} to ${d.importer.name}`)}`} className="btn-ghost" data-testid="cc-ask-brain"><Brain size={15} weight="bold" /> Ask the Brain</Link>
+            </div>
+          </div>
+
+          {/* AI Trade Advisor */}
+          <div className="glass-strong rounded-3xl p-6" data-testid="cc-advisor">
             <div className="flex items-center gap-2 text-sm flex-wrap">
               <Brain size={18} weight="duotone" className="text-cyan-300" />
-              <span className="font-display font-bold text-lg">Executive Brief</span>
-              <span className="ml-auto font-mono-display text-xs text-cyan-300">HS {data.hsCode} · {data.exporter.name} → {data.importer.name}</span>
+              <span className="font-display font-bold text-lg">AI Trade Advisor</span>
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400/20">LeadNation Brain</span>
             </div>
-            <div className="mt-4">{data.narrative ? <MarkdownLite text={data.narrative} /> : <p className="text-slate-400 text-sm">Narrative unavailable.</p>}</div>
+            <div className="mt-4">
+              {advLoading && <div className="text-sm text-slate-400 flex items-center gap-2"><CircleNotch size={16} className="animate-spin" /> Analysing your costing, markets, savings and risks…</div>}
+              {!advLoading && advisor && <MarkdownLite text={advisor} />}
+              {!advLoading && !advisor && <p className="text-sm text-slate-500">Advisor unavailable for this run.</p>}
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-2 gap-5">
-            {/* Duty */}
-            {data.duty && (
-              <Panel title="Duty & Benefits" icon={Scales}>
-                {data.duty.importDuty ? (
-                  <div className="text-sm">Import into {data.importer.name}: <span className="text-cyan-300 font-semibold">{data.duty.importDuty.rate}%</span> {data.duty.importDuty.type} ({data.duty.importDuty.year})</div>
-                ) : <div className="text-sm text-amber-300/90">No tariff record for this lane.</div>}
-                {data.duty.preferential && <div className="text-sm text-emerald-300 mt-1">Preferential: {data.duty.preferential.rate}%</div>}
-                {data.duty.indiaBreakdown && <div className="text-xs text-slate-400 mt-2">India: BCD {data.duty.indiaBreakdown.basicCustomsDuty}% + SWS {data.duty.indiaBreakdown.socialWelfareSurcharge}% + IGST {data.duty.indiaBreakdown.igst}%</div>}
-                {data.duty.exportBenefit && <div className="text-sm mt-2"><Gift size={13} className="inline text-cyan-300" /> {data.duty.exportBenefit.scheme}: <span className="text-emerald-300">{data.duty.exportBenefit.rate}% of FOB</span></div>}
-              </Panel>
-            )}
-            {/* Tariff comparison */}
-            {data.tariffComparison?.length > 0 && (
-              <Panel title="Tariff Comparison (by market)" icon={Scales}>
-                <div className="space-y-1.5" data-testid="compile-comparison">
-                  {data.tariffComparison.map((c, i) => (
-                    <div key={i} className="flex justify-between text-sm"><span>{c.country}</span><span className="text-cyan-300">{c.rate}% <span className="text-slate-500 text-xs">({c.year})</span></span></div>
-                  ))}
-                </div>
-              </Panel>
-            )}
-            {/* Trade stats */}
-            {data.tradeStats && (
-              <Panel title="Trade Statistics" icon={ChartLineUp}>
-                <div className="text-sm">World trade ({data.tradeStats.year}): <span className="gradient-text font-display font-bold">{fmtUSD(data.tradeStats.totalWorldTradeUSD)}</span></div>
-                <div className="text-xs text-slate-400 mt-2">Top importers: {data.tradeStats.topImporters.slice(0, 4).map((i) => i.country).join(", ")}</div>
-                <div className="text-xs text-slate-400 mt-1">Leading exporters: {data.tradeStats.topExporters.slice(0, 4).map((e) => e.country).join(", ")}</div>
-              </Panel>
-            )}
-            {/* FX + price */}
-            <Panel title="Currency & Landed Cost" icon={CurrencyCircleDollar}>
-              {data.fx && (
-                <div className="text-sm space-y-0.5" data-testid="compile-fx">
-                  <div>1 USD = <span className="text-cyan-300">{data.fx.transactionRate} {data.fx.transactionCurrency}</span> <span className="text-slate-500 text-xs">(your currency, live)</span></div>
-                  {data.exporterCurrency && data.exporterCurrency !== data.fx.transactionCurrency && (
-                    <div>1 USD = <span className="text-violet-300">{data.fx.exporterRate} {data.fx.exporterCurrency}</span> <span className="text-slate-500 text-xs">({data.exporter.name} local)</span></div>
-                  )}
-                </div>
-              )}
-              {data.price && (
-                <div className="text-xs text-slate-400 mt-2 space-y-0.5" data-testid="compile-landed">
-                  <div>Sample $10,000 FOB → CIF ${data.price.cifUSD.toLocaleString()}</div>
-                  <div>Duty @ {data.price.dutyRatePct}% = ${data.price.dutyUSD.toLocaleString()}</div>
-                  <div className="text-slate-200">Landed: <span className="text-emerald-300 font-semibold">${data.price.landedUSD.toLocaleString()} USD</span></div>
-                  {data.price.landedTransaction != null && (
-                    <div className="text-slate-200">In your currency: <span className="text-cyan-300 font-semibold">{data.price.landedTransaction.toLocaleString()} {data.price.transactionCurrency}</span></div>
-                  )}
-                  {data.price.landedExporter != null && data.price.exporterCurrency !== data.price.transactionCurrency && (
-                    <div className="text-slate-200">In {data.exporter.name} currency: <span className="text-violet-300 font-semibold">{data.price.landedExporter.toLocaleString()} {data.price.exporterCurrency}</span></div>
-                  )}
-                </div>
-              )}
-              <div className="text-[11px] text-slate-500 mt-2">Freight: {data.freightModes.join(" · ")}</div>
+            {/* Cost waterfall */}
+            <Panel title="Cost Waterfall (per unit · total)" icon={Stack}>
+              <div className="space-y-1" data-testid="cc-waterfall">
+                {d.waterfall.map((w, i) => (
+                  <div key={i} className={`flex items-center justify-between py-1.5 text-sm ${w.milestone ? "border-y border-cyan-400/20 my-1 font-semibold" : "border-b border-white/5"}`}>
+                    <span className={w.milestone ? "text-cyan-300" : "text-slate-300"}>{w.stage}</span>
+                    <span className="text-right"><span className={w.milestone ? "text-cyan-300" : "text-slate-200"}>{fmtCur(w.total, tc)}</span> <span className="text-[10px] text-slate-500">({fmtCur(w.perUnit, tc)}/{d.unit})</span></span>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+
+            {/* Destination duty/tax */}
+            <Panel title={`Duty & Tax into ${d.importer.name}`} icon={Scales}>
+              <div className="space-y-2.5 text-sm" data-testid="cc-destination">
+                <Row label="Import duty rate" value={d.destination.dutyRate != null ? `${d.destination.dutyRate}% ${d.destination.dutyType || ""}${d.destination.fta ? " · FTA" : ""}` : "No tariff record"} />
+                <Row label="Duty payable" value={fmtCur(d.destination.duty, tc)} />
+                <Row label={`VAT / GST (${d.destination.vatRate}%)`} value={fmtCur(d.destination.vat, tc)} />
+                <div className="flex justify-between pt-2 border-t border-white/10 font-semibold"><span>Landed cost</span><span className="text-emerald-300">{fmtCur(d.destination.landed, tc)}</span></div>
+                {d.destination.fta && <div className="text-xs text-emerald-300/90 mt-1">✓ Preferential / FTA rate applied for {d.exporter.name} origin.</div>}
+              </div>
             </Panel>
           </div>
 
-          <div className="glass-strong rounded-3xl p-5 flex items-center gap-4 flex-wrap">
-            <Brain size={28} weight="duotone" className="text-cyan-300" />
-            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Download a branded Trade Intelligence Report, or ask the Brain for a deeper dive, supplier intros and document templates for this lane.</div>
-            <ReportButton data={data} />
-            <Link to={`/brain?q=${encodeURIComponent(`Full export plan for HS ${data.hsCode} (${data.description}) from ${data.exporter.name} to ${data.importer.name}`)}`} className="btn-ghost" data-testid="compile-ask-brain">Ask the Brain</Link>
+          {/* Buyer landed-cost comparison */}
+          <Panel title="Best markets — what your buyer pays (landed)" icon={ChartBar}>
+            <div className="overflow-x-auto" data-testid="cc-comparison">
+              <table className="w-full text-sm min-w-[640px]">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-wider text-slate-400 border-b border-white/10">
+                    <th className="text-left py-2">Destination</th><th className="text-right">Your CIF</th><th className="text-right">Buyer duty</th><th className="text-right">Buyer VAT</th><th className="text-right">Buyer total</th><th className="text-left pl-3">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.comparison.map((c, i) => (
+                    <tr key={c.code} data-testid={`cc-market-${c.code}`} className={`border-b border-white/5 ${i === 0 ? "bg-emerald-500/5" : ""}`}>
+                      <td className="py-2.5 font-medium">{i === 0 && <span className="text-emerald-300 mr-1">★</span>}{c.country}</td>
+                      <td className="text-right text-slate-300">{fmtCur(c.cif, tc)}</td>
+                      <td className="text-right text-slate-300">{c.dutyRate != null ? `${fmtCur(c.duty, tc)} (${c.dutyRate}%)` : "—"}</td>
+                      <td className="text-right text-slate-300">{fmtCur(c.vat, tc)} ({c.vatRate}%)</td>
+                      <td className="text-right font-semibold text-cyan-300">{fmtCur(c.buyerTotal, tc)}</td>
+                      <td className="pl-3 text-xs text-emerald-300/80">{c.note || ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-2">Lowest buyer landed cost ranked first — your most price-competitive markets. Duty/VAT are indicative; confirm at clearance.</div>
+          </Panel>
+
+          <div className="grid lg:grid-cols-2 gap-5">
+            {/* Currency */}
+            <Panel title="Multi-currency quote" icon={Coins}>
+              <div className="text-sm space-y-2" data-testid="cc-currency">
+                <Row label="Transaction currency" value={d.currency.transaction} />
+                <Row label="Global quote currency" value={`${d.currency.global}${d.currency.rates[d.currency.global] ? ` · 1 ${tc} = ${d.currency.rates[d.currency.global]} ${d.currency.global}` : ""}`} />
+                <Row label={`Exporter local (${d.exporter.name})`} value={d.currency.exporterLocal} />
+                <div className="text-[11px] text-slate-500 pt-1">{d.currency.source}</div>
+              </div>
+            </Panel>
+            {/* Incentives + routes */}
+            <Panel title="Incentives & routes" icon={Gift}>
+              <div className="space-y-2" data-testid="cc-incentives">
+                {d.incentives.length > 0 ? d.incentives.map((it, i) => (
+                  <div key={i} className="text-sm"><span className="text-cyan-300 font-medium">{it.scheme}</span> <span className="text-emerald-300">{it.value}</span><div className="text-xs text-slate-400">{it.detail}</div></div>
+                )) : <div className="text-sm text-slate-400">No origin-specific export incentives detected for {d.exporter.name}.</div>}
+              </div>
+              <div className="mt-3 pt-3 border-t border-white/10 space-y-1.5">
+                {d.routes.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 text-sm"><Truck size={14} className="text-cyan-300" /><span className="font-medium">{r.mode}</span><span className="text-xs text-slate-400">· {r.transit}</span></div>
+                ))}
+              </div>
+            </Panel>
           </div>
+
+          <div className="text-[11px] text-slate-500 px-1">Sources: {d.sources.join(" · ")}. Figures are indicative for planning; verify duty, tax and freight at the time of shipment.</div>
         </div>
       )}
     </div>
   );
 }
+
+const Row = ({ label, value }) => (
+  <div className="flex justify-between gap-3"><span className="text-slate-400">{label}</span><span className="text-slate-200 text-right">{value}</span></div>
+);
+const KpiCard = ({ label, main, sub1, sub2, subCur, subLabel, accent }) => (
+  <div className="glass rounded-2xl px-5 py-4">
+    <div className="text-[10px] text-slate-400 uppercase tracking-wider">{label}</div>
+    <div className={`font-display font-extrabold text-2xl mt-1 ${accent}`}>{main}</div>
+    {sub1 && sub1 !== "—" && <div className="text-xs text-slate-400 mt-1">≈ {sub1}</div>}
+    {sub2 != null && sub2 !== "—" && (
+      <div className="text-[11px] text-slate-500">{subLabel ? `${subLabel}: ` : "≈ "}{fmtCur(sub2, subCur)}</div>
+    )}
+  </div>
+);
 
 /* ---------------- Duty & Benefits (global tariffs + India + RoDTEP) ---------------- */
 function DutyBenefitsTool() {
