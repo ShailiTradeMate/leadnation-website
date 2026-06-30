@@ -4,6 +4,7 @@ import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
+import { ReportButton } from "@/components/TradeIntelReport";
 import {
   ShieldCheck, CurrencyCircleDollar, Cube, Calculator, Path, Gift, Users,
   FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch, Handshake,
@@ -457,7 +458,7 @@ function CompileDataTool() {
               {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
             </select>
           </Field>
-          <Field label="Currency">
+          <Field label="Your currency (transaction)">
             <select data-testid="compile-currency" className={inputCls} value={currency} onChange={(e) => setCurrency(e.target.value)}>
               {CUR.map((c) => <option key={c}>{c}</option>)}
             </select>
@@ -514,12 +515,25 @@ function CompileDataTool() {
             )}
             {/* FX + price */}
             <Panel title="Currency & Landed Cost" icon={CurrencyCircleDollar}>
-              {data.fx && <div className="text-sm">1 USD = <span className="text-cyan-300">{data.fx.rate} {data.fx.target}</span> <span className="text-slate-500 text-xs">(live)</span></div>}
+              {data.fx && (
+                <div className="text-sm space-y-0.5" data-testid="compile-fx">
+                  <div>1 USD = <span className="text-cyan-300">{data.fx.transactionRate} {data.fx.transactionCurrency}</span> <span className="text-slate-500 text-xs">(your currency, live)</span></div>
+                  {data.exporterCurrency && data.exporterCurrency !== data.fx.transactionCurrency && (
+                    <div>1 USD = <span className="text-violet-300">{data.fx.exporterRate} {data.fx.exporterCurrency}</span> <span className="text-slate-500 text-xs">({data.exporter.name} local)</span></div>
+                  )}
+                </div>
+              )}
               {data.price && (
-                <div className="text-xs text-slate-400 mt-2 space-y-0.5">
+                <div className="text-xs text-slate-400 mt-2 space-y-0.5" data-testid="compile-landed">
                   <div>Sample $10,000 FOB → CIF ${data.price.cifUSD.toLocaleString()}</div>
                   <div>Duty @ {data.price.dutyRatePct}% = ${data.price.dutyUSD.toLocaleString()}</div>
-                  <div className="text-slate-200">Landed: <span className="text-emerald-300 font-semibold">${data.price.landedUSD.toLocaleString()}</span>{data.price.landedInCurrency ? ` · ${data.price.landedInCurrency.toLocaleString()} ${data.currency}` : ""}</div>
+                  <div className="text-slate-200">Landed: <span className="text-emerald-300 font-semibold">${data.price.landedUSD.toLocaleString()} USD</span></div>
+                  {data.price.landedTransaction != null && (
+                    <div className="text-slate-200">In your currency: <span className="text-cyan-300 font-semibold">{data.price.landedTransaction.toLocaleString()} {data.price.transactionCurrency}</span></div>
+                  )}
+                  {data.price.landedExporter != null && data.price.exporterCurrency !== data.price.transactionCurrency && (
+                    <div className="text-slate-200">In {data.exporter.name} currency: <span className="text-violet-300 font-semibold">{data.price.landedExporter.toLocaleString()} {data.price.exporterCurrency}</span></div>
+                  )}
                 </div>
               )}
               <div className="text-[11px] text-slate-500 mt-2">Freight: {data.freightModes.join(" · ")}</div>
@@ -528,8 +542,9 @@ function CompileDataTool() {
 
           <div className="glass-strong rounded-3xl p-5 flex items-center gap-4 flex-wrap">
             <Brain size={28} weight="duotone" className="text-cyan-300" />
-            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Need a deeper dive, supplier intros or document templates for this lane? Ask the Brain.</div>
-            <Link to={`/brain?q=${encodeURIComponent(`Full export plan for HS ${data.hsCode} (${data.description}) from ${data.exporter.name} to ${data.importer.name}`)}`} className="btn-primary" data-testid="compile-ask-brain">Ask the Brain</Link>
+            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Download a branded Trade Intelligence Report, or ask the Brain for a deeper dive, supplier intros and document templates for this lane.</div>
+            <ReportButton data={data} />
+            <Link to={`/brain?q=${encodeURIComponent(`Full export plan for HS ${data.hsCode} (${data.description}) from ${data.exporter.name} to ${data.importer.name}`)}`} className="btn-ghost" data-testid="compile-ask-brain">Ask the Brain</Link>
           </div>
         </div>
       )}

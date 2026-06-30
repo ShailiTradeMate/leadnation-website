@@ -41,18 +41,19 @@ async def _tariff_comparison(hs6, exporter):
     return out
 
 
-async def _sample_price(duty_rate, fx_rate, currency):
-    """Illustrative landed cost for a US$10,000 FOB shipment."""
+async def _sample_price(duty_rate, txn_cur, txn_rate, exp_cur, exp_rate):
+    """Illustrative landed cost for a US$10,000 FOB shipment, shown in 3 currencies."""
     fob = 10000.0
     freight, insurance = 1200.0, 150.0
     cif = fob + freight + insurance
     duty = round(cif * (duty_rate or 0) / 100, 2)
     landed = round(cif + duty, 2)
+    conv = lambda rate: round(landed * rate, 2) if rate else None
     return {
         "assumptionsUSD": {"fob": fob, "freight": freight, "insurance": insurance},
         "cifUSD": cif, "dutyRatePct": duty_rate or 0, "dutyUSD": duty, "landedUSD": landed,
-        "inCurrency": currency,
-        "landedInCurrency": round(landed * fx_rate, 2) if fx_rate else None,
+        "transactionCurrency": txn_cur, "landedTransaction": conv(txn_rate),
+        "exporterCurrency": exp_cur, "landedExporter": conv(exp_rate),
     }
 
 
@@ -65,7 +66,7 @@ async def compile_report(hs="", product="", exporter="", importer="356", currenc
     if len(hs6) < 6:
         return {"ok": False, "error": "Provide a product name or a 6-digit HS code."}
 
-    cache_id = f"{hs6}:{exporter}:{importer}:{currency}"
+    cache_id = f"v2:{hs6}:{exporter}:{importer}:{currency}"
     if not force:
         c = await CACHE.find_one({"_id": cache_id})
         if c and (_now() - datetime.fromisoformat(c["at"])).days < 7:
@@ -75,19 +76,23 @@ async def compile_report(hs="", product="", exporter="", importer="356", currenc
     duty = await duty_engine.duty_and_benefits(hs6, origin=exporter, destination=importer)
     comparison = await _tariff_comparison(hs6, exporter)
 
-    cur = (currency or "USD").upper()
+    cur = (currency or "USD").upper()                                   # user transaction currency
+    exporter_currency = duty_engine.CURRENCY_BY_CODE.get(exporter, "USD")  # auto-detected
     rates, _cached = await _fx_rates("USD")
-    fx_rate = (rates or {}).get(cur)
+    txn_rate = (rates or {}).get(cur)
+    exp_rate = (rates or {}).get(exporter_currency)
     fx_block = None
     if rates:
-        fx_block = {"base": "USD", "target": cur, "rate": fx_rate,
+        fx_block = {"base": "USD",
+                    "transactionCurrency": cur, "transactionRate": txn_rate,
+                    "exporterCurrency": exporter_currency, "exporterRate": exp_rate,
                     "popular": {c: rates.get(c) for c in ["INR", "USD", "EUR", "GBP", "AED", "CNY", "JPY"] if rates.get(c)},
                     "source": "open.er-api.com (live)"}
 
     duty_rate = None
     if duty.get("ok"):
         duty_rate = (duty.get("preferential") or duty.get("importDuty") or {}).get("rate")
-    price = await _sample_price(duty_rate, fx_rate, cur)
+    price = await _sample_price(duty_rate, cur, txn_rate, exporter_currency, exp_rate)
 
     exporter_name = duty_engine.NAME_BY_CODE.get(exporter, exporter or "any country")
     importer_name = duty_engine.NAME_BY_CODE.get(importer, importer)
@@ -120,6 +125,7 @@ async def compile_report(hs="", product="", exporter="", importer="356", currenc
         "exporter": {"code": exporter, "name": exporter_name},
         "importer": {"code": importer, "name": importer_name},
         "currency": cur,
+        "exporterCurrency": exporter_currency,
         "tradeStats": stats if stats.get("ok") else None,
         "duty": duty if duty.get("ok") else None,
         "tariffComparison": comparison,

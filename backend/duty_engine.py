@@ -49,6 +49,20 @@ COUNTRIES = [
 ]
 NAME_BY_CODE = {c: n for c, n in COUNTRIES}
 
+# ISO numeric country code → local currency (used for auto-detected dual currency).
+CURRENCY_BY_CODE = {
+    "356": "INR", "842": "USD", "156": "CNY", "784": "AED", "826": "GBP", "276": "EUR",
+    "392": "JPY", "36": "AUD", "682": "SAR", "702": "SGD", "250": "EUR", "380": "EUR",
+    "124": "CAD", "76": "BRL", "410": "KRW", "484": "MXN", "528": "EUR", "724": "EUR",
+    "643": "RUB", "792": "TRY", "360": "IDR", "764": "THB", "458": "MYR", "704": "VND",
+    "710": "ZAR", "818": "EGP", "566": "NGN", "404": "KES", "586": "PKR", "050": "BDT",
+    "144": "LKR", "608": "PHP", "756": "CHF", "056": "EUR", "616": "PLN", "752": "SEK",
+    "204": "XOF", "634": "QAR", "512": "OMR", "414": "KWD", "48": "BHD", "32": "ARS",
+    "152": "CLP", "170": "COP", "604": "PEN", "376": "ILS", "348": "HUF", "203": "CZK",
+    "620": "EUR", "300": "EUR", "372": "EUR", "578": "NOK", "208": "DKK", "246": "EUR",
+    "40": "EUR", "554": "NZD",
+}
+
 # ---- India domestic add-ons ----
 # IGST slab by HS chapter (2-digit); default 18%.
 IGST_BY_CHAPTER = {

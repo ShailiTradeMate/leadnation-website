@@ -1,5 +1,12 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## Implemented (2026-06-30) — P1: Dual currency + Premium Trade Intelligence Report
+- [x] **Dual currency (Compile Data)**: backend auto-detects the exporter country's local currency (`duty_engine.CURRENCY_BY_CODE`) + user's transaction currency; `/api/compile/report` returns live FX + landed cost in USD, exporter currency AND transaction currency. UI panel shows all three. (cache bumped to `v2:`). Verified: India→INR, USA→USD.
+- [x] **Premium Trade Intelligence Report** (`frontend/src/components/TradeIntelReport.jsx`): branded, white-theme, 12-section printable report (cover, snapshot KPIs, executive brief, HS classification, global stats + trend bars, top importers/exporters, duty & benefits, tariff comparison, dual-currency FX, landed cost, logistics, next steps, sources+disclaimer). Client-side **Print / Save as PDF** via `@media print` in index.css (renders only `#trade-report-print`). Overlays use React portals to escape transformed ancestors.
+- [x] **Lead Capture gate**: signed-out users must submit Name/Email/Company/Country (+optional phone) → `POST /api/leads` (source `trade-intelligence-report`, report context in message) → saved to Lead CMS, then report opens. Signed-in users skip the gate. Verified end-to-end in-browser + lead persisted to CMS.
+- NOTE: HSN Google-style autocomplete was already present in Compile/Duty/TradeStats tabs (pre-existing).
+- ⏳ Pending user input: increase Brain involvement + add more to Brain replies (user reported Brain latency; will share specifics).
+
 ## Implemented (2026-06-30) — Auth FINALIZED: website is a pure client of the deployed shared backend (NO proxy, NO local DB)
 - [x] Frontend now calls `https://leadnation-lfrhs.ondigitalocean.app/api` DIRECTLY for ALL identity (env `REACT_APP_AUTH_API_BASE`, never hardcoded). New `src/lib/authApi.js` (Firebase Bearer interceptor); `AuthContext` repointed.
 - [x] Endpoints wired & E2E-verified server-side: resolve-customer-id → Firebase login → `GET /api/v1/profiles/{uid}` (current-user source; DO has NO `/auth/me`) → idempotent `onboarding/register` → admin `admin_v2/users`. OTP via `send-otp`/`verify-otp` (body `{type:"email",value,otp}`; DO has NO `request-otp`).
