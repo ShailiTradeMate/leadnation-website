@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 19 — Verified LeadNation Trade Command Center Volume 1 completion: stateful /command-center workspace + /api/projects spine + parallelised /api/command-center/* engines. Backend pytest 18/18 PASS (19s, includes 1 cold-lane warm-up). Frontend Playwright covered start screen → create project → workspace, all 11 sidebar modules, reactive costing (cost inputs retain values, cc-costing-result appears without Calculate), KPI explain modal, overview summary/health/alerts/timeline (Revenue populated post-costing), Ctrl+K palette, compliance with documents + brain narrative, documents toggle, reports save-version & export-pdf both enabled after quote, brain panel and workflow stepper. Home CTA + customs-compliance tab both link to /command-center.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Compliance module first-load", "issue": "cc-compliance module renders only AFTER /api/command-center/compliance returns. That endpoint runs the Brain narrative inline and can take 60-90s on first load — during this window the Compliance panel is blank with no skeleton/spinner/'analysing…' state. Suggest streaming docs+duty immediately and lazy-loading the narrative, OR show an explicit loading state.", "affected_selectors": ["cc-compliance"]}
+    ],
+    "design_issues": [
+      {"screen": "Global (React)", "issues": ["React console warning: Invalid DOM property 'strokelinecap' (should be 'strokeLinecap') — appears on every page load. Likely a Phosphor icon prop typo somewhere in the code; harmless but noisy."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_19_command_center.py",
+    "/app/test_reports/pytest/iteration_19_cc_vol1.xml"
+  ],
+  "action_items": [
+    "Optional: render cc-compliance shell (documents+duty) immediately and fetch Brain narrative asynchronously so the module is not blank for 60-90s on first load.",
+    "Optional: fix the 'strokelinecap' React warning (search for strokelinecap in JSX, replace with strokeLinecap).",
+    "Carry forward from iteration_18 review (still open): trim costing_engine.sources to data sources actually used; pass full waterfall/comparison arrays as structured data to the Brain (not just prose) for stronger grounding; deterministic tiebreaker in comparison.sort when all dutyRates are None."
+  ],
+  "critical_code_review_comments": [
+    "projects.py:46-54 _owner: signed-in UID takes precedence over X-Trade-Session even when both are sent — this is correct, but the merge endpoint relies on the CLIENT keeping the guest session header after login. If the frontend drops X-Trade-Session post-login, /projects/merge silently returns merged:0 (line 297). Consider tracking the guest session UUID in the user's first /auth/me response server-side too, as a defense in depth.",
+    "projects.py:217 ALLOWED whitelist for PUT /projects/{id} does NOT include 'timeline' or 'versions' (good — those are append-only via $push). However, 'lastQuote' IS in ALLOWED, so a malicious client could overwrite the entire lastQuote object including its currency.transaction value, which then feeds compute_health/summary. Low risk (only the owner can do this), but worth validating shape.",
+    "costing_engine.py compliance endpoint runs Brain narrative inline (await provider.generate) — this is what makes cc-compliance take 60-90s on first hit. Consider returning duty+documents immediately and exposing a separate /compliance/narrative endpoint that streams the brain output (matches the explain-everything pattern).",
+    "CommandCenter.jsx: cc-export-pdf calls window.print() — the print dialog uses the browser's stylesheet, not the dedicated CommandCenterReport.jsx component. Confirm a print stylesheet hides the sidebar / brain panel so the printed PDF is clean (could not verify visually in headless test).",
+    "ProjectContext.jsx — review request mentions 'patchCosts for nested cost edits' fix. UI test confirms cost inputs retain values across rapid edits (regression resolved). Good.",
+    "Home CTA + /customs-compliance both link to /command-center — both verified. /customs-compliance still shows the legacy calculator below the cc-tab-open-workspace link, which is fine but consider deprecating to reduce surface area now that the workspace is the canonical home."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_19_command_center.py",
+    "/app/test_reports/iteration_19.json"
+  ],
+  "success_rate": {
+    "backend": "100% (18/18)",
+    "frontend": "100% on functional checks; one minor UX gap (compliance loading state) and one React DOM warning"
+  },
+  "test_credentials": "None — guest projects via X-Trade-Session header (browser auto-generates UUID in localStorage). No auth required.",
+  "seed_data_creation": "Created and deleted multiple TEST_iter19* projects in db.trade_projects via the API; teardown handled by fixture. db.cc_cache populated for the 100630 / IND→USA / qty=100 lane (speeds up subsequent runs).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration_19_command_center.py -v` — 18 tests, ~20s warm or ~45s cold (first quote/compliance call). UI: clearing localStorage on /command-center returns to start screen; once a project is created the workspace persists across reloads via projectContext. Compliance module takes up to 90s on a fresh lane (Brain narrative inline) — wait at least 100s before failing cc-compliance assertions. Quote endpoint accepts numbers OR strings for costs (backend coerces). Use a single fixed X-Trade-Session UUID across project calls; a new browser context = new session = no projects visible (correct isolation).",
+  "rca of the issue": "No production bugs found. The only friction point is that /api/command-center/compliance runs the Brain narrative synchronously which blocks cc-compliance from rendering for 60-90s on cold runs. RCA: in costing_engine.py:359-393 the route awaits provider.generate() before returning the response. Mitigation: return duty+documents first, then fetch narrative via a follow-up call (or stream)."
+}

@@ -212,7 +212,7 @@ export default function Home() {
               ))}
             </div>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/customs-compliance" data-testid="home-command-center-cta" className="btn-primary">
+              <Link to="/command-center" data-testid="home-command-center-cta" className="btn-primary">
                 Open Trade Command Center <ArrowRight size={16} weight="bold" />
               </Link>
               <Link to="/brain" className="btn-ghost">Ask the LeadNation Brain</Link>

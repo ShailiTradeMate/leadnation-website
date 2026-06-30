@@ -175,9 +175,10 @@ async def compute_quote(req: QuoteRequest):
     # Buyer-landed-cost comparison across markets (buyer pays CIF + their duty + their VAT).
     markets = req.compareMarkets or DEFAULT_MARKETS
     markets = [m for m in markets if m != req.exporter][:8]
+    import asyncio
+    rates_list = await asyncio.gather(*[_duty_rate(m, req.exporter, hs6) for m in markets])
     comparison = []
-    for m in markets:
-        mrate, mtype, mfta = await _duty_rate(m, req.exporter, hs6)
+    for m, (mrate, mtype, mfta) in zip(markets, rates_list):
         mvat = VAT_BY_CODE.get(m, 0)
         bduty = _r(cif_t * (mrate or 0) / 100)
         bvat = _r((cif_t + bduty) * mvat / 100)
@@ -286,3 +287,107 @@ async def insights(req: InsightRequest):
     except Exception as exc:
         logging.warning("Command Center insights failed: %s", exc)
         return {"ok": False, "error": "Advisor temporarily unavailable."}
+
+
+# ---------------- Explain Everything ----------------
+EXPLAIN_FORMULAS = {
+    "fob": ("FOB = Ex-Works + Packing + Inland transport + Port handling (THC) + Customs & docs",
+            "Free On Board — the price of the goods loaded on the vessel at the origin port. The buyer takes over cost and risk from this point under FOB Incoterms."),
+    "cif": ("CIF = FOB + Ocean/Air freight + Marine insurance",
+            "Cost, Insurance & Freight — the value on which the destination customs assesses import duty."),
+    "duty": ("Duty = CIF × import-duty rate%",
+             "Import duty is levied by the destination customs on the CIF value, using the applied/MFN rate (or a lower preferential/FTA rate if the origin qualifies)."),
+    "vat": ("VAT/GST = (CIF + Duty) × VAT rate%",
+            "Most countries charge VAT/GST on the duty-inclusive value at import. It is usually creditable for registered importers."),
+    "landed": ("Landed cost = CIF + Duty + VAT/GST",
+               "The total cost to land the goods in the destination market, before the importer's own margin."),
+    "selling": ("Selling price = CIF × (1 + margin%)",
+                "Your quoted price to the buyer including your target margin on the CIF basis."),
+    "buyerTotal": ("Buyer total = CIF + Buyer duty + Buyer VAT",
+                   "What the buyer ultimately pays to land your goods — the true measure of how price-competitive you are in each market."),
+}
+
+
+class ExplainRequest(BaseModel):
+    field: str
+    quote: dict = Field(default_factory=dict)
+
+
+@router.post("/explain")
+async def explain(req: ExplainRequest):
+    f = (req.field or "").strip()
+    formula, plain = EXPLAIN_FORMULAS.get(f, ("", ""))
+    q = req.quote or {}
+    desc = q.get("description", "")
+    hs6 = q.get("hsCode", "")
+    exp = q.get("exporter", {}).get("name", "")
+    imp = q.get("importer", {}).get("name", "")
+    tc = (q.get("currency") or {}).get("transaction", "USD")
+    ctx = ""
+    if f in ("fob", "cif") and q.get("waterfall"):
+        ctx = "; ".join(f"{w['stage']} {w['total']}" for w in q["waterfall"])
+    elif f in ("duty", "vat", "landed") and q.get("destination"):
+        d = q["destination"]
+        ctx = f"CIF {q.get('cif',{}).get('total')} {tc}, duty {d.get('dutyRate')}% = {d.get('duty')}, VAT {d.get('vatRate')}% = {d.get('vat')}, landed {d.get('landed')}"
+    question = (f"Explain the '{f}' value for shipping {desc} (HS {hs6}) {exp}→{imp}. "
+                f"Formula: {formula}. Figures: {ctx}. "
+                f"In short markdown give: (1) what it means in one line, (2) the calculation steps with the actual numbers, "
+                f"(3) the data source, (4) one industry best-practice tip to optimise it. Be concise and specific.")
+    advisor = ""
+    try:
+        provider = get_provider()
+        res = await provider.generate(question, {"primary": "explain"},
+                                      {"products": [desc], "countries": [exp, imp], "hsn": [hs6]},
+                                      {}, {"retrieved": [], "memory": {}, "user": {}, "language": "en"})
+        advisor = res.get("answer", "")
+    except Exception as exc:
+        logging.warning("Explain failed: %s", exc)
+    return {"ok": True, "field": f, "formula": formula, "plain": plain, "context": ctx,
+            "source": "World Bank WITS / UNCTAD TRAINS (duty) · open.er-api.com (FX) · LeadNation Brain (analysis)",
+            "explanation": advisor}
+
+
+# ---------------- Compliance report (per destination country) ----------------
+class ComplianceRequest(BaseModel):
+    hs: str = ""
+    product: str = ""
+    exporter: str = "356"
+    importer: str = "842"
+    incoterm: str = "FOB"
+
+
+@router.post("/compliance")
+async def compliance(req: ComplianceRequest):
+    hs6 = await _resolve_hs(req.hs, req.product)
+    if len(hs6) < 6:
+        return {"ok": False, "error": "Provide a product or 6-digit HS code."}
+    exp = duty_engine.NAME_BY_CODE.get(req.exporter, req.exporter)
+    imp = duty_engine.NAME_BY_CODE.get(req.importer, req.importer)
+    duty = await duty_engine.duty_and_benefits(hs6, origin=req.exporter, destination=req.importer)
+
+    base_docs = ["Commercial Invoice", "Packing List", "Bill of Lading / Airway Bill",
+                 "Certificate of Origin", "Insurance Certificate"]
+    if req.exporter == "356":
+        base_docs += ["Shipping Bill (ICEGATE)", "LUT / GST invoice", "e-BRC (post-realisation)"]
+    if req.importer == "276" or duty_engine.CURRENCY_BY_CODE.get(req.importer) == "EUR":
+        base_docs += ["EUR.1 / REX statement (if FTA)", "EU import declaration (SAD)"]
+
+    narrative = ""
+    try:
+        eo = {"duty_benefits": {"summary": (f"Import duty into {imp}: {duty['importDuty']['rate']}% {duty['importDuty']['type']}" if duty.get("importDuty") else "No tariff record"), "data": {}}}
+        question = (f"Write a concise compliance summary for exporting {hs6} from {exp} to {imp} on {req.incoterm} terms: "
+                    f"(1) key import requirements & restrictions in {imp}, (2) mandatory documents, (3) certifications/standards likely needed, "
+                    f"(4) 3 compliance pitfalls to avoid. Short markdown headings + bullets.")
+        provider = get_provider()
+        res = await provider.generate(question, {"primary": "compliance"},
+                                      {"countries": [exp, imp], "hsn": [hs6]}, eo,
+                                      {"retrieved": [], "memory": {}, "user": {}, "language": "en"})
+        narrative = res.get("answer", "")
+    except Exception as exc:
+        logging.warning("Compliance narrative failed: %s", exc)
+
+    return {"ok": True, "hsCode": hs6, "exporter": {"code": req.exporter, "name": exp},
+            "importer": {"code": req.importer, "name": imp}, "incoterm": req.incoterm,
+            "duty": duty if duty.get("ok") else None, "documents": base_docs,
+            "narrative": narrative,
+            "sources": ["World Bank WITS / UNCTAD TRAINS", "LeadNation Brain"]}

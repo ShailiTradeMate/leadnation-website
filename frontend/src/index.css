@@ -234,6 +234,12 @@ body {
   body * { visibility: hidden !important; }
   #trade-report-print, #trade-report-print * { visibility: visible !important; }
   #cc-print, #cc-print * { visibility: visible !important; }
+  #cc-doc-print { display: block !important; }
+  #cc-doc-print, #cc-doc-print * { visibility: visible !important; }
+  #cc-doc-print {
+    position: absolute !important; left: 0; top: 0; width: 100%;
+    background: #ffffff !important; color: #0A2540 !important;
+  }
   #cc-print {
     position: absolute !important; left: 0; top: 0; width: 100%;
     padding: 0 !important; background: #ffffff !important;

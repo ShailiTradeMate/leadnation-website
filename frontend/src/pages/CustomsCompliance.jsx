@@ -449,7 +449,7 @@ function CommandCenterTool() {
         quantity: num(qty) || 1, unit,
         costs: { exw: num(costs.exw), packing: num(costs.packing), inland: num(costs.inland), thc: num(costs.thc), customsDocs: num(costs.customsDocs), freight: num(costs.freight), insurance: num(costs.insurance) },
         marginPct: num(margin), transactionCurrency: txnCur, globalCurrency: globalCur,
-      });
+      }, { timeout: 90000 });
       if (data.ok) {
         setData(data);
         setAdvLoading(true);
@@ -473,6 +473,7 @@ function CommandCenterTool() {
         </div>
         <h3 className="font-display font-extrabold text-2xl sm:text-3xl mt-2">Your entire deal, costed and analysed in one screen.</h3>
         <p className="text-sm text-slate-400 mt-2 max-w-3xl">Build the full Ex-Works → FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in your own currency <span className="text-cyan-300">and</span> any globally-traded currency, and let the LeadNation Brain flag savings, risks and the best market — for any product across 195 countries.</p>
+        <Link to="/command-center" data-testid="cc-tab-open-workspace" className="btn-primary mt-4 inline-flex"><Lightning size={15} weight="bold" /> Open the full workspace (Trade Projects, Brain, PDF) <ArrowRight size={15} weight="bold" /></Link>
       </div>
 
       {/* SETUP */}

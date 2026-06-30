@@ -39,6 +39,8 @@ import GlobalSearch from "@/pages/GlobalSearch";
 import AdminDashboard, { AdminLogin } from "@/pages/admin/AdminDashboard";
 import AdminBrain from "@/pages/admin/AdminBrain";
 import { AuthProvider } from "@/lib/AuthContext";
+import { ProjectProvider } from "@/lib/ProjectContext";
+import CommandCenter from "@/pages/CommandCenter";
 import { Login, Signup, ForgotPassword, Account } from "@/pages/Auth";
 
 function App() {
@@ -46,9 +48,11 @@ function App() {
     <HelmetProvider>
       <BrowserRouter>
         <AuthProvider>
+          <ProjectProvider>
           <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/command-center" element={<CommandCenter />} />
             <Route path="/customs-compliance" element={<CustomsCompliance />} />
             <Route path="/trade-news" element={<TradeNews />} />
             <Route path="/trade-news/:id" element={<TradeNewsDetail />} />
@@ -116,6 +120,7 @@ function App() {
             <Route path="/admin/leads" element={<AdminDashboard />} />
           </Routes>
         </Layout>
+          </ProjectProvider>
         </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>
