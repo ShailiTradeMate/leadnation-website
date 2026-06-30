@@ -96,7 +96,7 @@ function ScoreRing({ label, score, size = 64 }) {
     <div className="flex flex-col items-center gap-1" data-testid={`score-${label.toLowerCase().replace(/\s/g, "-")}`}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="6" />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeWidth="6" strokelinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - v / 100)} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={c} strokeWidth="6" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - v / 100)} />
       </svg>
       <div className="-mt-[calc(50%+2px)] text-base font-display font-bold" style={{ color: c }}>{v}</div>
       <div className="mt-[calc(50%-14px)] text-[10px] text-slate-400 text-center leading-tight">{label}</div>

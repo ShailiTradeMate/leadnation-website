@@ -189,7 +189,7 @@ async def compute_quote(req: QuoteRequest):
             "vatRate": mvat, "vat": bvat, "buyerTotal": btotal, "fta": mfta,
             "note": "Preferential / FTA rate applies" if mfta else ("Duty-free" if (mrate == 0) else None),
         })
-    comparison.sort(key=lambda x: x["buyerTotal"])
+    comparison.sort(key=lambda x: (x["buyerTotal"], x["country"]))
 
     incentives = await _incentives(req.exporter, hs6)
     transit = TRANSIT_DAYS.get(req.importer)

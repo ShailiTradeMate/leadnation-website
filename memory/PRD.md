@@ -1,6 +1,27 @@
 # LeadNation — Global Trade Intelligence Portal
 
-## Implemented (2026-06-30) — FLAGSHIP: LeadNation Trade Command Center™ (P0)
+## Implemented (2026-06-30) — VOLUME 1 COMPLETION: Trade Command Center stateful workspace
+- New full-screen workspace at **`/command-center`** (sidebar · center · right Brain panel). Home CTA + customs tab now point here.
+- **Trade Projects** (`backend/projects.py`, `trade_projects` collection): create/autosave/load/recent/pin/duplicate/templates/delete; **guest (anonymous UUID) ↔ Firebase UID ownership with auto-merge on login** (`/projects/merge`). Production-ready + testable in preview without login.
+- **Universal Project Context** (`frontend/src/lib/ProjectContext.jsx`): one state spine, **reactive computation graph** (change any input → quote/duty/tax/currency/markets/health/Brain recompute, no re-click), `patchCosts` (stale-closure-safe nested edits), persist-merge preserving freshest lastQuote/costs.
+- **Modules**: Overview (Executive Dashboard + Project Summary + 7 health score rings + alerts + timeline), Trade Costing (reactive FOB→CIF waterfall + Explain on every KPI), Market Research (buyer comparison), Compliance (per-country duty+docs+Brain brief), Documents (checklist), Routes, Risk (score bars), Buyers/Suppliers (Brain + app CTA), Reports (PDF export + version history), Brain (project-aware chat), Settings (assumptions panel + project fields).
+- **Workflow engine** (9 stages, clickable stepper, Brain-aware), **Activity Timeline**, **Version History**, **Assumptions Panel**, **Data-Source badges** (Govt/Live/Brain/Manual/Historical/Estimate), **Command Palette (⌘K)**, **Explain Everything** (`/command-center/explain`).
+- **PDF export** (`CommandCenterReport.jsx`): branded Quote + cost waterfall + buyer comparison + **per-destination-country compliance report**.
+- Backend: `/command-center/quote` (parallelized 8-market comparison), `/explain`, `/compliance`, `/markets`; `duty_engine` WITS year-window narrowed to 6 for latency. Client timeout raised to 90s for cold lanes.
+- Docs: `TRADE_COMMAND_CENTER_VOL1.md` (blueprint) + `TRADE_COMMAND_CENTER_VOL1_COMPLETION.md` (as-built report, 10 diagrams, checklist, Volumes 2–4 roadmap).
+- **Permanent rule adopted:** every feature must belong to / enhance a Trade Project. **3-Click Rule** for major tasks.
+- Verified: test_reports/iteration_19.json — 100% backend (18/18), 100% frontend functional. Minor (fixed): strokeLinecap warning, sort tiebreaker. Known: cold first-run lane ~15-25s (cached after); compliance first-load shows spinner.
+
+## Earlier (2026-06-30) — Trade Command Center calculator (iteration_18, 100% pass)
+- Renamed Compile Data → Trade Command Center tab; world-class FOB/CIF/landed calculator; buyer-landed-cost comparison; dual+global currency; AI advisor; Home section before Services.
+
+## Backlog → mapped to Volumes 2–4 (see completion report)
+- **Vol 2** Digital Twin scenario simulation (consumes Assumptions Panel) + confidence scoring + math models.
+- **Vol 3** Live data adapters (freight/buyer/supplier/govt/customs/shipping/banking APIs), proactive Brain alerts, Brain co-pilot site-wide, Knowledge-Quality confidence engine.
+- **Vol 4** Collaboration (teams/comments/approvals), white-label Quote PDF + My Reports + shareable links, ERP integration, security/deploy hardening.
+- Pending/partial: real Buyers/Suppliers datasets, per-value confidence+timestamp, live shipment tracker, cold-latency bulk-tariff store.
+
+
 - Delivered **Volume 1 — Master Product Blueprint** (`/app/memory/TRADE_COMMAND_CENTER_VOL1.md`): full product architecture (vision, philosophy, user journeys, dashboard, workspaces, Brain integration, knowledge flow, Trade Projects, Digital Twin, system + dependency diagrams, ImpexQ competitor analysis, 2026–2035 roadmap). All future features reference this.
 - **Backend `costing_engine.py`** (`/api/command-center/*`), registered in server.py:
   - `POST /quote` — 100% deterministic, instant: Ex-Works→FOB→CIF 9-row waterfall, destination duty (WITS) + VAT (`VAT_BY_CODE`, ~55 countries) + landed cost, margin→selling price, **buyer-landed-cost comparison** across up to 8 markets (sorted ascending), **dual + global + exporter-local currency** conversion (live FX), export incentives (RoDTEP/GST/Drawback/Adv. Auth for India origin), indicative routes/transit. Verified FOB=80500/CIF=85600 for HS 100630 India→Germany ×1000.
