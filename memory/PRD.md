@@ -1,5 +1,27 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## Implemented (2026-06-30) — FLAGSHIP: LeadNation Trade Command Center™ (P0)
+- Delivered **Volume 1 — Master Product Blueprint** (`/app/memory/TRADE_COMMAND_CENTER_VOL1.md`): full product architecture (vision, philosophy, user journeys, dashboard, workspaces, Brain integration, knowledge flow, Trade Projects, Digital Twin, system + dependency diagrams, ImpexQ competitor analysis, 2026–2035 roadmap). All future features reference this.
+- **Backend `costing_engine.py`** (`/api/command-center/*`), registered in server.py:
+  - `POST /quote` — 100% deterministic, instant: Ex-Works→FOB→CIF 9-row waterfall, destination duty (WITS) + VAT (`VAT_BY_CODE`, ~55 countries) + landed cost, margin→selling price, **buyer-landed-cost comparison** across up to 8 markets (sorted ascending), **dual + global + exporter-local currency** conversion (live FX), export incentives (RoDTEP/GST/Drawback/Adv. Auth for India origin), indicative routes/transit. Verified FOB=80500/CIF=85600 for HS 100630 India→Germany ×1000.
+  - `POST /insights` — separate call so numbers render first; LeadNation Brain (live `gpt-5.4-mini`) returns grounded markdown advisor (insights, best market, savings, risks). Verified live + grounded.
+  - `GET /markets` — 146 countries.
+- **Frontend** `CustomsCompliance.jsx` → `CommandCenterTool`: tab renamed "Compile Data" → **"Trade Command Center"** (first tab). Lane setup (product autocomplete, export/import, qty+unit, **transaction currency + user-picked global currency**, margin), editable BLANK cost build-up with **live FOB/CIF preview as you type**, KPI cards (3 currencies each), cost waterfall, duty/tax panel, ranked buyer-comparison table (★ best), multi-currency quote, incentives+routes, **AI Trade Advisor** (Brain, progressive), Print/Save quote (PDF via `#cc-print` print CSS), Ask the Brain.
+- **Home**: new `home-command-center` section BEFORE Services, tagline "The World's First AI-Powered Global Trade Operating System." + CTA to /customs-compliance.
+- Hero/SEO of /customs-compliance updated to Command Center framing.
+- Verified: test_reports/iteration_18.json — 100% backend (11/11) + 100% frontend + 4 regression tabs, zero issues.
+- User choices honoured: build-all (1a), user picks global currency (2c), blank cost fields (3b). Latency: deterministic instant + Brain streams in via separate /insights call.
+
+## Backlog directly from Vol 1 (next priorities)
+- **P1** Trade Projects: save/load/duplicate stateful projects to the account; templates; shareable client links.
+- **P1** Quote PDF polish (branded white-theme proposal) + My Reports history.
+- **P1** Digital Twin scenario simulation (currency/freight/duty/delay deltas → live profit).
+- **P1** Proactive Brain alerts (duty/FX/freight/policy thresholds).
+- **P1** Increase Brain involvement across other tools (context co-pilot) + Knowledge Quality (live vs estimated) + feedback → Admin Knowledge Gaps.
+- **P2** Live data adapters (real freight indices, premium buyer/supplier data, govt APIs); Vols 2–4.
+- **P1** Legal pages; Analytics activation (GA4/GTM/Clarity/Meta env scaffolding present).
+
+
 ## Implemented (2026-06-30) — P1: Dual currency + Premium Trade Intelligence Report
 - [x] **Dual currency (Compile Data)**: backend auto-detects the exporter country's local currency (`duty_engine.CURRENCY_BY_CODE`) + user's transaction currency; `/api/compile/report` returns live FX + landed cost in USD, exporter currency AND transaction currency. UI panel shows all three. (cache bumped to `v2:`). Verified: India→INR, USA→USD.
 - [x] **Premium Trade Intelligence Report** (`frontend/src/components/TradeIntelReport.jsx`): branded, white-theme, 12-section printable report (cover, snapshot KPIs, executive brief, HS classification, global stats + trend bars, top importers/exporters, duty & benefits, tariff comparison, dual-currency FX, landed cost, logistics, next steps, sources+disclaimer). Client-side **Print / Save as PDF** via `@media print` in index.css (renders only `#trade-report-print`). Overlays use React portals to escape transformed ancestors.
