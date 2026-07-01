@@ -13,7 +13,7 @@ import os
 import uuid
 import logging
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
@@ -92,7 +92,7 @@ async def get_config() -> Dict[str, Any]:
     return doc
 
 
-async def resolve(plan: str, region: str) -> (float, str):
+async def resolve(plan: str, region: str) -> Tuple[float, str]:
     """Return (amount, currency_code) for a plan+region. `subscription` == monthly."""
     if plan == "subscription":
         plan = "monthly"

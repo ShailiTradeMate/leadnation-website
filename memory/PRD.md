@@ -1,6 +1,19 @@
 # LeadNation — Global Trade Intelligence Portal
 
-## Implemented (2026-07-01) — Monetization + Account + Costing UX + dropdown fix
+## Implemented (2026-07-01 PM) — Pricing Engine + Subscriptions + India Globe fix
+- **P0 FIXED — 3D Trade Globe India map:** now overlays the official India political boundary (includes J&K & Ladakh, extent to lat ~37°) from a locally-served TopoJSON (`/geo/india-states.json`, merged via topojson-client). World-atlas India (truncated) is filtered out; India is highlighted in violet. Verified visually via screenshot. (`TradeGlobe.jsx`)
+- **Centralized Pricing Engine (`backend/pricing.py`)** — SINGLE SOURCE OF TRUTH for all prices. Mongo `pricing_config` doc; endpoints `/pricing/config` (public, per-region), `/pricing/track` + `/pricing/lead` (funnel + email capture, guest), `/pricing/admin` GET+PUT (admin), `/pricing/admin/analytics`. Helpers `resolve()`, `gateway_for()`, `get_config()`. **NOTHING is hardcoded downstream** — `monetize.py` now reads every price from the engine (download / monthly / annual, IN & INTL). Verified iteration_23 (11/11 backend 100%).
+- **Admin Pricing tab (`PricingManager.jsx`)** — Admin edits India+International prices for all plans, plan labels/taglines/active, gateway enable toggles (Stripe/Razorpay + future), settings (freeFirstDownload, emailCaptureBeforePaywall, Most Popular plan) + live paywall funnel analytics. New tab in `/admin-cms`.
+- **Public Pricing page (`/pricing`, `Pricing.jsx`)** — region toggle (IN₹/INTL$), 3 plan cards, Most Popular badge, annual-savings %, feature comparison table, conversion tracking. Added to top nav.
+- **Subscription system:** monthly (30d) + annual (365d) passes via Stripe; `create_checkout` supports kind download|monthly|annual|subscription; sub duration from `SUB_DAYS`.
+- **Paywall UX upgrade (CommandCenter Reports + AccountPage Billing):** email capture before paywall, annual+monthly plan options with Most Popular badge, dynamic prices, "just this once" pay-per-report link, conversion tracking events. AccountPage billing shows dynamic monthly/annual cards.
+
+## PERMANENT ARCHITECTURAL RULE — Customer IDs (option c, user-mandated)
+- The website NEVER generates/modifies/reserves/enforces Customer IDs. Allocation is owned SOLELY by the shared LeadNation DigitalOcean backend (`/api/onboarding/register`, `_counters`).
+- Backend rule (to be enforced on DO backend, OUT OF THIS CODEBASE'S REACH): IDs are numeric, exactly 5 digits (00002–99999), `00001` reserved for Super Admin, immutable, unique across web+mobile.
+- Website responsibility: only VALIDATE the returned ID matches `^\d{5}$` before display; never create/modify. (⚠️ DO-backend change is a user/backend-team action; front/local backend cannot alter it.)
+
+## Implemented (2026-07-01 AM) — Monetization + Account + Costing UX + dropdown fix
 - **Dropdown white-bg bug FIXED** (index.css `select option` dark styling) + **Product→HSN autocomplete** on Start screen (verified iteration_21, 100%).
 - **Costing UX:** current-stage indicator ("Stage X of 9"), sidebar tooltips, ⌘K button renamed **"Menu"**, **(i) info tooltips** on all cost fields, **Unit dropdown** (MT/KG/Ton/Container…), **Destination Port dropdown** (per country), 11 Incoterms + info, **Autofill with Brain** button (verified iteration_20, 100%).
 - **Monetization (`monetize.py`):** Stripe pay-per-download (first download FREE, then ₹25 IN / $1 INTL) + monthly unlimited pass; `/payments/checkout|status|pricing`, `/webhook/stripe`, `/downloads/check|record` (first-free logic), GST-style invoices, referral codes. Owner = Firebase UID or guest Trade-Session. **Razorpay slot ready (RAZORPAY_KEY_ID env) — keys pending from user (2-3 days).** Verified iteration_22 backend 100% (8/8).
