@@ -4,6 +4,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark-mode native <select> dropdown options (fixes white popup background) */
+select option,
+select optgroup {
+  background-color: #0b1220 !important;
+  color: #e2e8f0 !important;
+}
+select option:checked,
+select option:hover {
+  background-color: #12203a !important;
+  color: #ffffff !important;
+}
+
+
 :root {
   --ln-bg: #050816;
   --ln-surface: #0a0f24;

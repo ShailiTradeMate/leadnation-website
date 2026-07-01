@@ -280,13 +280,25 @@ function StartScreen({ P }) {
   const [f, setF] = useState({ title: "", product: "", hs: "", exporter: "356", importer: "842" });
   const [countries, setCountries] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [sugg, setSugg] = useState([]);
+  const [openSugg, setOpenSugg] = useState(false);
+  const lastPick = useRef("");
   useEffect(() => { api.get("/command-center/markets").then(({ data }) => setCountries(data.countries || [])); }, []);
+  useEffect(() => {
+    const text = (f.product || "").trim();
+    if (text === lastPick.current) return;
+    if (text.length < 2) { setSugg([]); return; }
+    const t = setTimeout(async () => {
+      try { const { data } = await api.get("/trade-intel/hs-search", { params: { q: text, limit: 8 } }); setSugg(data.results || []); setOpenSugg(true); } catch (_) {}
+    }, 300);
+    return () => clearTimeout(t);
+  }, [f.product]);
+  const pickProduct = (s) => { lastPick.current = s.description; setF((x) => ({ ...x, product: s.description, hs: s.hs6 })); setSugg([]); setOpenSugg(false); };
   const create = async () => {
     setBusy(true);
     try { await P.createProject({ ...f, title: f.title || `${f.product || "New"} · trade project`, stage: "Created" }); }
     finally { setBusy(false); }
   };
-  const pinned = P.projects.filter((p) => p.pinned);
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
       <SEO title="Trade Command Center · LeadNation" description="Start a Trade Project — the stateful workspace for global trade." path="/command-center" />
@@ -298,10 +310,23 @@ function StartScreen({ P }) {
         <div className="grid sm:grid-cols-2 gap-3">
           <label className="block sm:col-span-2"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Project name</span>
             <input data-testid="cc-new-title" className={`${inputCls} mt-1`} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} placeholder="e.g. Export Basmati Rice · India → UAE" /></label>
-          <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Product</span>
-            <input data-testid="cc-new-product" className={`${inputCls} mt-1`} value={f.product} onChange={(e) => setF({ ...f, product: e.target.value })} placeholder="e.g. Basmati Rice" /></label>
-          <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">HS code (optional)</span>
-            <input data-testid="cc-new-hs" className={`${inputCls} mt-1`} value={f.hs} onChange={(e) => setF({ ...f, hs: e.target.value })} placeholder="e.g. 100630" /></label>
+          <label className="block relative"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Product</span>
+            <input data-testid="cc-new-product" className={`${inputCls} mt-1`} value={f.product} autoComplete="off"
+              onChange={(e) => { setF({ ...f, product: e.target.value, hs: "" }); }} onFocus={() => sugg.length && setOpenSugg(true)}
+              placeholder="Search a product, e.g. Basmati Rice, Towels…" />
+            {openSugg && sugg.length > 0 && (
+              <div data-testid="cc-new-product-suggestions" className="absolute z-30 mt-1 w-full glass-strong rounded-2xl border border-white/10 max-h-72 overflow-auto shadow-2xl">
+                {sugg.map((s) => (
+                  <button key={s.hs6} type="button" data-testid={`cc-new-sugg-${s.hs6}`} onClick={() => pickProduct(s)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-white/5 flex items-center gap-3 border-b border-white/5 last:border-0">
+                    <span className="font-mono-display text-xs text-cyan-300 shrink-0">{s.hs6}</span>
+                    <span className="text-sm text-slate-200 truncate">{s.description}</span>
+                  </button>
+                ))}
+              </div>
+            )}</label>
+          <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">HS code (auto-filled)</span>
+            <input data-testid="cc-new-hs" className={`${inputCls} mt-1`} value={f.hs} onChange={(e) => setF({ ...f, hs: e.target.value })} placeholder="Select a product above →" /></label>
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Export from</span>
             <select data-testid="cc-new-exporter" className={`${inputCls} mt-1`} value={f.exporter} onChange={(e) => setF({ ...f, exporter: e.target.value })}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></label>
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Import to</span>
