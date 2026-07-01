@@ -117,6 +117,9 @@ mixed with AI estimates. (Confidence scoring slot reserved for Volume 2/3.)
 
 ## 10. VOLUME 1 COMPLETION CHECKLIST
 **✅ COMPLETED (this build)**
+- [x] Current-stage indicator ("Stage X of 9 · Name · description") + clearer active stepper (UX: users now know which stage they're at)
+- [x] Sidebar module tooltips (feature names on hover); ⌘K button renamed to **"Menu"** with a list icon + "Ctrl K" hint
+- [x] Costing: **Autofill with Brain** (`/command-center/autofill`) fills all cost fields with AI market-rate estimates (editable); **(i) info tooltip + note on every cost field**; **Unit dropdown** (Piece/KG/Metric Ton/Ton/Container/CBM…); **Destination Port dropdown** (`/command-center/ports`, per importer country); 11 Incoterms with descriptions + live Incoterm note
 - [x] Dedicated full-screen workspace at `/command-center` (sidebar · center · right Brain panel)
 - [x] Trade Project model + persistence (`projects.py`, `trade_projects`): create, autosave, load, recent, pin, duplicate, templates, delete
 - [x] Guest (anonymous UUID) ↔ Firebase UID ownership + auto-merge on login (`/projects/merge`)
