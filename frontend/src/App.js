@@ -43,6 +43,7 @@ import { ProjectProvider } from "@/lib/ProjectContext";
 import CommandCenter from "@/pages/CommandCenter";
 import { Login, Signup, ForgotPassword, Account } from "@/pages/Auth";
 import AccountPage from "@/pages/AccountPage";
+import Pricing from "@/pages/Pricing";
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
           <Layout>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/command-center" element={<CommandCenter />} />
             <Route path="/customs-compliance" element={<CustomsCompliance />} />
             <Route path="/trade-news" element={<TradeNews />} />

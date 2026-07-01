@@ -26,6 +26,7 @@ from core import db, require_admin
 from fastapi import Depends
 from projects import _owner
 from firebase_auth import _bearer, verify_token
+from pricing import resolve as pricing_resolve, gateway_for, get_config as pricing_config_doc
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
 
 pay_router = APIRouter(prefix="/payments")
@@ -42,12 +43,10 @@ PREFS = db.user_prefs
 STRIPE_KEY = os.environ.get("STRIPE_API_KEY")
 DO_API_BASE = os.environ.get("DO_API_BASE", "https://leadnation-lfrhs.ondigitalocean.app/api")
 
-# Fixed, server-side prices (never trust the client for amounts)
-PRICES = {
-    "IN": {"download": (25.0, "inr"), "subscription": (499.0, "inr")},
-    "INTL": {"download": (1.0, "usd"), "subscription": (9.0, "usd")},
-}
+# All prices are owned by the centralized Pricing Engine (pricing.py) — never hardcoded here.
 RAZORPAY_ENABLED = bool(os.environ.get("RAZORPAY_KEY_ID"))
+
+SUB_DAYS = {"monthly": 30, "subscription": 30, "annual": 365}
 
 
 def _now():
@@ -64,7 +63,7 @@ def _region(r: Optional[str]) -> str:
 
 # ---------------- Payments (Stripe) ----------------
 class CheckoutIn(BaseModel):
-    kind: str = "download"      # download | subscription
+    kind: str = "download"      # download | monthly | annual | subscription(=monthly)
     region: str = "INTL"        # IN | INTL (selects a FIXED package, not the price)
     projectId: str = ""
     origin: str
@@ -74,18 +73,19 @@ class CheckoutIn(BaseModel):
 async def create_checkout(body: CheckoutIn, request: Request,
                           authorization: Optional[str] = Header(default=None),
                           x_trade_session: Optional[str] = Header(default=None)):
-    if body.kind not in ("download", "subscription"):
+    if body.kind not in ("download", "monthly", "annual", "subscription"):
         raise HTTPException(400, "Invalid package")
     owner, otype = _owner(authorization, x_trade_session)
     region = _region(body.region)
-    amount, currency = PRICES[region][body.kind]
+    amount, currency = await pricing_resolve(body.kind, region)  # server-side price from engine
+    is_sub = body.kind in ("monthly", "annual", "subscription")
 
     host_url = str(request.base_url)
     webhook_url = f"{host_url}api/webhook/stripe"
     stripe = StripeCheckout(api_key=STRIPE_KEY, webhook_url=webhook_url)
     origin = body.origin.rstrip("/")
     pid = body.projectId or ""
-    success_url = f"{origin}/account?tab={'downloads' if body.kind=='download' else 'billing'}&session_id={{CHECKOUT_SESSION_ID}}&pid={pid}"
+    success_url = f"{origin}/account?tab={'billing' if is_sub else 'downloads'}&session_id={{CHECKOUT_SESSION_ID}}&pid={pid}"
     cancel_url = f"{origin}/command-center"
     meta = {"owner": owner, "kind": body.kind, "region": region, "projectId": body.projectId or ""}
     session = await stripe.create_checkout_session(CheckoutSessionRequest(
@@ -110,9 +110,9 @@ async def _sync_status(session_id: str):
     new_status = "paid" if st.payment_status == "paid" else ("expired" if st.status == "expired" else "initiated")
     if new_status != tx["status"]:
         await TX.update_one({"_id": session_id}, {"$set": {"status": new_status, "paymentStatus": st.payment_status, "updatedAt": _iso(_now())}})
-        if new_status == "paid" and tx["kind"] == "subscription":
-            until = _now() + timedelta(days=30)
-            await SUB.update_one({"owner": tx["owner"]}, {"$set": {"owner": tx["owner"], "status": "active", "until": _iso(until), "updatedAt": _iso(_now())}}, upsert=True)
+        if new_status == "paid" and tx["kind"] in SUB_DAYS:
+            until = _now() + timedelta(days=SUB_DAYS[tx["kind"]])
+            await SUB.update_one({"owner": tx["owner"]}, {"$set": {"owner": tx["owner"], "status": "active", "plan": tx["kind"], "until": _iso(until), "updatedAt": _iso(_now())}}, upsert=True)
         tx = await TX.find_one({"_id": session_id})
     return tx
 
@@ -127,10 +127,14 @@ async def checkout_status(session_id: str):
 @pay_router.get("/pricing")
 async def pricing(region: str = "INTL"):
     r = _region(region)
-    d = PRICES[r]["download"]; s = PRICES[r]["subscription"]
-    return {"region": r, "download": {"amount": d[0], "currency": d[1]},
-            "subscription": {"amount": s[0], "currency": s[1]},
-            "razorpayEnabled": RAZORPAY_ENABLED, "gateway": "stripe"}
+    d_amt, d_cur = await pricing_resolve("download", r)
+    s_amt, s_cur = await pricing_resolve("monthly", r)
+    a_amt, a_cur = await pricing_resolve("annual", r)
+    return {"region": r, "download": {"amount": d_amt, "currency": d_cur},
+            "subscription": {"amount": s_amt, "currency": s_cur},
+            "monthly": {"amount": s_amt, "currency": s_cur},
+            "annual": {"amount": a_amt, "currency": a_cur},
+            "razorpayEnabled": RAZORPAY_ENABLED, "gateway": await gateway_for(r)}
 
 
 @hook_router.post("/webhook/stripe")
@@ -163,10 +167,12 @@ async def download_check(projectId: str = "", region: str = "INTL",
                          x_trade_session: Optional[str] = Header(default=None)):
     owner, _t = _owner(authorization, x_trade_session)
     total = await DL.count_documents({"owner": owner})
-    free_available = total == 0
+    cfg = await pricing_config_doc()
+    free_enabled = cfg.get("settings", {}).get("freeFirstDownload", True)
+    free_available = free_enabled and total == 0
     sub = await _has_subscription(owner)
     r = _region(region)
-    amount, currency = PRICES[r]["download"]
+    amount, currency = await pricing_resolve("download", r)
     return {"allowed": bool(free_available or sub), "freeAvailable": free_available,
             "hasSubscription": sub, "totalDownloads": total,
             "price": amount, "currency": currency, "region": r}
@@ -184,7 +190,9 @@ async def download_record(body: RecordIn, authorization: Optional[str] = Header(
                           x_trade_session: Optional[str] = Header(default=None)):
     owner, _t = _owner(authorization, x_trade_session)
     total = await DL.count_documents({"owner": owner})
-    free_available = total == 0
+    cfg = await pricing_config_doc()
+    free_enabled = cfg.get("settings", {}).get("freeFirstDownload", True)
+    free_available = free_enabled and total == 0
     sub = await _has_subscription(owner)
     paid = False
     amount = 0.0

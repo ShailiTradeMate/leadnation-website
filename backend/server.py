@@ -9,6 +9,7 @@ from core import client, db  # noqa: F401  (db kept for shell/debug)
 # Domain routers
 import reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects
 from monetize import pay_router, dl_router, acc_router, hook_router
+from pricing import pricing_router, get_config as get_pricing_config
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -25,7 +26,7 @@ for mod in (reference, engines, search, leads, trade_tools, ai, content, service
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
-for r in (pay_router, dl_router, acc_router, hook_router):
+for r in (pay_router, dl_router, acc_router, hook_router, pricing_router):
     api_router.include_router(r)
 
 app.include_router(api_router)
@@ -59,6 +60,10 @@ async def _startup():
         await seed_settings()
     except Exception as exc:
         logging.warning("Settings seed failed: %s", exc)
+    try:
+        await get_pricing_config()
+    except Exception as exc:
+        logging.warning("Pricing config seed failed: %s", exc)
     try:
         await duty_engine.seed_rodtep()
         duty_engine.start_scheduler()

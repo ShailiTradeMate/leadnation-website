@@ -1,0 +1,50 @@
+{
+  "summary": "Iteration 23 — Centralized Pricing Engine (backend) + /pricing page (frontend). ALL 11 backend pytest cases pass. Frontend /pricing renders 3 cards, region toggle switches IN(₹499)/INTL($9), Most Popular badge on Annual, feature comparison table renders. Monetization endpoints read dynamically from the engine (mutation of monthly.IN → 599 propagated to /api/payments/pricing) and were reset back to defaults after test.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_scenarios": [
+    { "scenario": "GET /api/pricing/config?region=IN", "status": "PASS", "evidence": "region=IN, symbol=₹, currency=inr, plans=[download,monthly,annual], settings{freeFirstDownload=true, mostPopular=annual, emailCaptureBeforePaywall=true}, features[6], annualSavingsPct int, gateway=stripe" },
+    { "scenario": "GET /api/pricing/config?region=INTL", "status": "PASS", "evidence": "region=INTL, symbol=$, currency=usd" },
+    { "scenario": "GET /api/pricing/admin without token", "status": "PASS", "evidence": "401 Unauthorized" },
+    { "scenario": "GET /api/pricing/admin with X-Admin-Token", "status": "PASS", "evidence": "Full config returned; plans.monthly.IN==499" },
+    { "scenario": "PUT /api/pricing/admin plans.monthly.IN=599 (mutation + persistence)", "status": "PASS", "evidence": "PUT 200 → GET /config?region=IN shows 599 → GET /payments/pricing?region=IN monthly.amount=599 (confirms engine is source of truth)" },
+    { "scenario": "PUT /api/pricing/admin invalid negative price", "status": "PASS", "evidence": "returns 400 as expected" },
+    { "scenario": "RESET plans.monthly.IN=499", "status": "PASS", "evidence": "Value restored to default" },
+    { "scenario": "POST /api/pricing/track event=paywall_view guest", "status": "PASS", "evidence": "200 {ok:true}" },
+    { "scenario": "POST /api/pricing/lead valid email", "status": "PASS", "evidence": "200; invalid email→400" },
+    { "scenario": "GET /api/pricing/admin/analytics", "status": "PASS", "evidence": "funnel counts, emailCaptures>=1, conversionPct present" },
+    { "scenario": "GET /api/payments/pricing?region=IN & INTL", "status": "PASS", "evidence": "IN: download 25 inr / monthly 499 / annual 3999; INTL: 1 usd / 9 / 79; gateway=stripe" },
+    { "scenario": "GET /api/downloads/check?region=INTL fresh guest", "status": "PASS", "evidence": "freeAvailable=true, allowed=true, price=1, currency=usd" },
+    { "scenario": "POST /api/payments/checkout kind=annual region=IN", "status": "PASS", "evidence": "Stripe url returned, amount=3999 inr" },
+    { "scenario": "POST /api/payments/checkout kind=monthly region=INTL", "status": "PASS", "evidence": "amount=9 usd" },
+    { "scenario": "POST /api/payments/checkout invalid kind", "status": "PASS", "evidence": "400" },
+    { "scenario": "Frontend /pricing renders", "status": "PASS", "evidence": "pricing-page + 3 pricing-card-* + pricing-popular-badge inside annual card + pricing-comparison table" },
+    { "scenario": "Frontend region toggle IN↔INTL", "status": "PASS", "evidence": "IN: ₹499/mo; INTL: $9/mo, $79/yr with 27% savings badge" }
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_pricing_engine.py",
+    "/app/test_reports/pytest/iteration_23_pricing.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "pricing.py.resolve() return type annotation uses `(float, str)` which Python treats as a tuple expression, not a Tuple type hint. Cosmetic — use Tuple[float,str] for correctness/lint.",
+    "pricing.py._validate_plans: only validates fields matching REGIONS keys. If admin PUT includes a typo like {'IN ':100}, it silently persists garbage. Consider strict-schema validation on plans mutation.",
+    "pricing.py PUT /admin: `patch['updatedBy']` reads admin.get('sub') which for legacy X-Admin-Token is the literal string 'legacy'. Fine, but consider storing 'legacy-admin-token' for audit clarity.",
+    "monetize.py still exposes RAZORPAY_ENABLED derived from env at import time; combined with pricing.gateway_for() the two truths could disagree. Prefer a single source (engine gateways) even for the /payments/pricing response flag.",
+    "Pricing.jsx effect: `setBusy` is never cleared on redirect. If Stripe checkout URL fails to navigate for any reason, button stays disabled. Add a safety timer or finally block."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_pricing_engine.py"
+  ],
+  "success_rate": { "backend": "100% (11/11)", "frontend": "100% (all pricing checks)" },
+  "test_credentials": "Admin: header X-Admin-Token: leadnation-admin-2026. Guest: X-Trade-Session: <uuid>. No user login exercised (Firebase CORS-blocked in preview per problem statement).",
+  "seed_data_creation": "Pricing config auto-seeded on first /config call (server startup already seeds it). Test writes ephemeral events + one email capture (test_<hex>@example.com) into paywall_events/email_captures. No production data mutated; monthly.IN mutation was reset to 499.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression file /app/backend/tests/test_pricing_engine.py covers the full pricing engine + monetization integration contract (11 tests, ~15s). Load /app/frontend/.env for REACT_APP_BACKEND_URL. Defaults: download IN=25 INTL=1, monthly IN=499 INTL=9, annual IN=3999 INTL=79. Admin header only (legacy) works in preview — Firebase login is CORS-blocked.",
+  "rca of the issue": "No issues to RCA; centralized pricing engine + admin CMS control + monetization dynamic reads verified end-to-end."
+}

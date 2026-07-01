@@ -9,7 +9,7 @@ import {
   Lightning, Gauge, Stack, ChartBar, ShieldCheck, FileText, Truck, Warning,
   UsersThree, Brain, Gear, Plus, PushPin, Copy, Trash, ArrowRight,
   CircleNotch, Question, CheckCircle, Clock, Printer, CaretDown, Command, X,
-  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle, Info, List, MagicWand, Anchor, User, CrownSimple,
+  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle, Info, List, MagicWand, Anchor, User, CrownSimple, EnvelopeSimple, Star, Check,
 } from "@phosphor-icons/react";
 
 const WORKFLOW = ["Created", "Research", "Costing", "Compliance", "Documentation", "Quotation", "Negotiation", "Shipment", "Completed"];
@@ -645,8 +645,20 @@ function Reports({ P, cur, compliance }) {
   const { isAuthed } = useAuth();
   const [gate, setGate] = useState(null); // {mode:'login'|'pay', price, currency, region}
   const [busy, setBusy] = useState(false);
+  const [pricing, setPricing] = useState(null);
+  const [email, setEmail] = useState("");
+  const [emailSaved, setEmailSaved] = useState(false);
   const region = (P.current?.transactionCurrency === "INR") ? "IN" : "INTL";
   const s = () => ({ headers: { "X-Trade-Session": P.session } });
+
+  useEffect(() => {
+    api.get("/pricing/config", { params: { region } }).then((r) => setPricing(r.data)).catch(() => {});
+  }, [region]);
+
+  const sym = pricing?.symbol || (region === "IN" ? "\u20b9" : "$");
+  const planByKey = (k) => (pricing?.plans || []).find((p) => p.key === k);
+  const mostPopular = pricing?.settings?.mostPopular || "annual";
+  const emailCapture = pricing?.settings?.emailCaptureBeforePaywall !== false;
 
   const doExport = async () => {
     if (!isAuthed) { setGate({ mode: "login" }); return; }
@@ -658,14 +670,25 @@ function Reports({ P, cur, compliance }) {
         window.print();
       } else {
         setGate({ mode: "pay", price: chk.price, currency: chk.currency, region: chk.region });
+        api.post("/pricing/track", { event: "paywall_view", region, projectId: cur.id }, s()).catch(() => {});
       }
     } catch (_) { setGate({ mode: "pay", price: region === "IN" ? 25 : 1, currency: region === "IN" ? "inr" : "usd", region }); }
     finally { setBusy(false); }
   };
   const pay = async (kind) => {
+    api.post("/pricing/track", { event: "checkout_start", plan: kind, region, projectId: cur.id }, s()).catch(() => {});
     const { data } = await api.post("/payments/checkout", { kind, region, projectId: cur.id, origin: window.location.origin }, s());
     window.location.href = data.url;
   };
+  const captureEmail = async () => {
+    if (!email.includes("@")) return;
+    try {
+      await api.post("/pricing/lead", { email, region, projectId: cur.id, source: "command-center-paywall" }, s());
+      setEmailSaved(true);
+    } catch (_) {}
+  };
+
+  const freeHint = pricing?.settings?.freeFirstDownload !== false;
 
   return (
     <>
@@ -675,7 +698,10 @@ function Reports({ P, cur, compliance }) {
           <button data-testid="cc-export-pdf" onClick={doExport} disabled={!q || busy} className="btn-primary disabled:opacity-50">{busy ? <CircleNotch size={15} className="animate-spin" /> : <Printer size={15} weight="bold" />} Export Quote PDF</button>
           <button data-testid="cc-save-version" onClick={() => P.addVersion("quote", `Quote ${new Date().toLocaleString()}`, q)} disabled={!q} className="btn-ghost disabled:opacity-50"><FloppyDisk size={15} weight="bold" /> Save quote version</button>
         </div>
-        <div className="text-[11px] text-slate-500 mt-2">Your first report download is free. After that it's {region === "IN" ? "₹25" : "$1"} each — or get an unlimited monthly pass in your Account.</div>
+        <div className="text-[11px] text-slate-500 mt-2">
+          {freeHint ? "Your first report download is free. " : ""}
+          {planByKey("download") ? `After that it's ${sym}${planByKey("download").amount} each` : ""} — or go unlimited with <Link to="/pricing" className="text-cyan-300 underline underline-offset-2">a Pro plan</Link>.
+        </div>
         {!q && <div className="text-xs text-amber-300/80 mt-2">Complete your costing to enable the PDF.</div>}
       </Card>
       <Card title="Version history" icon={Clock} testid="cc-versions">
@@ -687,8 +713,8 @@ function Reports({ P, cur, compliance }) {
       </Card>
 
       {gate && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setGate(null)}>
-          <div className="glass-strong rounded-3xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()} data-testid="cc-paywall">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto" onClick={() => setGate(null)}>
+          <div className="glass-strong rounded-3xl p-6 max-w-md w-full my-8" onClick={(e) => e.stopPropagation()} data-testid="cc-paywall">
             {gate.mode === "login" ? (
               <>
                 <div className="font-display font-bold text-lg flex items-center gap-2"><User size={18} className="text-cyan-300" /> Sign in to download</div>
@@ -697,12 +723,38 @@ function Reports({ P, cur, compliance }) {
               </>
             ) : (
               <>
-                <div className="font-display font-bold text-lg flex items-center gap-2"><Printer size={18} className="text-cyan-300" /> Unlock this download</div>
-                <p className="text-sm text-slate-400 mt-2">You've used your free download. Pay <span className="text-cyan-300 font-semibold">{gate.currency === "inr" ? `₹${gate.price}` : `$${gate.price}`}</span> for this report, or get an unlimited monthly pass.</p>
+                <div className="font-display font-bold text-lg flex items-center gap-2"><CrownSimple size={18} className="text-cyan-300" /> Unlock unlimited reports</div>
+                <p className="text-sm text-slate-400 mt-2">You've used your free download. Pick a plan below, or pay once for this report.</p>
+
+                {emailCapture && !emailSaved && (
+                  <div className="glass rounded-xl p-3 mt-4" data-testid="cc-paywall-email-capture">
+                    <div className="text-xs text-slate-300 flex items-center gap-1.5 mb-2"><EnvelopeSimple size={14} className="text-cyan-300" /> Get a discount code + trade alerts — enter your email:</div>
+                    <div className="flex gap-2">
+                      <input data-testid="cc-paywall-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" className="flex-1 glass rounded-lg px-3 py-2 text-sm outline-none" />
+                      <button data-testid="cc-paywall-email-submit" onClick={captureEmail} className="btn-ghost !py-2 text-xs">Send</button>
+                    </div>
+                  </div>
+                )}
+                {emailSaved && <div className="text-xs text-emerald-300 mt-3 flex items-center gap-1" data-testid="cc-paywall-email-done"><Check size={14} weight="bold" /> Thanks! Watch your inbox for offers.</div>}
+
                 <div className="flex flex-col gap-2 mt-4">
-                  <button data-testid="cc-paywall-pay" onClick={() => pay("download")} className="btn-primary justify-center">Pay {gate.currency === "inr" ? `₹${gate.price}` : `$${gate.price}`} & download</button>
-                  <button data-testid="cc-paywall-sub" onClick={() => pay("subscription")} className="btn-ghost justify-center"><CrownSimple size={15} weight="bold" /> Get unlimited monthly pass</button>
+                  {["annual", "monthly"].map((k) => {
+                    const pl = planByKey(k);
+                    if (!pl) return null;
+                    const popular = k === mostPopular;
+                    return (
+                      <button key={k} data-testid={`cc-paywall-${k}`} onClick={() => pay(k)}
+                        className={`relative flex items-center justify-between rounded-xl px-4 py-3 text-sm transition-all ${popular ? "btn-primary" : "glass hover:border-cyan-400/40 border border-white/10"}`}>
+                        <span className="flex items-center gap-2">{popular && <Star size={14} weight="fill" className="text-amber-300" />}{pl.label}</span>
+                        <span className="font-semibold">{sym}{pl.amount}<span className="opacity-70 text-xs">/{pl.interval === "year" ? "yr" : "mo"}</span></span>
+                      </button>
+                    );
+                  })}
+                  <button data-testid="cc-paywall-pay" onClick={() => pay("download")} className="text-xs text-slate-400 hover:text-cyan-300 mt-1 underline underline-offset-2">
+                    Just this once — pay {gate.currency === "inr" ? `\u20b9${gate.price}` : `$${gate.price}`} for this report
+                  </button>
                 </div>
+                {pricing?.annualSavingsPct ? <div className="text-[11px] text-emerald-300 text-center mt-3">Annual saves {pricing.annualSavingsPct}% vs monthly</div> : null}
               </>
             )}
           </div>

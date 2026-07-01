@@ -32,6 +32,11 @@ export default function AccountPage() {
   const [edit, setEdit] = useState({ role: "", country: "", mobile: "" });
   const [payMsg, setPayMsg] = useState("");
   const [printReport, setPrintReport] = useState(null);
+  const [pricing, setPricing] = useState(null);
+
+  const region = (data?.profile?.country || "").toUpperCase() === "IN" ? "IN" : "INTL";
+  useEffect(() => { api.get("/pricing/config", { params: { region } }).then(({ data }) => setPricing(data)).catch(() => {}); }, [region]);
+  const planByKey = (k) => (pricing?.plans || []).find((p) => p.key === k);
 
   const load = useCallback(async () => {
     const { data } = await api.get("/account/me", hdrs()); setData(data);
@@ -49,7 +54,7 @@ export default function AccountPage() {
       try {
         let st; for (let i = 0; i < 6; i++) { const { data } = await api.get(`/payments/status/${sid}`); st = data; if (st.status === "paid" || st.status === "expired") break; await new Promise((r) => setTimeout(r, 2000)); }
         if (st?.status === "paid") {
-          if (st.kind === "subscription") { setPayMsg("✓ Monthly pass activated — unlimited downloads!"); load(); }
+          if (["subscription", "monthly", "annual"].includes(st.kind)) { setPayMsg("✓ Pro pass activated — unlimited downloads!"); load(); }
           else {
             const proj = pid ? (await api.get(`/projects/${pid}`, hdrs())).data : null;
             await api.post("/downloads/record", { projectId: pid || "", projectTitle: proj?.title || "", sessionId: sid, region: st.currency === "inr" ? "IN" : "INTL" }, hdrs());
@@ -63,9 +68,8 @@ export default function AccountPage() {
     })();
   }, []); // eslint-disable-line
 
-  const buyPass = async () => {
-    const region = (data?.profile?.country || "").toUpperCase() === "IN" ? "IN" : "INTL";
-    const { data: r } = await api.post("/payments/checkout", { kind: "subscription", region, origin: window.location.origin }, hdrs());
+  const buyPass = async (kind = "monthly") => {
+    const { data: r } = await api.post("/payments/checkout", { kind, region, origin: window.location.origin }, hdrs());
     window.location.href = r.url;
   };
   const saveProfile = async () => { await api.put("/account/profile", edit, hdrs()); setEditing(false); load(); };
@@ -160,13 +164,28 @@ export default function AccountPage() {
 
         {tab === "billing" && (
           <div className="glass rounded-3xl p-6" data-testid="account-billing">
-            <h3 className="font-display font-bold text-lg">Monthly Unlimited Pass</h3>
-            <p className="text-sm text-slate-400 mt-1">Unlimited Trade Intelligence Report downloads. Your first download is always free; after that it's ₹25 / $1 each — or go unlimited.</p>
-            <div className="flex items-center gap-3 mt-4 flex-wrap">
-              <div className="text-3xl font-display font-extrabold text-gradient">{(data.profile.country || "").toUpperCase() === "IN" ? "₹499" : "$9"}<span className="text-sm text-slate-400">/mo</span></div>
-              {data.subscription.active ? <span className="text-emerald-300 text-sm inline-flex items-center gap-1"><CheckCircle size={16} weight="fill" /> Active until {String(data.subscription.until).slice(0, 10)}</span>
-                : <button data-testid="account-buy-pass" onClick={buyPass} className="btn-primary"><CrownSimple size={16} weight="bold" /> Get unlimited pass</button>}
-            </div>
+            <h3 className="font-display font-bold text-lg">Go Pro — Unlimited Reports</h3>
+            <p className="text-sm text-slate-400 mt-1">Unlimited Trade Intelligence Report downloads. Your first download is always free — after that, go unlimited with a Pro plan.</p>
+            {data.subscription.active ? (
+              <div className="mt-4 text-emerald-300 text-sm inline-flex items-center gap-1"><CheckCircle size={16} weight="fill" /> Active until {String(data.subscription.until).slice(0, 10)}</div>
+            ) : (
+              <div className="grid sm:grid-cols-2 gap-3 mt-4">
+                {["monthly", "annual"].map((k) => {
+                  const pl = planByKey(k);
+                  if (!pl) return null;
+                  const popular = (pricing?.settings?.mostPopular || "annual") === k;
+                  return (
+                    <div key={k} className={`rounded-2xl p-5 ${popular ? "border-2 border-cyan-400/50 bg-cyan-500/5" : "glass"}`} data-testid={`account-plan-${k}`}>
+                      {popular && <div className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 mb-1 inline-flex items-center gap-1"><CrownSimple size={12} weight="fill" /> Best value</div>}
+                      <div className="font-display font-bold">{pl.label}</div>
+                      <div className="text-3xl font-display font-extrabold text-gradient mt-1">{pl.symbol}{pl.amount}<span className="text-sm text-slate-400">/{pl.interval === "year" ? "yr" : "mo"}</span></div>
+                      {k === "annual" && pricing?.annualSavingsPct ? <div className="text-[11px] text-emerald-300 mt-0.5">Save {pricing.annualSavingsPct}% vs monthly</div> : <div className="text-[11px] text-slate-500 mt-0.5">{pl.tagline}</div>}
+                      <button data-testid={`account-buy-${k}`} onClick={() => buyPass(k)} className={`${popular ? "btn-primary" : "btn-ghost"} w-full justify-center mt-4`}><CrownSimple size={16} weight="bold" /> Get {pl.label}</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

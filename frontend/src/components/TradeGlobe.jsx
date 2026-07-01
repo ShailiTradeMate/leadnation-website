@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import Globe from "react-globe.gl";
-import { feature as topoFeature } from "topojson-client";
+import { feature as topoFeature, merge as topoMerge } from "topojson-client";
 
 const COUNTRIES_GEOJSON_URL = "https://unpkg.com/world-atlas@2.0.2/countries-110m.json";
+// Official India political boundary (includes J&K & Ladakh) — served locally for reliability.
+const INDIA_TOPOJSON_URL = "/geo/india-states.json";
 
 const ARCS = [
   // From → To (Indian export routes)
@@ -40,13 +42,34 @@ export default function TradeGlobe({ height = 540 }) {
   const [countries, setCountries] = useState({ features: [] });
 
   useEffect(() => {
-    fetch(COUNTRIES_GEOJSON_URL)
-      .then((r) => r.json())
-      .then((topology) => {
-        try {
-          const geo = topoFeature(topology, topology.objects.countries);
-          setCountries(geo);
-        } catch (_) {}
+    // Load world basemap + official India boundary in parallel, then splice the
+    // correct India polygon (with J&K/Ladakh) over the truncated world-atlas one.
+    Promise.all([
+      fetch(COUNTRIES_GEOJSON_URL).then((r) => r.json()).catch(() => null),
+      fetch(INDIA_TOPOJSON_URL).then((r) => r.json()).catch(() => null),
+    ])
+      .then(([worldTopo, indiaTopo]) => {
+        let features = [];
+        if (worldTopo) {
+          try {
+            const geo = topoFeature(worldTopo, worldTopo.objects.countries);
+            // Drop the world-atlas India (wrong northern boundary) — we replace it.
+            features = (geo.features || []).filter(
+              (f) => f.properties && f.properties.name !== "India"
+            );
+          } catch (_) {}
+        }
+        if (indiaTopo && indiaTopo.objects && indiaTopo.objects.states) {
+          try {
+            const indiaGeom = topoMerge(indiaTopo, indiaTopo.objects.states.geometries);
+            features.push({
+              type: "Feature",
+              properties: { name: "India" },
+              geometry: indiaGeom,
+            });
+          } catch (_) {}
+        }
+        setCountries({ features });
       })
       .catch(() => {});
   }, []);
@@ -86,10 +109,10 @@ export default function TradeGlobe({ height = 540 }) {
         globeImageUrl={null}
         showGlobe={true}
         polygonsData={(countries.features || []).filter(f => f.properties && f.properties.name !== "Antarctica")}
-        polygonAltitude={0.005}
-        polygonCapColor={() => "rgba(0, 194, 255, 0.18)"}
-        polygonSideColor={() => "rgba(0, 194, 255, 0.06)"}
-        polygonStrokeColor={() => "rgba(0, 194, 255, 0.55)"}
+        polygonAltitude={(d) => (d.properties && d.properties.name === "India" ? 0.012 : 0.005)}
+        polygonCapColor={(d) => (d.properties && d.properties.name === "India" ? "rgba(124, 58, 237, 0.35)" : "rgba(0, 194, 255, 0.18)")}
+        polygonSideColor={(d) => (d.properties && d.properties.name === "India" ? "rgba(124, 58, 237, 0.18)" : "rgba(0, 194, 255, 0.06)")}
+        polygonStrokeColor={(d) => (d.properties && d.properties.name === "India" ? "#7C3AED" : "rgba(0, 194, 255, 0.55)")}
         arcsData={ARCS}
         arcColor={"color"}
         arcAltitude={0.25}

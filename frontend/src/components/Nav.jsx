@@ -4,7 +4,7 @@ import {
   Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
   GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Brain,
   Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
-  Briefcase, AddressBook, MagnifyingGlass, UserCircle,
+  Briefcase, AddressBook, MagnifyingGlass, UserCircle, Tag,
 } from "@phosphor-icons/react";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/lib/SettingsContext";
@@ -21,6 +21,7 @@ const PRIMARY = [
   { to: "/tools", label: "Tools", icon: Calculator },
   { to: "/services", label: "Services", icon: Briefcase },
   { to: "/brain", label: "LeadNation Brain", icon: Brain },
+  { to: "/pricing", label: "Pricing", icon: Tag },
 ];
 
 const EXPLORE = [
