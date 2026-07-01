@@ -484,7 +484,7 @@ function Costing({ P, cur }) {
             <select data-testid="cc-unit" className={inputCls} value={cur.unit} onChange={(e) => P.update({ unit: e.target.value }, `Unit → ${e.target.value}`)}>{UNITS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
           </Lbl>
           <Lbl t={<span className="inline-flex items-center gap-1">Incoterm <InfoTip text={INCOTERM_INFO[cur.incoterm]} /></span>}>
-            <select data-testid="cc-incoterm" className={inputCls} value={cur.incoterm} onChange={(e) => P.update({ incoterm: e.target.value }, `Incoterm → ${e.target.value}`)}>{INCOTERMS.map((i) => <option key={i} value={i}>{i} — {INCOTERM_INFO[i].split("—")[0].trim()}</option>)}</select>
+            <select data-testid="cc-incoterm" className={inputCls} value={cur.incoterm} onChange={(e) => P.update({ incoterm: e.target.value }, `Incoterm → ${e.target.value}`)}>{INCOTERMS.map((i) => <option key={i} value={i}>{`${i} — ${INCOTERM_INFO[i].split("—")[0].trim()}`}</option>)}</select>
           </Lbl>
           <Lbl t={<span className="inline-flex items-center gap-1">Destination port <InfoTip text="The buyer's port/airport of discharge. It refines freight and the Incoterm delivery point for accurate pricing." /></span>}>
             <select data-testid="cc-dest-port" className={inputCls} value={cur.destinationPort || ""} onChange={(e) => P.update({ destinationPort: e.target.value }, `Destination port → ${e.target.value}`)}>

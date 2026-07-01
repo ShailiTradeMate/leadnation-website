@@ -1,6 +1,23 @@
 # LeadNation — Global Trade Intelligence Portal
 
-## Implemented (2026-06-30) — VOLUME 1 COMPLETION: Trade Command Center stateful workspace
+## Implemented (2026-07-01) — Monetization + Account + Costing UX + dropdown fix
+- **Dropdown white-bg bug FIXED** (index.css `select option` dark styling) + **Product→HSN autocomplete** on Start screen (verified iteration_21, 100%).
+- **Costing UX:** current-stage indicator ("Stage X of 9"), sidebar tooltips, ⌘K button renamed **"Menu"**, **(i) info tooltips** on all cost fields, **Unit dropdown** (MT/KG/Ton/Container…), **Destination Port dropdown** (per country), 11 Incoterms + info, **Autofill with Brain** button (verified iteration_20, 100%).
+- **Monetization (`monetize.py`):** Stripe pay-per-download (first download FREE, then ₹25 IN / $1 INTL) + monthly unlimited pass; `/payments/checkout|status|pricing`, `/webhook/stripe`, `/downloads/check|record` (first-free logic), GST-style invoices, referral codes. Owner = Firebase UID or guest Trade-Session. **Razorpay slot ready (RAZORPAY_KEY_ID env) — keys pending from user (2-3 days).** Verified iteration_22 backend 100% (8/8).
+- **Account page (`AccountPage.jsx`, /account):** Instagram-style header (avatar, name, **role badge**, **country+flag**, **User ID**, mobile, email), stats, tabs: Downloads / Projects / Saved Buyers / Invoices / Billing (monthly pass) / Referral. Profile edit (role/country/mobile) with local override on DO profile. Post-Stripe-redirect auto-completes the paid download + prints PDF. Verified iteration_22 (account 100%).
+- **Paywall gate** on Command Center Export PDF: not-signed-in → "Sign in to download" modal; signed-in → free/pass → download, else pay modal (₹25/$1 or monthly pass). Verified working via reproduction (login-gated E2E to be validated on production — login CORS-blocked in preview).
+- **Admin:** `/account/admin/users` + `/account/admin/{owner}` (require_admin) — revenue, downloads, per-user view.
+- Known cosmetic: a React dev-only "span in option" console warning (no functional impact).
+
+## Monetization plan (agreed)
+- Free: build quotes/projects. Paid: PDF download — first free, then ₹25 (IN, Razorpay) / $1 (INTL, Stripe), or monthly unlimited (₹499 / $9). Geo by profile country. Referral + credit-pack/subscription upsell.
+
+## Backlog / next
+- **Razorpay wiring** (awaiting user keys) — INR ₹25 + ₹499/mo via Razorpay; Stripe handles INTL.
+- Stripe webhook secret + production verification of login-gated download & account sync.
+- Vol 2 (Digital Twin), Vol 3 (live data adapters, proactive alerts, Knowledge-Quality), Vol 4 (collaboration, white-label PDF, ERP).
+
+
 - New full-screen workspace at **`/command-center`** (sidebar · center · right Brain panel). Home CTA + customs tab now point here.
 - **Trade Projects** (`backend/projects.py`, `trade_projects` collection): create/autosave/load/recent/pin/duplicate/templates/delete; **guest (anonymous UUID) ↔ Firebase UID ownership with auto-merge on login** (`/projects/merge`). Production-ready + testable in preview without login.
 - **Universal Project Context** (`frontend/src/lib/ProjectContext.jsx`): one state spine, **reactive computation graph** (change any input → quote/duty/tax/currency/markets/health/Brain recompute, no re-click), `patchCosts` (stale-closure-safe nested edits), persist-merge preserving freshest lastQuote/costs.
