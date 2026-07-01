@@ -8,10 +8,21 @@ import {
   Lightning, Gauge, Stack, ChartBar, ShieldCheck, FileText, Truck, Warning,
   UsersThree, Brain, Gear, Plus, PushPin, Copy, Trash, ArrowRight,
   CircleNotch, Question, CheckCircle, Clock, Printer, CaretDown, Command, X,
-  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle,
+  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle, Info, List, MagicWand, Anchor,
 } from "@phosphor-icons/react";
 
 const WORKFLOW = ["Created", "Research", "Costing", "Compliance", "Documentation", "Quotation", "Negotiation", "Shipment", "Completed"];
+const STAGE_DESC = {
+  Created: "Project set up. Add product, route and quantity to begin.",
+  Research: "Explore markets & buyers before you commit to a costing.",
+  Costing: "Build the FOB → CIF cost waterfall and set your margin.",
+  Compliance: "Confirm duties, FTA eligibility and required documents.",
+  Documentation: "Prepare and check off the shipment documents.",
+  Quotation: "Generate and export the buyer quote (PDF).",
+  Negotiation: "Share the quote and align on Incoterm & payment terms.",
+  Shipment: "Book freight & insurance and track the shipment.",
+  Completed: "Deal done — archive or reuse this project as a template.",
+};
 const MODULES = [
   ["overview", "Overview", Gauge], ["costing", "Trade Costing", Stack],
   ["market", "Market Research", ChartBar], ["compliance", "Compliance", ShieldCheck],
@@ -20,10 +31,34 @@ const MODULES = [
   ["reports", "Reports", FileText], ["brain", "Brain", Brain], ["settings", "Settings", Gear],
 ];
 const CUR = ["USD", "EUR", "GBP", "INR", "AED", "CNY", "JPY", "AUD", "SGD", "SAR", "CAD", "CHF"];
-const INCOTERMS = ["EXW", "FCA", "FOB", "CFR", "CIF", "CPT", "CIP", "DAP", "DPU", "DDP"];
+const INCOTERMS = ["EXW", "FCA", "FAS", "FOB", "CFR", "CIF", "CPT", "CIP", "DAP", "DPU", "DDP"];
+const INCOTERM_INFO = {
+  EXW: "Ex-Works — buyer bears all cost/risk from your factory gate.",
+  FCA: "Free Carrier — you deliver, cleared for export, to the carrier at a named place.",
+  FAS: "Free Alongside Ship — you place goods alongside the vessel at origin port.",
+  FOB: "Free On Board — you cover costs until goods are loaded on the vessel.",
+  CFR: "Cost & Freight — you pay freight to destination port (risk passes at origin).",
+  CIF: "Cost, Insurance & Freight — you pay freight + insurance to destination port.",
+  CPT: "Carriage Paid To — you pay carriage to a named destination place.",
+  CIP: "Carriage & Insurance Paid — carriage + insurance to a named destination.",
+  DAP: "Delivered At Place — you deliver to destination, buyer clears import.",
+  DPU: "Delivered at Place Unloaded — you deliver and unload at destination.",
+  DDP: "Delivered Duty Paid — you cover everything incl. import duty at destination.",
+};
+const UNITS = [
+  ["unit", "Unit / Piece"], ["kg", "Kilogram (KG)"], ["mt", "Metric Ton (MT)"], ["ton", "Ton"],
+  ["lb", "Pound (LB)"], ["qtl", "Quintal (100 KG)"], ["ltr", "Litre"], ["cbm", "Cubic Meter (CBM)"],
+  ["dozen", "Dozen"], ["carton", "Carton / Box"], ["bag", "Bag / Sack"], ["pallet", "Pallet"],
+  ["fcl20", "Container 20ft (FCL)"], ["fcl40", "Container 40ft (FCL)"],
+];
 const COST_FIELDS = [
-  ["exw", "Ex-Works (EXW)"], ["packing", "Packing & labelling"], ["inland", "Inland transport"],
-  ["thc", "Port handling (THC)"], ["customsDocs", "Customs & docs"], ["freight", "Freight"], ["insurance", "Insurance"],
+  ["exw", "Ex-Works (EXW)", "Base price of the goods at your factory gate, before any logistics. Everything else builds on top of this."],
+  ["packing", "Packing & labelling", "Export-grade packing, cartons, pallets, marking & labelling required for international shipping."],
+  ["inland", "Inland transport", "Cost to move goods from your factory to the origin port/airport (trucking, local haulage)."],
+  ["thc", "Port handling (THC)", "Terminal Handling Charges at the origin port — loading, stuffing, port & terminal fees."],
+  ["customsDocs", "Customs & docs", "Origin customs clearance: CHA/agent fees, shipping bill, certificates, inspection, fumigation."],
+  ["freight", "Freight", "Main international carriage — ocean or air freight from origin port to the destination port."],
+  ["insurance", "Insurance", "Marine/cargo insurance covering loss or damage in transit (typically 0.1%–0.5% of CIF value)."],
 ];
 const num = (v) => (v === "" || v == null ? 0 : parseFloat(v) || 0);
 const fmtCur = (v, cur) => {
@@ -111,6 +146,16 @@ const Card = ({ title, icon: I, children, action, testid }) => (
   </div>
 );
 
+// (i) info tooltip — hover to see why a field / value matters
+function InfoTip({ text, testid }) {
+  return (
+    <span className="relative inline-flex group align-middle" data-testid={testid}>
+      <Info size={13} weight="bold" className="text-slate-500 hover:text-cyan-300 cursor-help" />
+      <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1.5 w-52 z-40 opacity-0 group-hover:opacity-100 transition-opacity glass-strong rounded-xl px-3 py-2 text-[11px] leading-snug text-slate-200 border border-white/10 shadow-2xl">{text}</span>
+    </span>
+  );
+}
+
 /* ============================= WORKSPACE ============================= */
 export default function CommandCenter() {
   const P = useProject();
@@ -153,7 +198,7 @@ export default function CommandCenter() {
             <aside className="col-span-12 lg:col-span-2">
               <div className="glass rounded-3xl p-2 lg:sticky lg:top-4 flex lg:flex-col gap-1 overflow-x-auto">
                 {MODULES.map(([k, label, I]) => (
-                  <button key={k} data-testid={`cc-mod-${k}`} onClick={() => setModule(k)}
+                  <button key={k} data-testid={`cc-mod-${k}`} title={label} onClick={() => setModule(k)}
                     className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm whitespace-nowrap transition-all ${module === k ? "bg-cyan-500/15 text-cyan-200 border border-cyan-400/30" : "text-slate-300 hover:bg-white/5"}`}>
                     <I size={16} weight="duotone" /> <span className="hidden lg:inline">{label}</span>
                   </button>
@@ -209,14 +254,20 @@ function TopBar({ P, cur, openPalette }) {
           )}
         </div>
         <span className="text-xs text-slate-400 hidden sm:inline">{cur.summary?.origin} → {cur.summary?.destination}</span>
-        <button onClick={openPalette} className="ml-auto flex items-center gap-1.5 text-xs text-slate-400 px-2.5 py-1.5 rounded-lg border border-white/10 hover:bg-white/5" data-testid="cc-palette-btn"><Command size={13} /> ⌘K</button>
+        <button onClick={openPalette} className="ml-auto flex items-center gap-1.5 text-xs text-cyan-200 px-3 py-1.5 rounded-lg border border-cyan-400/25 bg-cyan-500/10 hover:bg-cyan-500/20" data-testid="cc-palette-btn" title="Open the quick menu (Ctrl/⌘ + K)"><List size={14} weight="bold" /> Menu <span className="text-[10px] text-slate-400 hidden sm:inline">Ctrl K</span></button>
+      </div>
+      {/* current stage indicator */}
+      <div className="mt-3 flex items-center gap-2 text-sm" data-testid="cc-current-stage">
+        <span className="text-[11px] font-mono-display uppercase tracking-widest text-cyan-300 bg-cyan-500/10 border border-cyan-400/25 rounded-full px-2.5 py-1">Stage {idx + 1} of {WORKFLOW.length}</span>
+        <span className="font-display font-bold text-white">{cur.stage}</span>
+        <span className="text-slate-400 text-xs hidden md:inline">— {STAGE_DESC[cur.stage]}</span>
       </div>
       {/* workflow stepper */}
-      <div className="flex items-center gap-1 mt-3 overflow-x-auto pb-1" data-testid="cc-workflow">
+      <div className="flex items-center gap-1 mt-2 overflow-x-auto pb-1" data-testid="cc-workflow">
         {WORKFLOW.map((s, i) => (
           <button key={s} data-testid={`cc-stage-${s.toLowerCase()}`} onClick={() => P.update({ stage: s }, `Stage → ${s}`)}
-            className={`text-[11px] px-2.5 py-1 rounded-full whitespace-nowrap transition-all ${i === idx ? "bg-cyan-500/20 text-cyan-200 border border-cyan-400/40" : i < idx ? "text-emerald-300/80" : "text-slate-500 hover:text-slate-300"}`}>
-            {i < idx && <CheckCircle size={10} weight="fill" className="inline mr-1" />}{s}
+            className={`text-[11px] px-2.5 py-1 rounded-full whitespace-nowrap transition-all ${i === idx ? "bg-cyan-500/25 text-cyan-100 border border-cyan-400/50 font-semibold" : i < idx ? "text-emerald-300/80" : "text-slate-500 hover:text-slate-300"}`}>
+            {i < idx && <CheckCircle size={10} weight="fill" className="inline mr-1" />}{i === idx && "▶ "}{s}
           </button>
         ))}
       </div>
@@ -376,26 +427,64 @@ function Costing({ P, cur }) {
   const setCost = (k, v) => P.patchCosts(k, v);
   const fobUnit = ["exw", "packing", "inland", "thc", "customsDocs"].reduce((s, k) => s + num((cur.costs || {})[k]), 0);
   const cifUnit = fobUnit + num((cur.costs || {}).freight) + num((cur.costs || {}).insurance);
+  const [ports, setPorts] = useState([]);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoNote, setAutoNote] = useState("");
+  const unitLabel = (UNITS.find((u) => u[0] === cur.unit) || [null, cur.unit])[1];
+
+  useEffect(() => {
+    api.get("/command-center/ports", { params: { country: cur.importer } }).then(({ data }) => setPorts(data.ports || [])).catch(() => {});
+  }, [cur.importer]);
+
+  const autofill = async () => {
+    setAutoBusy(true); setAutoNote("");
+    try {
+      const { data } = await api.post("/command-center/autofill", {
+        hs: cur.hs, product: cur.hs ? "" : cur.product, exporter: cur.exporter, importer: cur.importer,
+        quantity: num(cur.quantity) || 1, unit: cur.unit, incoterm: cur.incoterm, transactionCurrency: cur.transactionCurrency,
+      }, { timeout: 90000 });
+      if (data.ok) { P.update({ costs: { ...(cur.costs || {}), ...data.costs } }, "Brain autofilled costing"); setAutoNote(data.note); }
+      else setAutoNote(data.error || "Could not estimate — enter manually.");
+    } catch (_) { setAutoNote("Autofill unavailable — please try again."); }
+    finally { setAutoBusy(false); }
+  };
+
   return (
     <>
       <Card title="Trade lane" icon={Stack} testid="cc-costing-lane">
         <div className="grid sm:grid-cols-3 gap-3">
-          <Lbl t="Quantity"><div className="flex gap-2"><input data-testid="cc-qty" type="number" className={inputCls} value={cur.quantity} onChange={(e) => P.update({ quantity: e.target.value })} /><input className={`${inputCls} w-20`} value={cur.unit} onChange={(e) => P.update({ unit: e.target.value })} /></div></Lbl>
-          <Lbl t="Incoterm"><select data-testid="cc-incoterm" className={inputCls} value={cur.incoterm} onChange={(e) => P.update({ incoterm: e.target.value }, `Incoterm → ${e.target.value}`)}>{INCOTERMS.map((i) => <option key={i}>{i}</option>)}</select></Lbl>
+          <Lbl t="Quantity"><input data-testid="cc-qty" type="number" className={inputCls} value={cur.quantity} onChange={(e) => P.update({ quantity: e.target.value })} /></Lbl>
+          <Lbl t={<span className="inline-flex items-center gap-1">Unit of measure <InfoTip text="Choose the trade unit your prices are quoted in (e.g. per Metric Ton, per KG, per Container). All costing is calculated per this unit." /></span>}>
+            <select data-testid="cc-unit" className={inputCls} value={cur.unit} onChange={(e) => P.update({ unit: e.target.value }, `Unit → ${e.target.value}`)}>{UNITS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          </Lbl>
+          <Lbl t={<span className="inline-flex items-center gap-1">Incoterm <InfoTip text={INCOTERM_INFO[cur.incoterm]} /></span>}>
+            <select data-testid="cc-incoterm" className={inputCls} value={cur.incoterm} onChange={(e) => P.update({ incoterm: e.target.value }, `Incoterm → ${e.target.value}`)}>{INCOTERMS.map((i) => <option key={i} value={i}>{i} — {INCOTERM_INFO[i].split("—")[0].trim()}</option>)}</select>
+          </Lbl>
+          <Lbl t={<span className="inline-flex items-center gap-1">Destination port <InfoTip text="The buyer's port/airport of discharge. It refines freight and the Incoterm delivery point for accurate pricing." /></span>}>
+            <select data-testid="cc-dest-port" className={inputCls} value={cur.destinationPort || ""} onChange={(e) => P.update({ destinationPort: e.target.value }, `Destination port → ${e.target.value}`)}>
+              <option value="">— Select port —</option>{ports.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </Lbl>
           <Lbl t="Margin %"><input data-testid="cc-margin" type="number" className={inputCls} value={cur.marginPct} onChange={(e) => P.update({ marginPct: e.target.value })} /></Lbl>
           <Lbl t="Your currency"><select data-testid="cc-txn-cur" className={inputCls} value={cur.transactionCurrency} onChange={(e) => P.update({ transactionCurrency: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</select></Lbl>
           <Lbl t="Global currency"><select data-testid="cc-global-cur" className={inputCls} value={cur.globalCurrency} onChange={(e) => P.update({ globalCurrency: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</select></Lbl>
         </div>
+        <div className="mt-2 text-[11px] text-slate-400 inline-flex items-center gap-1"><Info size={12} className="text-cyan-300" /> {INCOTERM_INFO[cur.incoterm]}</div>
       </Card>
-      <Card title="Cost build-up — Ex-Works → FOB → CIF" icon={Stack} testid="cc-costing-inputs">
+      <Card title="Cost build-up — Ex-Works → FOB → CIF" icon={Stack} testid="cc-costing-inputs"
+        action={<button data-testid="cc-autofill" onClick={autofill} disabled={autoBusy} className="btn-ghost !py-1.5 !px-3 !text-xs disabled:opacity-50">{autoBusy ? <CircleNotch size={13} className="animate-spin" /> : <MagicWand size={13} weight="bold" />} Autofill with Brain</button>}>
+        <div className="text-[11px] text-slate-400 mb-3 inline-flex items-center gap-1"><MagicWand size={12} className="text-cyan-300" /> Let the Brain estimate market rates, then tweak any field — all values are per {unitLabel}.</div>
         <div className="grid sm:grid-cols-2 gap-3">
-          {COST_FIELDS.map(([k, label]) => (
-            <Lbl key={k} t={`${label} (per ${cur.unit})`}><input data-testid={`cc-cost-${k}`} type="number" className={inputCls} value={(cur.costs || {})[k] ?? ""} onChange={(e) => setCost(k, e.target.value)} placeholder="0" /></Lbl>
+          {COST_FIELDS.map(([k, label, info]) => (
+            <Lbl key={k} t={<span className="inline-flex items-center gap-1">{label} (per {unitLabel}) <InfoTip text={info} testid={`cc-info-${k}`} /></span>}>
+              <input data-testid={`cc-cost-${k}`} type="number" className={inputCls} value={(cur.costs || {})[k] ?? ""} onChange={(e) => setCost(k, e.target.value)} placeholder="0" />
+            </Lbl>
           ))}
         </div>
+        {autoNote && <div className="mt-3 text-[11px] text-cyan-300/90 flex items-start gap-1.5"><Sparkle size={12} className="mt-0.5" /> {autoNote}</div>}
         <div className="grid sm:grid-cols-2 gap-3 mt-3">
-          <div className="glass rounded-2xl px-4 py-3 flex justify-between items-center"><span className="text-[10px] uppercase text-slate-400">FOB / {cur.unit}</span><span className="font-display font-bold text-xl text-cyan-300">{fmtCur(fobUnit, tc)}</span></div>
-          <div className="glass rounded-2xl px-4 py-3 flex justify-between items-center"><span className="text-[10px] uppercase text-slate-400">CIF / {cur.unit}</span><span className="font-display font-bold text-xl text-gradient">{fmtCur(cifUnit, tc)}</span></div>
+          <div className="glass rounded-2xl px-4 py-3 flex justify-between items-center"><span className="text-[10px] uppercase text-slate-400">FOB / {unitLabel}</span><span className="font-display font-bold text-xl text-cyan-300">{fmtCur(fobUnit, tc)}</span></div>
+          <div className="glass rounded-2xl px-4 py-3 flex justify-between items-center"><span className="text-[10px] uppercase text-slate-400">CIF / {unitLabel}</span><span className="font-display font-bold text-xl text-gradient">{fmtCur(cifUnit, tc)}</span></div>
         </div>
         {P.quoteLoading && <div className="mt-3 text-xs text-slate-500 flex items-center gap-2"><CircleNotch size={14} className="animate-spin" /> Recomputing everything…</div>}
       </Card>
@@ -410,7 +499,7 @@ function Costing({ P, cur }) {
           <div className="mt-4 space-y-1" data-testid="cc-waterfall">
             {q.waterfall.map((w, i) => (
               <div key={i} className={`flex justify-between py-1.5 text-sm ${w.milestone ? "border-y border-cyan-400/20 my-1 font-semibold text-cyan-300" : "border-b border-white/5 text-slate-300"}`}>
-                <span>{w.stage}</span><span>{fmtCur(w.total, tc)} <span className="text-[10px] text-slate-500">({fmtCur(w.perUnit, tc)}/{cur.unit})</span></span>
+                <span>{w.stage}</span><span>{fmtCur(w.total, tc)} <span className="text-[10px] text-slate-500">({fmtCur(w.perUnit, tc)}/{unitLabel})</span></span>
               </div>
             ))}
           </div>

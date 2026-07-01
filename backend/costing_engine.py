@@ -391,3 +391,88 @@ async def compliance(req: ComplianceRequest):
             "duty": duty if duty.get("ok") else None, "documents": base_docs,
             "narrative": narrative,
             "sources": ["World Bank WITS / UNCTAD TRAINS", "LeadNation Brain"]}
+
+
+# ---------------- Ports (per country) & Brain autofill ----------------
+import json as _json
+import re as _re
+
+PORTS_BY_CODE = {
+    "356": ["Nhava Sheva (JNPT)", "Mundra", "Chennai", "Kolkata", "Cochin", "Kandla", "Visakhapatnam", "Tuticorin", "Delhi (ICD Tughlakabad)", "Mumbai Air (BOM)"],
+    "842": ["Los Angeles", "Long Beach", "New York/New Jersey", "Savannah", "Houston", "Seattle-Tacoma", "Norfolk", "Chicago (Air ORD)", "JFK Air"],
+    "784": ["Jebel Ali (Dubai)", "Khalifa Port (Abu Dhabi)", "Port Rashid", "Sharjah", "Dubai Air (DXB)"],
+    "826": ["Felixstowe", "Southampton", "London Gateway", "Liverpool", "Heathrow Air (LHR)"],
+    "276": ["Hamburg", "Bremerhaven", "Wilhelmshaven", "Frankfurt Air (FRA)"],
+    "250": ["Le Havre", "Marseille-Fos", "Dunkirk", "Paris CDG Air"],
+    "156": ["Shanghai", "Shenzhen", "Ningbo-Zhoushan", "Guangzhou", "Qingdao", "Tianjin", "Hong Kong"],
+    "682": ["Jeddah", "King Abdullah Port", "Dammam", "Riyadh (Air RUH)"],
+    "702": ["Singapore (PSA)", "Jurong", "Changi Air (SIN)"],
+    "124": ["Vancouver", "Montreal", "Prince Rupert", "Halifax", "Toronto Air (YYZ)"],
+    "36": ["Sydney", "Melbourne", "Brisbane", "Fremantle", "Sydney Air (SYD)"],
+    "392": ["Tokyo", "Yokohama", "Kobe", "Nagoya", "Osaka", "Narita Air (NRT)"],
+    "410": ["Busan", "Incheon", "Gwangyang", "Incheon Air (ICN)"],
+    "484": ["Manzanillo", "Veracruz", "Lazaro Cardenas", "Mexico City Air (MEX)"],
+    "76": ["Santos", "Paranagua", "Itajai", "Rio de Janeiro", "Sao Paulo Air (GRU)"],
+    "704": ["Ho Chi Minh (Cat Lai)", "Hai Phong", "Cai Mep", "Da Nang"],
+    "458": ["Port Klang", "Tanjung Pelepas", "Penang", "KL Air (KUL)"],
+    "360": ["Tanjung Priok (Jakarta)", "Tanjung Perak (Surabaya)", "Belawan"],
+    "764": ["Laem Chabang", "Bangkok", "Bangkok Air (BKK)"],
+    "710": ["Durban", "Cape Town", "Port Elizabeth", "Johannesburg Air (JNB)"],
+    "528": ["Rotterdam", "Amsterdam", "Schiphol Air (AMS)"],
+    "724": ["Valencia", "Algeciras", "Barcelona", "Madrid Air (MAD)"],
+    "380": ["Genoa", "Gioia Tauro", "La Spezia", "Milan Air (MXP)"],
+    "643": ["St. Petersburg", "Novorossiysk", "Vladivostok", "Moscow Air (SVO)"],
+    "792": ["Istanbul (Ambarli)", "Mersin", "Izmir", "Istanbul Air (IST)"],
+    "586": ["Karachi", "Port Qasim", "Karachi Air (KHI)"],
+    "050": ["Chattogram", "Mongla", "Dhaka Air (DAC)"],
+}
+GENERIC_PORTS = ["Main Sea Port", "Secondary Sea Port", "Main International Airport"]
+
+
+@router.get("/ports")
+async def ports(country: str = ""):
+    return {"country": country, "ports": PORTS_BY_CODE.get(country, GENERIC_PORTS)}
+
+
+class AutofillRequest(BaseModel):
+    hs: str = ""
+    product: str = ""
+    exporter: str = "356"
+    importer: str = "842"
+    quantity: float = 1
+    unit: str = "unit"
+    incoterm: str = "FOB"
+    transactionCurrency: str = "USD"
+
+
+@router.post("/autofill")
+async def autofill(req: AutofillRequest):
+    hs6 = await _resolve_hs(req.hs, req.product)
+    exp = duty_engine.NAME_BY_CODE.get(req.exporter, req.exporter)
+    imp = duty_engine.NAME_BY_CODE.get(req.importer, req.importer)
+    desc = req.product or f"HS {hs6}"
+    cur = (req.transactionCurrency or "USD").upper()
+    question = (
+        f"You are a global-trade costing expert. Estimate realistic PER-{req.unit.upper()} export costs "
+        f"for shipping {desc} (HS {hs6}) from {exp} to {imp}, Incoterm {req.incoterm}, quantity {req.quantity} {req.unit}, "
+        f"all values in {cur}. Return ONLY a strict JSON object (no prose, no markdown) with numeric keys: "
+        f'{{"exw":..,"packing":..,"inland":..,"thc":..,"customsDocs":..,"freight":..,"insurance":..}}. '
+        f"Use typical current market rates. IMPORTANT: 'exw' must be the realistic current market/export unit price of the product itself (never 0); insurance is usually a small fraction of the CIF value."
+    )
+    try:
+        provider = get_provider()
+        res = await provider.generate(question, {"primary": "autofill"},
+                                      {"products": [desc], "countries": [exp, imp], "hsn": [hs6]},
+                                      {}, {"retrieved": [], "memory": {}, "user": {}, "language": "en"})
+        raw = res.get("answer", "") or ""
+        m = _re.search(r"\{.*\}", raw, _re.DOTALL)
+        data = _json.loads(m.group(0)) if m else {}
+        keys = ["exw", "packing", "inland", "thc", "customsDocs", "freight", "insurance"]
+        costs = {k: _r(data.get(k, 0)) for k in keys}
+        if sum(costs.values()) <= 0:
+            return {"ok": False, "error": "Could not estimate costs — please enter them manually."}
+        return {"ok": True, "costs": costs, "currency": cur, "source": "brain",
+                "note": f"AI-estimated {req.incoterm} costs per {req.unit} for {desc}, {exp}→{imp}. Review and adjust to your actual rates."}
+    except Exception as exc:
+        logging.warning("Autofill failed: %s", exc)
+        return {"ok": False, "error": "Autofill temporarily unavailable."}

@@ -1,0 +1,35 @@
+{
+  "summary": "Iteration 20 — verified Trade Command Center workspace enhancements (UX clarity + costing enhancements). Backend pytest 5/5 PASS: /command-center/ports (US/India/generic fallback), /command-center/autofill (Brain returns 7 numeric costs with exw > 0), and /projects PUT persists new destinationPort field. Frontend Playwright verified stage indicator (Stage 1 of 9 → Stage 3 of 9 after chip click), Menu button labelled with List icon + Ctrl K, sidebar tooltips (title attr), Costing module Unit dropdown (14 options; selecting Metric Ton updates per-unit labels), Destination Port dropdown populated from importer country (LA/Long Beach/NY/JFK for USA), 11 Incoterms with descriptions, all 7 cc-info-* tooltips present, Brain autofill populated all 7 cost inputs (exw=560, freight=42, insurance=0.7) with exw>0, reactive recompute works after edit (560→671), PDF export enabled, palette opens via Menu button, all 7 other modules render (overview/market/compliance/documents/risk/reports/brain).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Costing module (Incoterm/Unit select)", "issues": ["React hydration warning: 'In HTML, <span> cannot be a child of <option>'. Some select renders a <span> inside an <option> element (likely em-dash or icon wrapper). Cosmetic — the dropdowns still work, but the console warning is noisy. Search CommandCenter.jsx for any <span> or icon rendered inside a <option>."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_20_workspace.py",
+    "/app/test_reports/pytest/iteration_20.xml"
+  ],
+  "action_items": [
+    "Optional: fix React hydration warning 'span cannot be a child of option' in one of the Costing SELECTs (Unit/Incoterm/Dest Port). Wrap the option label in plain text only.",
+    "Carry-forward from iteration_19 (still open): fix 'strokelinecap' Phosphor icon prop typo; render cc-compliance shell immediately and lazy-load Brain narrative."
+  ],
+  "critical_code_review_comments": [
+    "costing_engine.py:397-478 autofill endpoint prompts Brain to return JSON but relies on a regex '{.*}' fallback; if the model wraps output in prose, this still works. Consider adding a stricter validator (all keys numeric, exw > 0) inside the try — currently the sum>0 guard is good but a single field could still come back non-numeric and _r() would coerce to 0.",
+    "costing_engine.py:400-428 PORTS_BY_CODE is hard-coded — 27 countries covered. For the ~200 other ISO codes it falls back to GENERIC_PORTS which is only 3 entries; consider seeding at least the top 60 trade lanes so the UI dropdown is meaningful for all importer selections.",
+    "CommandCenter.jsx: Incoterm option labels concatenate the info via '—' split which forces a truncation ('EXW — Ex-Works'). Full description is shown in a helper note below the lane (good). Consider using <optgroup> or richer HTML-safe formatting (but NOT <span> inside <option> — that triggers the hydration warning we observed).",
+    "projects.py:205-208 ALLOWED whitelist correctly adds 'destinationPort' — verified persistence via GET after PUT. Good.",
+    "Sidebar module tooltips use the native HTML `title` attribute (verified 'Trade Costing' returned). This is fine for keyboard/mouse but not accessible to screen-reader users on some browsers — consider aria-label as well for A11y."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_20_workspace.py"
+  ],
+  "success_rate": {"backend": "100% (5/5)", "frontend": "100% functional; 1 minor React hydration warning"},
+  "test_credentials": "None — guest X-Trade-Session UUID (browser generates in localStorage). Test used fixed 'iter20-fixed-uuid-abc123'.",
+  "seed_data_creation": "Created & deleted TEST_iter20_destport project in db.trade_projects via /api/projects (teardown in test). One workspace 'Iter20 Wheat IND->USA' created in the UI under the fixed session; safe to leave as it's guest-scoped.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest /app/backend/tests/test_iteration_20_workspace.py -v` — 5 tests, ~5s (autofill uses Brain, ~2s warm). Frontend: workspace start-screen testids are cc-new-title / cc-new-product / cc-new-hs / cc-create-btn (NOT cc-start-*). After project creation, cc-current-stage shows 'Stage N of 9 <label> — <description>'. Costing SELECTs (cc-unit, cc-dest-port, cc-incoterm) verified. cc-info-{field} tooltips render an (i) icon. Brain autofill returns quickly (~2s warm) because the /autofill lane is cached in db.cc_cache. Regression on all 7 sidebar modules confirmed. The 401 seen in console is guest /auth/me — expected."
+}

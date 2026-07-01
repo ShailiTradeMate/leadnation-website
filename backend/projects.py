@@ -135,6 +135,7 @@ class ProjectIn(BaseModel):
     incoterm: str = "FOB"
     quantity: float = 1
     unit: str = "unit"
+    destinationPort: str = ""
     transactionCurrency: str = "USD"
     globalCurrency: str = "EUR"
     marginPct: float = 0
@@ -202,7 +203,7 @@ class ProjectUpdate(BaseModel):
 
 
 ALLOWED = {"title", "product", "hs", "exporter", "importer", "incoterm", "quantity", "unit",
-           "transactionCurrency", "globalCurrency", "marginPct", "buyer", "supplier",
+           "destinationPort", "transactionCurrency", "globalCurrency", "marginPct", "buyer", "supplier",
            "paymentMethod", "shipmentMode", "containerType", "costs", "assumptions",
            "notes", "stage", "lastQuote", "documents", "status", "isTemplate"}
 
