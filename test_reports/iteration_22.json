@@ -1,0 +1,56 @@
+{
+  "summary": "Iteration 22 covers the new monetization + Account page build. Backend (8/8) and /account frontend (all guest flows) PASS. The Command Center paywall MODAL could not be exercised E2E because cur.lastQuote never populates for a guest project — Autofill with Brain silently fails (likely needs auth / DO backend) and manually filling the seven cc-cost-* inputs still leaves the Reports Export button disabled — but the code path (guest -> setGate({mode:'login'})) is correct on read.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "CommandCenter → Trade Costing → Reports → Export Quote PDF",
+        "issue": "After entering all seven cc-cost-* inputs (EXW/Packing/Inland/THC/CustomsDocs/Freight/Insurance = 100), FOB/CIF KPIs render on the costing view but cc-export-pdf on the Reports module remains disabled (i.e. cur.lastQuote not persisted onto the project). Autofill with Brain (cc-autofill) also does not produce a lastQuote for a guest session. This blocks E2E of the guest paywall (cc-paywall) UI.",
+        "affected_selectors": ["cc-export-pdf", "cc-autofill", "cc-cost-*"],
+        "note": "Paywall LOGIC verified via code review: doExport() -> if (!isAuthed) setGate({mode:'login'}); the cc-paywall-login button is rendered correctly in that mode."
+      }
+    ],
+    "design_issues": [
+      { "screen": "CommandCenter workspace", "issues": ["React hydration warning in console: <span> cannot be a child of <option>. Cosmetic but points at a malformed <select> option in one of the CC selects."] }
+    ]
+  },
+  "verified_scenarios": [
+    { "scenario": "GET /api/payments/pricing region=IN & INTL", "status": "PASS", "evidence": "IN=25 inr / 499 inr, INTL=1 usd / 9 usd, razorpayEnabled=false, gateway=stripe" },
+    { "scenario": "Downloads first-free lifecycle (fresh X-Trade-Session)", "status": "PASS", "evidence": "check(allowed=true,free=true,total=0) → record(free=true) → check(allowed=false,free=false,total=1)" },
+    { "scenario": "POST /api/payments/checkout kind=download region=INTL", "status": "PASS", "evidence": "returns real https://checkout.stripe.com/... url, amount=1.0 usd, sessionId; GET /payments/status shows status=initiated" },
+    { "scenario": "POST /api/payments/checkout kind=subscription region=INTL", "status": "PASS", "evidence": "amount=9.0 usd, real Stripe checkout url" },
+    { "scenario": "GET /api/account/me (guest)", "status": "PASS", "evidence": "profile.guest=true, referral.code starts with LN, stats {projects,downloads,spend}. After free record, downloads=[1 entry], stats.downloads=1, stats.spend=0" },
+    { "scenario": "PUT /api/account/profile {role,country,mobile}", "status": "PASS", "evidence": "Subsequent GET /me reflects role=Exporter, country=IN, mobile=999 (local PREFS override)" },
+    { "scenario": "/api/account/buyers CRUD", "status": "PASS", "evidence": "POST returns id, GET lists, DELETE removes; verified" },
+    { "scenario": "GET /api/account/invoices after free download", "status": "PASS", "evidence": "invoices=[] (free download creates no invoice)" },
+    { "scenario": "GET /api/account/admin/users no auth", "status": "PASS", "evidence": "returns 401/403 (protected, not 200)" },
+    { "scenario": "/account page — guest header, avatar, name 'Guest Trader', account-uid", "status": "PASS" },
+    { "scenario": "/account edit form: role=Exporter, country=IN → account-role-badge='Exporter', account-flag='🇮🇳 IN'", "status": "PASS" },
+    { "scenario": "/account all 6 tabs present (downloads/projects/buyers/invoices/billing/referral)", "status": "PASS" },
+    { "scenario": "/account Billing tab: monthly pass + Get pass button (account-buy-pass)", "status": "PASS" },
+    { "scenario": "/account Referral tab: account-referral-link visible with leadnation.app URL", "status": "PASS" },
+    { "scenario": "/account Saved Buyers: account-buyer-name + account-buyer-add appends buyer to list", "status": "PASS" },
+    { "scenario": "Command Center paywall E2E (guest → Export PDF → cc-paywall login mode)", "status": "BLOCKED", "evidence": "Export button stays disabled because cur.lastQuote never populates for a guest session, both via Autofill and via filling 7 cc-cost-* fields." }
+  ],
+  "test_report_links": ["/app/backend/tests/test_monetize_account.py", "/app/test_reports/pytest/iter22_monetize.xml"],
+  "action_items": [
+    "Costing → Reports quote persistence: after user fills cc-cost-* inputs (or after cc-autofill), ensure cur.lastQuote is written on the project so cc-export-pdf becomes enabled and the guest paywall (cc-paywall login mode) can be exercised. Right now the export button never enables for a guest, which effectively hides the new paywall flow from UI users unless they auth or complete some other unlocked step.",
+    "cc-autofill (Autofill with Brain) silently fails in guest mode — surface an error toast or fall back to a deterministic default cost model so guests can at least drive the quote.",
+    "React hydration warning: <span> cannot be a child of <option>. Locate the <select> option that wraps text in a <span> (likely a currency/incoterm option) and unwrap it."
+  ],
+  "critical_code_review_comments": [
+    "monetize.py._make_invoice: `seq = paid downloads + 1` uses count instead of an atomic counter — under concurrent paid downloads this can duplicate invoice numbers (LN-YYYYMM-OWNER-0001). Consider a MongoDB findAndModify counter per owner.",
+    "monetize.py PRICES treats 'IN' via a client-supplied region field (`body.region`) without ever checking the owner's actual country. A guest can pass region='IN' and get ₹25 pricing even if they are in the US. Consider deriving region from the caller (profile country / IP) for the source of truth.",
+    "AccountPage.jsx: after buyer add, the local list is refreshed via a fresh GET; that is fine, but the delete path does not optimistically remove the row → tiny UX lag. Nit.",
+    "AccountPage.jsx renders account-flag with a nested <span> inside <span> that also carries the ISO-2 fallback text — cosmetic; but combined with the hydration warning above suggests one of the CC selects has the same problem."
+  ],
+  "updated_files": ["/app/backend/tests/test_monetize_account.py", "/app/test_reports/pytest/iter22_monetize.xml"],
+  "success_rate": { "backend": "100% (8/8)", "frontend": "≈92% — /account fully PASS; CommandCenter paywall UI BLOCKED by disabled Export button" },
+  "test_credentials": "None — guest X-Trade-Session UUID auto-generated. Admin creds only used to confirm 401/403 without auth.",
+  "seed_data_creation": "Each test uses a fresh X-Trade-Session UUID; MongoDB collections (payment_transactions, downloads, saved_buyers, user_prefs) get a handful of test rows but they are per-session and don't leak.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend monetize + account contract is solid — regression via /app/backend/tests/test_monetize_account.py (8/8). /account guest flow verified end-to-end via Playwright. The only unverified piece is the guest cc-paywall UI on the Command Center Reports module: it never enables because cur.lastQuote is not saved onto the project for a guest (cc-autofill fails silently and manual cost inputs do not persist the quote). Fix that persistence and the guest paywall (mode='login', cc-paywall-login button visible) will trivially appear.",
+  "rca of the issue": "Command Center Reports.doExport() correctly gates on !isAuthed with setGate({mode:'login'}), but the export button is `disabled={!q || busy}` where q === cur.lastQuote. For a guest session, cur.lastQuote is never populated (neither cc-autofill nor manual cc-cost-* entry writes it back to the project). Therefore the guest never sees the paywall modal — a UX regression for the new monetization flow. Mitigation: after any successful reactive costing compute, call P.setLastQuote(quote) or the equivalent project-update handler so cur.lastQuote is persisted."
+}

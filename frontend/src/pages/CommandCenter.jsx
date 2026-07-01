@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import { useProject } from "@/lib/ProjectContext";
+import { useAuth } from "@/lib/AuthContext";
 import CommandCenterReport from "@/components/CommandCenterReport";
 import {
   Lightning, Gauge, Stack, ChartBar, ShieldCheck, FileText, Truck, Warning,
   UsersThree, Brain, Gear, Plus, PushPin, Copy, Trash, ArrowRight,
   CircleNotch, Question, CheckCircle, Clock, Printer, CaretDown, Command, X,
-  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle, Info, List, MagicWand, Anchor,
+  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle, Info, List, MagicWand, Anchor, User, CrownSimple,
 } from "@phosphor-icons/react";
 
 const WORKFLOW = ["Created", "Research", "Costing", "Compliance", "Documentation", "Quotation", "Negotiation", "Shipment", "Completed"];
@@ -641,14 +642,40 @@ function Buyers({ cur }) {
 function Reports({ P, cur, compliance }) {
   const q = cur.lastQuote;
   const versions = cur.versions || [];
+  const { isAuthed } = useAuth();
+  const [gate, setGate] = useState(null); // {mode:'login'|'pay', price, currency, region}
+  const [busy, setBusy] = useState(false);
+  const region = (P.current?.transactionCurrency === "INR") ? "IN" : "INTL";
+  const s = () => ({ headers: { "X-Trade-Session": P.session } });
+
+  const doExport = async () => {
+    if (!isAuthed) { setGate({ mode: "login" }); return; }
+    setBusy(true);
+    try {
+      const { data: chk } = await api.get("/downloads/check", { params: { projectId: cur.id, region }, ...s() });
+      if (chk.allowed) {
+        await api.post("/downloads/record", { projectId: cur.id, projectTitle: cur.title, region }, s());
+        window.print();
+      } else {
+        setGate({ mode: "pay", price: chk.price, currency: chk.currency, region: chk.region });
+      }
+    } catch (_) { setGate({ mode: "pay", price: region === "IN" ? 25 : 1, currency: region === "IN" ? "inr" : "usd", region }); }
+    finally { setBusy(false); }
+  };
+  const pay = async (kind) => {
+    const { data } = await api.post("/payments/checkout", { kind, region, projectId: cur.id, origin: window.location.origin }, s());
+    window.location.href = data.url;
+  };
+
   return (
     <>
       <Card title="Export & Reports" icon={FileText} testid="cc-reports">
         <p className="text-sm text-slate-300">Download a branded Quote & Compliance PDF for <span className="text-cyan-300">{cur.title}</span> — includes the full cost waterfall, buyer-market comparison and the {compliance?.importer?.name || "destination"} compliance report.</p>
         <div className="flex flex-wrap gap-2 mt-4">
-          <button data-testid="cc-export-pdf" onClick={() => window.print()} disabled={!q} className="btn-primary disabled:opacity-50"><Printer size={15} weight="bold" /> Export Quote PDF</button>
+          <button data-testid="cc-export-pdf" onClick={doExport} disabled={!q || busy} className="btn-primary disabled:opacity-50">{busy ? <CircleNotch size={15} className="animate-spin" /> : <Printer size={15} weight="bold" />} Export Quote PDF</button>
           <button data-testid="cc-save-version" onClick={() => P.addVersion("quote", `Quote ${new Date().toLocaleString()}`, q)} disabled={!q} className="btn-ghost disabled:opacity-50"><FloppyDisk size={15} weight="bold" /> Save quote version</button>
         </div>
+        <div className="text-[11px] text-slate-500 mt-2">Your first report download is free. After that it's {region === "IN" ? "₹25" : "$1"} each — or get an unlimited monthly pass in your Account.</div>
         {!q && <div className="text-xs text-amber-300/80 mt-2">Complete your costing to enable the PDF.</div>}
       </Card>
       <Card title="Version history" icon={Clock} testid="cc-versions">
@@ -658,6 +685,29 @@ function Reports({ P, cur, compliance }) {
           ))}</div>
         ) : <Empty msg="No saved versions yet. Save a quote version to keep history." />}
       </Card>
+
+      {gate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setGate(null)}>
+          <div className="glass-strong rounded-3xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()} data-testid="cc-paywall">
+            {gate.mode === "login" ? (
+              <>
+                <div className="font-display font-bold text-lg flex items-center gap-2"><User size={18} className="text-cyan-300" /> Sign in to download</div>
+                <p className="text-sm text-slate-400 mt-2">Create a free account (shared with the LeadNation app) to download your report and keep it in your account.</p>
+                <Link to="/login" className="btn-primary w-full justify-center mt-4" data-testid="cc-paywall-login">Sign in / Create account</Link>
+              </>
+            ) : (
+              <>
+                <div className="font-display font-bold text-lg flex items-center gap-2"><Printer size={18} className="text-cyan-300" /> Unlock this download</div>
+                <p className="text-sm text-slate-400 mt-2">You've used your free download. Pay <span className="text-cyan-300 font-semibold">{gate.currency === "inr" ? `₹${gate.price}` : `$${gate.price}`}</span> for this report, or get an unlimited monthly pass.</p>
+                <div className="flex flex-col gap-2 mt-4">
+                  <button data-testid="cc-paywall-pay" onClick={() => pay("download")} className="btn-primary justify-center">Pay {gate.currency === "inr" ? `₹${gate.price}` : `$${gate.price}`} & download</button>
+                  <button data-testid="cc-paywall-sub" onClick={() => pay("subscription")} className="btn-ghost justify-center"><CrownSimple size={15} weight="bold" /> Get unlimited monthly pass</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

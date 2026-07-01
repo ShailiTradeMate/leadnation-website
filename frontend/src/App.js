@@ -42,6 +42,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { ProjectProvider } from "@/lib/ProjectContext";
 import CommandCenter from "@/pages/CommandCenter";
 import { Login, Signup, ForgotPassword, Account } from "@/pages/Auth";
+import AccountPage from "@/pages/AccountPage";
 
 function App() {
   return (
@@ -111,7 +112,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/account" element={<Account />} />
+            <Route path="/account" element={<AccountPage />} />
 
             {/* Admin */}
             <Route path="/admin-login" element={<AdminLogin />} />
