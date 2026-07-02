@@ -9,8 +9,9 @@ import {
   Lightning, Gauge, Stack, ChartBar, ShieldCheck, FileText, Truck, Warning,
   UsersThree, Brain, Gear, Plus, PushPin, Copy, Trash, ArrowRight,
   CircleNotch, Question, CheckCircle, Clock, Printer, CaretDown, Command, X,
-  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle, Info, List, MagicWand, Anchor, User, CrownSimple, EnvelopeSimple, Star, Check,
+  PaperPlaneTilt, MagnifyingGlass, FloppyDisk, Sparkle, Info, List, MagicWand, Anchor, User, CrownSimple, EnvelopeSimple, Star, Check, Graph, Trophy, Scales, Archive,
 } from "@phosphor-icons/react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip as RTooltip, ResponsiveContainer, Cell } from "recharts";
 
 const WORKFLOW = ["Created", "Research", "Costing", "Compliance", "Documentation", "Quotation", "Negotiation", "Shipment", "Completed"];
 const STAGE_DESC = {
@@ -27,6 +28,7 @@ const STAGE_DESC = {
 const MODULES = [
   ["overview", "Overview", Gauge], ["costing", "Trade Costing", Stack],
   ["market", "Market Research", ChartBar], ["compliance", "Compliance", ShieldCheck],
+  ["simulation", "Simulation", Graph],
   ["documents", "Documents", FileText], ["routes", "Routes", Truck],
   ["risk", "Risk", Warning], ["buyers", "Buyers & Suppliers", UsersThree],
   ["reports", "Reports", FileText], ["brain", "Brain", Brain], ["settings", "Settings", Gear],
@@ -88,6 +90,7 @@ function MD({ text }) {
 const SRC = {
   government: ["Government", "emerald"], live: ["Live API", "cyan"], brain: ["Brain", "violet"],
   manual: ["Manual", "slate"], historical: ["Historical", "amber"], estimated: ["AI Estimate", "amber"],
+  engine: ["Engine", "cyan"],
 };
 const SourceBadge = ({ kind }) => {
   const [label, c] = SRC[kind] || SRC.live;
@@ -186,7 +189,7 @@ export default function CommandCenter() {
   return (
     <>
       <SEO title="Trade Command Center · Workspace · LeadNation" description="Your stateful global-trade workspace — one Trade Project, one Brain, every module connected." path="/command-center" />
-      <CommandCenterReport project={cur} compliance={compliance} />
+      <CommandCenterReport project={cur} compliance={compliance} session={P.session} />
       {palette && <CommandPalette P={P} setModule={setModule} close={() => setPalette(false)} />}
 
       {!cur ? (
@@ -212,6 +215,7 @@ export default function CommandCenter() {
               {module === "costing" && <Costing P={P} cur={cur} />}
               {module === "market" && <Market cur={cur} />}
               {module === "compliance" && <Compliance cur={cur} compliance={compliance} loading={compLoading} />}
+              {module === "simulation" && <Simulation P={P} cur={cur} />}
               {module === "documents" && <Documents P={P} cur={cur} compliance={compliance} />}
               {module === "routes" && <Routes cur={cur} />}
               {module === "risk" && <Risk cur={cur} />}
@@ -763,6 +767,204 @@ function Reports({ P, cur, compliance }) {
     </>
   );
 }
+
+const SCORE_KEYS = ["profitability", "risk", "compliance", "competition", "market", "buyer", "supplier"];
+const verdictColor = { strong: "text-emerald-300", moderate: "text-amber-300", weak: "text-rose-300" };
+const prioColor = { high: "text-rose-300 border-rose-400/30", medium: "text-amber-300 border-amber-400/30", low: "text-slate-300 border-white/10" };
+
+function ScoreBar({ s }) {
+  const [open, setOpen] = useState(false);
+  const c = s.color === "emerald" ? "#34D399" : s.color === "amber" ? "#FBBF24" : "#FB7185";
+  return (
+    <div className="glass rounded-xl px-3 py-2.5" data-testid={`sim-score-${s.label.toLowerCase().replace(/[^a-z]/g, "-")}`}>
+      <button onClick={() => setOpen(!open)} className="w-full text-left">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-slate-200">{s.label}</span>
+          <span className="font-display font-bold" style={{ color: c }}>{s.value}</span>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/10 mt-1.5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${s.value}%`, background: c }} /></div>
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1">
+          <div className="text-[11px] text-slate-400">{s.explanation}</div>
+          {(s.factors || []).map((f, i) => (
+            <div key={i} className="text-[11px] flex items-center gap-1.5">
+              <span className={f.impact === "+" ? "text-emerald-400" : f.impact === "-" ? "text-rose-400" : "text-slate-500"}>{f.impact === "+" ? "▲" : f.impact === "-" ? "▼" : "•"}</span>
+              <span className="text-slate-300">{f.label}</span><span className="text-slate-500">— {f.detail}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Simulation({ P, cur }) {
+  const [scenarios, setScenarios] = useState([]);
+  const [scores, setScores] = useState(null);
+  const [decision, setDecision] = useState(null);
+  const [brainRec, setBrainRec] = useState("");
+  const [brainBusy, setBrainBusy] = useState(false);
+  const [sel, setSel] = useState([]);
+  const [cmp, setCmp] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const s = () => ({ headers: { "X-Trade-Session": P.session } });
+  const cur_ = (v) => `${cur.summary?.currency || cur.transactionCurrency || ""} ${Number(v || 0).toLocaleString()}`;
+
+  const loadScenarios = async () => {
+    try { const { data } = await api.get("/simulation/scenarios", { params: { projectId: cur.id }, ...s() }); setScenarios(data.scenarios || []); } catch (_) {}
+  };
+  const loadDecision = async () => {
+    try { const { data } = await api.post("/decision", { projectId: cur.id }, s()); if (data.ok) { setScores(data.scores); setDecision(data.decision); } } catch (_) {}
+  };
+  useEffect(() => { if (cur?.id) { loadScenarios(); loadDecision(); } }, [cur?.id, cur?.lastQuote]); // eslint-disable-line
+
+  const createFromCurrent = async () => {
+    setBusy(true);
+    try { await api.post("/simulation/scenarios", { projectId: cur.id }, s()); await loadScenarios(); } finally { setBusy(false); }
+  };
+  const recompute = async (sc, patch) => {
+    const inputs = { ...(sc.inputs || {}), ...patch, costs: { ...(sc.inputs?.costs || {}), ...(patch.costs || {}) } };
+    await api.put(`/simulation/scenarios/${sc.id}`, { inputs }, s()); await loadScenarios(); if (cmp) doCompare();
+  };
+  const dup = async (id) => { await api.post(`/simulation/scenarios/${id}/duplicate`, {}, s()); await loadScenarios(); };
+  const archive = async (id) => { await api.put(`/simulation/scenarios/${id}`, { archived: true }, s()); await loadScenarios(); };
+  const del = async (id) => { await api.delete(`/simulation/scenarios/${id}`, s()); await loadScenarios(); };
+  const toggleSel = (id) => setSel((p) => p.includes(id) ? p.filter((x) => x !== id) : [...p, id]);
+  const merge = async () => { if (sel.length < 2) return; await api.post("/simulation/scenarios/merge", { projectId: cur.id, ids: sel, label: "Merged Scenario" }, s()); setSel([]); await loadScenarios(); };
+  const doCompare = async () => { const { data } = await api.post("/simulation/compare", { projectId: cur.id }, s()); setCmp(data); };
+  const genBrain = async () => {
+    setBrainBusy(true);
+    try { const { data } = await api.post("/decision/recommendations", { projectId: cur.id }, s()); if (data.ok) { setBrainRec(data.recommendations || ""); setScores(data.scores); setDecision(data.decision); } } finally { setBrainBusy(false); }
+  };
+
+  if (!cur.lastQuote?.ok && scenarios.length === 0) return <Empty msg="Build your costing first — the Simulation & Decision Engine works on your quote." />;
+
+  const chartData = (cmp?.rows || scenarios.map((sc) => ({ label: sc.label, summary: sc.outputs, overall: sc.scores?.overall?.value }))).map((r) => ({
+    name: (r.label || "").replace("Scenario ", "S"), profit: r.summary?.profit || 0, overall: r.overall || 0,
+  }));
+
+  return (
+    <div className="space-y-4" data-testid="cc-simulation">
+      {/* Trade Score Engine */}
+      <Card title="Trade Score Engine" icon={Gauge} testid="sim-scores" action={<SourceBadge kind="engine" />}>
+        {scores ? (
+          <>
+            <div className="flex items-center gap-3 mb-3">
+              <ScoreRing label="Overall" score={scores.overall} size={72} />
+              <div>
+                <div className={`font-display font-bold text-lg ${verdictColor[decision?.overallVerdict] || "text-white"}`}>{(decision?.overallVerdict || "").toUpperCase()} trade</div>
+                <div className="text-xs text-slate-400">Confidence {Math.round((decision?.confidence || 0) * 100)}% · deterministic scores, Brain-explained</div>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-2">{SCORE_KEYS.map((k) => scores[k] && <ScoreBar key={k} s={scores[k]} />)}</div>
+          </>
+        ) : <div className="text-sm text-slate-400 flex items-center gap-2"><CircleNotch size={14} className="animate-spin" /> Scoring…</div>}
+      </Card>
+
+      {/* Decision Engine */}
+      {decision && (
+        <Card title="Decision Engine · recommended actions" icon={Scales} testid="sim-decision" action={<SourceBadge kind="engine" />}>
+          {decision.recommendedActions?.length ? (
+            <div className="space-y-2">
+              {decision.recommendedActions.map((a, i) => (
+                <div key={i} data-testid={`sim-action-${i}`} className={`glass rounded-xl px-3 py-2.5 border ${prioColor[a.priority] || ""}`}>
+                  <div className="flex items-center gap-2 text-sm"><span className={`text-[10px] uppercase font-mono-display px-1.5 py-0.5 rounded ${prioColor[a.priority]}`}>{a.priority}</span><span className="font-medium">{a.title}</span></div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">{a.detail}</div>
+                </div>
+              ))}
+            </div>
+          ) : <div className="text-sm text-emerald-300">No red flags — this trade looks well-optimised.</div>}
+          <button data-testid="sim-brain-rec" onClick={genBrain} disabled={brainBusy} className="btn-primary mt-4 disabled:opacity-50">{brainBusy ? <CircleNotch size={15} className="animate-spin" /> : <Brain size={15} weight="bold" />} Generate Brain recommendations & action plan</button>
+          {brainRec && <div className="glass rounded-xl p-4 mt-3 text-sm" data-testid="sim-brain-output"><MD text={brainRec} /></div>}
+        </Card>
+      )}
+
+      {/* Scenario Builder */}
+      <Card title="Scenario Builder · Digital Twin" icon={Graph} testid="sim-scenarios" action={
+        <div className="flex gap-2">
+          <button data-testid="sim-new-scenario" onClick={createFromCurrent} disabled={busy} className="btn-ghost !py-1.5 !text-xs disabled:opacity-50"><Plus size={13} weight="bold" /> New from current</button>
+          {sel.length >= 2 && <button data-testid="sim-merge" onClick={merge} className="btn-ghost !py-1.5 !text-xs"><Trophy size={13} weight="bold" /> Merge {sel.length}</button>}
+        </div>
+      }>
+        {scenarios.length === 0 ? <Empty msg="Create your first scenario to run what-if simulations against your live project." /> : (
+          <div className="space-y-3">
+            {scenarios.map((sc) => (
+              <div key={sc.id} data-testid={`sim-scenario-${sc.id}`} className={`glass rounded-2xl p-4 ${sel.includes(sc.id) ? "border-cyan-400/50" : ""}`}>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input type="checkbox" checked={sel.includes(sc.id)} onChange={() => toggleSel(sc.id)} className="w-4 h-4 accent-cyan-400" data-testid={`sim-select-${sc.id}`} />
+                  <span className="font-display font-bold">{sc.label}</span>
+                  <span className="text-[10px] text-slate-500 font-mono-display">v{sc.version} · conf {Math.round((sc.confidence || 0) * 100)}%</span>
+                  <span className="ml-auto text-sm font-display font-bold" style={{ color: sc.scores?.overall?.color === "emerald" ? "#34D399" : sc.scores?.overall?.color === "amber" ? "#FBBF24" : "#FB7185" }}>{sc.scores?.overall?.value}/100</span>
+                  <button onClick={() => dup(sc.id)} title="Duplicate" className="text-slate-400 hover:text-cyan-300"><Copy size={15} /></button>
+                  <button onClick={() => archive(sc.id)} title="Archive" className="text-slate-400 hover:text-amber-300"><Archive size={15} /></button>
+                  <button onClick={() => del(sc.id)} title="Delete" className="text-slate-400 hover:text-rose-400"><Trash size={15} /></button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3">
+                  <TwinField label="Margin %" value={sc.inputs?.marginPct} onApply={(v) => recompute(sc, { marginPct: num(v) })} />
+                  <TwinField label="Freight" value={sc.inputs?.costs?.freight} onApply={(v) => recompute(sc, { costs: { freight: num(v) } })} />
+                  <TwinField label="Insurance" value={sc.inputs?.costs?.insurance} onApply={(v) => recompute(sc, { costs: { insurance: num(v) } })} />
+                  <TwinSelect label="Incoterm" value={sc.inputs?.incoterm} options={["EXW", "FOB", "CFR", "CIF", "DAP", "DDP"]} onApply={(v) => recompute(sc, { incoterm: v })} />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-3 text-xs">
+                  <Metric l="CIF" v={cur_(sc.outputs?.cif)} />
+                  <Metric l="Landed" v={cur_(sc.outputs?.landed)} />
+                  <Metric l="Selling" v={cur_(sc.outputs?.selling)} />
+                  <Metric l="Profit" v={cur_(sc.outputs?.profit)} accent />
+                </div>
+              </div>
+            ))}
+            <button data-testid="sim-compare" onClick={doCompare} className="btn-ghost !text-xs"><Scales size={14} weight="bold" /> Compare scenarios</button>
+          </div>
+        )}
+      </Card>
+
+      {/* Comparison chart + winners */}
+      {cmp && (
+        <Card title="Scenario Comparison" icon={ChartBar} testid="sim-compare-result">
+          <div style={{ width: "100%", height: 220 }}>
+            <ResponsiveContainer>
+              <BarChart data={chartData}>
+                <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+                <YAxis stroke="#64748b" fontSize={11} />
+                <RTooltip contentStyle={{ background: "#0a1024", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, fontSize: 12 }} />
+                <Bar dataKey="profit" radius={[6, 6, 0, 0]}>{chartData.map((_, i) => <Cell key={i} fill="#00C2FF" />)}</Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 mt-3 text-xs">
+            {Object.entries(cmp.winners || {}).map(([metric, id]) => {
+              const w = cmp.rows.find((r) => r.id === id);
+              return <div key={metric} className="glass rounded-xl px-3 py-2"><div className="text-[10px] text-slate-400 uppercase tracking-wider">Best {metric}</div><div className="text-cyan-300 font-medium flex items-center gap-1"><Trophy size={12} weight="fill" /> {w?.label || "—"}</div></div>;
+            })}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function TwinField({ label, value, onApply }) {
+  const [v, setV] = useState(value ?? "");
+  useEffect(() => { setV(value ?? ""); }, [value]);
+  return (
+    <label className="block"><span className="text-[10px] font-mono-display uppercase tracking-widest text-slate-400">{label}</span>
+      <input type="number" value={v} onChange={(e) => setV(e.target.value)} onBlur={() => String(v) !== String(value ?? "") && onApply(v)}
+        className="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-cyan-400/40" data-testid={`twin-${label.toLowerCase().replace(/[^a-z]/g, "")}`} />
+    </label>
+  );
+}
+function TwinSelect({ label, value, options, onApply }) {
+  return (
+    <label className="block"><span className="text-[10px] font-mono-display uppercase tracking-widest text-slate-400">{label}</span>
+      <select value={value || ""} onChange={(e) => onApply(e.target.value)} className="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-cyan-400/40" data-testid={`twin-${label.toLowerCase()}`}>
+        {options.map((o) => <option key={o} value={o} className="bg-[#0a1024]">{o}</option>)}
+      </select>
+    </label>
+  );
+}
+const Metric = ({ l, v, accent }) => <div className="glass rounded-lg px-2.5 py-1.5"><div className="text-[10px] text-slate-400 uppercase">{l}</div><div className={`font-display font-bold ${accent ? "text-emerald-300" : "text-white"}`}>{v}</div></div>;
+
 
 function BrainModule({ cur, P }) {
   const [msgs, setMsgs] = useState([]);

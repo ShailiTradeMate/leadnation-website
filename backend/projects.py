@@ -178,6 +178,11 @@ async def create_project(body: ProjectIn, authorization: Optional[str] = Header(
         "createdAt": _now(), "updatedAt": _now(),
     })
     await COL.insert_one(doc)
+    try:
+        import events
+        await events.log_event(pid, owner, "project_created", f"Project '{doc['title']}' created", {})
+    except Exception:
+        pass
     return _public(doc)
 
 
@@ -224,6 +229,17 @@ async def update_project(pid: str, body: ProjectUpdate, authorization: Optional[
     if push:
         update["$push"] = push
     await COL.update_one({"_id": pid}, update)
+    try:
+        import events
+        _EVT_FIELDS = {"buyer": "buyer_changed", "supplier": "supplier_changed",
+                       "transactionCurrency": "currency_changed", "globalCurrency": "currency_changed",
+                       "shipmentMode": "route_changed", "importer": "route_changed", "lastQuote": "quote_generated"}
+        for f, et in _EVT_FIELDS.items():
+            if f in patch:
+                await events.log_event(pid, owner, et, body.activity or f"{f} updated", {})
+                break
+    except Exception:
+        pass
     return _public(await COL.find_one({"_id": pid}))
 
 

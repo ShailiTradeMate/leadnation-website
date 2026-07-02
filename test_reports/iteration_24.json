@@ -1,0 +1,61 @@
+{
+  "summary": "Volume 2 Phase 2A — Simulation Engine + Decision Engine + Adapters + Events + Trade Scores. Backend: 19/19 pytest cases PASS (adapters framework, digital twin, full scenario CRUD + duplicate + merge + archive + delete, comparison winners, decision objects, brain recommendations degrade path, score explainability, universal audit trail). Frontend: Command Center Simulation module UI verified end-to-end — cc-simulation, sim-scores, sim-new-scenario (creates scenario cards), sim-compare (chart + winners), twin fields (Margin/Freight/Insurance/Incoterm) all render. ONE BLOCKING BUG: sim-brain-output never renders because the backend brain provider crashes on the decision-engine payload with 'list' object has no attribute 'items' — endpoint returns ok=True but recommendations is empty string.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "/api/decision/recommendations", "issue": "Brain provider crashes with 'list' object has no attribute 'items' — decision_engine.py passes decision_objects.data and candidate_actions.data as LISTS, but brain/providers.py line 76 calls data.items() (expects dict). Endpoint returns 200 ok=True but recommendations='' (silent degrade), so the Simulation UI's sim-brain-output never renders.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Simulation module (CommandCenter.jsx line 841)", "issue": "cc-simulation, sim-scores and sim-new-scenario do NOT render until either cur.lastQuote.ok is set OR at least one scenario already exists. Freshly-created projects with no costing show only an Empty state ('Build your costing first…'). Reviewer flow said 'create project → click cc-mod-simulation → verify sim-scores/sim-new-scenario' — this fails until a costing has been built.", "selector": "[data-testid=cc-simulation]", "priority": "MEDIUM"},
+      {"component": "sim-brain-output", "issue": "Button click succeeds and endpoint returns 200, but output panel never appears because backend returns recommendations='' due to the Brain provider crash (see backend critical bug).", "selector": "[data-testid=sim-brain-output]", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "sim-brain-rec → sim-brain-output", "issue": "brainRec state stays empty string; frontend condition `{brainRec && …}` never truthy. Backend logs show repeated 'Decision recommendations failed: list object has no attribute items'.", "affected_selectors": ["[data-testid=sim-brain-rec]", "[data-testid=sim-brain-output]"]}
+    ],
+    "design_issues": []
+  },
+  "verified_scenarios": [
+    {"scenario": "GET /api/adapters", "status": "PASS", "evidence": "5 adapters (duty/fx/trade_stats/incentives/freight) + 6 tiers"},
+    {"scenario": "POST /api/adapters/run duty+fx", "status": "PASS", "evidence": "duty.sourceTier=government, aiEstimated=false; fx.sourceTier=official"},
+    {"scenario": "POST /api/adapters/run freight", "status": "PASS", "evidence": "sourceTier=ai_estimate, aiEstimated=true, assumptions[] present"},
+    {"scenario": "POST /api/simulation/twin", "status": "PASS", "evidence": "ok=true, summary(fob/cif/landed/selling/profit), scores(8 keys) each w/ value/color/factors/explanation, decision.recommendedActions, decision.overallVerdict"},
+    {"scenario": "Scenario CRUD full lifecycle", "status": "PASS", "evidence": "create (auto Scenario A) → create custom → list → update(v++) → duplicate → merge(>=2) → archive hides → includeArchived shows → delete removes"},
+    {"scenario": "POST /api/simulation/compare", "status": "PASS", "evidence": "rows[] with summary+scores, winners{profit,landed,selling,margin,overall} — each id ∈ rows"},
+    {"scenario": "POST /api/decision", "status": "PASS", "evidence": "6 domain objects (profitability/risk/compliance/buyer/logistics/market), overallVerdict, confidence, bestMarket, 8 scores"},
+    {"scenario": "POST /api/decision/recommendations", "status": "PARTIAL", "evidence": "Endpoint returns ok=true (graceful degrade) but 'recommendations' is empty string due to Brain provider crash. Test asserts endpoint doesn't error — assertion passes; UX breaks."},
+    {"scenario": "GET /api/events?projectId=", "status": "PASS", "evidence": "Timestamped events: project_created, scenario_created, scenario_compared, decision_computed, brain_recommendation all present"},
+    {"scenario": "Frontend /command-center Simulation module", "status": "PASS (after costing built)", "evidence": "cc-simulation, sim-scores, sim-new-scenario, sim-scenario-<id>, twin fields (Margin/Freight/Insurance/Incoterm), sim-compare, sim-compare-result (chart w/ profit bars + winners cards) all render and function"},
+    {"scenario": "Frontend sim-brain-rec → sim-brain-output", "status": "FAIL", "evidence": "Button click ok, backend 200, but sim-brain-output never appears (empty string). Root cause is backend Brain provider crash."},
+    {"scenario": "Frontend Simulation gating for fresh project", "status": "FAIL/UX", "evidence": "Without a computed quote, module shows only Empty state — cc-simulation itself does not render."}
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_phase2a_simulation.py",
+    "/app/test_reports/pytest/iteration_24_phase2a.xml"
+  ],
+  "action_items": [
+    "FIX Brain provider list handling: either in /app/backend/decision_engine.py convert list payloads to dict-friendly shape before passing to provider.generate (e.g. {\"decision_objects\": {\"summary\": ..., \"data\": {\"items\": dec[\"objects\"]}}}), OR make /app/backend/brain/providers.py build_context_block tolerate list `data` (guard `if isinstance(data, dict): ...`). Root cause: providers.py L76 `list(data.items())[:6]` assumes dict.",
+    "Consider allowing the Simulation module to render (cc-simulation + sim-scores + sim-new-scenario) even before a costing is built — it can show the Trade Score Engine placeholder + a New scenario button that internally computes on project defaults. Current gate at CommandCenter.jsx line 841 makes the module invisible on fresh projects.",
+    "Optional: surface the empty-string Brain output as a soft error/toast in Simulation (e.g. 'Brain recommendations temporarily unavailable — deterministic decision still shown') so users know the click was received."
+  ],
+  "critical_code_review_comments": [
+    "decision_engine.py L136-140 packs decision objects as {'data': dec['objects']} (list) — but brain/providers.py assumes engine_outputs[k]['data'] is a dict. Contract mismatch; refactor either the caller or the provider to be uniform.",
+    "simulation.py `_owner` requires X-Trade-Session for guests; scenario endpoints correctly forward the header. But the merge endpoint takes projectId in body but does NOT re-verify the project ownership (no `_owned_project(projectId)` call inside merge). Consider defensive check to prevent cross-owner id enumeration.",
+    "simulation.py `_confidence` caps at 0.95 — same value returned regardless of adapter freshness. Consider blending adapter-level confidences (duty/fx from Adapters framework) into scenario confidence so the audit trail can trace it.",
+    "scores.py `PAY_RISK` uses `in` substring match (`if k in pay`) → 'dp' matches 'ddp', 'da' matches 'dap' (an Incoterm string), etc. Not currently used with Incoterms but is fragile — prefer exact-match on normalised keys.",
+    "CommandCenter.jsx line 841 gates the entire Simulation module. Splitting the empty state to per-card (sim-scores placeholder vs sim-scenarios placeholder) would allow sim-new-scenario to work from a project template alone.",
+    "events.py `log_event` generates id twice (once for _id, again for id — different UUIDs). Cosmetic; use one uuid and assign both.",
+    "adapters.py `FreightAdapter.fetch` — `transit = duty_engine and None` is dead code / no-op. Safe to remove."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase2a_simulation.py"
+  ],
+  "success_rate": {"backend": "100% (19/19 pytest)", "frontend": "80% — 4/5 flows pass (Brain recommendations fails to render output due to backend provider bug)"},
+  "test_credentials": "Guest only: header X-Trade-Session: <uuid>. No login exercised (Firebase CORS-blocked in preview).",
+  "seed_data_creation": "Fresh guest session (uuid.uuid4().hex) per test run. Test project 'TEST_Phase2A_TeaExport' (India→USA, HS 090240, 5000kg, LC, 15% margin, full cost inputs) created via POST /api/projects and deleted at teardown. Scenarios cascade with project cleanup. Trade_project_events entries are retained.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression file: /app/backend/tests/test_phase2a_simulation.py (19 tests, ~40s). Uses X-Trade-Session guest identity, tea HS 090240 India→USA. Backend engine layer is solid — deterministic maths + score/decision shape all verified. Only outstanding defect is the Brain provider crash on decision-engine list payload (see action items). Once fixed, re-run test_decision_recommendations_degrades_gracefully AND click sim-brain-rec in UI to confirm sim-brain-output renders. Also: Simulation module renders only after a costing is built; keep this in mind when scripting future UI tests.",
+  "rca of the issue": "sim-brain-output does not render → root cause traced from FE (brainRec state empty) → backend endpoint returns ok=true with recommendations='' → backend logs 'Decision recommendations failed: list object has no attribute items' (grep 'Decision recommendations failed' /var/log/supervisor/backend.err.log shows 2+ occurrences) → decision_engine.py builds `eo = {'decision_objects': {'data': dec['objects']}, 'candidate_actions': {'data': dec['recommendedActions']}, 'scores': {'data': {}}}` where the first two `data` fields are LISTS. brain/providers.py PromptBuilder.build_context_block (line 76) does `small = {k: v for k, v in list(data.items())[:6] if v}` which assumes data is a dict. AttributeError raised inside provider.generate → caught by broad `except Exception` in decision_engine.py line 156 → advisor='' returned → endpoint still returns ok=True. Reproduction: POST /api/decision/recommendations with any valid projectId and observe backend logs. Mitigation options: (a) in decision_engine.py wrap list data in dict, e.g. `'data': {'items': dec['objects']}`; (b) in providers.py guard: `if isinstance(data, dict): ...` before .items()."
+}
