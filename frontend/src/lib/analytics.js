@@ -6,6 +6,24 @@ const CLARITY_ID = process.env.REACT_APP_CLARITY_ID;
 const META_PIXEL_ID = process.env.REACT_APP_META_PIXEL_ID;
 
 let loaded = false;
+const catLoaded = { analytics: false, marketing: false };
+
+export const CONSENT_KEY = "ln_cookie_consent";
+
+export function getConsent() {
+  try { return JSON.parse(localStorage.getItem(CONSENT_KEY) || "null"); } catch (_) { return null; }
+}
+
+export function setConsent(consent) {
+  const value = { essential: true, analytics: !!consent.analytics, marketing: !!consent.marketing, ts: Date.now() };
+  try { localStorage.setItem(CONSENT_KEY, JSON.stringify(value)); } catch (_) {}
+  applyConsent();
+  return value;
+}
+
+export function openCookiePreferences() {
+  try { window.dispatchEvent(new Event("ln-open-cookie-prefs")); } catch (_) {}
+}
 
 function injectScript(src, attrs = {}) {
   const s = document.createElement("script");
@@ -16,18 +34,15 @@ function injectScript(src, attrs = {}) {
   return s;
 }
 
-export function initAnalytics() {
-  if (loaded || typeof window === "undefined") return;
-  loaded = true;
-
-  // Google Tag Manager
+// Analytics category: Google Tag Manager + GA4 + Microsoft Clarity
+function loadAnalyticsScripts() {
+  if (catLoaded.analytics || typeof window === "undefined") return;
+  catLoaded.analytics = true;
   if (GTM_ID) {
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
     injectScript(`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`);
   }
-
-  // GA4
   if (GA4_ID) {
     injectScript(`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`);
     window.dataLayer = window.dataLayer || [];
@@ -35,8 +50,6 @@ export function initAnalytics() {
     window.gtag("js", new Date());
     window.gtag("config", GA4_ID, { send_page_view: true });
   }
-
-  // Microsoft Clarity
   if (CLARITY_ID) {
     (function (c, l, a, r, i, t, y) {
       c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments); };
@@ -44,8 +57,12 @@ export function initAnalytics() {
       y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
     })(window, document, "clarity", "script", CLARITY_ID);
   }
+}
 
-  // Meta Pixel
+// Marketing category: Meta Pixel (and future advertising pixels)
+function loadMarketingScripts() {
+  if (catLoaded.marketing || typeof window === "undefined") return;
+  catLoaded.marketing = true;
   if (META_PIXEL_ID) {
     /* eslint-disable */
     !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -57,6 +74,21 @@ export function initAnalytics() {
     window.fbq("init", META_PIXEL_ID);
     window.fbq("track", "PageView");
   }
+}
+
+// Load only the services the visitor has consented to. Re-callable when consent changes.
+function applyConsent() {
+  const c = getConsent();
+  if (!c) return; // no consent yet → load nothing (GDPR: opt-in)
+  if (c.analytics) loadAnalyticsScripts();
+  if (c.marketing) loadMarketingScripts();
+}
+
+// Called on app mount — respects stored consent; loads nothing until the user opts in.
+export function initAnalytics() {
+  if (loaded || typeof window === "undefined") return;
+  loaded = true;
+  applyConsent();
 }
 
 export const EVENTS = {

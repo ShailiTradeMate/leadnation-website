@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { CONTACT, APP_LINKS } from "@/data/contact";
+import { openCookiePreferences } from "@/lib/analytics";
 import { InstagramLogo, WhatsappLogo, EnvelopeSimple, MapPin, AppleLogo, AndroidLogo } from "@phosphor-icons/react";
 import { LogoMark } from "./Nav";
 
@@ -102,6 +103,7 @@ export default function Footer() {
           <Link to="/legal/cookies" className="hover:text-cyan-300" data-testid="footer-link-cookies">Cookie Policy</Link>
           <Link to="/legal/disclaimer" className="hover:text-cyan-300" data-testid="footer-link-disclaimer">Disclaimer</Link>
           <Link to="/legal/refund" className="hover:text-cyan-300" data-testid="footer-link-refund">Refund &amp; Cancellation</Link>
+          <button onClick={() => openCookiePreferences()} className="hover:text-cyan-300" data-testid="footer-cookie-prefs">Cookie Preferences</button>
         </div>
       </div>
       <div className="border-t border-white/5">

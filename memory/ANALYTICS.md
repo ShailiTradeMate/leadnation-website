@@ -66,7 +66,17 @@ First-party events persist to `db.events` and are readable at `GET /api/admin/ev
 - Privacy scrubber verified (only region/incoterm forwarded in the test event; no PII).
 - External channels (GA4/GTM/Clarity/Meta) are dormant until their IDs are set — no scripts load with blank env (verified via env-gated `initAnalytics`).
 
-## 8. Suggestions
+## 9. Cookie Consent (GDPR / CCPA) — DONE
+`src/components/CookieConsent.jsx` + consent-aware `analytics.js`:
+- Banner for new visitors: "LeadNation uses cookies and analytics to improve your global trade experience." with **Accept All**, **Reject Non-Essential**, **Manage Preferences**.
+- Categories: **Essential** (auth/security/session — always on), **Analytics** (GA4/GTM/Clarity — opt-in), **Marketing** (Meta Pixel + future pixels — opt-in).
+- **Enforcement:** before consent, `initAnalytics()` loads NOTHING. On approval, only consented categories load (`loadAnalyticsScripts` / `loadMarketingScripts`). Opt-in model (GDPR).
+- Preference stored in `localStorage` (`ln_cookie_consent = {essential, analytics, marketing, ts}`); banner not shown again.
+- **Change anytime:** footer "Cookie Preferences" button (`openCookiePreferences()`) reopens the manager.
+- First-party anonymous `/api/track` continues (privacy-scrubbed: never Customer ID, email, phone, documents, or confidential trade data).
+- Verified: banner shows for fresh visitor → Manage modal renders → Save persists consent → banner dismissed → gating confirmed.
+
+## 10. Suggestions
 - Add a lightweight **cookie-consent banner** (EEA/GDPR): gate GA4/Clarity/Meta behind consent while keeping essential + first-party analytics. Recommended before EU marketing.
 - Set **GA4 + GTM first** (biggest signal for lowest effort); add Clarity for UX; keep Meta Pixel for when paid ads start.
 - Later, build the **Admin analytics dashboard** on `db.events` (already capturing the full funnel) to visualize conversion and revenue without third-party tools.

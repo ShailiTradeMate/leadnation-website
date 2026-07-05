@@ -3,6 +3,7 @@ import "@/index.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import Layout from "@/components/Layout";
+import CookieConsent from "@/components/CookieConsent";
 import Home from "@/pages/Home";
 import CustomsCompliance from "@/pages/CustomsCompliance";
 import TradeNews from "@/pages/TradeNews";
@@ -129,6 +130,7 @@ function App() {
             <Route path="/admin/leads" element={<AdminDashboard />} />
           </Routes>
         </Layout>
+        <CookieConsent />
           </ProjectProvider>
         </AuthProvider>
       </BrowserRouter>
