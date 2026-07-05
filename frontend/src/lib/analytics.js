@@ -59,18 +59,69 @@ export function initAnalytics() {
   }
 }
 
+export const EVENTS = {
+  USER_REGISTERED: "user_registered",
+  USER_LOGIN: "user_login",
+  COMMAND_CENTER_OPENED: "command_center_opened",
+  TRADE_PROJECT_CREATED: "trade_project_created",
+  TRADE_PROJECT_UPDATED: "trade_project_updated",
+  QUOTE_GENERATED: "quote_generated",
+  SCENARIO_CREATED: "scenario_created",
+  BRAIN_QUERY: "brain_query",
+  PDF_REPORT_CREATED: "pdf_report_created",
+  PDF_REPORT_DOWNLOADED: "pdf_report_downloaded",
+  SUBSCRIPTION_STARTED: "subscription_started",
+  PAYMENT_ATTEMPT: "payment_attempt",
+  PAYMENT_SUCCESS: "payment_success",
+  PAYMENT_FAILURE: "payment_failure",
+};
+
+// Map our events to Meta Pixel standard events (falls back to trackCustom).
+const META_STANDARD = {
+  user_registered: "CompleteRegistration",
+  user_login: "Lead",
+  trade_project_created: "Lead",
+  command_center_opened: "ViewContent",
+  subscription_started: "Subscribe",
+  payment_success: "Purchase",
+};
+
+// Privacy: never send PII / confidential data to analytics. Only safe, non-identifying
+// primitives are forwarded (see Cookie & Privacy Policy). Everything else is dropped.
+const BLOCKED_KEYS = ["email", "phone", "mobile", "name", "customerid", "customer_id",
+  "uid", "token", "password", "address", "buyer", "supplier", "notes", "document",
+  "documents", "company", "product", "title"];
+
+function scrub(meta = {}) {
+  const out = {};
+  for (const [k, v] of Object.entries(meta || {})) {
+    const key = String(k).toLowerCase();
+    if (BLOCKED_KEYS.some((b) => key.includes(b))) continue;
+    if (v == null) continue;
+    if (typeof v === "object") continue; // no nested/PII-bearing objects
+    out[k] = v;
+  }
+  return out;
+}
+
 export function trackEvent(name, meta = {}) {
+  const safe = scrub(meta);
   // GA4
-  try { window.gtag && window.gtag("event", name, meta); } catch (_) {}
-  // GTM dataLayer
-  try { window.dataLayer && window.dataLayer.push({ event: name, ...meta }); } catch (_) {}
-  // Meta Pixel
-  try { window.fbq && window.fbq("trackCustom", name, meta); } catch (_) {}
-  // Clarity
-  try { window.clarity && window.clarity("event", name); } catch (_) {}
-  // First-party (always works, regardless of keys)
+  try { window.gtag && window.gtag("event", name, safe); } catch (_) {}
+  // GTM dataLayer (central tag manager)
+  try { window.dataLayer && window.dataLayer.push({ event: name, ...safe }); } catch (_) {}
+  // Meta Pixel — use standard event when mapped, else custom
   try {
-    api.post("/track", { name, path: typeof window !== "undefined" ? window.location.pathname : "", meta });
+    if (window.fbq) {
+      const std = META_STANDARD[name];
+      if (std) window.fbq("track", std, safe); else window.fbq("trackCustom", name, safe);
+    }
+  } catch (_) {}
+  // Clarity — tag the session with the event name
+  try { window.clarity && window.clarity("event", name); } catch (_) {}
+  // First-party (always works, regardless of keys) — powers the future admin dashboard
+  try {
+    api.post("/track", { name, path: typeof window !== "undefined" ? window.location.pathname : "", meta: safe });
   } catch (_) {}
 }
 

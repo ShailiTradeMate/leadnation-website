@@ -4,6 +4,7 @@ import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import { useProject } from "@/lib/ProjectContext";
 import { useAuth } from "@/lib/AuthContext";
+import { trackEvent, EVENTS } from "@/lib/analytics";
 import CommandCenterReport from "@/components/CommandCenterReport";
 import {
   Lightning, Gauge, Stack, ChartBar, ShieldCheck, FileText, Truck, Warning,
@@ -168,6 +169,8 @@ export default function CommandCenter() {
   const [compliance, setCompliance] = useState(null);
   const [compLoading, setCompLoading] = useState(false);
   const cur = P.current;
+
+  useEffect(() => { trackEvent(EVENTS.COMMAND_CENTER_OPENED); }, []);
 
   useEffect(() => {
     const h = (e) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((v) => !v); } };
@@ -671,15 +674,19 @@ function Reports({ P, cur, compliance }) {
       const { data: chk } = await api.get("/downloads/check", { params: { projectId: cur.id, region }, ...s() });
       if (chk.allowed) {
         await api.post("/downloads/record", { projectId: cur.id, projectTitle: cur.title, region }, s());
+        trackEvent(EVENTS.PDF_REPORT_DOWNLOADED, { region, free: chk.freeAvailable, subscription: chk.hasSubscription });
         window.print();
       } else {
         setGate({ mode: "pay", price: chk.price, currency: chk.currency, region: chk.region });
+        trackEvent(EVENTS.PDF_REPORT_CREATED, { region, gated: true });
         api.post("/pricing/track", { event: "paywall_view", region, projectId: cur.id }, s()).catch(() => {});
       }
     } catch (_) { setGate({ mode: "pay", price: region === "IN" ? 25 : 1, currency: region === "IN" ? "inr" : "usd", region }); }
     finally { setBusy(false); }
   };
   const pay = async (kind) => {
+    trackEvent(EVENTS.PAYMENT_ATTEMPT, { kind, region });
+    if (kind === "monthly" || kind === "annual") trackEvent(EVENTS.SUBSCRIPTION_STARTED, { plan: kind, region });
     api.post("/pricing/track", { event: "checkout_start", plan: kind, region, projectId: cur.id }, s()).catch(() => {});
     const { data } = await api.post("/payments/checkout", { kind, region, projectId: cur.id, origin: window.location.origin }, s());
     window.location.href = data.url;
@@ -821,7 +828,7 @@ function Simulation({ P, cur }) {
 
   const createFromCurrent = async () => {
     setBusy(true);
-    try { await api.post("/simulation/scenarios", { projectId: cur.id }, s()); await loadScenarios(); } finally { setBusy(false); }
+    try { await api.post("/simulation/scenarios", { projectId: cur.id }, s()); trackEvent(EVENTS.SCENARIO_CREATED, {}); await loadScenarios(); } finally { setBusy(false); }
   };
   const recompute = async (sc, patch) => {
     const inputs = { ...(sc.inputs || {}), ...patch, costs: { ...(sc.inputs?.costs || {}), ...(patch.costs || {}) } };
@@ -973,6 +980,7 @@ function BrainModule({ cur, P }) {
   const ask = async (text) => {
     const question = text || q; if (!question.trim()) return;
     setMsgs((m) => [...m, { role: "user", text: question }]); setQ(""); setBusy(true);
+    trackEvent(EVENTS.BRAIN_QUERY, { context: "command_center" });
     try {
       const { data } = await api.post("/brain/ask", { question, session_id: `tcc-${cur.id}`, page_context: { type: "tcc", workspace: "brain", product: cur.product, hs: cur.hs, exporter: cur.exporter, importer: cur.importer, stage: cur.stage } });
       setMsgs((m) => [...m, { role: "assistant", text: data.answer || "No answer." }]);

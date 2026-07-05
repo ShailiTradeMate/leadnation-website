@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
+import { trackEvent, EVENTS } from "@/lib/analytics";
 import CommandCenterReport from "@/components/CommandCenterReport";
 import {
   User, IdentificationCard, Envelope, Phone, MapPin, Briefcase, DownloadSimple,
@@ -54,7 +55,8 @@ export default function AccountPage() {
       try {
         let st; for (let i = 0; i < 6; i++) { const { data } = await api.get(`/payments/status/${sid}`); st = data; if (st.status === "paid" || st.status === "expired") break; await new Promise((r) => setTimeout(r, 2000)); }
         if (st?.status === "paid") {
-          if (["subscription", "monthly", "annual"].includes(st.kind)) { setPayMsg("✓ Pro pass activated — unlimited downloads!"); load(); }
+          trackEvent(EVENTS.PAYMENT_SUCCESS, { kind: st.kind, currency: st.currency });
+          if (["subscription", "monthly", "annual"].includes(st.kind)) { trackEvent(EVENTS.SUBSCRIPTION_STARTED, { plan: st.kind }); setPayMsg("✓ Pro pass activated — unlimited downloads!"); load(); }
           else {
             const proj = pid ? (await api.get(`/projects/${pid}`, hdrs())).data : null;
             await api.post("/downloads/record", { projectId: pid || "", projectTitle: proj?.title || "", sessionId: sid, region: st.currency === "inr" ? "IN" : "INTL" }, hdrs());
@@ -62,13 +64,15 @@ export default function AccountPage() {
             setPayMsg("✓ Payment successful — preparing your PDF…"); setPrintReport({ project: proj, compliance: comp });
             setTimeout(() => window.print(), 1200); load();
           }
-        } else setPayMsg("Payment not completed. Please try again.");
+        } else { trackEvent(EVENTS.PAYMENT_FAILURE, {}); setPayMsg("Payment not completed. Please try again."); }
       } catch (_) { setPayMsg("Could not confirm payment."); }
       setSp({ tab: "downloads" }, { replace: true });
     })();
   }, []); // eslint-disable-line
 
   const buyPass = async (kind = "monthly") => {
+    trackEvent(EVENTS.PAYMENT_ATTEMPT, { kind, region });
+    if (kind === "monthly" || kind === "annual") trackEvent(EVENTS.SUBSCRIPTION_STARTED, { plan: kind, region });
     const { data: r } = await api.post("/payments/checkout", { kind, region, origin: window.location.origin }, hdrs());
     window.location.href = r.url;
   };

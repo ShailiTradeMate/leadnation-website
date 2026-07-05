@@ -3,6 +3,7 @@ import { Link, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
 import { GoogleLogo, CircleNotch, SignOut, CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import SEO from "@/components/SEO";
+import { trackEvent, EVENTS } from "@/lib/analytics";
 
 const BUSINESS_ROLES = [
   ["exporter", "Exporter"], ["importer", "Importer"], ["supplier", "Supplier"],
@@ -44,11 +45,12 @@ export function Login() {
       const id = ident.trim();
       if (/^\d{1,6}$/.test(id)) await loginWithCustomerId(id.padStart(5, "0"), pw);
       else await login(id, pw);
+      trackEvent(EVENTS.USER_LOGIN, { method: "password" });
       navigate("/account");
     } catch (_) { setErr("Login failed — check your email/Customer ID and password."); }
     finally { setLoading(false); }
   };
-  const onGoogle = async () => { setErr(""); setLoading(true); try { await google(); navigate("/account"); } catch (e) { setErr(googleErr(e)); } finally { setLoading(false); } };
+  const onGoogle = async () => { setErr(""); setLoading(true); try { await google(); trackEvent(EVENTS.USER_LOGIN, { method: "google" }); navigate("/account"); } catch (e) { setErr(googleErr(e)); } finally { setLoading(false); } };
 
   return (
     <Shell title="Sign in" sub="Use the same account as the LeadNation app.">
@@ -82,6 +84,7 @@ export function Signup() {
     try {
       await signup(form.email.trim(), form.password);
       await register({ full_name: form.full_name, role: form.role, mobile_number: form.mobile_number, provider: "password", country: form.country });
+      trackEvent(EVENTS.USER_REGISTERED, { method: "password", role: form.role, country: form.country });
       navigate("/account");
     } catch (e2) {
       setErr(e2?.code === "auth/email-already-in-use" ? "This email is already registered — try signing in." : "Sign-up failed. Use a valid email and a 6+ character password.");
@@ -89,7 +92,7 @@ export function Signup() {
   };
   const onGoogle = async () => {
     setErr(""); setLoading(true);
-    try { await google(); await register({ role: form.role, provider: "google" }); navigate("/account"); }
+    try { await google(); await register({ role: form.role, provider: "google" }); trackEvent(EVENTS.USER_REGISTERED, { method: "google", role: form.role }); navigate("/account"); }
     catch (e) { setErr(googleErr(e)); } finally { setLoading(false); }
   };
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { api } from "@/lib/api";
+import { trackEvent, EVENTS } from "@/lib/analytics";
 
 const ProjectCtx = createContext(null);
 export const useProject = () => useContext(ProjectCtx);
@@ -45,6 +46,7 @@ export function ProjectProvider({ children }) {
   const createProject = async (body) => {
     const { data } = await api.post("/projects", body, hdrs);
     setCurrent(data); lastHash.current = coreHash(data); setInsights(""); refreshList();
+    trackEvent(EVENTS.TRADE_PROJECT_CREATED, { region: body?.transactionCurrency === "INR" ? "IN" : "INTL", incoterm: body?.incoterm });
     return data;
   };
   const loadProject = async (id) => {
@@ -98,6 +100,7 @@ export function ProjectProvider({ children }) {
       }, cc);
       if (data.ok) {
         setCurrent((c) => ({ ...c, lastQuote: data }));
+        trackEvent(EVENTS.QUOTE_GENERATED, { hasComparison: !!(data.comparison || []).length });
         if (p.id) api.put(`/projects/${p.id}`, { patch: { lastQuote: data } }, hdrs)
           .then(({ data: doc }) => { setCurrent((c) => (c && c.id === doc.id ? { ...c, health: doc.health, summary: doc.summary } : c)); refreshList(); })
           .catch(() => {});

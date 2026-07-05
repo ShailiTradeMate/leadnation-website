@@ -10,7 +10,7 @@
 | Auth production checklist | ✅ Documented — see §B and the App Integration Guide. |
 | SEO | ✅ robots.txt, sitemap.xml (+pricing/legal), meta/OG/Twitter/canonical present; default `<title>` fixed to LeadNation; per-page `<SEO>`/Helmet on legal + pricing. |
 | Performance | 🟡 Reviewed — see §C. |
-| Analytics placeholders | ✅ Env-driven (GTM/Clarity/Meta); no fake IDs; activate when real IDs provided. |
+| Analytics placeholders | ✅ INSTRUMENTED | Env-driven GTM/GA4/Clarity/Meta via reusable `analytics.js`; standard EVENTS wired across signup/login/project/quote/scenario/brain/report/payment; privacy scrubber blocks PII; first-party `/api/track`→`db.events` for future admin dashboard. Activate by setting REACT_APP_GA4_ID/GTM_ID/CLARITY_ID/META_PIXEL_ID. See ANALYTICS.md. |
 
 ## A. Admin Security (reviewed)
 - `require_admin` (core.py): Firebase Bearer token → verify → Mongo `users.role == "admin"` and not deleted. Legacy `X-Admin-Token` (env `ADMIN_TOKEN`) kept only as emergency fallback.
