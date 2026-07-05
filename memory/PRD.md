@@ -1,5 +1,12 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## 🔒 RELEASE FREEZE (2026-07-05) — Deployment Prep + Mobile Handoff
+Feature development STOPPED. Baseline = **Volume 1 + Volume 2 Phase 2A** → first production release, tag `v1.0-leadnation-command-center`. Do NOT start Volume 2B/2C/2D, Volume 3 or 4 until website + mobile app are live.
+- Delivered: `/app/memory/TRADE_COMMAND_CENTER_APP_INTEGRATION_GUIDE.md` (full RN/Expo mobile handoff — architecture, all API contracts, DB schemas, screens, UI mapping, shared-auth rules, offline, PDF sync, Brain, test checklist).
+- Delivered: `/app/memory/PRODUCTION_READINESS.md` (readiness report, app-integration report, backlog, known issues, deployment checklist).
+- Deployment scan: PASS (no hardcoded secrets/URLs; env-driven). Added idempotent MongoDB indexes on all Command Center collections at startup.
+- Pending at deploy: set CORS_ORIGINS + Firebase authorized domains, rotate admin creds, Stripe live key/webhook, analytics IDs, then Save to GitHub + tag v1.0.
+
 ## Implemented (2026-07-05) — VOLUME 2 PHASE 2A: Simulation & Decision Engine
 Layered architecture (permanent): **Trade Project → Reactive Graph → Simulation Engine → Decision Engine → LeadNation Brain → Report**. Deterministic maths run on the backend; the Brain only explains/interprets (never fabricates numbers). Verified iteration_24 (backend 19/19 pytest; UI module renders; Brain-crash bug FIXED).
 - **Separate collections (permanent):** `trade_project_scenarios`, `trade_project_events`, `trade_project_brain_history` (+ existing `trade_projects`). Scenarios are NOT embedded in the project doc.

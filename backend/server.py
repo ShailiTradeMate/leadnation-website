@@ -70,6 +70,26 @@ async def _startup():
         duty_engine.start_scheduler()
     except Exception as exc:
         logging.warning("Duty engine init failed: %s", exc)
+    try:
+        await _ensure_indexes()
+    except Exception as exc:
+        logging.warning("Index creation failed: %s", exc)
+
+
+async def _ensure_indexes():
+    """Production performance/stability: idempotent indexes on hot collections."""
+    await db.trade_projects.create_index("owner")
+    await db.trade_projects.create_index([("owner", 1), ("updatedAt", -1)])
+    await db.trade_project_scenarios.create_index([("projectId", 1), ("owner", 1)])
+    await db.trade_project_events.create_index([("projectId", 1), ("at", -1)])
+    await db.trade_project_events.create_index("owner")
+    await db.trade_project_brain_history.create_index([("projectId", 1), ("at", -1)])
+    await db.payment_transactions.create_index("owner")
+    await db.downloads.create_index("owner")
+    await db.subscriptions.create_index("owner")
+    await db.email_captures.create_index("email", unique=True)
+    await db.paywall_events.create_index("event")
+    logging.info("MongoDB indexes ensured for Command Center collections.")
 
 
 @app.on_event("shutdown")
