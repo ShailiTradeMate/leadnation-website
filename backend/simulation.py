@@ -228,6 +228,7 @@ class MergeIn(BaseModel):
 async def merge_scenarios(body: MergeIn, authorization: Optional[str] = Header(default=None),
                           x_trade_session: Optional[str] = Header(default=None)):
     owner, otype = _owner(authorization, x_trade_session)
+    await _owned_project(body.projectId, owner)
     docs = await SCN.find({"_id": {"$in": body.ids}, "owner": owner}).to_list(50)
     if len(docs) < 2:
         raise HTTPException(400, "Select at least two scenarios to merge")

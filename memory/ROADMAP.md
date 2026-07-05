@@ -20,10 +20,7 @@ Vaibhav Deshmane · Vametra AI Technologies Pvt Ltd
 
 ## VOLUME 2 — TRADE SIMULATION & DECISION ENGINE  (foundational, HIGH priority)
 Each Trade Project becomes a Digital Twin; everything recalculates instantly.
-- **Phase 2A — Digital Twin + Scenario Builder + Trade Score Engine**
-  - Digital Twin: any variable change recomputes freight/insurance/duty/tax/FX/margin/interest/container/route/incoterm/buyer/supplier/mode/packing.
-  - Scenario Builder: unlimited scenarios (A/B/C), compare, duplicate, merge, archive.
-  - Trade Score Engine: Trade Health, Profitability, Compliance, Competition, Market, Risk, Buyer, Supplier, Overall — each explainable by Brain. (extends existing `compute_health`)
+- **Phase 2A — DONE (2026-07-05)** — Digital Twin, Scenario Builder (+compare/merge/duplicate/archive/versioning), Trade Score Engine (8 explainable scores), Decision Engine layer, Universal Audit Trail (events), Live Data Adapter framework, Brain recommendations, Volume-2 PDF integration (scores/scenarios/decision/Report ID/QR). Verified iteration_24 (19/19 backend).
 - **Phase 2B — Monte Carlo Simulation + Sensitivity Analysis**
   - Monte Carlo: FX, freight, duty, delay, commodity price, demand, volatility → Best/Expected/Worst + probability + confidence.
   - Sensitivity: most sensitive variable, highest cost/risk/profit impact; Brain explains.

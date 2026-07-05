@@ -73,9 +73,12 @@ class PromptManager:
             summ = out.get("summary", "")
             lines.append(f"- [{key}] {summ}")
             data = out.get("data") or {}
-            small = {k: v for k, v in list(data.items())[:6] if v}
-            if small:
-                lines.append(f"    data: {small}")
+            if isinstance(data, dict):
+                small = {k: v for k, v in list(data.items())[:6] if v}
+                if small:
+                    lines.append(f"    data: {small}")
+            elif isinstance(data, list) and data:
+                lines.append(f"    data: {data[:6]}")
         retrieved = context.get("retrieved") or []
         if retrieved:
             lines.append("\nKNOWLEDGE BASE MATCHES: " + ", ".join(r["title"] for r in retrieved[:6]))

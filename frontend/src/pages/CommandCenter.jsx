@@ -838,7 +838,7 @@ function Simulation({ P, cur }) {
     try { const { data } = await api.post("/decision/recommendations", { projectId: cur.id }, s()); if (data.ok) { setBrainRec(data.recommendations || ""); setScores(data.scores); setDecision(data.decision); } } finally { setBrainBusy(false); }
   };
 
-  if (!cur.lastQuote?.ok && scenarios.length === 0) return <Empty msg="Build your costing first — the Simulation & Decision Engine works on your quote." />;
+  if (!cur.hs && !cur.product) return <Empty msg="Add a product or HS code to your project to run simulations." />;
 
   const chartData = (cmp?.rows || scenarios.map((sc) => ({ label: sc.label, summary: sc.outputs, overall: sc.scores?.overall?.value }))).map((r) => ({
     name: (r.label || "").replace("Scenario ", "S"), profit: r.summary?.profit || 0, overall: r.overall || 0,

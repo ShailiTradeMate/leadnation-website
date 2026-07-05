@@ -161,7 +161,6 @@ class FreightAdapter(Adapter):
 
     async def fetch(self, ctx):
         dest = ctx.get("importer", "842")
-        transit = duty_engine and None
         band = None
         try:
             from costing_engine import TRANSIT_DAYS

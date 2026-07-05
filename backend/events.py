@@ -32,7 +32,8 @@ def _now() -> str:
 
 async def log_event(project_id: str, owner: str, etype: str,
                     text: str = "", meta: Optional[Dict[str, Any]] = None) -> dict:
-    doc = {"_id": uuid.uuid4().hex, "id": uuid.uuid4().hex, "projectId": project_id,
+    eid = uuid.uuid4().hex
+    doc = {"_id": eid, "id": eid, "projectId": project_id,
            "owner": owner, "type": etype, "text": text, "meta": meta or {}, "at": _now()}
     try:
         await EVT.insert_one(doc)

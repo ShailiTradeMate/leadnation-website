@@ -134,8 +134,10 @@ async def recommendations(body: DecisionIn, authorization: Optional[str] = Heade
     imp = (q.get("importer") or {}).get("name", "")
     desc = q.get("description", "")
     eo = {
-        "decision_objects": {"summary": "; ".join(f"{o['domain']}: {o['verdict']} ({o['score']}/100) — {o['signal']}" for o in dec["objects"]), "data": dec["objects"]},
-        "candidate_actions": {"summary": "; ".join(f"[{a['priority']}] {a['title']}" for a in dec["recommendedActions"]) or "none", "data": dec["recommendedActions"]},
+        "decision_objects": {"summary": "; ".join(f"{o['domain']}: {o['verdict']} ({o['score']}/100) — {o['signal']}" for o in dec["objects"]),
+                             "data": {o["domain"]: f"{o['verdict']} ({o['score']}/100)" for o in dec["objects"]}},
+        "candidate_actions": {"summary": "; ".join(f"[{a['priority']}] {a['title']}" for a in dec["recommendedActions"]) or "none",
+                              "data": {f"action_{i}": f"[{a['priority']}] {a['title']} — {a['detail']}" for i, a in enumerate(dec["recommendedActions"])}},
         "scores": {"summary": f"Overall trade health {scores['overall']['value']}/100 ({dec['overallVerdict']}).", "data": {}},
     }
     question = (
@@ -155,6 +157,17 @@ async def recommendations(body: DecisionIn, authorization: Optional[str] = Heade
         advisor = res.get("answer", "")
     except Exception as exc:
         logging.warning("Decision recommendations failed: %s", exc)
+
+    if not advisor:
+        # Deterministic fallback so the report/UI always has an action plan.
+        acts = dec["recommendedActions"]
+        lines = [f"## Executive Summary",
+                 f"Overall trade health is **{dec['overallVerdict']}** ({scores['overall']['value']}/100) for {desc} {exp}→{imp}.",
+                 "", "## Recommendations"]
+        lines += [f"- **[{a['priority']}] {a['title']}** — {a['detail']}" for a in acts] or ["- No red flags — this trade looks well-optimised."]
+        lines += ["", "## Action Plan"]
+        lines += [f"{i + 1}. {a['title']}" for i, a in enumerate(acts)] or ["1. Proceed to documentation and quotation."]
+        advisor = "\n".join(lines)
 
     await events.log_event(body.projectId, owner, "brain_recommendation",
                            "Brain generated recommendations & action plan", {})
