@@ -96,8 +96,17 @@ export default function Footer() {
         </div>
       </div>
       <div className="border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 sm:px-10 py-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-slate-500">
+          <Link to="/legal/privacy" className="hover:text-cyan-300" data-testid="footer-link-privacy">Privacy Policy</Link>
+          <Link to="/legal/terms" className="hover:text-cyan-300" data-testid="footer-link-terms">Terms of Service</Link>
+          <Link to="/legal/cookies" className="hover:text-cyan-300" data-testid="footer-link-cookies">Cookie Policy</Link>
+          <Link to="/legal/disclaimer" className="hover:text-cyan-300" data-testid="footer-link-disclaimer">Disclaimer</Link>
+          <Link to="/legal/refund" className="hover:text-cyan-300" data-testid="footer-link-refund">Refund &amp; Cancellation</Link>
+        </div>
+      </div>
+      <div className="border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>© {new Date().getFullYear()} LeadNation · All rights reserved.</div>
+          <div>© {new Date().getFullYear()} LeadNation · Vametra AI Technologies Pvt Ltd · All rights reserved.</div>
           <div className="font-mono-display tracking-widest">v1.0 · Built for global traders.</div>
         </div>
       </div>

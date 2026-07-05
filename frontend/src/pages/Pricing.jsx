@@ -139,6 +139,9 @@ export default function Pricing() {
       <p className="text-center text-xs text-slate-500 mt-8">
         Prices shown in {region === "IN" ? "INR (₹)" : "USD ($)"}. Payments processed securely via {cfg.gateway === "razorpay" ? "Razorpay" : "Stripe"}. One login shared with the LeadNation app.
       </p>
+      <p className="text-center text-[11px] text-slate-600 mt-2" data-testid="pricing-legal">
+        By purchasing you agree to our <Link to="/legal/terms" className="text-cyan-300 hover:underline">Terms</Link> and <Link to="/legal/refund" className="text-cyan-300 hover:underline">Refund &amp; Cancellation Policy</Link>.
+      </p>
     </section>
   );
 }

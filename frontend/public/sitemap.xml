@@ -82,4 +82,11 @@
   <url><loc>https://leadnation.app/directory/export-agents</loc><changefreq>weekly</changefreq><priority>0.85</priority></url>
 
   <url><loc>https://leadnation.app/search</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+
+  <url><loc>https://leadnation.app/pricing</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://leadnation.app/legal/privacy</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://leadnation.app/legal/terms</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://leadnation.app/legal/cookies</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://leadnation.app/legal/disclaimer</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://leadnation.app/legal/refund</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

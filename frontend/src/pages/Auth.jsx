@@ -109,6 +109,7 @@ export function Signup() {
         <button data-testid="signup-submit" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? <CircleNotch size={16} className="animate-spin" /> : "Create account"}</button>
       </form>
       <button data-testid="signup-google" onClick={onGoogle} disabled={loading} className="btn-ghost w-full justify-center mt-3 gap-2"><GoogleLogo size={18} weight="bold" /> Sign up with Google</button>
+      <p className="text-[11px] text-slate-500 mt-3 text-center" data-testid="signup-legal">By creating an account you agree to our <Link to="/legal/terms" className="text-cyan-300 hover:underline">Terms</Link> and <Link to="/legal/privacy" className="text-cyan-300 hover:underline">Privacy Policy</Link>.</p>
       <div className="text-sm mt-5 text-slate-400">Already have an account? <Link to="/login" className="hover:text-cyan-300" data-testid="signup-login-link">Sign in</Link></div>
     </Shell>
   );

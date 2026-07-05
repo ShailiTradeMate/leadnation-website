@@ -1,5 +1,35 @@
 # LeadNation — Production Readiness & Deployment Report
-**Baseline:** Volume 1 + Volume 2 Phase 2A (feature-frozen) · Tag target: `v1.0-leadnation-command-center` · Date: 2026-07-05
+**Baseline:** Volume 1 + Volume 2 Phase 2A (feature-frozen) · Tag target: `v1.0-leadnation-command-center-production-ready` · Updated: 2026-07-05 (Final launch wrap-up)
+
+## 0. Final Launch Wrap-up — status
+| Item | Status |
+|---|---|
+| Legal pages (Privacy, Terms, Cookie, Disclaimer, Refund) | ✅ DONE — `/legal/*` routes, reusable `LEGAL_LINKS`, footer + signup + checkout links, sitemap entries. Company: Vametra AI Technologies Pvt Ltd. |
+| App store / payment readiness | ✅ Legal links reusable in footer, signup (`signup-legal`), checkout (`pricing-legal`); shareable URLs for Play Store / App Store / Stripe / Razorpay verification. |
+| Admin security final check | ✅ Reviewed — see §A. |
+| Auth production checklist | ✅ Documented — see §B and the App Integration Guide. |
+| SEO | ✅ robots.txt, sitemap.xml (+pricing/legal), meta/OG/Twitter/canonical present; default `<title>` fixed to LeadNation; per-page `<SEO>`/Helmet on legal + pricing. |
+| Performance | 🟡 Reviewed — see §C. |
+| Analytics placeholders | ✅ Env-driven (GTM/Clarity/Meta); no fake IDs; activate when real IDs provided. |
+
+## A. Admin Security (reviewed)
+- `require_admin` (core.py): Firebase Bearer token → verify → Mongo `users.role == "admin"` and not deleted. Legacy `X-Admin-Token` (env `ADMIN_TOKEN`) kept only as emergency fallback.
+- No hardcoded secrets/tokens/keys in source (verified). All secrets env-driven.
+- Super Admin / Customer ID `00001` protection is owned by the shared DigitalOcean auth backend (the website never allocates or mutates Customer IDs — by design). No `00001` logic exists in this codebase (correct).
+- ⚠️ Production action: rotate `ADMIN_TOKEN` + `ADMIN_PASSWORD`; consider disabling the legacy token fallback in prod (a static token grants admin).
+
+## B. Auth Production Checklist (documented)
+- Add production website domain to **Firebase Authorized domains** and to the **DO backend CORS allow-list**.
+- Shared Firebase UID → shared Mongo profile → shared 5-digit Customer ID across web + app. No duplicate user creation (backend resolves identity from the Firebase token).
+- Set backend `CORS_ORIGINS` to the production web + app origins (not `*`).
+
+## C. Performance (reviewed)
+- Images: stock via Unsplash CDN (auto-format/compressed); report QR via external image API.
+- 3D Globe: react-globe.gl with auto-rotate; India overlay served locally (`/geo/india-states.json`). Acceptable on desktop; consider a static map fallback for low-end mobile.
+- Mobile responsiveness (web): Tailwind responsive across pages.
+- Bundle: CRA/craco default; recharts + globe are the heaviest deps. Consider route-level lazy-loading of CommandCenter/Globe post-launch.
+- Caching: costing/duty results cached server-side; first quote per fresh HS+lane ~15-25s (cold WITS), cached after.
+- Brain loading states: present; deterministic results render first, Brain narrative after.
 
 ---
 
@@ -20,7 +50,7 @@
 | Performance | 🟡 | First quote per HS+lane cold ~15-25s (WITS), cached after. Consider pre-warming top lanes. |
 | Mobile responsiveness (web) | ✅ | Tailwind responsive layouts across Command Center + pages. |
 | Analytics placeholders | ✅ READY | GTM/Clarity/Meta Pixel wired via env (`REACT_APP_GTM_ID`, `REACT_APP_CLARITY_ID`, `REACT_APP_META_PIXEL_ID`) in `components/Analytics.jsx` — set IDs to activate. |
-| Legal pages | ❌ BACKLOG | Privacy, Terms, Cookie, Disclaimer, Refund not yet built. |
+| Legal pages | ✅ DONE | Privacy, Terms, Cookie, Disclaimer, Refund at `/legal/*` — global scope, covers Firebase/Mongo/AI/Stripe/Razorpay/analytics/cookies/UGC/marketplace/reports/subscriptions/trade-data disclaimer. |
 
 ## 2. App Integration Report
 - Full technical handoff delivered: **`/app/memory/TRADE_COMMAND_CENTER_APP_INTEGRATION_GUIDE.md`** — product overview, architecture, backend module responsibilities, complete API contracts (Projects, Costing, Simulation, Decision/Scores, PDF, Brain), DB schemas, RN screens, UI/UX mapping, shared-auth rules, offline reqs, PDF sync, Brain rules, and a cross-surface testing checklist.

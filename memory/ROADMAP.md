@@ -13,7 +13,7 @@ Vaibhav Deshmane · Vametra AI Technologies Pvt Ltd
 ## P1 BACKLOG (from user snip — near-term, independent of Volumes)
 - [ ] **Razorpay wiring for India** — blocked on user API keys. Gateway toggle + pricing already in the Pricing Engine; just wire checkout/webhook when keys arrive.
 - [ ] **My Reports history + shareable public/private links with expiry** — store generated reports per project; shareable link with visibility + TTL.
-- [ ] **Legal pages** — Privacy, Terms, Cookie, Disclaimer, Refund (international scope).
+- [x] **Legal pages** — DONE (2026-07-05): Privacy, Terms, Cookie, Disclaimer, Refund at `/legal/*` (international scope, reusable links in footer/signup/checkout).
 - [ ] **Activate Analytics scaffolding** — GA4 / GTM / Clarity / Meta Pixel via `.env` (scaffold already present in `components/Analytics.jsx`).
 
 ---

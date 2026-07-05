@@ -44,6 +44,7 @@ import CommandCenter from "@/pages/CommandCenter";
 import { Login, Signup, ForgotPassword, Account } from "@/pages/Auth";
 import AccountPage from "@/pages/AccountPage";
 import Pricing from "@/pages/Pricing";
+import { PrivacyPolicy, TermsOfService, CookiePolicy, Disclaimer, RefundPolicy } from "@/pages/Legal";
 
 function App() {
   return (
@@ -55,6 +56,11 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/legal/privacy" element={<PrivacyPolicy />} />
+            <Route path="/legal/terms" element={<TermsOfService />} />
+            <Route path="/legal/cookies" element={<CookiePolicy />} />
+            <Route path="/legal/disclaimer" element={<Disclaimer />} />
+            <Route path="/legal/refund" element={<RefundPolicy />} />
             <Route path="/command-center" element={<CommandCenter />} />
             <Route path="/customs-compliance" element={<CustomsCompliance />} />
             <Route path="/trade-news" element={<TradeNews />} />
