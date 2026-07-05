@@ -15,6 +15,7 @@ Vaibhav Deshmane · Vametra AI Technologies Pvt Ltd
 - [ ] **My Reports history + shareable public/private links with expiry** — store generated reports per project; shareable link with visibility + TTL.
 - [x] **Legal pages** — DONE (2026-07-05): Privacy, Terms, Cookie, Disclaimer, Refund at `/legal/*` (international scope, reusable links in footer/signup/checkout).
 - [ ] **Activate Analytics scaffolding** — GA4 / GTM / Clarity / Meta Pixel via `.env` (scaffold already present in `components/Analytics.jsx`).
+- [ ] **Web↔App deep linking (mobile phase)** — Android App Links + iOS Universal Links + Expo Linking anchored to website canonical URLs `/project/{id}` & `/report/{id}`. Do NOT use Firebase Dynamic Links (deprecated). Website v1.0 does not implement these routes yet — documented in APP_BUILD_PROMPT.md + integration guide §13.
 
 ---
 

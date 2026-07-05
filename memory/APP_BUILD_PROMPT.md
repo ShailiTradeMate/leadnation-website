@@ -19,8 +19,9 @@
 - **Same MongoDB, same data:** a project created on the website must be visible in the app and vice-versa. Nothing is stored in a new database.
 
 ### 2) Authentication (shared, do NOT replace)
-- Use **Firebase Authentication** with the SAME Firebase project as the website (config from env: `EXPO_PUBLIC_FIREBASE_*`).
-- Flow: Firebase sign-in (email/password or Google) → get Firebase **ID token** → fetch profile `GET {AUTH_API_BASE}/v1/profiles/{uid}` → attach `Authorization: Bearer <idToken>` to every `/api/*` call.
+- Use **Firebase Authentication** with the SAME Firebase project as the website — **`trademate-new`** (config from env: `EXPO_PUBLIC_FIREBASE_*`).
+- Flow: Firebase sign-in (email/password, Google, or email OTP) → get Firebase **ID token** → onboard via `POST {AUTH_API_BASE}/onboarding/register` (allocates the Customer ID) → fetch profile `GET {AUTH_API_BASE}/v1/profiles/{uid}` → attach `Authorization: Bearer <idToken>` to every `/api/*` call.
+- **Business roles at signup (8):** exporter, importer, supplier, manufacturer, farmer, cha (Customs House Agent), export_agent, consultant. Profile lives across two shared collections: `users` (identity/platform role) + `profiles` (business profile; `user_role` from register).
 - **Customer ID rule (permanent):** numeric, exactly 5 digits (`00002`–`99999`), `00001` reserved for Super Admin, immutable, unique across web + app. The **backend allocates it** — the app only **displays and validates** it (`^\d{5}$`). Never generate/modify IDs on device.
 - One Firebase UID → one shared Mongo profile → one identity. No duplicate user creation.
 
@@ -51,9 +52,17 @@ Build these screens; each maps to existing APIs (see contracts doc):
 - First quote per fresh HS+lane can take ~15-25s (cold backend cache) — use ≥30s timeout, skeletons, retry with backoff. Render deterministic results first; stream the Brain narrative after.
 
 ### 6) Analytics & privacy (mirror website)
-- Env-driven analytics only (Firebase Analytics / GA4). Respect a **cookie/tracking consent** screen on first launch (opt-in for analytics/marketing; essential always on).
+- Env-driven analytics only: **Firebase Analytics + Crashlytics + Performance Monitoring** (same `trademate-new` project). Respect a **consent screen** on first launch (opt-in for analytics/marketing; essential always on) — mirrors the website's GDPR/CCPA cookie consent.
 - **Never send** Customer ID, email, phone, documents or confidential trade data to analytics. Only anonymous events (region, incoterm, plan, event name).
-- Reuse our event names: user_registered, user_login, command_center_opened, trade_project_created, quote_generated, scenario_created, brain_query, pdf_report_created, pdf_report_downloaded, payment_attempt, subscription_started, payment_success.
+- Reuse our event names: user_registered, user_login, command_center_opened, trade_project_created, quote_generated, scenario_created, brain_query, pdf_downloaded, payment_attempt, subscription_started, payment_success.
+
+### 6b) Deep linking (permanent architecture — do NOT use Firebase Dynamic Links, it is deprecated)
+Implement **Android App Links + iOS Universal Links + Expo Linking**, anchored to **website canonical URLs**:
+- Canonical URLs (single source of truth): `https://leadnation.app/project/{project_id}` and `https://leadnation.app/report/{report_id}`.
+- Host `/.well-known/assetlinks.json` (Android) and `/.well-known/apple-app-site-association` (iOS) on `leadnation.app`.
+- Configure `scheme` + `associatedDomains` + `intentFilters` in `app.json`; parse inbound links with `expo-linking`.
+- Behaviour: app installed → open the app → Trade Command Center → same Project/Report by the SAME id from the SAME backend. App not installed → open the website preview → "Download App" CTA.
+- No data duplication, no mobile-only projects — same Firebase UID, Customer ID, MongoDB `project_id`/`report_id`, same APIs.
 
 ### 7) Legal
 - Link the existing hosted legal pages (Privacy, Terms, Cookie, Disclaimer, Refund) in Settings + signup + checkout (same URLs as the website: `/legal/*`).

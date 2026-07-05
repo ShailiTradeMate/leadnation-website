@@ -321,7 +321,7 @@ State: use React Query (TanStack) for server cache + optimistic autosave; a `Pro
 ## 8. Authentication Integration (DO NOT replace)
 
 Use the **existing LeadNation auth only**:
-- **Same Firebase project** — configure the Expo app with the identical Firebase config (see `frontend/.env` `REACT_APP_FIREBASE_*` values; use the same project, add the app's bundle/package to that Firebase project).
+- **Same Firebase project** — **`trademate-new`**. Configure the Expo app with the identical Firebase config (env `EXPO_PUBLIC_FIREBASE_*` mirroring the website's `REACT_APP_FIREBASE_*`); add the app's iOS/Android bundle IDs to the `trademate-new` Firebase project.
 - **Same DigitalOcean auth backend** — `REACT_APP_AUTH_API_BASE = https://leadnation-lfrhs.ondigitalocean.app/api`. This backend owns login/OTP, the **profile**, and the **5-digit Customer ID**.
 - **Same Firebase UID → same MongoDB user/profile.** The FastAPI backend resolves identity from the Firebase ID token (`Authorization: Bearer <idToken>`), so a user's projects/scenarios/reports are automatically shared across web and app.
 
@@ -329,7 +329,13 @@ Use the **existing LeadNation auth only**:
 
 **Do NOT create:** a new auth system, a new database, or a new user store.
 
-**Auth flow in the app:** Firebase sign-in (email OTP via `POST {AUTH_API_BASE}/auth/send-otp` then `/auth/verify-otp`, or Firebase SDK) → obtain Firebase `idToken` → fetch profile `GET {AUTH_API_BASE}/v1/profiles/{uid}` → attach `Authorization: Bearer <idToken>` to all FastAPI `/api/*` calls.
+**Auth flow in the app:** Firebase sign-in (email OTP via `POST {AUTH_API_BASE}/auth/send-otp` then `/auth/verify-otp`, or Firebase SDK email/password + Google) → obtain Firebase `idToken` → register/onboard via `POST {AUTH_API_BASE}/onboarding/register` (allocates the 5-digit Customer ID) → fetch profile `GET {AUTH_API_BASE}/v1/profiles/{uid}` → attach `Authorization: Bearer <idToken>` to all FastAPI `/api/*` calls.
+
+**Business roles (select at signup):** `exporter`, `importer`, `supplier`, `manufacturer`, `farmer`, `cha` (Customs House Agent), `export_agent`, `consultant`. The app must offer the same role list.
+
+**Profile sync (shared, two documents):**
+- `users` collection — identity/platform record (Firebase UID, Customer ID, platform role user/admin).
+- `profiles` collection — business profile (full name, business role, mobile, country, provider). `profiles.role` is the PLATFORM role (user/admin) and does NOT carry the business role — the business role (`user_role`) comes from onboarding/register. The app must read the profile from `GET /v1/profiles/{uid}` and preserve `user_role` from register, exactly as the website does.
 
 ---
 
@@ -376,5 +382,77 @@ Same data, either direction:
 - [ ] **Offline** — draft created offline flushes on reconnect; no client-side number fabrication.
 
 ---
+
+---
+
+## 13. Deep Linking (future — mobile production phase; NOT in website v1.0)
+
+**Permanent LeadNation deep-linking architecture. Do NOT use Firebase Dynamic Links (deprecated).** Use native app links + Expo Linking + website canonical URLs.
+
+- **Android App Links** — host `/.well-known/assetlinks.json` on `leadnation.app` (SHA-256 fingerprints of the app signing keys).
+- **iOS Universal Links** — host `/.well-known/apple-app-site-association` on `leadnation.app` (app's Team ID + bundle ID, path patterns).
+- **Expo Linking** — configure the `scheme` + `associatedDomains` (iOS) and `intentFilters` (Android) in `app.json`; parse inbound URLs with `expo-linking`.
+- **Website canonical URLs** — the single source of truth for every shareable entity:
+  - `https://leadnation.app/project/{project_id}`
+  - `https://leadnation.app/report/{report_id}`
+
+**Behaviour:**
+- App installed → the OS opens the LeadNation app → routes to Trade Command Center → same Project/Report (fetched by the SAME `project_id`/`report_id` from the SAME backend).
+- App not installed → the website opens → shows a content preview → "Download App" CTA (Play Store / App Store).
+
+**Rules:** no data duplication, no mobile-only projects; the same Firebase UID, Customer ID, MongoDB `project_id`/`report_id` and backend APIs are used everywhere. *(Website v1.0 does NOT implement `/project/{id}` or `/report/{id}` deep-link routes yet — that is a mobile-phase task. Backend already keys everything by these IDs.)*
+
+## 14. Mobile Analytics (mirror the website, env-driven, consent-gated)
+
+- **Website:** GA4, Google Tag Manager, Microsoft Clarity, Meta Pixel (opt-in via cookie consent).
+- **Mobile:** **Firebase Analytics**, **Crashlytics**, **Performance Monitoring** (same `trademate-new` Firebase project). Gate analytics/marketing behind an on-first-launch consent screen (Essential always on).
+- **Use the SAME event names** for cross-surface funnels: `trade_project_created`, `quote_generated`, `brain_query`, `pdf_downloaded` (website uses `pdf_report_downloaded` — align on one name during app build), `subscription_started` (+ `user_registered`, `user_login`, `command_center_opened`, `scenario_created`, `payment_success`).
+- **Privacy:** never send Customer ID, email, phone, documents or confidential trade data. Only anonymous params (region, incoterm, plan, event name).
+
+## 15. Final Handoff Checklists
+
+### 15.1 API checklist (verify each is documented above with URL/method/request/response/auth)
+- [ ] Projects API — list, create, templates, load, update/autosave, delete, pin, duplicate, version (§4.1)
+- [ ] Costing API — quote, markets, insights, explain, compliance, ports, autofill (§4.2)
+- [ ] Simulation API — twin, scenarios CRUD, duplicate, merge, delete, compare (§4.3)
+- [ ] Decision API — /decision, /decision/recommendations (§4.4)
+- [ ] Scores — returned inside decision/twin responses (8 explainable scores) (§4.4)
+- [ ] Reports/PDF — data via decision + compare + project; download check/record; compliance (§4.5)
+- [ ] Brain API — ask, search, engines, status, conversation, save, context (§4.6)
+- [ ] Profile API — `{AUTH_API_BASE}` onboarding/register, /v1/profiles/{uid}, OTP (§8)
+- [ ] Admin API — admin-protected endpoints (Firebase admin claim or X-Admin-Token); events at `/api/admin/events`
+
+### 15.2 App screen checklist
+- [ ] Auth: Login · Signup · Google Login · Forgot Password · Email verification
+- [ ] Profile: role select (8 roles) · users+profiles sync · Customer ID display (validate `^\d{5}$`)
+- [ ] Dashboard · Trade Projects · Project Overview
+- [ ] Trade Costing: FOB · CIF · Landed Cost · Currency Conversion · Market Comparison
+- [ ] Compliance · Documents · Routes · Risk
+- [ ] Simulation · Decision Scores · Reports · PDF Download
+- [ ] Brain Assistant (floating)
+
+### 15.3 Shared auth verification checklist
+- [ ] Same Firebase project `trademate-new`
+- [ ] Same Firebase UID resolves to the same Mongo user/profile on web + app
+- [ ] Same 5-digit Customer ID (backend-allocated; app only displays/validates; `00001` = Admin reserved)
+- [ ] No duplicate user creation; app never generates/mutates Customer IDs
+- [ ] `Authorization: Bearer <idToken>` on every `/api/*` call
+
+### 15.4 Database collection checklist (shared MongoDB `leadnation`)
+- [ ] `trade_projects` · `trade_project_scenarios` · `trade_project_events` · `trade_project_brain_history`
+- [ ] `users` · `profiles` (shared identity/profile)
+- [ ] `pricing_config` · `payment_transactions` · `subscriptions` · `downloads` · `email_captures` · `paywall_events` · `events` (analytics)
+- [ ] Reserved: `trade_project_reports`, `trade_project_versions`
+
+### 15.5 Production deployment checklist (website v1.0)
+- [ ] Save to GitHub → tag `v1.0-leadnation-command-center-production-ready`
+- [ ] Set `CORS_ORIGINS` to prod web + app origins
+- [ ] Add prod domain to Firebase Authorized domains + DO backend CORS allow-list
+- [ ] Rotate `ADMIN_TOKEN` / `ADMIN_PASSWORD`
+- [ ] Stripe live key + webhook `{host}/api/webhook/stripe`
+- [ ] Confirm `MONGO_URL`/`DB_NAME` = production Atlas (shared with app)
+- [ ] Verify Mongo indexes on first boot ("MongoDB indexes ensured")
+- [ ] Set analytics IDs when ready (GA4/GTM/Clarity/Meta)
+- [ ] Smoke test: create project → quote → scenario → decision → recommendations → PDF
 
 *Baseline: Volume 1 + Volume 2 Phase 2A. No new feature work until website + mobile are live. Keep API contracts stable; extend, never break.*
