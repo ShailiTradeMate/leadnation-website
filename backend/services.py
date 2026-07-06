@@ -187,6 +187,10 @@ async def submit_service_request(payload: ServiceRequest):
             "source": f"service:{payload.service}", "message": payload.message,
             "createdAt": datetime.now(timezone.utc).isoformat()}
     await db.leads.insert_one(lead)
+    from emailer import notify_admin
+    await notify_admin("admin_service_request", {
+        "service": payload.service, "name": payload.name, "email": payload.email,
+        "phone": payload.phone, "country": payload.country})
     return {"ok": True, "id": doc["id"]}
 
 

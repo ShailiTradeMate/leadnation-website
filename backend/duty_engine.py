@@ -242,6 +242,12 @@ def start_scheduler():
         _scheduler = AsyncIOScheduler(timezone="UTC")
         _scheduler.add_job(refresh_all, "interval", days=REFRESH_DAYS, id="duty_refresh",
                            next_run_time=_now() + timedelta(minutes=1))
+        try:
+            import event_listings
+            _scheduler.add_job(event_listings.event_expiry_sweep, "interval", hours=12,
+                               id="event_expiry", next_run_time=_now() + timedelta(minutes=2))
+        except Exception as exc:
+            logging.warning("Could not schedule event expiry sweep: %s", exc)
         _scheduler.start()
         logging.info("Duty refresh scheduler started (every %d days)", REFRESH_DAYS)
     except Exception as exc:

@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 from core import db, require_admin
 from firebase_auth import optional_user
 from pricing import get_event_pricing, set_event_pricing, region_of
-from emailer import send_event_email
+from emailer import send_event_email, notify_admin
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
 
 router = APIRouter(prefix="/events")
@@ -190,6 +190,9 @@ async def submit_event(body: EventIn, authorization: Optional[str] = Header(defa
                            "action": "submitted", "at": _iso()})
     await send_event_email("submitted", body.contactEmail,
                            {"name": body.contactName, "eventName": body.name, "eventId": eid})
+    await notify_admin("admin_new_submission", {
+        "eventName": body.name, "country": body.country, "category": body.category,
+        "contactName": body.contactName, "contactEmail": body.contactEmail})
     return {"ok": True, "eventId": eid, "region": r, "status": doc["status"]}
 
 
@@ -432,6 +435,29 @@ async def admin_delete(event_id: str, _: dict = Depends(require_admin)):
     return {"ok": True}
 
 
+class EmailTestIn(BaseModel):
+    to: str
+    kind: str = "submitted"
+
+
+@router.post("/admin/email-test")
+async def admin_email_test(body: EmailTestIn, _: dict = Depends(require_admin)):
+    """Send a sample of any template to verify Resend delivery + rendering."""
+    from emailer import send, RESEND_API_KEY
+    sample = {
+        "name": "Test User", "eventName": "India Global Export Summit 2026",
+        "eventId": "test1234", "amountLabel": "\u20b910,000", "invoice": "LN-EV-202607-TEST01",
+        "durationDays": 30, "expiresAt": "2026-08-05T00:00:00+00:00",
+        "reason": "Sample rejection reason.", "reportTitle": "HSN 090411 · India→UAE",
+        "plan": "annual", "until": "2027-07-06T00:00:00+00:00", "item": "annual subscription",
+        "country": "India", "category": "Business", "contactName": "Test User",
+        "contactEmail": body.to, "email": body.to, "phone": "+91 90000 00000",
+        "service": "Export Documentation", "source": "email-test",
+    }
+    res = await send(body.kind, body.to, sample)
+    return {"resendConfigured": bool(RESEND_API_KEY), "result": res}
+
+
 # ---------------- Seed (starter published expos) ----------------
 _SEED = [
     {"name": "India International Trade Fair (IITF)", "category": "Trade Fair", "country": "India",
@@ -481,3 +507,22 @@ async def seed_events():
                                  "expiresAt": _iso(_now() + timedelta(days=365)),
                                  "createdAt": _iso(), "updatedAt": _iso(), **s})
     logging.info("Seeded %d starter events", len(_SEED))
+
+
+async def event_expiry_sweep():
+    """Daily: email 'expiring soon' (~3 days out) and mark/notify expired listings."""
+    now = _now()
+    soon = _iso(now + timedelta(days=3))
+    now_iso = _iso(now)
+    # expiring soon (published, not yet reminded, expiring within 3 days)
+    async for ev in EVENTS.find({"status": "published", "expiringNotified": {"$ne": True},
+                                 "expiresAt": {"$lte": soon, "$gt": now_iso}}):
+        await send_event_email("expiring", ev.get("contactEmail"),
+                               {"name": ev.get("contactName"), "eventName": ev.get("name"),
+                                "expiresAt": ev.get("expiresAt")})
+        await EVENTS.update_one({"_id": ev["_id"]}, {"$set": {"expiringNotified": True}})
+    # expired
+    async for ev in EVENTS.find({"status": "published", "expiresAt": {"$lte": now_iso}}):
+        await EVENTS.update_one({"_id": ev["_id"]}, {"$set": {"status": "expired", "updatedAt": now_iso}})
+        await send_event_email("expired", ev.get("contactEmail"),
+                               {"name": ev.get("contactName"), "eventName": ev.get("name")})

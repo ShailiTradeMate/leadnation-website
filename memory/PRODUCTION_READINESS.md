@@ -84,3 +84,52 @@
 - [ ] Verify Mongo indexes created on first prod boot (startup log: "MongoDB indexes ensured").
 - [ ] Smoke test: create project → quote → scenario → decision → recommendations → export PDF.
 - [ ] Commit stable version via **Save to GitHub**; then create tag `v1.0-leadnation-command-center` on GitHub as the production baseline.
+
+---
+
+## EMAIL (Resend) — Production Infrastructure (added 2026-07-06)
+
+### Status
+- Backend service `emailer.py` fully wired, branded (Vametra AI Technologies Pvt Ltd · LeadNation),
+  NON-BLOCKING (no-ops + logs if `RESEND_API_KEY` unset — signup/payments/events/reports never break).
+- Shared by website AND mobile app (same backend). An action from either triggers the same email flow.
+- Currently in MOCK mode (no key). Flip live by setting `RESEND_API_KEY` + `SENDER_EMAIL`.
+
+### ENV (backend/.env)
+- `RESEND_API_KEY=`  (from resend.com → API Keys)
+- `SENDER_EMAIL=LeadNation <noreply@leadnation.app>`  (must be a verified domain sender)
+- `ADMIN_EMAIL=`  (receives admin alerts: new event submission / new lead / service request)
+- `EMAIL_LOGO_URL=`  (optional hosted PNG logo; falls back to text logo)
+- `PUBLIC_SITE_URL=https://leadnation.app`  (used in CTA + footer legal links)
+
+### Domain authentication — GoDaddy DNS for leadnation.app
+In Resend → Domains → Add Domain `leadnation.app`. Resend shows the exact records; add them in
+GoDaddy → DNS. Typical set (copy Resend's actual values — do not guess):
+1. **SPF (TXT)** — Host `@` (or `send`): `v=spf1 include:amazonses.com ~all` (Resend uses Amazon SES).
+2. **DKIM (CNAME ×3, or TXT)** — Host like `resend._domainkey` → value from Resend. Add all provided.
+3. **MX (for the `send` subdomain)** — Host `send` → `feedback-smtp.<region>.amazonses.com` (priority 10).
+4. **DMARC (TXT)** — Host `_dmarc` → `v=DMARC1; p=none; rua=mailto:dmarc@leadnation.app` (start with p=none, tighten to quarantine/reject later).
+Then click **Verify** in Resend (propagation up to ~30 min). Once verified, `noreply@leadnation.app` can send.
+
+### Email events wired
+- USER (account created / welcome / security): templates exist; account creation/verification/password
+  live on the **DigitalOcean identity backend + Firebase**, so call `emailer.send("welcome", email, ctx)`
+  from there. Firebase already sends its own verification + password-reset emails.
+- EVENTS: submitted, payment_success, under_review, approved, published, rejected, expiring, expired
+  (expiring/expired via 12h APScheduler sweep `event_expiry_sweep`).
+- REPORTS: `report_generated` (on `/downloads/record` when `email` provided), `report_pdf`, `shared_report` (future-ready).
+- PAYMENTS: `subscription_success` + `payment_failed` (in monetize `_sync_status` when tx has `email`); `renewal_reminder` template ready (needs a scheduler job — future).
+- ADMIN alerts → `ADMIN_EMAIL`: `admin_new_submission` (event submit), `admin_new_lead` (leads), `admin_service_request`.
+
+### Verify delivery (after key set)
+`POST /api/events/admin/email-test` (header `X-Admin-Token`) body `{ "to": "you@domain.com", "kind": "approved" }`.
+Test kinds: submitted, approved, published, rejected, report_generated, subscription_success, admin_new_lead, etc.
+Response `{ resendConfigured: true, result: { sent: true, id } }` on success.
+
+### Alternatives to Resend (if preferred)
+- **Amazon SES** — cheapest at scale ($0.10 / 1k), most setup/DevOps.
+- **SendGrid** — mature, generous free tier, good deliverability.
+- **Postmark** — best-in-class transactional deliverability, simple.
+- **Mailgun / Brevo (Sendinblue)** — solid, EU-friendly, marketing + transactional.
+Because emails route through one abstraction (`emailer.send`), swapping providers = change env + the send call in `emailer.py` only.
+

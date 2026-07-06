@@ -67,6 +67,8 @@ class CheckoutIn(BaseModel):
     region: str = "INTL"        # IN | INTL (selects a FIXED package, not the price)
     projectId: str = ""
     origin: str
+    email: str = ""             # optional: enables payment/receipt emails
+    name: str = ""
 
 
 @pay_router.post("/checkout")
@@ -95,6 +97,7 @@ async def create_checkout(body: CheckoutIn, request: Request,
         "_id": session.session_id, "sessionId": session.session_id, "owner": owner, "ownerType": otype,
         "kind": body.kind, "amount": amount, "currency": currency, "region": region,
         "projectId": body.projectId or "", "status": "initiated", "paymentStatus": "pending",
+        "email": (body.email or "").strip(), "name": body.name,
         "consumed": False, "createdAt": _iso(_now()), "updatedAt": _iso(_now())})
     return {"url": session.url, "sessionId": session.session_id, "amount": amount, "currency": currency}
 
@@ -113,6 +116,15 @@ async def _sync_status(session_id: str):
         if new_status == "paid" and tx["kind"] in SUB_DAYS:
             until = _now() + timedelta(days=SUB_DAYS[tx["kind"]])
             await SUB.update_one({"owner": tx["owner"]}, {"$set": {"owner": tx["owner"], "status": "active", "plan": tx["kind"], "until": _iso(until), "updatedAt": _iso(_now())}}, upsert=True)
+            if tx.get("email"):
+                from emailer import send, _amount_label
+                inv = await _make_invoice(tx["owner"], tx["amount"], tx["currency"], f"{tx['kind']} subscription")
+                await send("subscription_success", tx["email"], {
+                    "name": tx.get("name"), "plan": tx["kind"], "until": _iso(until),
+                    "amountLabel": _amount_label(tx["amount"], tx["currency"]), "invoice": inv.get("number", "")})
+        elif new_status == "expired" and tx.get("email"):
+            from emailer import send
+            await send("payment_failed", tx["email"], {"name": tx.get("name"), "item": tx.get("kind", "purchase")})
         tx = await TX.find_one({"_id": session_id})
     return tx
 
@@ -183,6 +195,8 @@ class RecordIn(BaseModel):
     projectTitle: str = ""
     sessionId: str = ""
     region: str = "INTL"
+    email: str = ""
+    name: str = ""
 
 
 @dl_router.post("/record")
@@ -217,6 +231,11 @@ async def download_record(body: RecordIn, authorization: Optional[str] = Header(
         "projectTitle": body.projectTitle, "paid": paid, "free": free_available and not paid,
         "amount": amount, "currency": currency, "invoiceId": (invoice or {}).get("id"),
         "at": _iso(_now())})
+    if body.email:
+        from emailer import send
+        await send("report_generated", body.email, {
+            "name": body.name, "reportTitle": body.projectTitle or body.projectId,
+            "invoice": (invoice or {}).get("number", "")})
     return {"ok": True, "downloadId": did, "paid": paid, "free": free_available and not paid,
             "invoice": invoice}
 
