@@ -70,6 +70,12 @@ DEFAULT_PRICING: Dict[str, Any] = {
         "mostPopular": "annual",
         "emailCaptureBeforePaywall": True,
     },
+    "eventPricing": {
+        "IN": {"amount": 10000.0, "currency": "inr"},
+        "INTL": {"amount": 105.0, "currency": "usd"},
+        "durationDays": 30,
+        "discountPct": 0.0,
+    },
     "features": [
         {"label": "Branded Trade Reports (PDF)", "download": "1 free, then per report",
          "monthly": "Unlimited", "annual": "Unlimited"},
@@ -115,6 +121,39 @@ async def gateway_for(region: str) -> str:
             if name == "razorpay" and os.environ.get("RAZORPAY_KEY_ID"):
                 return name
     return "stripe"
+
+
+# ---- Event listing pricing (single source of truth; owned by admin) ----
+def region_of(country: str) -> str:
+    """India -> IN, everything else -> INTL."""
+    c = (country or "").strip().lower()
+    return "IN" if c in ("in", "india") else "INTL"
+
+
+async def get_event_pricing() -> Dict[str, Any]:
+    cfg = await get_config()
+    ep = cfg.get("eventPricing") or DEFAULT_PRICING["eventPricing"]
+    # ensure shape
+    return {
+        "IN": ep.get("IN", DEFAULT_PRICING["eventPricing"]["IN"]),
+        "INTL": ep.get("INTL", DEFAULT_PRICING["eventPricing"]["INTL"]),
+        "durationDays": int(ep.get("durationDays", 30)),
+        "discountPct": float(ep.get("discountPct", 0.0)),
+    }
+
+
+async def set_event_pricing(patch: Dict[str, Any]) -> Dict[str, Any]:
+    ep = await get_event_pricing()
+    if patch.get("inAmount") is not None:
+        ep["IN"] = {"amount": float(patch["inAmount"]), "currency": "inr"}
+    if patch.get("intlAmount") is not None:
+        ep["INTL"] = {"amount": float(patch["intlAmount"]), "currency": "usd"}
+    if patch.get("durationDays") is not None:
+        ep["durationDays"] = int(patch["durationDays"])
+    if patch.get("discountPct") is not None:
+        ep["discountPct"] = float(patch["discountPct"])
+    await CFG.update_one({"_id": CONFIG_ID}, {"$set": {"eventPricing": ep, "updatedAt": _iso()}}, upsert=True)
+    return ep
 
 
 def public_view(cfg: Dict[str, Any], region: str) -> Dict[str, Any]:

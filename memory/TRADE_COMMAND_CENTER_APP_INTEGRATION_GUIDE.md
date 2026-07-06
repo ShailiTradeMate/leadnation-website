@@ -456,3 +456,67 @@ Same data, either direction:
 - [ ] Smoke test: create project → quote → scenario → decision → recommendations → PDF
 
 *Baseline: Volume 1 + Volume 2 Phase 2A. No new feature work until website + mobile are live. Keep API contracts stable; extend, never break.*
+
+---
+
+## ADDENDUM (v1.1) — Expo & Events Engine, Trade News Engine, Uploads, Payments, Email
+
+All endpoints below share the SAME backend, MongoDB, Firebase auth and Customer ID
+as the website. The mobile app is a thin client — do NOT re-implement any logic.
+Auth: send `Authorization: Bearer <Firebase ID token>` when signed in (optional for
+public reads; required to personalize). Base = `${API}` = `<BACKEND_URL>/api`.
+
+### A. Trade News Engine  (`/api/news`)
+- `GET /news/feed?country=&category=All&limit=24`
+  - Guest → global trade news. Signed-in → auto-personalized by profile country + role
+    (+ preferred products). Returns `{ items[], personalized, context:{country,role}, live, categories[] }`.
+  - Each item: `{ id, title, excerpt, image, category, country, date, source, url, badge }`
+    where `badge` ∈ `live` (News API) | `ai` (Brain-curated) | `admin` (editorial).
+- `GET /news/{news_id}` → full item + `impact` (LeadNation Brain "what does this mean
+  for my trade?", markdown bullets, personalized when authed).
+- Admin: `GET /news/admin/all`, `POST /news/admin`, `PUT /news/admin/{id}`, `DELETE /news/admin/{id}`.
+- Env: `NEWSDATA_API_KEY` (NewsData.io adapter; falls back to AI/curated if unset).
+
+### B. Expo & Global Events Engine  (`/api/events`)
+Collections: `expo_listings`, `event_submissions`, `event_payments`.
+Public/user:
+- `GET /events/filters` → `{ categories[], industries[], audiences[], countries[] }` (dropdown sources).
+- `GET /events/list?category=&country=&industry=&audience=&q=&limit=` → approved+published, unexpired.
+- `GET /events/{event_id}` → single event (public if published; owner/admin otherwise).
+- `GET /events/mine` → the caller's submissions (uid or `X-Trade-Session`).
+- `GET /events/pricing?country=` or `?region=IN|INTL` → `{ region, amount, currency, durationDays, gateway, symbol }`.
+- `POST /events/submit` → body = full event (see fields below). Returns `{ eventId, region, status }`. Status starts `payment_pending`.
+Event fields: `name, category, country, city, venueName, venueAddress, startDate, endDate,
+organizer, description, audience, industry, products, contactName, contactEmail(required),
+contactPhone, website, images[], posters[], flyers[], documents[]` (arrays hold `/api/storage/file/{id}` URLs).
+Lifecycle: `payment_pending → under_review (after payment) → published (admin approve) → expired`; or `rejected`.
+
+Payments (region-based; pricing from admin engine, never hardcode):
+- International (`INTL`, USD $105) → Stripe:
+  - `POST /events/{event_id}/pay/stripe` body `{ origin }` → `{ url, sessionId }`; open `url`, then poll
+  - `GET /events/pay/stripe/status/{session_id}` → `{ status:'paid', eventId }`.
+- India (`IN`, ₹10,000) → Razorpay (when keys set, else Stripe INR fallback):
+  - `POST /events/{event_id}/pay/razorpay/order` → `{ orderId, amount, currency, keyId, contact }`
+  - open Razorpay checkout, then `POST /events/pay/razorpay/verify` `{ razorpay_order_id, razorpay_payment_id, razorpay_signature }`.
+  - RN: use `react-native-razorpay`; keyId comes from the order response (never bundle secrets).
+
+Admin (`role==admin`): `GET /events/admin/all?status=`, `GET/PUT /events/admin/pricing`,
+`POST /events/admin/create`, `PUT /events/admin/{id}`, `POST /events/admin/{id}/approve`,
+`POST /events/admin/{id}/reject {reason}`, `POST /events/admin/{id}/feature`,
+`POST /events/admin/{id}/extend {days}`, `DELETE /events/admin/{id}`.
+
+### C. File Uploads  (`/api/storage`)
+- `POST /storage/upload` (multipart `file`, max 12MB) → `{ id, url:'/api/storage/file/{id}', filename, size, contentType }`.
+- `GET /storage/file/{id}` → serves the file. RN: display via `${BACKEND_URL}${url}`.
+- Provider-abstracted (`STORAGE_PROVIDER` env; Emergent object storage now, S3/Firebase/Spaces later).
+
+### D. Email (Resend) — automatic at every step
+Server-side only. Templates: submitted, payment_success, under_review, approved, published,
+rejected, expiring, expired. Env `RESEND_API_KEY`, `SENDER_EMAIL`. Non-blocking (no-ops if unset).
+The app does nothing here — emails are triggered by backend events.
+
+### E. Env keys (backend/.env)
+`NEWSDATA_API_KEY, RESEND_API_KEY, SENDER_EMAIL, PUBLIC_SITE_URL, RAZORPAY_KEY_ID,
+RAZORPAY_KEY_SECRET, RAZORPAY_WEBHOOK_SECRET, STORAGE_PROVIDER`. All optional for preview;
+required in production for live news, email and India (Razorpay) payments.
+

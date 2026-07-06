@@ -34,11 +34,8 @@ const TABS = [
   ["terms", "Trade Terms", Handshake],
   ["fx", "Currency Exchange", CurrencyCircleDollar],
   ["cbm", "CBM Calculator", Cube],
-  ["cha", "CHA Charges", Calculator],
-  ["price", "Price Calculator", Calculator],
   ["freight", "Freight Routes", Path],
   ["benefits", "Govt. Benefits", Gift],
-  ["chas", "CHA Directory", Users],
 ];
 
 const Field = ({ label, children }) => (
@@ -79,11 +76,8 @@ export default function CustomsCompliance() {
         {tab === "terms" && <TradeTermsTool />}
         {tab === "fx" && <FxTool />}
         {tab === "cbm" && <CbmTool />}
-        {tab === "cha" && <ChaTool />}
-        {tab === "price" && <PriceTool />}
         {tab === "freight" && <FreightTool />}
         {tab === "benefits" && <BenefitsTool />}
-        {tab === "chas" && <ChaDirectory />}
       </section>
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>

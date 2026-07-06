@@ -11,6 +11,7 @@ import reference, engines, search, leads, trade_tools, ai, content, services, ad
 from monetize import pay_router, dl_router, acc_router, hook_router
 from pricing import pricing_router, get_config as get_pricing_config
 import events, adapters, simulation, decision_engine
+import storage, news_engine, event_listings
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -23,7 +24,7 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="LeadNation — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
@@ -48,6 +49,14 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def _startup():
     init_firebase()
+    try:
+        storage.init_storage()
+    except Exception as exc:
+        logging.warning("Storage init failed: %s", exc)
+    try:
+        await event_listings.seed_events()
+    except Exception as exc:
+        logging.warning("Event seed failed: %s", exc)
     for name, source in CMS_COLLECTIONS.items():
         try:
             await _seed_collection(name, source)
@@ -89,6 +98,11 @@ async def _ensure_indexes():
     await db.subscriptions.create_index("owner")
     await db.email_captures.create_index("email", unique=True)
     await db.paywall_events.create_index("event")
+    await db.expo_listings.create_index([("status", 1), ("startDate", 1)])
+    await db.expo_listings.create_index("owner")
+    await db.event_payments.create_index("eventId")
+    await db.uploaded_files.create_index("owner")
+    await db.trade_news_admin.create_index([("featured", -1), ("createdAt", -1)])
     logging.info("MongoDB indexes ensured for Command Center collections.")
 
 

@@ -9,6 +9,8 @@ import CustomsCompliance from "@/pages/CustomsCompliance";
 import TradeNews from "@/pages/TradeNews";
 import TradeNewsDetail from "@/pages/TradeNewsDetail";
 import Expo from "@/pages/Expo";
+import EventSubmit from "@/pages/EventSubmit";
+import EventDetail from "@/pages/EventDetail";
 import ProductInfo from "@/pages/ProductInfo";
 import Contact from "@/pages/Contact";
 import DutyCalculator from "@/pages/DutyCalculator";
@@ -67,6 +69,8 @@ function App() {
             <Route path="/trade-news" element={<TradeNews />} />
             <Route path="/trade-news/:id" element={<TradeNewsDetail />} />
             <Route path="/expo" element={<Expo />} />
+            <Route path="/expo/submit" element={<EventSubmit />} />
+            <Route path="/expo/:id" element={<EventDetail />} />
             <Route path="/product-info" element={<ProductInfo />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/search" element={<GlobalSearch />} />

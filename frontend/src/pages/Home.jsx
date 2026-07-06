@@ -165,7 +165,7 @@ export default function Home() {
       <section className="relative max-w-7xl mx-auto px-6 sm:px-10 py-24">
         <SectionLabel testId="home-features-label">What's inside the app</SectionLabel>
         <h2 className="font-display font-extrabold tracking-tight text-3xl sm:text-5xl mt-4 max-w-3xl leading-[1.05]">
-          Six engines. One <span className="gradient-text">global advantage.</span>
+          Five engines. One <span className="gradient-text">global advantage.</span>
         </h2>
 
         <div className="mt-12 grid md:grid-cols-6 gap-5">
@@ -178,9 +178,7 @@ export default function Home() {
           <FeatureCard className="md:col-span-3" Icon={CalendarBlank} title="Expo & Events Engine"
             desc="Every major trade expo on earth — filtered by sector, country and date." link="/expo" testId="feat-expo" />
           <FeatureCard className="md:col-span-3" Icon={Newspaper} title="Trade News Engine"
-            desc="Curated, deduped global trade news. The signal, not the noise." link="/trade-news" testId="feat-news" />
-          <FeatureCard className="md:col-span-3" Icon={Translate} title="Built for India"
-            desc="GST, RoDTEP, ICEGATE and full Hindi + regional language support." link="/contact" testId="feat-india" />
+            desc="Real-time global trade news, personalized to your country and role." link="/trade-news" testId="feat-news" />
         </div>
       </section>
 

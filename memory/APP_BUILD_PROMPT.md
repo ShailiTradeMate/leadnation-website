@@ -84,3 +84,19 @@ Implement **Android App Links + iOS Universal Links + Expo Linking**, anchored t
 - Every screen maps 1:1 to a documented endpoint (no guesswork).
 - Shared Firebase + Mongo + Customer-ID means zero backend duplication; connection is guaranteed by using the same env values.
 - Keep `TRADE_COMMAND_CENTER_APP_INTEGRATION_GUIDE.md` open alongside this prompt for exact request/response JSON.
+
+---
+
+## v1.1 additions the app MUST support (see TRADE_COMMAND_CENTER_APP_INTEGRATION_GUIDE.md → ADDENDUM v1.1)
+- **Expo & Events tab**: list/filter approved events (`GET /api/events/list` + `/api/events/filters`
+  dropdowns), event detail, and a "List your event" flow — submit (`POST /api/events/submit`),
+  upload media (`/api/storage/upload`), then pay by region: Stripe ($105 INTL) or Razorpay
+  (₹10,000 IN) via `react-native-razorpay`. Only admin-approved events are shown. Same DB as web:
+  an event created on the app is reviewed by the web admin and appears on both.
+- **Trade News tab**: `GET /api/news/feed` (auto-personalized by the signed-in user's country/role;
+  global for guests) + `GET /api/news/{id}` with a Brain "what this means for my trade" impact note.
+- **Uploads** go through `/api/storage` (12MB max) and render from `${BACKEND_URL}/api/storage/file/{id}`.
+- **Emails** are automatic/server-side (submitted → paid → review → approved/published → expiring/expired) — app does nothing.
+- Removed from web (do NOT build in app): "Built for India" section; and CHA Charges / Price Calculator /
+  CHA Directory tabs under Customs & Compliance.
+

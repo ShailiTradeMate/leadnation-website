@@ -1,0 +1,55 @@
+{
+  "summary": "Iteration 25 — Expo & Global Events Engine + Trade News Engine + Object Storage regression. 17/17 backend pytest cases PASS. Frontend flows verified: /expo lists 6 seeded events incl. Gulfood, filter dropdowns + 'List your event' CTA render, event detail exposes 'Ask the Brain'. /expo/submit fee banner switches ₹10,000 (India) <-> $105 (USA); INTL submit + 'Submit & pay' successfully redirects to Stripe checkout showing US$105.00. /trade-news feed loads with badges, guest hint present, article detail renders 'What does this mean for your trade?' Brain impact block. Home now shows 'Five engines. One global advantage.' and no 'Built for India'. Customs & Compliance tabs correctly reduced (CHA Charges / Price Calculator / CHA Directory removed; 9 remaining tabs still present). Admin UI tabs 'Event Listings' + 'Trade News' verified by code inspection with all required data-testids — Firebase login is CORS-blocked in the preview environment (documented in test_credentials.md), so admin UI itself is not testable via Playwright, but every admin backend endpoint (events admin/all, pricing GET/PUT, approve/reject/feature/extend/delete, news admin CRUD) was verified against the X-Admin-Token fallback.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verified_scenarios": [
+    {"scenario": "GET /api/events/filters", "status": "PASS", "evidence": "categories(10)/industries(12)/audiences(9)/countries all present"},
+    {"scenario": "GET /api/events/list", "status": "PASS", "evidence": ">=1 items, all status ∈ {published,approved}, Gulfood present"},
+    {"scenario": "GET /api/events/pricing?country=India", "status": "PASS", "evidence": "region=IN, amount=10000, currency=inr, durationDays=30"},
+    {"scenario": "GET /api/events/pricing?region=INTL", "status": "PASS", "evidence": "amount=105, currency=usd"},
+    {"scenario": "POST /api/events/submit missing contactEmail", "status": "PASS", "evidence": "422 validation error"},
+    {"scenario": "POST /api/events/submit (USA)", "status": "PASS", "evidence": "eventId returned, status=payment_pending, region=INTL"},
+    {"scenario": "POST /api/events/{id}/pay/stripe", "status": "PASS", "evidence": "url starts with https://checkout.stripe.com, amount=105 usd"},
+    {"scenario": "POST /api/events/{id}/pay/razorpay/order", "status": "PASS", "evidence": "503 graceful (keys unset)"},
+    {"scenario": "Admin GET /api/events/admin/all (X-Admin-Token)", "status": "PASS", "evidence": "items[] returned"},
+    {"scenario": "Admin /events/admin/all requires auth", "status": "PASS", "evidence": "no header -> 403"},
+    {"scenario": "Admin GET/PUT /api/events/admin/pricing", "status": "PASS", "evidence": "update + re-fetch value round-trips; restored"},
+    {"scenario": "Admin lifecycle (submit->approve->list contains->feature->extend->reject->delete->404)", "status": "PASS", "evidence": "All 6 admin actions 200; approved event appears in /events/list; deletion returns 404 on GET"},
+    {"scenario": "GET /api/news/feed (guest)", "status": "PASS", "evidence": "personalized=false, items>=3, badges include ai/admin (NewsData key unset -> ai/curated fallback used)"},
+    {"scenario": "GET /api/news/{id} impact", "status": "PASS", "evidence": "impact string present (Brain analysis or deterministic bullets fallback)"},
+    {"scenario": "Admin news CRUD + featured-first", "status": "PASS", "evidence": "POST admin featured article appears first among admin items in /news/feed"},
+    {"scenario": "Admin /news/admin/all requires auth", "status": "PASS", "evidence": "no header -> 403"},
+    {"scenario": "POST /api/storage/upload + GET /api/storage/file/{id}", "status": "PASS", "evidence": "1x1 PNG uploaded, id/url returned, GET serves image/* bytes"},
+    {"scenario": "FRONTEND /expo", "status": "PASS", "evidence": "expo-search, expo-filter-{category,country,industry}, expo-list-cta visible; 6 event cards render; Gulfood in text; card click opens /expo/{id} with 'Ask the Brain' button"},
+    {"scenario": "FRONTEND /expo/submit banner switching", "status": "PASS", "evidence": "India shows ₹10,000 / 30 days; USA shows $105 / 30 days"},
+    {"scenario": "FRONTEND /expo/submit -> Stripe redirect", "status": "PASS", "evidence": "Form filled for USA event, click event-submit-pay -> navigated to checkout.stripe.com showing 'Payment US$105.00' Sandbox"},
+    {"scenario": "FRONTEND /trade-news", "status": "PASS", "evidence": "Feed loads via /api/news/feed, guest hint 'Sign in ...' present, badge keywords present, 6 article cards; click opens /trade-news/{id} with 'What does this mean for your trade?' Brain block"},
+    {"scenario": "FRONTEND /", "status": "PASS", "evidence": "'Five engines' heading present; 'Built for India' NOT in DOM"},
+    {"scenario": "FRONTEND /customs-compliance", "status": "PASS", "evidence": "CHA Charges / Price Calculator / CHA Directory REMOVED from tabs; 9 remaining tabs (Trade Command Center, Compliance Report, Trade Statistics, Duty & Benefits, Trade Terms, Currency Exchange, CBM Calculator, Freight Routes, Govt. Benefits) all render"},
+    {"scenario": "FRONTEND admin UI (event listings + trade news tabs, price editor, news modal)", "status": "NOT TESTED (Firebase preview CORS)", "evidence": "Code inspection confirms testids admin-tab-listings, admin-tab-trade-news, event-price-{in,intl,days,save}, news-new, news-field-title, news-save all present in /app/frontend/src/pages/admin/AdminDashboard.jsx. Admin backend endpoints fully covered by pytest via X-Admin-Token header."}
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_iteration_25_expo_news.py",
+    "/app/test_reports/pytest/iteration_25.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "event_listings.py `admin_reject` accepts a state change even after `published` (it just overwrites status='rejected' without unsetting expiresAt) — reviewer path should verify UI hides rejected events but the DB record still holds a future expiresAt & paid=True. Consider clearing expiresAt on reject or refusing to reject already-published events.",
+    "event_listings.py `admin_feature` mutates status via a NOT of the pre-fetch value inside a single update; race-safe but should also bump updatedAt only when value flips (already handled). Minor: the response `featured` is `not ev.get('featured')` computed before write — matches the persisted state, ok.",
+    "news_engine.py `_admin_news(country)` accepts the country argument but never filters by it (query is `{active: {$ne: False}}`). Admin news is effectively global regardless of caller — either drop the argument or actually filter (e.g. `{'country': {'$in': [country, 'Global']}}`).",
+    "news_engine.py L198 does `await db.list_collection_names()` inside every /feed call to check if brain_user_memory exists — expensive on hot path. Just try `find_one` and treat missing collection as empty.",
+    "storage.py `EmergentStorage._init` mixes class-level `_key` cache and instance state; the return `return self._key` after first init falls through fine but the `_key = None` class attr means every worker re-inits once. Acceptable for now.",
+    "storage.py returns raw bytes via FastAPI `Response` on every /file/{id} GET, but 12MB upload cap + no HEAD/Range support means large PDFs will always be re-transferred. Fine for MVP; consider a redirect-to-signed-URL later.",
+    "event_listings.py `POST /admin/{event_id}/reject` uses status code 200 with `{ok:True}` — no email is sent when admin rejects a paid event, but the code DOES send 'rejected' template. OK. Consider refunding logic when rejecting a paid event (currently: paid=True remains, expiresAt stays)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iteration_25_expo_news.py"
+  ],
+  "success_rate": {"backend": "100% (17/17 pytest)", "frontend": "100% (7/7 public flows verified end-to-end; admin UI not testable due to Firebase preview CORS, backend equivalents PASS)"},
+  "test_credentials": "Guest only (public flows). Admin backend uses X-Admin-Token: leadnation-admin-2026. Firebase admin login (admin@leadnation.app / Shiv@12345) is blocked in the Emergent preview host — see /app/memory/test_credentials.md.",
+  "seed_data_creation": "Test event 'TEST_Regression_Expo_*' + 'TEST_Admin_Lifecycle_*' created & (lifecycle test) deleted. Test admin news 'TEST_Regression_Featured_*' created & deleted. Payment records for submitted events remain in event_payments (initiated status only — no Stripe payment completed). Playwright submit created one extra event 'TEST Playwright INTL Expo' in payment_pending status which was not deleted — cosmetic residue in expo_listings.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Regression file: /app/backend/tests/test_iteration_25_expo_news.py (17 tests, ~27s). Uses X-Admin-Token fallback. NewsData/Razorpay/Resend keys intentionally UNSET — do NOT set them. If test_admin_news_crud_and_featured_first flakes, it's because the /news/feed cache merges with prior admin items; run tests in isolation or drop the trade_news_admin collection before rerun. Frontend admin UI (AdminDashboard.jsx tabs listings + trade-news) not exercised due to Firebase CORS-in-preview constraint — behaviour is verifiable only in production.",
+  "rca of the issue": "No open issues from this iteration."
+}

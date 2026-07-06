@@ -4,7 +4,7 @@ import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
 import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, GoogleLogo, CurrencyCircleDollar,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, GoogleLogo, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
 import PricingManager from "@/pages/admin/PricingManager";
@@ -106,7 +106,9 @@ export default function AdminDashboard() {
           { k: "cms", l: "Content", I: Database },
           { k: "leads", l: "Leads", I: UserList },
           { k: "service-requests", l: "Service Requests", I: Briefcase },
-          { k: "events", l: "Events", I: Eye },
+          { k: "listings", l: "Event Listings", I: CalendarCheck },
+          { k: "trade-news", l: "Trade News", I: Newspaper },
+          { k: "events", l: "Web Analytics", I: Eye },
           { k: "control-center", l: "Control Center", I: SlidersHorizontal },
           { k: "pricing", l: "Pricing", I: CurrencyCircleDollar },
         ].map((t) => (
@@ -126,6 +128,8 @@ export default function AdminDashboard() {
         {tab === "cms" && <CmsManager />}
         {tab === "leads" && <Leads />}
         {tab === "service-requests" && <ServiceRequests />}
+        {tab === "listings" && <EventListingsManager />}
+        {tab === "trade-news" && <TradeNewsManager />}
         {tab === "events" && <Events />}
         {tab === "control-center" && <ControlCenter />}
         {tab === "pricing" && <PricingManager />}
@@ -521,6 +525,196 @@ function ControlCenter() {
           {pwdMsg && <span className="text-sm text-cyan-300">{pwdMsg}</span>}
         </div>
       </div>
+    </div>
+  );
+}
+
+
+const STATUS_COLORS = {
+  published: "text-emerald-300", approved: "text-emerald-300", under_review: "text-amber-300",
+  payment_pending: "text-slate-400", rejected: "text-rose-300", expired: "text-slate-500", draft: "text-slate-400",
+};
+const EVENT_STATUSES = ["", "payment_pending", "under_review", "published", "rejected", "expired"];
+
+function EventListingsManager() {
+  const [items, setItems] = useState([]);
+  const [status, setStatus] = useState("");
+  const [pricing, setPricing] = useState(null);
+  const [pmsg, setPmsg] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const reload = async () => {
+    setLoading(true);
+    try { const { data } = await adminApi.get("/events/admin/all", { params: status ? { status } : {} }); setItems(data.items || []); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { reload(); /* eslint-disable-next-line */ }, [status]);
+  useEffect(() => { adminApi.get("/events/admin/pricing").then((r) => setPricing(r.data)).catch(() => {}); }, []);
+
+  const savePricing = async () => {
+    setPmsg("");
+    try {
+      await adminApi.put("/events/admin/pricing", {
+        inAmount: Number(pricing.IN.amount), intlAmount: Number(pricing.INTL.amount),
+        durationDays: Number(pricing.durationDays), discountPct: Number(pricing.discountPct || 0),
+      });
+      setPmsg("Saved — event pricing is live.");
+    } catch (e) { setPmsg("Save failed"); }
+  };
+
+  const act = async (id, action, extra) => {
+    try {
+      if (action === "approve") await adminApi.post(`/events/admin/${id}/approve`);
+      else if (action === "reject") await adminApi.post(`/events/admin/${id}/reject`, { reason: extra || "" });
+      else if (action === "feature") await adminApi.post(`/events/admin/${id}/feature`);
+      else if (action === "extend") await adminApi.post(`/events/admin/${id}/extend`, { days: extra || 30 });
+      else if (action === "delete") await adminApi.delete(`/events/admin/${id}`);
+      reload();
+    } catch (e) { alert(e?.response?.data?.detail || "Action failed"); }
+  };
+
+  return (
+    <div className="space-y-5" data-testid="admin-event-listings">
+      {pricing && (
+        <div className="glass-strong rounded-3xl p-6">
+          <div className="font-display font-bold text-lg flex items-center gap-2 mb-4"><CurrencyCircleDollar size={18} weight="duotone" className="text-cyan-300" /> Event Listing Pricing</div>
+          <div className="grid sm:grid-cols-4 gap-3">
+            <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">India (₹)</span>
+              <input data-testid="event-price-in" type="number" className="glass rounded-xl px-3 py-2 w-full text-sm mt-1" value={pricing.IN.amount} onChange={(e) => setPricing({ ...pricing, IN: { ...pricing.IN, amount: e.target.value } })} /></label>
+            <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">International ($)</span>
+              <input data-testid="event-price-intl" type="number" className="glass rounded-xl px-3 py-2 w-full text-sm mt-1" value={pricing.INTL.amount} onChange={(e) => setPricing({ ...pricing, INTL: { ...pricing.INTL, amount: e.target.value } })} /></label>
+            <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Duration (days)</span>
+              <input data-testid="event-price-days" type="number" className="glass rounded-xl px-3 py-2 w-full text-sm mt-1" value={pricing.durationDays} onChange={(e) => setPricing({ ...pricing, durationDays: e.target.value })} /></label>
+            <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Discount (%)</span>
+              <input type="number" className="glass rounded-xl px-3 py-2 w-full text-sm mt-1" value={pricing.discountPct || 0} onChange={(e) => setPricing({ ...pricing, discountPct: e.target.value })} /></label>
+          </div>
+          <div className="flex items-center gap-3 mt-4">
+            <button data-testid="event-price-save" onClick={savePricing} className="btn-primary !py-2 text-xs"><FloppyDisk size={14} weight="bold" /> Save pricing</button>
+            {pmsg && <span className="text-sm text-emerald-300">{pmsg}</span>}
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {EVENT_STATUSES.map((s) => (
+          <button key={s || "all"} data-testid={`event-status-${s || "all"}`} onClick={() => setStatus(s)}
+            className={`px-3 py-1.5 rounded-full text-xs font-mono-display uppercase tracking-widest ${status === s ? "tab-active text-white" : "bg-white/5 text-slate-300"}`}>
+            {s ? s.replace(/_/g, " ") : "all"}
+          </button>
+        ))}
+      </div>
+
+      {loading ? <div className="text-slate-400">Loading…</div> : (
+        <div className="glass-strong rounded-3xl overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400">
+              <tr><th className="text-left px-4 py-3">Event</th><th className="text-left px-4 py-3">Country</th><th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Paid</th><th className="text-right px-4 py-3">Actions</th></tr>
+            </thead>
+            <tbody>
+              {items.map((it) => (
+                <tr key={it.id} data-testid={`event-row-${it.id}`} className="border-t border-white/5">
+                  <td className="px-4 py-3"><div className="font-medium flex items-center gap-1">{it.featured && <Star size={12} weight="fill" className="text-amber-300" />}{it.name}</div><div className="text-[10px] text-slate-500">{it.category} · {it.contactEmail || "—"}</div></td>
+                  <td className="px-4 py-3 text-xs">{it.country}</td>
+                  <td className={`px-4 py-3 text-xs font-mono-display ${STATUS_COLORS[it.status] || "text-slate-300"}`}>{(it.status || "").replace(/_/g, " ")}</td>
+                  <td className="px-4 py-3 text-xs">{it.paid ? "✓" : "—"}</td>
+                  <td className="px-4 py-3 text-right text-xs space-x-2 whitespace-nowrap">
+                    {(it.status === "under_review" || it.status === "payment_pending") && <button data-testid={`event-approve-${it.id}`} onClick={() => act(it.id, "approve")} className="text-emerald-300 hover:underline">Approve</button>}
+                    {it.status !== "rejected" && <button data-testid={`event-reject-${it.id}`} onClick={() => { const r = window.prompt("Rejection reason?"); if (r !== null) act(it.id, "reject", r); }} className="text-rose-300 hover:underline">Reject</button>}
+                    <button onClick={() => act(it.id, "feature")} className="text-amber-300 hover:underline">{it.featured ? "Unfeature" : "Feature"}</button>
+                    <button onClick={() => { const d = window.prompt("Extend by how many days?", "30"); if (d) act(it.id, "extend", Number(d)); }} className="text-cyan-300 hover:underline">Extend</button>
+                    <button onClick={() => window.confirm("Delete this event?") && act(it.id, "delete")} className="text-slate-400 hover:text-rose-300">Delete</button>
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">No event listings yet.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const EMPTY_NEWS = { title: "", excerpt: "", body: "", category: "Business", country: "Global", source: "LeadNation", image: "", url: "", featured: false, active: true };
+
+function TradeNewsManager() {
+  const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
+  const [err, setErr] = useState("");
+
+  const reload = () => adminApi.get("/news/admin/all").then((r) => setItems(r.data.items || []));
+  useEffect(() => { reload(); }, []);
+
+  const save = async () => {
+    setErr("");
+    try {
+      if (editing.id) await adminApi.put(`/news/admin/${editing.id}`, editing);
+      else await adminApi.post("/news/admin", editing);
+      setEditing(null); reload();
+    } catch (e) { setErr(e?.response?.data?.detail || "Save failed"); }
+  };
+  const del = async (id) => { if (window.confirm("Delete this news item?")) { await adminApi.delete(`/news/admin/${id}`); reload(); } };
+
+  return (
+    <div className="space-y-5" data-testid="admin-trade-news">
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-slate-400 max-w-xl">Editorial news appears on the Trade News feed (web + app) alongside live and AI-curated items. Feature important stories to pin them to the top.</p>
+        <button data-testid="news-new" onClick={() => setEditing({ ...EMPTY_NEWS })} className="btn-primary !py-2 !px-4 text-xs"><Plus size={14} weight="bold" /> New article</button>
+      </div>
+      <div className="glass-strong rounded-3xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400">
+            <tr><th className="text-left px-4 py-3">Title</th><th className="text-left px-4 py-3">Category</th><th className="text-left px-4 py-3">Country</th><th className="text-left px-4 py-3">Featured</th><th className="text-right px-4 py-3">Actions</th></tr>
+          </thead>
+          <tbody>
+            {items.map((it) => (
+              <tr key={it.id} className="border-t border-white/5">
+                <td className="px-4 py-3 max-w-md truncate">{it.title}</td>
+                <td className="px-4 py-3 text-xs">{it.category}</td>
+                <td className="px-4 py-3 text-xs">{it.country}</td>
+                <td className="px-4 py-3 text-xs">{it.featured ? <Star size={13} weight="fill" className="text-amber-300" /> : "—"}</td>
+                <td className="px-4 py-3 text-right text-xs">
+                  <button data-testid={`news-edit-${it.id}`} onClick={() => setEditing(it)} className="text-cyan-300 hover:underline mr-3">Edit</button>
+                  <button onClick={() => del(it.id)} className="text-rose-300 hover:underline">Delete</button>
+                </td>
+              </tr>
+            ))}
+            {items.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-slate-500">No editorial news yet.</td></tr>}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-[80] bg-black/70 backdrop-blur grid place-items-center p-6">
+          <div className="glass-strong rounded-3xl p-6 w-full max-w-2xl max-h-[85vh] overflow-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-display font-bold text-xl">{editing.id ? "Edit article" : "New article"}</div>
+              <button onClick={() => setEditing(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+            <div className="space-y-3">
+              <input data-testid="news-field-title" className="w-full glass rounded-xl px-4 py-2.5 text-sm" placeholder="Title" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+              <textarea className="w-full glass rounded-xl px-4 py-2.5 text-sm" rows={2} placeholder="Excerpt / summary" value={editing.excerpt} onChange={(e) => setEditing({ ...editing, excerpt: e.target.value })} />
+              <textarea className="w-full glass rounded-xl px-4 py-2.5 text-sm" rows={4} placeholder="Body (optional)" value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} />
+              <div className="grid sm:grid-cols-2 gap-3">
+                <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Category" value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} />
+                <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Country" value={editing.country} onChange={(e) => setEditing({ ...editing, country: e.target.value })} />
+                <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Source" value={editing.source} onChange={(e) => setEditing({ ...editing, source: e.target.value })} />
+                <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Image URL" value={editing.image} onChange={(e) => setEditing({ ...editing, image: e.target.value })} />
+                <input className="glass rounded-xl px-4 py-2.5 text-sm sm:col-span-2" placeholder="Source URL (optional)" value={editing.url} onChange={(e) => setEditing({ ...editing, url: e.target.value })} />
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={editing.featured} onChange={(e) => setEditing({ ...editing, featured: e.target.checked })} className="w-4 h-4 accent-cyan-400" /> Featured</label>
+                <label className="flex items-center gap-2 text-sm text-slate-300"><input type="checkbox" checked={editing.active !== false} onChange={(e) => setEditing({ ...editing, active: e.target.checked })} className="w-4 h-4 accent-cyan-400" /> Active</label>
+              </div>
+              {err && <div className="text-rose-300 text-sm">{err}</div>}
+              <div className="flex gap-3 justify-end">
+                <button onClick={() => setEditing(null)} className="btn-ghost !py-2 text-xs">Cancel</button>
+                <button data-testid="news-save" onClick={save} className="btn-primary !py-2 text-xs"><FloppyDisk size={14} weight="bold" /> Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
