@@ -32,5 +32,19 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
 ### Testing — iteration_25.json
 - Backend 17/17 pytest PASS; Frontend 7/7 public flows PASS. No issues. Admin UI not testable in preview (Firebase CORS) — admin backend endpoints PASS via X-Admin-Token.
 
+## 2026-07-06 (later) — Resend email LIVE + deployment prep
+- Reworked `emailer.py`: general service, all templates (user/events/reports/payments/admin), branded
+  "LeadNation by Vametra AI Technologies Pvt Ltd" (serif wordmark, NO logo), Privacy/Terms/Contact footer,
+  non-blocking + auto-retry on Resend 2/sec limit. Added `notify_admin` + `/events/admin/email-test`.
+- Wired triggers: event admin-submission alert, 12h expiry sweep (expiring/expired), leads + service-request
+  admin alerts, subscription_success/payment_failed + report_generated in monetize (best-effort via optional email).
+- ENV live: RESEND_API_KEY (leadnation.app domain verified), SENDER_EMAIL, ADMIN_EMAIL=admin@leadnation.app.
+  Test-delivered all templates to multiple inboxes — confirmed by user.
+- Deployment prep: deployment_agent = PASS. Set prod `CORS_ORIGINS` (explicit domains, no wildcard).
+  Task 7 SEO already correct (canonical/robots/sitemap/OG → leadnation.app). Payments stay TEST for launch
+  (live Stripe/Razorpay keys post-deploy; code already env-ready, Razorpay auto-activates for IN).
+  ADMIN_TOKEN/PASSWORD unchanged per user (rotate before public launch). Created LEADNATION_PRODUCTION_DEPLOYMENT_REPORT.md.
+- Docs updated: PRODUCTION_READINESS.md (email LIVE), APP_BUILD_PROMPT.md + INTEGRATION_GUIDE (v1.1 APIs).
+
 ### Not yet done (owner action required) — Production deployment Tasks 1–8
 - Emergent deploy, GoDaddy DNS for leadnation.app, Firebase authorized domains, prod CORS_ORIGINS, live Stripe/Razorpay/Resend/NewsData keys, SEO canonical/sitemap to leadnation.app, final deployment report.
