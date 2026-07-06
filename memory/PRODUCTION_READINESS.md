@@ -90,10 +90,14 @@
 ## EMAIL (Resend) — Production Infrastructure (added 2026-07-06)
 
 ### Status
-- Backend service `emailer.py` fully wired, branded (Vametra AI Technologies Pvt Ltd · LeadNation),
-  NON-BLOCKING (no-ops + logs if `RESEND_API_KEY` unset — signup/payments/events/reports never break).
+- **LIVE (activated 2026-07-06).** Resend key set, domain `leadnation.app` VERIFIED (domain-scoped
+  key sends successfully). Sender: `LeadNation by Vametra AI Technologies Pvt Ltd <noreply@leadnation.app>`.
+  Admin alerts → `admin@leadnation.app`. All 8 event templates + reports + payments + admin alerts test-delivered OK.
+- Backend service `emailer.py` fully wired, branded (serif "LeadNation" wordmark + "by Vametra AI
+  Technologies Pvt Ltd", NO logo image), NON-BLOCKING (no-ops + logs if key unset).
 - Shared by website AND mobile app (same backend). An action from either triggers the same email flow.
-- Currently in MOCK mode (no key). Flip live by setting `RESEND_API_KEY` + `SENDER_EMAIL`.
+- Free-tier rate limit is 2 req/sec — `send()` auto-retries once on 429 so back-to-back lifecycle
+  emails (e.g. approved+published) don't drop. Upgrade the Resend plan for higher volume.
 
 ### ENV (backend/.env)
 - `RESEND_API_KEY=`  (from resend.com → API Keys)

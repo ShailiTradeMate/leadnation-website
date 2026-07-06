@@ -33,33 +33,30 @@ if RESEND_API_KEY:
 # ---------------- Branded shell ----------------
 def _shell(title: str, body_html: str, cta_label: str = "", cta_url: str = "") -> str:
     year = datetime.now(timezone.utc).year
-    logo = (f'<img src="{EMAIL_LOGO_URL}" alt="LeadNation" height="26" style="display:block;" />'
-            if EMAIL_LOGO_URL else
-            '<span style="font-size:18px;font-weight:800;color:#ffffff;">Lead<span style="color:#00C2FF;">Nation</span></span>')
     cta = ""
     if cta_label and cta_url:
         cta = (f'<tr><td style="padding:10px 0 4px 0;"><a href="{cta_url}" '
                f'style="display:inline-block;background:#00C2FF;color:#04121f;font-weight:700;'
                f'text-decoration:none;padding:12px 26px;border-radius:10px;font-size:14px;">'
                f'{cta_label}</a></td></tr>')
-    return f"""<!doctype html><html><body style="margin:0;background:#05070f;font-family:Arial,Helvetica,sans-serif;">
+    return f"""<!doctype html><html><body style="margin:0;background:#05070f;font-family:Georgia,'Times New Roman',serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#05070f;padding:28px 0;">
 <tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#0b1120;border:1px solid #1c2740;border-radius:16px;overflow:hidden;">
-<tr><td style="padding:22px 32px;border-bottom:1px solid #1c2740;">
-  {logo}
-  <span style="font-size:10px;letter-spacing:3px;color:#5b6b86;text-transform:uppercase;display:block;margin-top:4px;">Global Trade Intelligence</span>
+<tr><td style="padding:24px 32px;border-bottom:1px solid #1c2740;">
+  <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;letter-spacing:-0.3px;color:#ffffff;">Lead<span style="color:#00C2FF;">Nation</span></div>
+  <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:2px;color:#6b7c99;text-transform:uppercase;margin-top:5px;">by Vametra AI Technologies Pvt Ltd</div>
 </td></tr>
-<tr><td style="padding:30px 32px;">
+<tr><td style="padding:30px 32px;font-family:Arial,Helvetica,sans-serif;">
   <h1 style="color:#ffffff;font-size:20px;margin:0 0 14px 0;">{title}</h1>
   <div style="color:#c3ccdd;font-size:14px;line-height:1.6;">{body_html}</div>
   <table role="presentation" cellpadding="0" cellspacing="0">{cta}</table>
 </td></tr>
-<tr><td style="padding:18px 32px;border-top:1px solid #1c2740;color:#5b6b86;font-size:11px;line-height:1.7;">
-  <a href="{SITE}/legal/privacy" style="color:#8aa0c0;text-decoration:none;">Privacy Policy</a> ·
-  <a href="{SITE}/legal/terms" style="color:#8aa0c0;text-decoration:none;">Terms</a> ·
+<tr><td style="padding:18px 32px;border-top:1px solid #1c2740;font-family:Arial,Helvetica,sans-serif;color:#5b6b86;font-size:11px;line-height:1.7;">
+  <a href="{SITE}/legal/privacy" style="color:#8aa0c0;text-decoration:none;">Privacy Policy</a> &nbsp;·&nbsp;
+  <a href="{SITE}/legal/terms" style="color:#8aa0c0;text-decoration:none;">Terms</a> &nbsp;·&nbsp;
   <a href="{SITE}/contact" style="color:#8aa0c0;text-decoration:none;">Contact</a><br/>
-  &copy; {year} {COMPANY}. All rights reserved. {BRAND} is a product of {COMPANY}.<br/>
+  &copy; {year} {COMPANY}. All rights reserved. LeadNation is a product of {COMPANY}.<br/>
   <a href="{SITE}" style="color:#00C2FF;text-decoration:none;">{SITE.replace('https://', '')}</a>
 </td></tr>
 </table></td></tr></table></body></html>"""
@@ -217,6 +214,14 @@ async def send(kind: str, to_email: Optional[str], ctx: dict = None):
         res = await asyncio.to_thread(resend.Emails.send, params)
         return {"sent": True, "id": (res or {}).get("id")}
     except Exception as exc:
+        # Retry once on Resend free-tier rate limit (2 req/s) so lifecycle emails don't drop.
+        if "Too many requests" in str(exc) or "429" in str(exc):
+            try:
+                await asyncio.sleep(1.2)
+                res = await asyncio.to_thread(resend.Emails.send, params)
+                return {"sent": True, "id": (res or {}).get("id"), "retried": True}
+            except Exception as exc2:
+                exc = exc2
         logging.warning("Email send failed (%s -> %s): %s", kind, to_email, exc)
         return {"sent": False, "error": str(exc)}
 
