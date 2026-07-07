@@ -6,11 +6,11 @@ _Product: **LeadNation** · Company: **Vametra AI Technologies Pvt Ltd** · Prep
 
 ---
 
-## 1. URLs
-- **Website (public):** https://www.leadnation.app  (root https://leadnation.app → forwards to www)
-- **Emergent deployment URL (internal ref):** `<LIVE_EMERGENT_URL>`  (users must NOT see this)
-- **Backend API (website):** https://www.leadnation.app/api  (all routes prefixed `/api`)
-- **Health check:** `GET https://www.leadnation.app/api/events/list` → 200 (or `/api/news/feed?limit=1`)
+## 1. URLs — ✅ LIVE
+- **Website (public):** https://leadnation.app  (apex is canonical; https://www.leadnation.app → 308 redirect → apex) ✅ SSL valid (HTTP/2)
+- **Emergent deployment URL (internal ref):** https://trade-brain-ai.emergent.host  (users must NOT use this)
+- **Backend API:** https://leadnation.app/api  (health `GET /api/events/list` → 200) ✅
+- **Firebase Authorized Domains:** leadnation.app + www.leadnation.app added; Google login verified ✅
 
 ## 2. Database
 - **MongoDB Atlas**, DB = `leadnation` (shared with mobile app). Connected via `MONGO_URL` env.
@@ -52,13 +52,15 @@ _Product: **LeadNation** · Company: **Vametra AI Technologies Pvt Ltd** · Prep
   `leadnation.app`) → verify via DNS TXT → submit `https://leadnation.app/sitemap.xml`.
 
 ## 8. Remaining manual actions (owner)
-1. Emergent → Deploy Now → get `<LIVE_EMERGENT_URL>`.
-2. Link `www.leadnation.app` via Entri; in GoDaddy remove `A @ WebsiteBuilder`, set `www` CNAME to Entri target,
-   forward root → www. Do NOT touch email records (MX/SPF/DKIM/DMARC/`send`).
-3. Firebase authorized domains (see §3).
-4. Add LIVE Stripe + Razorpay keys (see §6) and restart.
-5. Google Search Console (see §7).
-6. **Before public launch:** rotate ADMIN_TOKEN + ADMIN_PASSWORD.
+1. ~~Deploy~~ ✅ DONE — live at trade-brain-ai.emergent.host.
+2. ~~Link www.leadnation.app~~ ✅ DONE — apex live, www redirects, SSL valid, email DNS untouched.
+3. ~~Firebase authorized domains~~ ✅ DONE — leadnation.app + www added; Google login verified.
+4. ⏳ **PENDING** — Add LIVE Stripe + Razorpay keys (Secrets tab) + Redeploy. (User sourcing keys.)
+5. ⏳ Google Search Console → submit https://leadnation.app/sitemap.xml.
+6. 🔒 **Before public launch:** rotate ADMIN_TOKEN + ADMIN_PASSWORD (Secrets tab) + Redeploy.
+
+**Note (mobile app EXPO_PUBLIC_API_BASE):** point Events/News/Uploads/Brain/Command Center/Pricing to
+`https://leadnation.app/api`; identity to the DigitalOcean base. Same MongoDB Atlas = consistent data.
 
 ## 9. App deployment checklist (separate job)
 - Build React Native (Expo) per `APP_BUILD_PROMPT.md`; set the two env bases from §5.
