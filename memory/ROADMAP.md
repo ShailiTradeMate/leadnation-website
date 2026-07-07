@@ -11,6 +11,8 @@ Vaibhav Deshmane · Vametra AI Technologies Pvt Ltd
 ---
 
 ## P1 BACKLOG (from user snip — near-term, independent of Volumes)
+- [ ] **PRE-PUBLIC-LAUNCH SECURITY (mandatory):** Rotate `ADMIN_TOKEN` + `ADMIN_PASSWORD` to strong production values (Emergent Secrets tab → Redeploy). Kept unchanged for first deploy during web+app integration testing per owner. Update `/app/memory/test_credentials.md` when done.
+- [ ] **Go-live payments:** Add LIVE Stripe secret key + Razorpay `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` (Secrets tab → Redeploy). Code is env-ready — Razorpay auto-activates for India, Stripe for international. Then live-test $105 (Stripe) + ₹10,000 (Razorpay) event-listing payments. (Owner sourcing keys.)
 - [ ] **Razorpay wiring for India** — blocked on user API keys. Gateway toggle + pricing already in the Pricing Engine; just wire checkout/webhook when keys arrive.
 - [ ] **My Reports history + shareable public/private links with expiry** — store generated reports per project; shareable link with visibility + TTL.
 - [x] **Legal pages** — DONE (2026-07-05): Privacy, Terms, Cookie, Disclaimer, Refund at `/legal/*` (international scope, reusable links in footer/signup/checkout).

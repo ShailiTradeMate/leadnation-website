@@ -2,7 +2,7 @@ import React from "react";
 import { Helmet } from "react-helmet-async";
 
 const SITE = "https://leadnation.app";
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1605902711622-cfb43c4437b5?auto=format&fit=crop&w=1200&q=80";
+const DEFAULT_IMAGE = "https://leadnation.app/og-default.png";
 
 /**
  * SEO component — handles dynamic meta titles, descriptions, OG and structured schema.

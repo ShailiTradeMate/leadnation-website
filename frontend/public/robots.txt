@@ -1,4 +1,15 @@
 User-agent: *
 Allow: /
 
+# Keep private / auth / admin pages out of the index
+Disallow: /admin-login
+Disallow: /admin-cms
+Disallow: /admin/
+Disallow: /account
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /command-center
+Disallow: /expo/submit
+
 Sitemap: https://leadnation.app/sitemap.xml
