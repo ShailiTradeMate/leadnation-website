@@ -80,7 +80,7 @@ export default function AccountPage() {
 
   if (!data) return <div className="min-h-[60vh] flex items-center justify-center text-slate-400"><CircleNotch size={22} className="animate-spin" /></div>;
   const p = data.profile;
-  const uid = (account?.user?.customer_id) || p.customerId || p.uid || getSession().slice(0, 10);
+  const custId = (account?.user?.customer_id) || p.customerId || p.customer_id || "";
   const name = (account?.user?.full_name) || p.name || (p.guest ? "Guest Trader" : "Trader");
   const email = (account?.user?.email) || p.email || fbUser?.email || "—";
 
@@ -102,7 +102,7 @@ export default function AccountPage() {
               <span className="text-lg" title={p.country} data-testid="account-flag">{flag(p.country)} <span className="text-sm text-slate-300">{p.country || "Set country"}</span></span>
             </div>
             <div className="flex items-center gap-4 mt-2 text-sm text-slate-300 flex-wrap">
-              <span className="inline-flex items-center gap-1.5" data-testid="account-uid"><IdentificationCard size={15} className="text-cyan-300" /> ID: <span className="font-mono-display text-cyan-200">{uid}</span></span>
+              <span className="inline-flex items-center gap-1.5" data-testid="account-uid"><IdentificationCard size={15} className="text-cyan-300" /> ID: <span className="font-mono-display text-cyan-200">{custId ? custId : "Activating…"}</span></span>
               <span className="inline-flex items-center gap-1.5"><Envelope size={15} className="text-slate-400" /> {email}</span>
               <span className="inline-flex items-center gap-1.5"><Phone size={15} className="text-slate-400" /> {p.mobile || "—"}</span>
             </div>

@@ -17,6 +17,7 @@ export function AuthProvider({ children }) {
   const [account, setAccount] = useState(null); // { onboarded, user, profile }
   const [loading, setLoading] = useState(true);
   const seqRef = useRef(0);
+  const healRef = useRef("");   // uid we've already attempted to self-heal this session
 
   useEffect(() => { setPersistence(auth, browserLocalPersistence).catch(() => {}); }, []);
 
@@ -28,7 +29,24 @@ export function AuthProvider({ children }) {
     try {
       const u = auth.currentUser;
       if (!u) { if (my === seqRef.current) setAccount(null); return null; }
-      const { data: profile } = await authApi.get(`/v1/profiles/${u.uid}`);
+      let { data: profile } = await authApi.get(`/v1/profiles/${u.uid}`);
+      // SELF-HEAL: a Firebase user with no DO profile (returns the `legacy_hydrate`
+      // placeholder with customer_id:null) is "half-registered" — the /onboarding/register
+      // step never completed. Complete it once so the 5-digit Customer ID is allocated
+      // and mobile-app login (which authenticates via the same DO backend) works.
+      const needsHeal = !profile?.customer_id && profile?._source === "legacy_hydrate";
+      if (needsHeal && healRef.current !== u.uid) {
+        healRef.current = u.uid;
+        try {
+          await authApi.post("/onboarding/register", {
+            full_name: u.displayName || "",
+            role: "exporter",
+            provider: u.providerData?.[0]?.providerId?.includes("google") ? "google" : "password",
+          });
+          const re = await authApi.get(`/v1/profiles/${u.uid}`);
+          if (re?.data?.customer_id) profile = re.data;
+        } catch (_) { /* leave as-is; will retry next session */ }
+      }
       const isAdminRole = profile?.role === "admin";
       const acct = {
         onboarded: !!profile?.customer_id,
