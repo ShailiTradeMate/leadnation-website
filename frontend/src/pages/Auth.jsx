@@ -30,6 +30,19 @@ function googleErr(e) {
   return "Google sign-in failed. Please try email/password.";
 }
 
+// Password login can fail because the account was created with "Continue with
+// Google" (no password). Firebase's Email Enumeration Protection hides which
+// provider an email uses, so we can't detect this pre-login — instead we guide
+// the user to Google / password reset on the generic invalid-credential error.
+function loginErr(e) {
+  const c = e?.code || "";
+  if (c.includes("too-many-requests")) return "Too many attempts — please wait a minute and try again, or reset your password.";
+  if (c.includes("user-disabled")) return "This account has been disabled. Please contact support.";
+  if (c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found") || c.includes("invalid-login"))
+    return "Sign-in failed. If you signed up with Google, use “Continue with Google” below. Otherwise check your email/Customer ID and password, or reset it via “Forgot password?”.";
+  return "Login failed — check your email/Customer ID and password.";
+}
+
 export function Login() {
   const { login, loginWithCustomerId, google, isAuthed } = useAuth();
   const [ident, setIdent] = useState("");
@@ -47,7 +60,7 @@ export function Login() {
       else await login(id, pw);
       trackEvent(EVENTS.USER_LOGIN, { method: "password" });
       navigate("/account");
-    } catch (_) { setErr("Login failed — check your email/Customer ID and password."); }
+    } catch (e) { setErr(loginErr(e)); }
     finally { setLoading(false); }
   };
   const onGoogle = async () => { setErr(""); setLoading(true); try { await google(); trackEvent(EVENTS.USER_LOGIN, { method: "google" }); navigate("/account"); } catch (e) { setErr(googleErr(e)); } finally { setLoading(false); } };
