@@ -1,5 +1,14 @@
 # LeadNation — Changelog
 
+## 2026-07-14 (later) — Brand logo + Tagline lock + AI Search Optimization (AEO/LLM) — frontend + email
+Verified: test_reports/iteration_28.json (all PASS after footer tagline fix).
+- **Tagline LOCKED** to "Intelligence Beyond Borders" everywhere: `lib/brand.js`, footer (visible sub-brand line), Organization JSON-LD slogan (dynamic + static index.html), meta description, email header (emailer.py), llms.txt. Removed stray "Without Borders" from brand guidelines. Confirmed 0 occurrences of wrong tagline in DOM.
+- **Real LeadNation logo** wired from user assets: generated clean transparent LN mark (`public/brand/ln-mark.png`) used in Nav + Footer (replaced old SVG globe); built favicons (16/32/ico), apple-touch-icon, PWA icons (192/512), `manifest.json`, and a branded 1200×630 `og-default.png` (LN icon + LEAD/NATION wordmark + tagline) via PIL. index.html head now links favicons/apple-touch/manifest. Logo assets built from user's transparent app-icon (correct "Beyond Borders").
+- **AEO / Entity SEO**: enriched `organizationSchema` (@id, founder=Vaibhav Deshmane, foundingDate 2025, foundingLocation, knowsAbout[13], areaServed, PostalAddress, logo ImageObject, sameAs) in SEO.jsx + static index.html. Added reusable builders `articleSchema`, `productSchema`, `howToSchema`. Wired NewsArticle (TradeNewsDetail), BlogPosting (Blog), Event (EventDetail). Expanded `llms.txt` with entity summary/founder/mission/citation guidance.
+- Deliverables: `AI_SEARCH_AEO_REPORT_2026-07-14.md` (AI Search Readiness, AEO 86/100, LLM 88/100, KG readiness, structured-data report, entity SEO, content strategy §7, audit §8).
+- OPEN follow-ups: wire productSchema on /products/:slug + howToSchema on tool pages; owner: Crunchbase/Wikidata/LinkedIn About for KG authority; publish 20 flagship guides.
+
+
 ## 2026-07-14 — Production Polish Sprint (UX · SEO · Performance · Marketing) — frontend-only
 No new features; no backend/auth/DB/Firebase changes. Verified: test_reports/iteration_27.json (13/13 PASS).
 - **P0 Global scroll fix**: new `components/ScrollToTop.jsx` (useLayoutEffect + `history.scrollRestoration='manual'`) mounted in `App.js` router. Every navigation opens at top (navbar/footer/cards/Back-Forward, desktop+mobile); hash anchors (`/#download`) still scroll to section.

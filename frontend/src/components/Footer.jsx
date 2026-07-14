@@ -16,7 +16,7 @@ export default function Footer() {
             <div>
               <div className="font-display font-extrabold text-lg">LeadNation</div>
               <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase">
-                Global Trade Intelligence
+                {TAGLINE}
               </div>
             </div>
           </div>
@@ -114,7 +114,7 @@ export default function Footer() {
       <div className="border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div>© {new Date().getFullYear()} LeadNation · Vametra AI Technologies Pvt Ltd · All rights reserved.</div>
-          <div className="font-mono-display tracking-widest">v1.0 · Built for global traders.</div>
+          <div className="font-mono-display tracking-widest">Global Trade Intelligence · 195+ countries</div>
         </div>
       </div>
     </footer>
