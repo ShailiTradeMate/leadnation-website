@@ -1,5 +1,16 @@
 # LeadNation — Changelog
 
+## 2026-07-14 — Production Polish Sprint (UX · SEO · Performance · Marketing) — frontend-only
+No new features; no backend/auth/DB/Firebase changes. Verified: test_reports/iteration_27.json (13/13 PASS).
+- **P0 Global scroll fix**: new `components/ScrollToTop.jsx` (useLayoutEffect + `history.scrollRestoration='manual'`) mounted in `App.js` router. Every navigation opens at top (navbar/footer/cards/Back-Forward, desktop+mobile); hash anchors (`/#download`) still scroll to section.
+- **Performance**: `App.js` rewritten with `React.lazy` + `<Suspense>` for all ~40 routes (Home eager). Accessible route loader (`role=status` + sr-only).
+- **SEO**: `SEO.jsx` rewritten with reusable JSON-LD builders (organization/website/softwareApplication/faq/breadcrumb/event); `schema` prop accepts arrays; added og/twitter image:alt, richer robots. Home now renders `<SEO>` (was imported-but-unused) with FAQ schema; Pricing gets Breadcrumb+FAQ; added SEO to Marketplace/Network. Deduped site-wide schema (kept static in index.html). Added `public/llms.txt` for AI-search discoverability. index.html Organization gets legalName+slogan+LinkedIn sameAs + SoftwareApplication block.
+- **Marketing / social**: new `src/lib/brand.js` single-source config (TAGLINE="Intelligence Beyond Borders", SOCIALS[], SAME_AS). Instagram + LinkedIn wired in Footer, Contact, JSON-LD sameAs, OG/Twitter. Adding a future platform = one array entry. `data/contact.js` now sources socials from brand.js.
+- **Auth UX** (earlier this session): login shows Google-only guidance on `auth/invalid-credential` (Firebase enumeration protection blocks pre-detection). App-team fix documented in `GOOGLE_ONLY_ACCOUNT_FIX.md`.
+- Deliverables: `POLISH_SPRINT_REPORT_2026-07-14.md` (UX/SEO/Perf/Marketing/A11y/CWV/before-after/growth recs).
+- Branding: logos/favicon/app-icon UNTOUCHED pending owner's final assets.
+
+
 ## 2026-07-06 — Expo & Events Engine + Real-time Trade News + Uploads/Payments/Email (v1.1)
 Feature freeze temporarily lifted for user-requested build. All shared with mobile app (same backend/DB/Firebase).
 

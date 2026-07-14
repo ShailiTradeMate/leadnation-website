@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import TradeGlobe from "@/components/TradeGlobe";
 import DownloadCTA from "@/components/DownloadCTA";
-import SEO, { organizationSchema, websiteSchema, softwareApplicationSchema, faqSchema } from "@/components/SEO";
+import SEO, { faqSchema } from "@/components/SEO";
 import { SectionLabel } from "@/components/PageHero";
 import { searchAll, fetchIndiaFeatures } from "@/lib/api";
 import {
@@ -53,17 +53,12 @@ export default function Home() {
         description="Search any product, country or HS code. Decode customs duties, calculate landed cost across all Incoterms, discover trade expos and follow live global trade news — powered by the LeadNation Brain. Free to start, built for 195+ countries."
         path="/"
         keywords="global trade intelligence, customs duty calculator, HS code finder, landed cost calculator, Incoterms, FTA, export import platform, trade expos, trade news, LeadNation, Intelligence Beyond Borders"
-        schema={[
-          organizationSchema,
-          websiteSchema,
-          softwareApplicationSchema,
-          faqSchema([
-            { q: "What is LeadNation?", a: "LeadNation is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news for 195+ countries." },
-            { q: "Is LeadNation free?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
-            { q: "Which countries does LeadNation cover?", a: "LeadNation provides trade, customs and market intelligence for 195+ countries worldwide, with deep coverage of India and major trade corridors." },
-            { q: "Does LeadNation have a mobile app?", a: "Yes. LeadNation works on web, iOS and Android with a single shared login, so your trade projects sync across devices." },
-          ]),
-        ]}
+        schema={faqSchema([
+          { q: "What is LeadNation?", a: "LeadNation is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news for 195+ countries." },
+          { q: "Is LeadNation free?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
+          { q: "Which countries does LeadNation cover?", a: "LeadNation provides trade, customs and market intelligence for 195+ countries worldwide, with deep coverage of India and major trade corridors." },
+          { q: "Does LeadNation have a mobile app?", a: "Yes. LeadNation works on web, iOS and Android with a single shared login, so your trade projects sync across devices." },
+        ])}
       />
       {/* HERO */}
       <section className="relative overflow-hidden">

@@ -73,8 +73,9 @@ const RefundPolicy = lazy(() => import("@/pages/Legal").then((m) => ({ default: 
 
 function RouteFallback() {
   return (
-    <div className="min-h-[60vh] grid place-items-center" data-testid="route-loading">
+    <div className="min-h-[60vh] grid place-items-center" data-testid="route-loading" role="status" aria-live="polite">
       <div className="w-8 h-8 rounded-full border-2 border-cyan-400/30 border-t-cyan-400 animate-spin" />
+      <span className="sr-only">Loading…</span>
     </div>
   );
 }

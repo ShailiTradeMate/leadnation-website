@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useProject } from "@/lib/ProjectContext";
-import SEO, { organizationSchema, breadcrumbSchema, faqSchema } from "@/components/SEO";
+import SEO, { breadcrumbSchema, faqSchema } from "@/components/SEO";
 import { Check, X, Star, CircleNotch, Lightning, ArrowRight } from "@phosphor-icons/react";
 
 const detectRegion = () => {
@@ -65,7 +65,6 @@ export default function Pricing() {
             { name: "Home", path: "/" },
             { name: "Pricing", path: "/pricing" },
           ]),
-          organizationSchema,
           faqSchema([
             { q: "Is LeadNation free to use?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
             { q: "Which payment methods are supported?", a: "International customers pay securely via Stripe (USD); customers in India can pay via Razorpay (INR)." },
