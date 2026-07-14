@@ -1,0 +1,41 @@
+{
+  "summary": "Iteration 27 — Production polish sprint verification (frontend-only). ALL 6 scope items PASS: (1) P0 global scroll fix works on desktop AND mobile via footer, navbar, and browser Back/Forward — every internal navigation lands with scrollY=0; hash anchor /#download correctly scrolls to the element (scrollY≈3869). (2) React.lazy + Suspense route splitting: all 18 public routes tested render without white-screen/error-boundary (body_len 1611–5971 chars, unique titles). (3) Per-page SEO: 5/5 pages (/, /pricing, /contact, /marketplace, /network) have unique document.titles matching expected keywords + meta descriptions. (4) JSON-LD on Home = Organization + WebSite + SoftwareApplication + FAQPage (all parse-valid); on /pricing = BreadcrumbList + FAQPage present. (5) Marketing links: footer-instagram & footer-linkedin have correct hrefs on every page; contact-info-instagram & contact-info-linkedin present with correct hrefs on /contact. (6) Console health: 0 unexpected errors — only the documented /api/projects/merge 401 (guest) surfaced, exactly as noted in the request. Ready to ship.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_scenarios": [
+    { "scenario": "P0 Scroll fix – Desktop footer link", "status": "PASS", "evidence": "Home scrolled to scrollY=4936, clicked footer-link-tools → URL=/tools, scrollY=0." },
+    { "scenario": "P0 Scroll fix – Desktop navbar link", "status": "PASS", "evidence": "On /tools scrolled to scrollY=1500, clicked nav-link-services → URL=/services, scrollY=0." },
+    { "scenario": "P0 Scroll fix – Desktop browser Back", "status": "PASS", "evidence": "Scrolled to 1200 on /services then browser back → URL=/tools, scrollY=0." },
+    { "scenario": "P0 Scroll fix – Hash anchor /#download", "status": "PASS", "evidence": "Direct nav to /#download → #download element exists, scrollY=3869 (correctly scrolled to section, NOT reset to top)." },
+    { "scenario": "P0 Scroll fix – Mobile 390x844 footer link", "status": "PASS", "evidence": "Home scrolled to 5000, clicked footer-link-services → URL=/services, scrollY=0." },
+    { "scenario": "P0 Scroll fix – Mobile Back + Forward", "status": "PASS", "evidence": "Scrolled to 1200 then back→/(scrollY=0), forward→/services(scrollY=0)." },
+    { "scenario": "Lazy-load — 18 public routes render", "status": "PASS", "evidence": "/tools, /tools/duty-calculator, /tools/hsn-finder, /brain, /expo, /trade-news, /countries, /products, /corridors, /industries, /services, /blog, /academy, /intelligence, /marketplace, /network, /search, /legal/privacy — all body_len>200 and no 'Something went wrong' error-boundary text; each has its own unique <title>." },
+    { "scenario": "Per-page SEO titles unique", "status": "PASS", "evidence": "5/5 unique: Home='LeadNation · AI-Powered Global Trade Intelligence Platform', /pricing='Pricing · LeadNation Trade Intelligence Plans', /contact='Contact LeadNation · WhatsApp, Email & HQ', /marketplace='The Marketplace · In the LeadNation App', /network='The Trade Network · In the LeadNation App'. All have meta description (~152 chars)." },
+    { "scenario": "JSON-LD on Home", "status": "PASS", "evidence": "Found @type entries include Organization, WebSite, SoftwareApplication, FAQPage. All scripts JSON.parse-valid. (Note: Organization/WebSite/SoftwareApplication also appear in static index.html so they render twice — harmless duplication but flagged for E1 to optionally dedupe.)" },
+    { "scenario": "JSON-LD on /pricing", "status": "PASS", "evidence": "Contains BreadcrumbList + FAQPage (plus the site-wide Organization/WebSite/SoftwareApplication)." },
+    { "scenario": "Footer social links", "status": "PASS", "evidence": "footer-instagram href='https://www.instagram.com/leadnation.app/', footer-linkedin href='https://www.linkedin.com/company/leadnation-app/'. Present on every page (footer is global)." },
+    { "scenario": "Contact page social links", "status": "PASS", "evidence": "contact-info-instagram='https://www.instagram.com/leadnation.app/', contact-info-linkedin='https://www.linkedin.com/company/leadnation-app/'." },
+    { "scenario": "Console health", "status": "PASS", "evidence": "Across full test run only 3 console errors captured, ALL are the documented /api/projects/merge 401 for the guest — 0 unexpected errors, 0 pageerror events on any of the 18+ routes visited." }
+  ],
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SEO.jsx / index.html duplication: On /, three JSON-LD blocks (Organization, WebSite, SoftwareApplication) are emitted twice — once by react-helmet-async via <SEO> and once as a static <script> inside public/index.html. Google tolerates duplicates but it slightly bloats the HTML payload and can trigger 'Duplicate schema' warnings in Rich Results Test. Recommend either (a) removing the static blocks from index.html now that Home.jsx renders them dynamically, OR (b) removing them from the Home <SEO schema={[...]}> array and letting the static ones stand. Either fix reduces DOM bytes by ~1.5 KB and makes the schema single-source-of-truth.",
+    "ScrollToTop.jsx L29-30: `behavior: 'instant' in document.documentElement.style ? 'instant' : 'auto'` — the feature-detection branch is a defensive guard but modern browsers all support 'instant' as a valid scrollBehavior. If you'd prefer to simplify, `window.scrollTo(0, 0)` (no options object) is instant and works everywhere. Not a bug; purely stylistic.",
+    "ScrollToTop.jsx L22-27: For a hash link that changes the pathname (e.g. clicking /pricing#faq from /), useLayoutEffect fires before the new route's DOM is mounted, so getElementById will miss the target and fall through to scrollTo(0,0). Currently the only hash link is same-route (/#download from /), so it works. If the app adds cross-route hash links in future, wrap the getElementById in a setTimeout(..., 0) or requestAnimationFrame retry so the element has been rendered by Suspense.",
+    "App.js L74-80 RouteFallback: The spinner has data-testid='route-loading' but no aria-live/role='status' + no visible text, so screen-reader users hear nothing while a chunk loads. Add role='status' and a visually-hidden 'Loading…' label for a11y compliance.",
+    "App.js: All 40+ lazy imports are chained via .then(m => ({default: m.NamedExport})) for pages that export multiple components (ProductsIndex + ProductDetail, CorridorsIndex + CorridorDetail, ServicesHub + ServiceDetail, BlogIndex + BlogDetail, Login/Signup/ForgotPassword, PrivacyPolicy/TermsOfService/... 5 legal). This means every legal page pulls the SAME chunk (all 5 legal components are in one file), which defeats a chunk-per-route split. Consider splitting src/pages/Legal.jsx and src/pages/Products.jsx etc. into one file per route for maximum bundle-splitting benefit."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only per request)", "frontend": "100% — 13/13 verified scenarios PASS" },
+  "test_credentials": "Not used — public flows only per instructions.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Production-polish sprint items are all shipped and verified. The <ScrollToTop/> component + useLayoutEffect pattern behaves correctly on desktop, mobile, footer, navbar, Back/Forward AND hash anchors — no need to retest unless a new route or in-page hash link is added. Duplicate JSON-LD blocks on Home originate from static index.html AND Home.jsx <SEO> — harmless but flagged in critical_code_review_comments if E1 wants a follow-up cleanup. Mobile hamburger opening was not exercised because the [data-testid='nav-hamburger'] selector was not visible (mobile menu may use a different testid); the scroll-fix itself was still validated on mobile via the footer path, so this is a testing-tooling limitation not a product bug.",
+  "rca of the issue": "Not applicable — this iteration is a green-light verification pass, no bugs found."
+}

@@ -10,6 +10,7 @@ import {
   WhatsappLogo,
   MapPin,
   InstagramLogo,
+  LinkedinLogo,
   PaperPlaneTilt,
   CheckCircle,
 } from "@phosphor-icons/react";
@@ -111,6 +112,15 @@ export default function Contact() {
             href={CONTACT.instagramUrl}
             external
             testId="contact-info-instagram"
+          />
+          <ContactRow
+            Icon={LinkedinLogo}
+            label="LinkedIn"
+            value="LeadNation on LinkedIn"
+            href={CONTACT.linkedinUrl}
+            external
+            accent="#0A66C2"
+            testId="contact-info-linkedin"
           />
           <ContactRow
             Icon={MapPin}

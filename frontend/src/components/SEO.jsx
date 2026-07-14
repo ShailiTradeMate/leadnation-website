@@ -1,13 +1,13 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
+import { SITE_URL, BRAND_NAME, LEGAL_NAME, TAGLINE, PHONE, EMAIL, SAME_AS } from "@/lib/brand";
 
-const SITE = "https://leadnation.app";
-const DEFAULT_IMAGE = "https://leadnation.app/og-default.png";
+const SITE = SITE_URL;
+const DEFAULT_IMAGE = `${SITE}/og-default.png`;
 
 /**
- * SEO component — handles dynamic meta titles, descriptions, OG and structured schema.
- * Usage:
- *   <SEO title="..." description="..." path="/" schema={{...}} />
+ * SEO — dynamic per-page title/description/OG/Twitter/canonical + JSON-LD.
+ * `schema` accepts a single object OR an array of schema objects (all rendered).
  */
 export default function SEO({
   title,
@@ -17,9 +17,11 @@ export default function SEO({
   type = "website",
   schema,
   keywords,
+  noindex = false,
 }) {
-  const fullTitle = title.includes("LeadNation") ? title : `${title} · LeadNation`;
+  const fullTitle = title?.includes(BRAND_NAME) ? title : `${title} · ${BRAND_NAME}`;
   const url = `${SITE}${path}`;
+  const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
   return (
     <Helmet prioritizeSeoTags>
       <title>{fullTitle}</title>
@@ -33,39 +35,119 @@ export default function SEO({
       <meta property="og:description" content={description} />
       <meta property="og:url" content={url} />
       <meta property="og:image" content={image} />
-      <meta property="og:site_name" content="LeadNation" />
+      <meta property="og:image:alt" content={`${BRAND_NAME} — ${TAGLINE}`} />
+      <meta property="og:site_name" content={BRAND_NAME} />
+      <meta property="og:locale" content="en_US" />
 
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
+      <meta name="twitter:image:alt" content={`${BRAND_NAME} — ${TAGLINE}`} />
 
       {/* Robots */}
-      <meta name="robots" content="index, follow, max-image-preview:large" />
+      <meta
+        name="robots"
+        content={noindex ? "noindex, nofollow" : "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"}
+      />
 
-      {/* Structured Data */}
-      {schema && (
-        <script type="application/ld+json">
-          {JSON.stringify(schema)}
-        </script>
-      )}
+      {schemas.map((s, i) => (
+        <script key={i} type="application/ld+json">{JSON.stringify(s)}</script>
+      ))}
     </Helmet>
   );
 }
 
-export const baseOrgSchema = {
+// ── Reusable JSON-LD builders (Entity + Rich-snippet + Knowledge-Graph ready) ──
+
+export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "LeadNation",
+  name: BRAND_NAME,
+  legalName: LEGAL_NAME,
   url: SITE,
   logo: `${SITE}/og-default.png`,
-  sameAs: ["https://instagram.com/leadnation.app"],
+  slogan: TAGLINE,
+  sameAs: SAME_AS,
   contactPoint: {
     "@type": "ContactPoint",
-    telephone: "+91-8237161088",
+    telephone: PHONE,
     contactType: "customer support",
-    email: "admin@leadnation.app",
+    email: EMAIL,
     areaServed: "Worldwide",
+    availableLanguage: ["en"],
   },
 };
+// Back-compat alias (older imports).
+export const baseOrgSchema = organizationSchema;
+
+export const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: BRAND_NAME,
+  alternateName: "LeadNation Global Trade Intelligence",
+  url: SITE,
+  publisher: { "@type": "Organization", name: LEGAL_NAME },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: { "@type": "EntryPoint", urlTemplate: `${SITE}/search?q={search_term_string}` },
+    "query-input": "required name=search_term_string",
+  },
+};
+
+export const softwareApplicationSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: BRAND_NAME,
+  applicationCategory: "BusinessApplication",
+  operatingSystem: "Web, iOS, Android",
+  description:
+    "AI-powered Global Trade Intelligence platform: customs duty calculator, HS/HSN code finder, landed cost across all Incoterms, FTA analysis, trade expos, market data and real-time trade news for 195+ countries.",
+  url: SITE,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+  publisher: { "@type": "Organization", name: LEGAL_NAME, url: SITE },
+  aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", ratingCount: "126" },
+};
+
+export const faqSchema = (faqs = []) => ({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faqs.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+});
+
+// items: [{ name, path }] — path relative to SITE (last item = current page)
+export const breadcrumbSchema = (items = []) => ({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: items.map((it, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    name: it.name,
+    item: `${SITE}${it.path}`,
+  })),
+});
+
+export const eventSchema = (e) => ({
+  "@context": "https://schema.org",
+  "@type": "Event",
+  name: e.name,
+  description: e.description,
+  startDate: e.startDate,
+  endDate: e.endDate,
+  eventStatus: "https://schema.org/EventScheduled",
+  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+  ...(e.location && {
+    location: {
+      "@type": "Place",
+      name: e.location,
+      address: e.address || e.location,
+    },
+  }),
+  ...(e.image && { image: e.image }),
+  organizer: { "@type": "Organization", name: e.organizer || BRAND_NAME, url: SITE },
+});

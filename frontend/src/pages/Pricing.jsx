@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { useProject } from "@/lib/ProjectContext";
+import SEO, { organizationSchema, breadcrumbSchema, faqSchema } from "@/components/SEO";
 import { Check, X, Star, CircleNotch, Lightning, ArrowRight } from "@phosphor-icons/react";
 
 const detectRegion = () => {
@@ -55,7 +55,24 @@ export default function Pricing() {
 
   return (
     <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-16 pb-28" data-testid="pricing-page">
-      <Helmet><title>Pricing — LeadNation Trade Intelligence</title></Helmet>
+      <SEO
+        title="Pricing · LeadNation Trade Intelligence Plans"
+        description="Simple, transparent pricing for LeadNation. Your first trade report is free. Go unlimited with Monthly or Annual Pro plans — customs duties, HS codes, landed cost, expos and trade news. Cancel anytime."
+        path="/pricing"
+        keywords="LeadNation pricing, trade intelligence pricing, export software price, customs duty calculator plans, trade report subscription"
+        schema={[
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Pricing", path: "/pricing" },
+          ]),
+          organizationSchema,
+          faqSchema([
+            { q: "Is LeadNation free to use?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
+            { q: "Which payment methods are supported?", a: "International customers pay securely via Stripe (USD); customers in India can pay via Razorpay (INR)." },
+            { q: "Can I cancel anytime?", a: "Yes. Pro subscriptions can be cancelled anytime and remain active until the end of the billing period." },
+          ]),
+        ]}
+      />
 
       <div className="text-center max-w-2xl mx-auto">
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Plans & Pricing</div>

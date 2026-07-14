@@ -2,8 +2,9 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { CONTACT, APP_LINKS } from "@/data/contact";
 import { openCookiePreferences } from "@/lib/analytics";
-import { InstagramLogo, WhatsappLogo, EnvelopeSimple, MapPin, AppleLogo, AndroidLogo } from "@phosphor-icons/react";
+import { InstagramLogo, LinkedinLogo, WhatsappLogo, EnvelopeSimple, MapPin, AppleLogo, AndroidLogo } from "@phosphor-icons/react";
 import { LogoMark } from "./Nav";
+import { TAGLINE } from "@/lib/brand";
 
 export default function Footer() {
   return (
@@ -88,6 +89,10 @@ export default function Footer() {
             <li className="flex items-start gap-2">
               <InstagramLogo size={16} className="mt-1 text-cyan-300" />
               <a href={CONTACT.instagramUrl} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-instagram">@{CONTACT.instagram}</a>
+            </li>
+            <li className="flex items-start gap-2">
+              <LinkedinLogo size={16} className="mt-1 text-cyan-300" />
+              <a href={CONTACT.linkedinUrl} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-linkedin">LeadNation on LinkedIn</a>
             </li>
             <li className="flex items-start gap-2">
               <MapPin size={16} className="mt-1 text-cyan-300" />

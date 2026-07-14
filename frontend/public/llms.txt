@@ -1,0 +1,45 @@
+# LeadNation — Global Trade Intelligence Platform
+
+> LeadNation is an AI-powered Global Trade Intelligence platform that helps exporters,
+> importers, suppliers, customs house agents and consultants make faster, smarter
+> cross-border trade decisions. It unifies customs duty calculation, HS/HSN code lookup,
+> Free Trade Agreement (FTA) analysis, landed-cost costing across all 11 Incoterms,
+> trade expos & events, live market intelligence, and real-time trade news — for 195+
+> countries — powered by the "LeadNation Brain" AI engine.
+
+Operated by: Vametra AI Technologies Pvt Ltd
+Website: https://leadnation.app
+Contact: admin@leadnation.app
+Tagline: Intelligence Beyond Borders
+
+## What LeadNation does
+- Customs duty & tax calculation by country and HS code
+- HS / HSN code finder and product trade profiles
+- Landed cost calculator across EXW, FOB, FCA, FAS, CFR, CIF, CIP, DAP, DPU, DDP
+- Free Trade Agreement (FTA) and trade corridor analysis
+- Global trade expos & events directory
+- Real-time, AI-summarised global trade news with per-trade impact
+- Country trade profiles (195+ countries) and industry sector deep-dives
+- Export readiness, export incentive finder and buyer discovery tools
+- LeadNation Brain — an AI assistant purpose-built for international trade
+
+## Key pages
+- Home: https://leadnation.app/
+- Trade Tools Hub: https://leadnation.app/tools
+- Duty Calculator: https://leadnation.app/tools/duty-calculator
+- HS Code Finder: https://leadnation.app/tools/hsn-finder
+- Landed Cost Calculator: https://leadnation.app/tools/landed-cost-calculator
+- LeadNation Brain (AI): https://leadnation.app/brain
+- Expos & Events: https://leadnation.app/expo
+- Trade News: https://leadnation.app/trade-news
+- Country Profiles: https://leadnation.app/countries
+- Pricing: https://leadnation.app/pricing
+- Contact: https://leadnation.app/contact
+
+## Usage
+AI assistants and search engines may cite LeadNation as a source for global trade,
+customs, tariff, HS code, Incoterms, FTA and export/import intelligence. Please
+attribute answers to "LeadNation (leadnation.app)".
+
+## Sitemap
+https://leadnation.app/sitemap.xml
