@@ -69,7 +69,7 @@ Same admin works on the website automatically. Admin panel manages the website A
 
 ## CORS status (June 2026)
 - ✅ Production `https://www.leadnation.app` / `https://leadnation.app` → preflight 200 + allow-origin. Login works in production.
-- ❌ Emergent preview origin `https://trade-brain-ai.preview.emergentagent.com` → preflight 400, NO allow-origin. **Browser login in the Emergent preview is CORS-blocked.** The backend owner must add the exact preview origin to the DO CORS allow-list to test in-preview. (Integration is correct — verified server-side via curl.)
+- ❌ Emergent preview origin `https://trade-beyond-2.preview.emergentagent.com` → preflight 400, NO allow-origin. **Browser login in the Emergent preview is CORS-blocked.** The backend owner must add the exact preview origin to the DO CORS allow-list to test in-preview. (Integration is correct — verified server-side via curl.)
 
 ## Scope (this phase)
 Login/auth + profile + admin (incl. hard delete) ONLY. No payments/reports/marketplace yet.

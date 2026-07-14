@@ -20,5 +20,5 @@
   "retest_needed": false,
   "main_agent_can_self_test": true,
   "context_for_next_testing_agent": "Iteration_8's 5 dead-card defects are all fixed and verified in iteration_9. Verified data-testids and destinations: academy-course-N → /academy/:slug (3 levels x 3 cards), academy-lesson-1..6, academy-detail-ask-brain → /brain?q=Teach%20me%20about:..., academy-related-{slug}. news-featured + news-card-0..4 → /trade-news/:id; news-detail-ask-brain → /brain?q=...; 'More headlines' rendered. mp-listing-0 is <A> with wa.me href + target=_blank + 'Enquire on WhatsApp'; mp-reel-0 is <A> with href=#download + 'Watch in app' badge; mp-rfq 'Reply on WhatsApp' wa.me href intact. suppliers-card-N contains a wa.me 'Connect with supplier' link; nw-member-N contains a /contact 'Connect' link. Brain widget FAB testid is brain-widget-fab (full); messages thread testids brain-widget-msg-N / CTAs brain-widget-ctas-N (trailing s). Brain main page input/send testids: brain-input/brain-send; messages brain-msg-N.",
-  "rca_of_the_issue": "n/a — verification iteration; iteration_8 documented the original RCA. Fixes verified live against https://trade-brain-ai.preview.emergentagent.com."
+  "rca_of_the_issue": "n/a — verification iteration; iteration_8 documented the original RCA. Fixes verified live against https://trade-beyond-2.preview.emergentagent.com."
 }

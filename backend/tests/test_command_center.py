@@ -3,7 +3,7 @@ import os
 import pytest
 import requests
 
-BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://trade-brain-ai.preview.emergentagent.com").rstrip("/")
+BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://trade-beyond-2.preview.emergentagent.com").rstrip("/")
 API = f"{BASE}/api"
 
 QUOTE_BODY = {

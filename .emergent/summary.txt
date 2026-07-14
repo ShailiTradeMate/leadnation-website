@@ -1,128 +1,124 @@
-<analysis>**original_problem_statement**: The user requested to build a comprehensive Global Trade Intelligence portal for the LeadNation app with a premium, 3D, dark-mode aesthetic. The website functions as an SEO discovery layer, driving organic traffic and app downloads. Core features include a 3D interactive trade globe, Trade Tools Hub, dynamic SEO pages, an Admin CMS, and a LeadNation Brain AI Orchestrator providing universal search and context-aware assistance.
-**PRODUCT REQUIREMENTS:**
-- Premium 3D dark-mode UI with smooth scroll.
-- Universal LLM Key integration (LeadNation Brain) for global trade compliance data.
-- Context-Aware floating widgets and comprehensive Customs & Compliance Hub.
-- Secure Admin Control Center for site branding and toggles.
-- **CRITICAL ARCHITECTURAL PIVOT:** The website is a FRONTEND ONLY for authentication and user profiles. It must call an already-deployed backend () and use a shared Firebase project () so that website users and mobile app users share the exact same database/identity. DO NOT create local backend auth databases.
+<analysis>**original_problem_statement**: The user is building a comprehensive Global Trade Intelligence portal for LeadNation (React + FastAPI + MongoDB + Firebase Auth). A massive Polish Sprint and AI Search Optimization (AEO/Entity SEO) task was just executed. The core goal is to polish the UX, integrate final branding (Intelligence Beyond Borders, new logo), and maximize LLM/Search Engine discoverability via advanced JSON-LD schemas and Technical SEO without altering backend business logic. PRODUCT REQUIREMENTS: A React Native Expo app connects to the same FastAPI backend, Firebase, and MongoDB used by this website.
 
-**User's preferred language**: English (INSTRUCT next agent to respond in English only)
+**User's preferred language**: English (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in English only)
 
 **what currently exists?** 
-A mature, full-stack React + FastAPI platform. Phases 1-9 (Globe, Brain, widgets, SEO) are complete. The website has been successfully converted into a pure frontend client for authentication, communicating directly with the external deployed DO backend via Firebase ID tokens. Local auth identity has been completely removed. The Customs & Compliance tab now includes dual-currency support (user transaction + exporter local currency) and a Premium Trade Intelligence Report (with client-side PDF generation) protected by a Lead Capture Gate.
+A live, production-ready React/FastAPI global trade platform. It features a 3D Trade Globe, Centralized Pricing Engine, Trade Projects, Simulation Engine, Expo & Global Events listings, real-time Trade News, and Resend transactional emails. The application was just heavily optimized for global UX (scroll routing fixes), deep technical/AEO SEO (Article/Event/Organization schemas, ), and branding has been strictly locked globally to Intelligence Beyond Borders with newly processed logo assets. The database (MongoDB) and Auth (Firebase) are SHARED with a separate external DigitalOcean backend.
 
 **Last working item**:
-- Last item agent was working: Implementing the P1 Compile Data Enhancements: Dual currency conversion and the Premium Trade Intelligence Report (PDF generation) with a Lead Capture gate.
-- Status: COMPLETED
-- Agent Testing Done: Y
-- Which testing method agent to use? NA (Testing was completed successfully via  and / validations).
-- User Testing Done: N
+    - Last item agent was working: AI Search Optimization (AEO) implementation and Brand Tagline/Logo locking. Agent locked Intelligence Beyond Borders across the site, generated proper OpenGraph and favicon assets via python scripts using the user-provided transparent mark, injected deep JSON-LD schemas (Article, NewsArticle, Product, HowTo) into detail pages, and updated email templates. Tested via .
+    - Status: USER VERIFICATION PENDING
+    - Agent Testing Done: Y
+    - Which testing method agent to use? NA (testing already done in iteration_28)
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:
+  Issue 1: Admin Credential Rotation (P0 Security)
+     - Attempted fixes: N/A
+     - Next debug checklist: Change  and  to strong values in  and Firebase before full public scale to prevent unauthorized access.
+     - Why fix this issue and what will be achieved with the fix? Crucial for production environment security.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? backend
+     - Blocked on other issue: None
+
+**In progress Task List**: 
 None.
 
-**In progress Task List**:
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Programmatic SEO Landing Pages. Build 20+ authoritative Export to {country} / HS code for {product} guides utilizing the newly added FAQ + HowTo schemas to capture AI engine citations.
+    - P1: My Reports history + shareable links (public/private + expiry)
+    - P1: Activate Analytics (GA4/GTM/Clarity/Meta Pixel - scaffold is present, just needs  IDs provided by user)
+    
+    Future Tasks:
+    - P2: Live Payment Keys. The user will provide live Stripe and Razorpay keys in the future. Inject them into deployment variables.
+    - P2: Vol 2B/2C/2D: Monte Carlo + Sensitivity, Recommendation/Risk/Forecast engines, Interactive World Map.
+    - P2: Vol 3 & Vol 4: Enterprise Trade OS (CRM, ERP-ready).
+    - P2: Web ↔ App deep linking.
+
+**Completed work in this session**
+- Fixed critical cross-platform Google-only Auth bug (added website graceful fallback; delivered DO backend fix prompt to user) (DONE)
+- P0 Global Scroll Fix implemented via  component in Router (DONE)
+- Performance & Polish Sprint: Lazy loaded routes (), CSS alignments, updated socials (Instagram, LinkedIn) (DONE)
+- P3 Global SEO & AI Search Optimization (AEO): JSON-LD schemas expanded across detail pages, updated , dynamic per-page metadata via  (DONE)
+- Branding locked: Replaced all logos and established Intelligence Beyond Borders as the exact permanent tagline across website, meta, and backend email templates (DONE)
+
+**Earlier issues found/mentioned but not fixed**
 None.
 
-**Upcoming and Future Tasks**:
-- P1: My Reports history + shareable public/private links with expiry.
-- P1: Legal pages (Privacy, Terms, Cookie, Disclaimer, Refund - international scope).
-- P1: Activate Analytics scaffolding (GA4/GTM/Clarity/Meta via ).
-- P1: Brain Feedback Mechanism: Rate/comment/flag/suggest logic feeding an Admin Knowledge Gaps dashboard. Add Knowledge Quality labels (estimated vs confirmed data). *(User noted: increase the brain involvement in this... add a few more things - needs follow-up with user).*
-- P2: Phase C: CBIC notified customs FX feeding all duty/landed-cost calculators.
-- P2: Pre-launch Production Readiness (Security, SEO, Performance Lighthouse audits).
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: None
+  - Recurrence count: 0
+  - Status: NA
 
-**Completed work in this session**:
-- Repointed Frontend Auth/Profiles to Deployed DO Backend directly without local proxy (DONE)
-- Removed local authentication DB writes and  (DONE)
-- Fixed Auth race condition UI bug showing — for  upon signup (DONE)
-- Dual currency selection: auto-detects exporter's currency + user transaction currency in Compile Data (DONE)
-- Premium Trade Intelligence Report: 12-section branded report with client-side PDF/Print generation (DONE)
-- Lead Capture Gate: Required Name/Email/Company/Country before report preview, saves to Lead CMS (DONE)
+**Code Architecture**
+- React Frontend ()
+- FastAPI Backend ()
+- External DigitalOcean Identity Backend ()
 
-**Earlier issues found/mentioned but not fixed**:
-None.
+**Key Technical Concepts**
+React, FastAPI, MongoDB Atlas, Firebase Auth, JSON-LD Structured Data, Answer Engine Optimization (AEO), Resend (Emails), Stripe, Razorpay.
 
-**Known issue recurrence from previous fork**:
-- Issue recurrence in previous fork: None
-- Recurrence count: 0
-- Status: NA
+**key DB schema**
+  - : Managed by external DO backend.
+  - : 
+  - : 
 
-**Code Architecture**:
+**changes in tech stack**
+  - Heavy reliance on  for JSON-LD dynamic injection for AI LLM discoverability.
 
+**All files of reference** 
+  -  (Router logic, contains Lazy Loading and global Scroll restoration fix)
+  -  (Core builder for JSON-LD schemas and metadata)
+  -  (Single source of truth for Tagline)
+  -  (Text file guiding AI search crawlers)
+  - , ,  (Newly generated and locked logo assets)
+  -  (Latest green-light test pass)
 
-**Key Technical Concepts**:
-React, FastAPI, Firebase Authentication (Client SDK), MongoDB Atlas, WITS API, OEC API, RAG, Universal-LLM Key, Client-side Print/PDF CSS.
+**Areas that need refactoring**: 
+None currently; routing and SEO structure were fully refactored in the last session.
 
-**key DB schema**:
-- Auth identity strictly handled via external DO backend.
-- Local  collection handles captured leads from the gated report UI.
+**key api endpoints**
+  - External Auth API: 
+  - Web Backend API: , , , 
 
-**changes in tech stack**:
-- The platform's local database does not store user profiles anymore. Frontend directly hits the DigitalOcean endpoint for , , and  using the Firebase ID Token.
+**Critical Info for New Agent** 
+1. **SHARED ARCHITECTURE WARNING:** The MongoDB Atlas database and Firebase Auth project are SHARED between the deployed website, the mobile app, and the DigitalOcean identity backend. **DO NOT** delete users blindly or modify existing auth identity logic.
+2. **BRANDING IS LOCKED:** The official tagline is . It must not be changed. The logo mark and OpenGraph images have been hardcoded and processed via scripts into the  folder. 
+3. **SEO / AEO STRICTNESS:** The platform has been deeply optimized for ChatGPT, Claude, and Perplexity via  and . Any new pages or features added MUST inject appropriate structured data schemas (Article, Product, Event, etc.) using the existing helpers.
 
-**All files of reference**:
--  (Strict rules for deployed backend integration)
--  (Optimistic profile updates post-registration)
--  (Created to route specifically to the DO backend)
--  (Dual currency UI & Lead Capture Gate)
--  &  (Dual currency FX conversions)
--  (Created for the print-friendly PDF report)
+**documents and test reports created in this job** 
+  - 
+  - 
+  - 
+  - 
+  - 
 
-**Areas that need refactoring**:
-None explicitly required.
+**Last 10 User Messages and any pending HUMAN messages** 
+ - *Message 39*: User corrected the tagline to Intelligence Beyond Borders.
+ - *Message 116*: User officially provided the new Logo assets and requested AEO (AI Search Optimization) Phase 1-8 implementation, plus applying the logo/tagline across all fronts. Agent completed these successfully. (COMPLETED)
+ *(No Pending Human Messages)*
 
-**key api endpoints**:
-*External DO Backend (Auth)*:
-- POST 
-- POST 
-- GET 
-*Local Backend*:
-- GET 
-- POST 
+**Project Health Check:**
+- Broken: None.
+- Mocked: Stripe and Razorpay are using test keys (Live keys pending user provision).
 
-**Critical Info for New Agent**:
-1. Read . The website relies purely on the external shared DigitalOcean backend for all User/Admin auth. DO NOT try to re-create local MongoDB auth collections.
-2. The user's Admin account ( / ) is shared with the mobile app and is strictly delete-protected by the DO backend. 
-3. User specifically mentioned they want to increase the brain involvement regarding the reports/tools next. Clarify these exact requirements via  before implementing.
+**3rd Party Integrations** 
+  - OpenAI gpt-5.4-mini — uses Emergent LLM Key
+  - Stripe (Payments) — uses Environment Key
+  - Razorpay (Payments) — uses Environment Key
+  - Firebase Auth — requires User API Key
+  - Resend (Emails) — requires User API Key
 
-**documents and test reports created in this job**:
--  (Updated)
--  (Updated)
+**Testing status**
+  - Testing agent used after significant changes: YES (iteration 27, iteration 28)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None
 
-**Last 10 User Messages and any pending HUMAN messages**:
-1. Agent investigated external endpoints and proposed plan to migrate to DO Backend without local DB.
-2. User instructed agent to call the DO backend directly with NO pass-through proxy. Mentioned CORS is fixed.
-3. Agent checked CORS (found preview still blocked) but implemented direct connection and removed local DB writes anyway.
-4. User fixed DO server CORS explicitly for the preview domain.
-5. Agent verified CORS fix and successfully ran E2E login/signup testing, but noticed — customer_id display race condition.
-6. User asked if test email ids caused the failure.
-7. Agent clarified it was just a frontend UI state race condition (fixed it) and proved the admin ID (00001) was safe and test accounts were deleted successfully.
-8. User confirmed and said to resume work.
-9. Agent asked whether to prioritize (a) dual currency or (b) premium report from the P1 backlog.
-10. User chose to do both (a then b). Requested to increase Brain involvement after both are completed.
-*(No pending human messages. Next agent should proceed with P1 tasks or clarify the Brain involvement request via ask_human)*.
+**Credentials to test flow:**
+- Admin:  /  (ID: )
 
-**Project Health Check**:
-- Broken: None
-- Mocked: None
-
-**3rd Party Integrations**:
-- OpenAI gpt-5.4-mini — uses Emergent LLM Key
-- Firebase Auth (Client SDK) — requires User API Key
-- OEC World API (Trade Stats) — Free/Public
-- WITS World Bank API (Duty) — Free/Public
-
-**Testing status**:
-- Testing agent used after significant changes: NO (Thorough self-testing via  and  scripts was performed).
-- Troubleshoot agent used after agent stuck in loop: NO
-- Test files created: None
-- Known regressions: None
-
-**Credentials to test flow**:
-- Admin Login:  /  (ID: )
-- Test user:  / 
-*(Check )*
-
-**What agent forgot to execute**:
-Nothing was forgotten. The P1 items selected by the user were successfully implemented and verified.</analysis>
+**What agent forgot to execute**
+Everything requested in the Polish Sprint and AI Search Optimization (AEO) prompt was successfully integrated. No missed executions.</analysis>

@@ -4,7 +4,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/") or "https://trade-brain-ai.preview.emergentagent.com"
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/") or "https://trade-beyond-2.preview.emergentagent.com"
 SESSION_ID = str(uuid.uuid4())
 HEADERS = {"Content-Type": "application/json", "X-Trade-Session": SESSION_ID}
 

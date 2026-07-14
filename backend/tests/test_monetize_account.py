@@ -4,7 +4,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://trade-brain-ai.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://trade-beyond-2.preview.emergentagent.com").rstrip("/")
 API = f"{BASE_URL}/api"
 
 
@@ -80,7 +80,7 @@ class TestCheckout:
         h = _headers(sid)
         # First, consume free download so paid path is meaningful (not required)
         payload = {"kind": "download", "region": "INTL", "projectId": "p1",
-                   "origin": "https://trade-brain-ai.preview.emergentagent.com"}
+                   "origin": "https://trade-beyond-2.preview.emergentagent.com"}
         r = requests.post(f"{API}/payments/checkout", json=payload, headers=h, timeout=30)
         assert r.status_code == 200, r.text
         d = r.json()
@@ -101,7 +101,7 @@ class TestCheckout:
     def test_subscription_checkout_intl(self):
         sid = _new_session()
         payload = {"kind": "subscription", "region": "INTL", "projectId": "",
-                   "origin": "https://trade-brain-ai.preview.emergentagent.com"}
+                   "origin": "https://trade-beyond-2.preview.emergentagent.com"}
         r = requests.post(f"{API}/payments/checkout", json=payload, headers=_headers(sid), timeout=30)
         assert r.status_code == 200, r.text
         d = r.json()
