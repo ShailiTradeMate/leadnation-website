@@ -45,7 +45,8 @@ def _shell(title: str, body_html: str, cta_label: str = "", cta_url: str = "") -
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="background:#0b1120;border:1px solid #1c2740;border-radius:16px;overflow:hidden;">
 <tr><td style="padding:24px 32px;border-bottom:1px solid #1c2740;">
   <div style="font-family:Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;letter-spacing:-0.3px;color:#ffffff;">Lead<span style="color:#00C2FF;">Nation</span></div>
-  <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:2px;color:#6b7c99;text-transform:uppercase;margin-top:5px;">by Vametra AI Technologies Pvt Ltd</div>
+  <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:3px;color:#00C2FF;text-transform:uppercase;margin-top:5px;">Intelligence Beyond Borders</div>
+  <div style="font-family:Arial,Helvetica,sans-serif;font-size:10px;letter-spacing:2px;color:#6b7c99;text-transform:uppercase;margin-top:3px;">by Vametra AI Technologies Pvt Ltd</div>
 </td></tr>
 <tr><td style="padding:30px 32px;font-family:Arial,Helvetica,sans-serif;">
   <h1 style="color:#ffffff;font-size:20px;margin:0 0 14px 0;">{title}</h1>

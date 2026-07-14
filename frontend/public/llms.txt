@@ -8,9 +8,20 @@
 > countries — powered by the "LeadNation Brain" AI engine.
 
 Operated by: Vametra AI Technologies Pvt Ltd
+Founder: Vaibhav Deshmane
+Founded: 2025 · Ahilyanagar, Maharashtra, India
 Website: https://leadnation.app
 Contact: admin@leadnation.app
 Tagline: Intelligence Beyond Borders
+Official social profiles: https://www.instagram.com/leadnation.app/ · https://www.linkedin.com/company/leadnation-app/
+
+## Entity summary (for knowledge graphs)
+- Type: Organization / SoftwareApplication (BusinessApplication)
+- Industry: International trade, export/import, trade intelligence, SaaS
+- Mission: Make cross-border trade decisions faster and smarter for everyone, everywhere.
+- Coverage: 195+ countries; deep India + major trade-corridor coverage
+- Technology: "LeadNation Brain" AI engine for trade analysis and recommendations
+- Platforms: Web, iOS, Android (single shared login)
 
 ## What LeadNation does
 - Customs duty & tax calculation by country and HS code

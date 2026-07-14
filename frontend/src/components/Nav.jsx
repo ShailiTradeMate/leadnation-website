@@ -168,22 +168,13 @@ export default function Nav({ active = "/" }) {
 
 export function LogoMark({ size = 36 }) {
   return (
-    <div className="relative shrink-0 grid place-items-center rounded-xl" style={{ width: size, height: size }}>
-      <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-cyan-400/40 via-violet-500/30 to-transparent blur-md" />
-      <svg viewBox="0 0 40 40" width={size} height={size} className="relative">
-        <defs>
-          <linearGradient id="lg" x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="#00C2FF" />
-            <stop offset="100%" stopColor="#7C3AED" />
-          </linearGradient>
-        </defs>
-        <circle cx="20" cy="20" r="14" fill="none" stroke="url(#lg)" strokeWidth="1.5" />
-        <ellipse cx="20" cy="20" rx="14" ry="5.5" fill="none" stroke="url(#lg)" strokeWidth="1" opacity=".6" />
-        <ellipse cx="20" cy="20" rx="5.5" ry="14" fill="none" stroke="url(#lg)" strokeWidth="1" opacity=".6" />
-        <circle cx="20" cy="20" r="2.5" fill="url(#lg)" />
-        <circle cx="30" cy="13" r="1.5" fill="#00C2FF" />
-        <circle cx="11" cy="27" r="1.5" fill="#7C3AED" />
-      </svg>
-    </div>
+    <img
+      src="/brand/ln-mark.png"
+      alt="LeadNation logo — Intelligence Beyond Borders"
+      height={size}
+      style={{ height: size, width: "auto" }}
+      className="relative shrink-0 select-none drop-shadow-[0_0_10px_rgba(0,194,255,0.35)]"
+      draggable="false"
+    />
   );
 }

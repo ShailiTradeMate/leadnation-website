@@ -1,0 +1,51 @@
+{
+  "summary": "Iteration 28 - Frontend-only verification of logo lock, brand assets, tagline consistency, AEO JSON-LD schema, route regressions, scroll fix and console health. Result: 6 of 7 scope items PASS; 1 FAIL — the footer does NOT visibly display 'Intelligence Beyond Borders' (it renders 'Global Trade Intelligence' as the sub-brand line). Footer.jsx imports `TAGLINE` from @/lib/brand but never renders the variable. Everything else is green: (1) LN logo <img> loaded from /brand/ln-mark.png with naturalWidth=256 on /, /tools, /pricing, /contact (alt='LeadNation logo — Intelligence Beyond Borders'). (2) All 9 static brand assets return HTTP 200 with correct content-types (/brand/ln-mark.png, /og-default.png, /favicon.ico, /favicon-32.png, /apple-touch-icon.png, /icon-192.png, /icon-512.png, /manifest.json, /llms.txt); index.html <head> references favicon-32, apple-touch-icon and manifest.json. (3) WRONG tagline 'Intelligence Without Borders' appears 0 times across every tested page/HTML — clean. (4) JSON-LD: Home has Organization (founder='Vaibhav Deshmane', slogan='Intelligence Beyond Borders') + WebSite + SoftwareApplication + FAQPage; /pricing has BreadcrumbList + FAQPage; /trade-news/{slug} has NewsArticle; /expo/{eventId} has Event; /blog/{slug} has BlogPosting — all JSON.parse-valid. (5) All 14 requested routes render without error-boundary/white-screen (body text 1606-4458 chars, unique titles). (6) Scroll fix regression: scrolled Home to 3500, clicked footer-link-tools -> /tools with scrollY=0. (7) Console: 0 pageerror, only expected /api/projects/merge 401s.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Footer.jsx",
+        "issue": "Footer imports `TAGLINE` from @/lib/brand but never renders it. The sub-brand text under 'LeadNation' shows the hard-coded string 'Global Trade Intelligence' (line 19) instead of the official locked tagline 'Intelligence Beyond Borders'. This directly violates the iteration's TAGLINE CONSISTENCY requirement. The visible tagline 'Intelligence Beyond Borders' currently exists only inside JSON-LD (Organization.slogan) and meta description — not in any user-visible DOM text.",
+        "selector": "footer .text-cyan-300 (Footer.jsx L18-20)",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_scenarios": [
+    { "scenario": "LOGO RENDERS on Home, /tools, /pricing, /contact", "status": "PASS", "evidence": "nav-logo-link contains <img src='/brand/ln-mark.png' alt='LeadNation logo — Intelligence Beyond Borders'>, naturalWidth=256, naturalHeight=160, complete=true on all 4 pages." },
+    { "scenario": "BRAND ASSETS reachable (HTTP 200)", "status": "PASS", "evidence": "/brand/ln-mark.png (image/png 38150B), /og-default.png (image/png 100739B), /favicon.ico (image/x-icon 8591B), /favicon-32.png (image/png 2641B), /apple-touch-icon.png (image/png 37788B), /icon-192.png (image/png 42093B), /icon-512.png (image/png 233132B), /manifest.json (application/json 664B), /llms.txt (text/plain 2807B). index.html head references favicon-32, apple-touch-icon and manifest.json — confirmed via curl." },
+    { "scenario": "WRONG tagline 'Intelligence Without Borders' absent", "status": "PASS", "evidence": "0 occurrences in rendered HTML across /, /tools, /pricing, /contact and all 14 regression routes." },
+    { "scenario": "Footer displays 'Intelligence Beyond Borders'", "status": "FAIL", "evidence": "Footer.innerText contains 'Global Trade Intelligence' (hard-coded line 19) but does NOT contain 'Intelligence Beyond Borders'. Right-tagline count in body.innerText = 0 on all pages tested. Only 2 raw-HTML occurrences on Home — both are inside JSON-LD/meta blocks (Organization.slogan + meta description)." },
+    { "scenario": "Home JSON-LD: Organization+WebSite+SoftwareApplication+FAQPage", "status": "PASS", "evidence": "Types found: ['Organization','SoftwareApplication','WebSite','FAQPage']. Organization.founder = {@type:'Person', name:'Vaibhav Deshmane'}, Organization.slogan = 'Intelligence Beyond Borders'. All scripts JSON.parse-valid." },
+    { "scenario": "/pricing JSON-LD: BreadcrumbList + FAQPage", "status": "PASS", "evidence": "Types found: ['Organization','SoftwareApplication','WebSite','BreadcrumbList','FAQPage']." },
+    { "scenario": "Trade News detail JSON-LD: NewsArticle", "status": "PASS", "evidence": "/trade-news/ai-33c528216174ccb7 has types ['Organization','SoftwareApplication','WebSite','NewsArticle']." },
+    { "scenario": "Expo detail JSON-LD: Event", "status": "PASS", "evidence": "/expo/d3e04df070324d2088b837362772e248 (Gulfood Dubai) has types ['Organization','SoftwareApplication','WebSite','Event']. Also seen on a second event slug." },
+    { "scenario": "Blog detail JSON-LD: BlogPosting", "status": "PASS", "evidence": "/blog/complete-guide-to-iec-code-india has types ['Organization','SoftwareApplication','WebSite','BlogPosting']." },
+    { "scenario": "14 routes render (no white-screen)", "status": "PASS", "evidence": "/, /tools, /tools/duty-calculator, /brain, /expo, /trade-news, /pricing, /contact, /countries, /products, /blog, /academy, /marketplace, /network — bodyLen 1606–4458, all have unique <title>, hasErrorBoundary=false everywhere." },
+    { "scenario": "Scroll fix regression", "status": "PASS", "evidence": "Home scrolled to scrollY=3500, clicked footer-link-tools -> URL=/tools with scrollY=0." },
+    { "scenario": "Console health", "status": "PASS", "evidence": "0 pageerror events; only console errors observed are the documented /api/projects/merge 401 (guest) 'Failed to load resource: 401'. No new uncaught JS errors introduced by logo/schema changes." }
+  ],
+  "test_report_links": [],
+  "action_items": [
+    "FIX Footer.jsx L18-20: replace hard-coded 'Global Trade Intelligence' with the imported {TAGLINE} constant (which resolves to 'Intelligence Beyond Borders') so the locked tagline appears in the visible footer as required. Since TAGLINE is already imported (line 7) this is a one-line change: `<div ...>{TAGLINE}</div>` — no risk of introducing 'Intelligence Without Borders' since TAGLINE is the single source of truth in src/lib/brand.js.",
+    "OPTIONAL: consider adding the tagline near the logo lockup in Nav header too (currently only in alt-text) for even higher on-page visibility.",
+    "OPTIONAL cleanup (still from iteration_27): Organization/WebSite/SoftwareApplication JSON-LD are emitted twice on Home — once by <SEO> and once statically in public/index.html. Not a bug, but bloats DOM ~1.5KB and can trigger 'Duplicate schema' warnings in Rich Results Test."
+  ],
+  "critical_code_review_comments": [
+    "Footer.jsx has an UNUSED IMPORT (`TAGLINE`) that is exactly the value needed to satisfy the tagline-lock requirement. This is a copy-paste-style oversight: the import was added but the JSX site was not swapped. Any lint rule for 'no-unused-vars' would have caught this.",
+    "brand.js correctly centralises TAGLINE as 'Intelligence Beyond Borders'. Home.jsx keywords list already uses the correct string. Use of the constant in every visible spot (Footer sub-line, hero eyebrow, About page copy, maybe Sign-in splash) would guarantee the lock cannot regress by hand-editing text.",
+    "The alt-text pattern 'LeadNation logo — Intelligence Beyond Borders' is a great AEO signal (image alt is indexed by LLM crawlers) but browsers only surface it when the image fails to load, so it does NOT satisfy the 'footer displays the tagline' user-visible requirement.",
+    "SEO.jsx Organization schema is well-enriched (founder Person, slogan, @id, address) — LLM discoverability upgrade looks correct.",
+    "public/llms.txt is present, well-formed (2807 bytes, text/plain content-type) and reachable at the root — good AEO practice for GPT/Perplexity/Claude crawlers."
+  ],
+  "updated_files": [],
+  "success_rate": { "backend": "N/A (frontend-only per request)", "frontend": "92% — 11/12 verified scenarios PASS; 1 FAIL (footer tagline text)" },
+  "test_credentials": "Not used — public flows only per instructions (auth CORS-blocked in preview).",
+  "seed_data_creation": "None.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Everything except the footer visible-tagline is green. When E1 patches Footer.jsx to render {TAGLINE} instead of the hard-coded 'Global Trade Intelligence' subtitle, a quick retest just needs: (a) go to any page, scroll to footer, assert body.innerText contains 'Intelligence Beyond Borders' and does NOT contain 'Intelligence Without Borders', and (b) reconfirm the Home logo image still has naturalWidth>0. No need to re-run the full JSON-LD schema battery — those are all confirmed working. Also worth noting for future iterations: the JSON-LD 'Organization','WebSite','SoftwareApplication' triple is duplicated on Home (SEO.jsx + index.html) — flagged for optional dedup but Google is tolerant.",
+  "rca_of_the_issue": "Footer.jsx line 7 imports the TAGLINE constant ('Intelligence Beyond Borders' from src/lib/brand.js), but the JSX at lines 18-20 still contains the literal string 'Global Trade Intelligence' — the import was staged for the tagline-lock change but the JSX render site was never swapped to {TAGLINE}. As a result the footer's sub-brand line still reads the old copy, and 'Intelligence Beyond Borders' never renders as visible text on any page (it exists only inside JSON-LD/meta). Reproduction: navigate to https://trade-brain-ai.preview.emergentagent.com/ (or any route), scroll to the bottom, inspect the small caps subtitle under the LeadNation logo in the footer. Expected: 'Intelligence Beyond Borders'. Actual: 'Global Trade Intelligence'. Fix: change Footer.jsx line 19 from `Global Trade Intelligence` to `{TAGLINE}`. Since the import already exists and brand.js is the single source of truth, this is a one-line change with zero risk of the wrong-tagline resurfacing."
+}

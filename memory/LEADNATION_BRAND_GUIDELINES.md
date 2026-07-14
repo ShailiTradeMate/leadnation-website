@@ -67,6 +67,8 @@ are concept references; the production logo should be true vector so it scales c
 
 ## 4. TAGLINE
 
+> **OFFICIAL TAGLINE (locked 2026-07-14): "Intelligence Beyond Borders"** — use this exact wording everywhere (site, SEO, OG, email, structured data, app). The list below is the original brainstorming archive only.
+
 **20 candidates** (original — screened against major brands; none match known slogans. "The Trade Desk"
 is a listed adtech company, so we avoid that exact phrase):
 
@@ -74,7 +76,7 @@ is a listed adtech company, so we avoid that exact phrase):
 2. The AI Brain for Global Trade
 3. Global Trade, Decoded
 4. Borderless Trade, Brilliant Decisions
-5. Trade Intelligence Without Borders
+5. Trade Intelligence Beyond Borders
 6. Where Global Trade Thinks
 7. Your Command Center for World Trade
 8. Smarter Trade, Everywhere

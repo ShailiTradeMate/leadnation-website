@@ -64,11 +64,32 @@ export default function SEO({
 export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": `${SITE}/#organization`,
   name: BRAND_NAME,
   legalName: LEGAL_NAME,
   url: SITE,
-  logo: `${SITE}/og-default.png`,
+  logo: { "@type": "ImageObject", url: `${SITE}/icon-512.png`, width: 512, height: 512 },
+  image: `${SITE}/og-default.png`,
   slogan: TAGLINE,
+  description:
+    "LeadNation is an AI-powered Global Trade Intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants — unifying customs duty calculation, HS/HSN code lookup, FTA analysis, landed cost across all Incoterms, trade expos, market intelligence and real-time trade news for 195+ countries.",
+  foundingDate: "2025",
+  founder: { "@type": "Person", name: "Vaibhav Deshmane" },
+  foundingLocation: { "@type": "Place", name: "Ahilyanagar, Maharashtra, India" },
+  knowsAbout: [
+    "International trade", "Export", "Import", "Customs duty", "HS codes", "HSN codes",
+    "Incoterms", "Free Trade Agreements", "Landed cost", "Trade compliance",
+    "Trade finance", "Global logistics", "Market intelligence", "Trade expos",
+  ],
+  areaServed: { "@type": "Place", name: "Worldwide" },
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Ekveera Chowk, Pipeline Rd, Savedi",
+    addressLocality: "Ahilyanagar",
+    addressRegion: "Maharashtra",
+    postalCode: "414003",
+    addressCountry: "IN",
+  },
   sameAs: SAME_AS,
   contactPoint: {
     "@type": "ContactPoint",
@@ -150,4 +171,49 @@ export const eventSchema = (e) => ({
   }),
   ...(e.image && { image: e.image }),
   organizer: { "@type": "Organization", name: e.organizer || BRAND_NAME, url: SITE },
+});
+
+// a.type = "Article" | "NewsArticle" (default NewsArticle)
+export const articleSchema = (a) => ({
+  "@context": "https://schema.org",
+  "@type": a.type || "NewsArticle",
+  headline: a.headline,
+  description: a.description,
+  ...(a.image && { image: a.image }),
+  ...(a.datePublished && { datePublished: a.datePublished }),
+  ...(a.dateModified && { dateModified: a.dateModified }),
+  mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE}${a.path || "/"}` },
+  author: { "@type": "Organization", name: a.author || BRAND_NAME, url: SITE },
+  publisher: {
+    "@type": "Organization",
+    name: BRAND_NAME,
+    logo: { "@type": "ImageObject", url: `${SITE}/icon-512.png` },
+  },
+  ...(a.keywords && { keywords: a.keywords }),
+  ...(a.section && { articleSection: a.section }),
+});
+
+export const productSchema = (p) => ({
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: p.name,
+  description: p.description,
+  ...(p.image && { image: p.image }),
+  ...(p.category && { category: p.category }),
+  ...(p.sku && { sku: p.sku }),
+  brand: { "@type": "Brand", name: BRAND_NAME },
+});
+
+// steps: [{ name, text }]
+export const howToSchema = (h) => ({
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: h.name,
+  description: h.description,
+  step: (h.steps || []).map((s, i) => ({
+    "@type": "HowToStep",
+    position: i + 1,
+    name: s.name,
+    text: s.text,
+  })),
 });

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import DownloadCTA from "@/components/DownloadCTA";
-import SEO from "@/components/SEO";
+import SEO, { articleSchema } from "@/components/SEO";
 import { fetchNewsDetail, fetchNewsFeed } from "@/lib/api";
 import { Clock, ArrowLeft, Brain, ArrowUpRight, ArrowSquareOut, CircleNotch } from "@phosphor-icons/react";
 
@@ -44,7 +44,19 @@ export default function TradeNewsDetail() {
   return (
     <>
       <SEO title={`${item.title} · LeadNation Trade News`} description={item.excerpt} path={`/trade-news/${id}`}
-        keywords={`${item.category}, trade news, ${item.title}`} />
+        keywords={`${item.category}, trade news, ${item.title}`}
+        type="article"
+        image={item.image || item.image_url || undefined}
+        schema={articleSchema({
+          type: "NewsArticle",
+          headline: item.title,
+          description: item.excerpt,
+          path: `/trade-news/${id}`,
+          section: item.category,
+          image: item.image || item.image_url,
+          datePublished: item.published_at || item.date || item.created_at,
+          keywords: `${item.category}, global trade news`,
+        })} />
 
       <section className="max-w-4xl mx-auto px-6 sm:px-10 pt-28 pb-8">
         <Link to="/trade-news" data-testid="news-detail-back" className="text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1 mb-4"><ArrowLeft size={12} /> Back to Trade News</Link>

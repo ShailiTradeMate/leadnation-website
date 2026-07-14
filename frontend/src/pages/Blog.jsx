@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
-import SEO from "@/components/SEO";
+import SEO, { articleSchema } from "@/components/SEO";
 import { api } from "@/lib/api";
 import { Clock, ArrowRight } from "@phosphor-icons/react";
 
@@ -60,7 +60,7 @@ export default function BlogDetail() {
     <>
       <SEO title={p.title} description={p.excerpt} path={`/blog/${p.slug}`} type="article"
         keywords={`${p.category}, ${p.title}, trade blog`}
-        schema={{ "@context": "https://schema.org", "@type": "BlogPosting", headline: p.title, datePublished: p.date, author: { "@type": "Organization", name: "LeadNation" }, image: p.image }}
+        schema={articleSchema({ type: "BlogPosting", headline: p.title, description: p.excerpt, path: `/blog/${p.slug}`, datePublished: p.date, image: p.image, section: p.category, keywords: `${p.category}, trade blog` })}
       />
       <article className="max-w-3xl mx-auto px-6 sm:px-10 pt-20 pb-12">
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">{p.category} · {p.date} · {p.readMins} min read</div>

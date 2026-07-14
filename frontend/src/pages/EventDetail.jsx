@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import SEO from "@/components/SEO";
+import SEO, { eventSchema } from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
 import { fetchEventDetail, API } from "@/lib/api";
 import {
@@ -36,7 +36,17 @@ export default function EventDetail() {
   return (
     <>
       <SEO title={`${ev.name} · ${ev.city || ev.country} · LeadNation Events`} description={ev.description || ev.name} path={`/expo/${id}`}
-        keywords={`${ev.category}, ${ev.country}, trade event, ${ev.name}`} />
+        keywords={`${ev.category}, ${ev.country}, trade event, ${ev.name}`}
+        image={ev.image ? media(ev.image) : undefined}
+        schema={eventSchema({
+          name: ev.name,
+          description: ev.description || ev.name,
+          startDate: ev.startDate,
+          endDate: ev.endDate,
+          location: [ev.venueName, ev.city, ev.country].filter(Boolean).join(", "),
+          image: ev.image ? media(ev.image) : undefined,
+          organizer: ev.organizer,
+        })} />
 
       <section className="max-w-4xl mx-auto px-6 sm:px-10 pt-28 pb-8">
         <Link to="/expo" data-testid="event-detail-back" className="text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1 mb-4"><ArrowLeft size={12} /> Back to Events</Link>

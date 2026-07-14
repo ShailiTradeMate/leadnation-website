@@ -1,0 +1,14 @@
+{
+  "short_name": "LeadNation",
+  "name": "LeadNation — Global Trade Intelligence",
+  "description": "AI-powered Global Trade Intelligence: customs duties, HS codes, landed cost, expos and trade news for 195+ countries. Intelligence Beyond Borders.",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "16x16 32x32 48x48", "type": "image/x-icon" },
+    { "src": "/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#050816",
+  "background_color": "#050816"
+}
