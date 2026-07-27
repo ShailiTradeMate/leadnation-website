@@ -27,6 +27,7 @@ figures against named real firms.
 """
 import hashlib
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -293,7 +294,7 @@ async def search_buyers(
     if trust_min:
         query["trust.score"] = {"$gte": int(trust_min)}
     if q:
-        rx = {"$regex": q.strip(), "$options": "i"}
+        rx = {"$regex": re.escape(q.strip()), "$options": "i"}
         query["$and"] = [{"$or": [{"legal_name": rx}, {"display_name": rx},
                                   {"products": rx}, {"sector": rx}, {"city": rx}, {"country_name": rx}]}]
 
