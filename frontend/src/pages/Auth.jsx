@@ -43,12 +43,29 @@ function loginErr(e) {
   return "Login failed — check your email/Customer ID and password.";
 }
 
+function phoneErr(e) {
+  const c = e?.code || "";
+  if (c === "phone/disabled") return "Mobile sign-in isn't live yet — please use Email / Customer ID or Google.";
+  if (c === "phone/format") return "Enter your number in international format, e.g. +919812345678.";
+  if (c === "phone/no-session") return "Your code session expired — please request a new code.";
+  if (c.includes("invalid-verification-code")) return "That code is incorrect. Please re-check and try again.";
+  if (c.includes("code-expired")) return "This code expired — request a new one.";
+  if (c.includes("too-many-requests")) return "Too many attempts — please wait a little and try again.";
+  if (c.includes("quota") || c.includes("billing")) return "SMS is temporarily unavailable. Please use Email / Customer ID or Google.";
+  return "Mobile sign-in failed. Please try again or use Email / Customer ID.";
+}
+
 export function Login() {
-  const { login, loginWithCustomerId, google, isAuthed } = useAuth();
+  const { login, loginWithCustomerId, google, isAuthed, phoneLoginEnabled, startPhoneLogin, confirmPhoneOtp } = useAuth();
+  const [mode, setMode] = useState("credentials"); // "credentials" | "mobile"
   const [ident, setIdent] = useState("");
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  // mobile-login state
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
   const navigate = useNavigate();
   if (isAuthed) return <Navigate to="/account" replace />;
 
@@ -65,16 +82,71 @@ export function Login() {
   };
   const onGoogle = async () => { setErr(""); setLoading(true); try { await google(); trackEvent(EVENTS.USER_LOGIN, { method: "google" }); navigate("/account"); } catch (e) { setErr(googleErr(e)); } finally { setLoading(false); } };
 
+  const sendPhone = async (e) => {
+    e.preventDefault(); setErr(""); setLoading(true);
+    try {
+      const num = phone.trim();
+      if (!/^\+[1-9]\d{6,14}$/.test(num)) throw Object.assign(new Error("bad"), { code: "phone/format" });
+      await startPhoneLogin(num); setOtpSent(true);
+    } catch (e2) { setErr(phoneErr(e2)); }
+    finally { setLoading(false); }
+  };
+  const verifyPhone = async (e) => {
+    e.preventDefault(); setErr(""); setLoading(true);
+    try { await confirmPhoneOtp(otp.trim()); trackEvent(EVENTS.USER_LOGIN, { method: "phone" }); navigate("/account"); }
+    catch (e2) { setErr(phoneErr(e2)); }
+    finally { setLoading(false); }
+  };
+
+  const TabBtn = ({ id, label }) => (
+    <button type="button" data-testid={`login-tab-${id}`} onClick={() => { setMode(id); setErr(""); }}
+      className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all ${mode === id ? "tab-active text-white" : "text-slate-400 hover:text-white"}`}>{label}</button>
+  );
+
   return (
     <Shell title="Sign in" sub="Use the same account as the LeadNation app.">
       <SEO title="Sign in · LeadNation" description="Sign in to your LeadNation account." path="/login" />
-      <form onSubmit={submit} data-testid="login-form">
-        <input data-testid="login-identifier" autoFocus className={inp} value={ident} onChange={(e) => setIdent(e.target.value)} placeholder="Email or Customer ID (e.g. 00006)" />
-        <input data-testid="login-password" type="password" className={inp} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Password" />
-        {err && <div data-testid="login-error" className="text-rose-300 text-sm mt-2">{err}</div>}
-        <button data-testid="login-submit" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? <CircleNotch size={16} className="animate-spin" /> : "Sign in"}</button>
-      </form>
-      <button data-testid="login-google" onClick={onGoogle} disabled={loading} className="btn-ghost w-full justify-center mt-3 gap-2"><GoogleLogo size={18} weight="bold" /> Continue with Google</button>
+      <div className="flex gap-1 glass rounded-2xl p-1 mt-4" data-testid="login-tabs">
+        <TabBtn id="credentials" label="Email / Customer ID" />
+        <TabBtn id="mobile" label="Mobile number" />
+      </div>
+
+      {mode === "credentials" && (
+        <>
+          <form onSubmit={submit} data-testid="login-form" className="mt-2">
+            <input data-testid="login-identifier" autoFocus className={inp} value={ident} onChange={(e) => setIdent(e.target.value)} placeholder="Email or Customer ID (e.g. 00006)" />
+            <input data-testid="login-password" type="password" className={inp} value={pw} onChange={(e) => setPw(e.target.value)} placeholder="Password" />
+            {err && <div data-testid="login-error" className="text-rose-300 text-sm mt-2">{err}</div>}
+            <button data-testid="login-submit" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? <CircleNotch size={16} className="animate-spin" /> : "Sign in"}</button>
+          </form>
+          <button data-testid="login-google" onClick={onGoogle} disabled={loading} className="btn-ghost w-full justify-center mt-3 gap-2"><GoogleLogo size={18} weight="bold" /> Continue with Google</button>
+        </>
+      )}
+
+      {mode === "mobile" && (
+        <div className="mt-2" data-testid="login-mobile-panel">
+          {!phoneLoginEnabled ? (
+            <div data-testid="login-phone-note" className="glass rounded-xl p-4 text-sm text-slate-300 mt-2">
+              📱 Mobile-number sign-in is launching soon. For now, please use <button type="button" className="text-cyan-300 hover:underline" onClick={() => setMode("credentials")}>Email / Customer ID</button> or Google.
+            </div>
+          ) : !otpSent ? (
+            <form onSubmit={sendPhone} data-testid="login-phone-send-form">
+              <input data-testid="login-phone-input" autoFocus className={inp} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Mobile number (e.g. +9198…)" />
+              {err && <div data-testid="login-error" className="text-rose-300 text-sm mt-2">{err}</div>}
+              <button data-testid="login-phone-send" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? <CircleNotch size={16} className="animate-spin" /> : "Send code"}</button>
+            </form>
+          ) : (
+            <form onSubmit={verifyPhone} data-testid="login-phone-verify-form">
+              <input data-testid="login-phone-otp" autoFocus className={inp} value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter the 6-digit code" />
+              {err && <div data-testid="login-error" className="text-rose-300 text-sm mt-2">{err}</div>}
+              <button data-testid="login-phone-verify" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? <CircleNotch size={16} className="animate-spin" /> : "Verify & sign in"}</button>
+              <button type="button" data-testid="login-phone-restart" onClick={() => { setOtpSent(false); setOtp(""); setErr(""); }} className="text-xs text-cyan-300 hover:underline mt-3">Use a different number</button>
+            </form>
+          )}
+        </div>
+      )}
+
+      <div id="recaptcha-container" />
       <div className="flex justify-between text-sm mt-5 text-slate-400">
         <Link to="/forgot-password" className="hover:text-cyan-300" data-testid="login-forgot-link">Forgot password?</Link>
         <Link to="/signup" className="hover:text-cyan-300" data-testid="login-signup-link">Create account</Link>

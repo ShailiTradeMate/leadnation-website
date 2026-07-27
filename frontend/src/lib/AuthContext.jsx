@@ -3,6 +3,7 @@ import {
   signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut,
   GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail, sendEmailVerification,
   onIdTokenChanged, setPersistence, browserLocalPersistence,
+  RecaptchaVerifier, signInWithPhoneNumber,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { authApi } from "@/lib/authApi";
@@ -12,12 +13,21 @@ export const useAuth = () => useContext(AuthContext);
 
 const googleProvider = new GoogleAuthProvider();
 
+// GUARDED: mobile-number (Phone OTP) login stays OFF until Firebase Blaze is
+// enabled (real SMS requires billing). Flip REACT_APP_ENABLE_PHONE_LOGIN="true"
+// and restart the frontend to activate — no code change needed. Identity/backend
+// ownership is unchanged: phone sign-in uses the SAME shared Firebase + uid, and
+// the existing self-heal allocates the 5-digit Customer ID via the DO backend.
+const PHONE_LOGIN_ENABLED = process.env.REACT_APP_ENABLE_PHONE_LOGIN === "true";
+
 export function AuthProvider({ children }) {
   const [fbUser, setFbUser] = useState(null);
   const [account, setAccount] = useState(null); // { onboarded, user, profile }
   const [loading, setLoading] = useState(true);
   const seqRef = useRef(0);
   const healRef = useRef("");   // uid we've already attempted to self-heal this session
+  const recaptchaRef = useRef(null);   // invisible reCAPTCHA (phone login)
+  const phoneConfirmRef = useRef(null); // pending signInWithPhoneNumber confirmation
 
   useEffect(() => { setPersistence(auth, browserLocalPersistence).catch(() => {}); }, []);
 
@@ -99,10 +109,32 @@ export function AuthProvider({ children }) {
     return signInWithEmailAndPassword(auth, data.email, password);
   };
 
+  // ---- Mobile-number (Phone OTP) login — GUARDED by PHONE_LOGIN_ENABLED ----
+  // Step 1: send OTP to an E.164 number via Firebase Phone Auth (invisible reCAPTCHA).
+  const startPhoneLogin = async (e164) => {
+    if (!PHONE_LOGIN_ENABLED) { const e = new Error("phone-login-disabled"); e.code = "phone/disabled"; throw e; }
+    if (!recaptchaRef.current) {
+      recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+    }
+    phoneConfirmRef.current = await signInWithPhoneNumber(auth, e164, recaptchaRef.current);
+    return true;
+  };
+  // Step 2: confirm the OTP → signs in on the SAME shared Firebase (uid).
+  // onIdTokenChanged → refreshAccount() self-heals to allocate the Customer ID via DO backend.
+  const confirmPhoneOtp = async (code) => {
+    if (!phoneConfirmRef.current) { const e = new Error("no-otp-session"); e.code = "phone/no-session"; throw e; }
+    const cred = await phoneConfirmRef.current.confirm(code);
+    await refreshAccount();
+    return cred;
+  };
+
   const value = {
     fbUser, account, loading,
     isAuthed: !!fbUser,
     isAdmin: account?.user?.role === "admin",
+    phoneLoginEnabled: PHONE_LOGIN_ENABLED,
+    startPhoneLogin,
+    confirmPhoneOtp,
     refreshAccount,
     login: (email, pw) => signInWithEmailAndPassword(auth, email, pw),
     loginWithCustomerId,
