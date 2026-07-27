@@ -180,7 +180,11 @@ export function AuthProvider({ children }) {
       await refreshAccount();
       return r.data;
     }),
-    logout: () => signOut(auth),
+    logout: () => {
+      try { recaptchaRef.current?.clear?.(); } catch (_) {}
+      recaptchaRef.current = null; phoneConfirmRef.current = null;
+      return signOut(auth);
+    },
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
