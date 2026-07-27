@@ -15,7 +15,9 @@
 | **Customer ID** | 5-digit `users.customer_id`, allocated **ONLY** by DO backend via atomic `_counters` at `POST /api/onboarding/register`. `00001` reserved (admin) | Single allocator = no collisions across web/app |
 | **Website role** | **Pure client.** Never mints IDs, never forks auth. On signup/first-login it *calls* the DO allocator; self-heals if `customer_id` missing | Already implemented in `AuthContext.jsx` ✅ |
 | **App role** | Pure client to the same DO backend | Already true |
-| **Company identity** | ONE `entities` collection keyed by **GEID** (VBIE). `company_profiles` is the canonical company profile → linked to a GEID via `members_bridge`. `profiles` = personal user profile only | Kills the `profiles` vs `company_profiles` ambiguity |
+| **Company identity (CANONICAL)** | ONE `entities` collection keyed by **GEID** is the *sole, immutable identity layer* for any company. Identity (who a company IS, resolution, trust, provenance, relationships) lives ONLY here. | Single source of truth for identity |
+| **Company profile data** | `company_profiles` stores **only editable/business profile fields** (logo, description, products, certs, contact prefs, etc.) and **references** its `entities.GEID` via a foreign key. It is NOT identity, NOT a source of truth for identity, and MUST NOT be used to resolve/merge companies. `profiles` = personal user profile only | Editable data is decoupled from identity; profiles never define identity |
+| **Identity ↔ profile ↔ user join** | `members_bridge` { uid, customer_id, geid } is the ONLY join. company_profiles/user data point AT a GEID; they never own it | One join, GEID is the anchor |
 | **Networking store** | **Mongo only.** Retire Firestore `user_connections`; all connections/requests/chats/messages on Mongo (`v1`/`v1b`) | One store; VBIE-ready |
 | **Reports & user data** | Keyed by `customer_id` (+ `uid`) in shared DB → identical access on web & app | Already works once ID exists |
 
@@ -57,7 +59,12 @@ BACKEND (DigitalOcean, owns identity):
 3. /onboarding/register: accept optional `mobile`; store on users; keep 5-digit customer_id allocation via _counters as the SINGLE allocator (do NOT let the website mint IDs).
 4. Ensure a Firebase phone-auth user (same person) links to the SAME users doc by uid; if a phone sign-in has no users doc, allocate customer_id once (same self-heal contract the website uses).
 5. NETWORKING: migrate networkDB.ts OFF Firestore. All connections/requests/chats/messages -> Mongo (v1/v1b). Retire Firestore `user_connections` after backfill.
-6. COMPANY IDENTITY: treat `company_profiles` as canonical company profile; `profiles` = personal only. Add `geid` field on company_profiles (link to VBIE entities). Add `members_bridge` collection { uid, customer_id, geid } — the ONLY join between identity and company entity. Do not fork users.
+6. COMPANY IDENTITY (CANONICAL = entities/GEID ONLY):
+   - `entities` (GEID) is the SOLE identity layer. All company identity, resolution, merging, trust, provenance, and relationships live ONLY on entities. Never derive/resolve identity from company_profiles.
+   - `company_profiles` = EDITABLE business-profile data ONLY (logo, description, products, certs, contact prefs). Add a `geid` FOREIGN KEY that points to entities. company_profiles MUST NOT be treated as identity or a source of truth for identity, and MUST NOT be used to dedupe/merge companies.
+   - `profiles` = personal user profile only.
+   - `members_bridge` { uid, customer_id, geid } is the ONLY join tying a user + customer_id to a company entity. Everything references the GEID; nothing owns identity except entities.
+   - Do not fork users. Do not create a second company-identity store.
 
 EXPO APP:
 7. Add mobile-number (Phone OTP) sign-in using the SAME Firebase project trademate-new, linking to the same uid.
