@@ -11,7 +11,7 @@ import reference, engines, search, leads, trade_tools, ai, content, services, ad
 from monetize import pay_router, dl_router, acc_router, hook_router
 from pricing import pricing_router, get_config as get_pricing_config
 import events, adapters, simulation, decision_engine
-import storage, news_engine, event_listings
+import storage, news_engine, event_listings, vbie
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -24,7 +24,7 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="LeadNation — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
@@ -80,6 +80,10 @@ async def _startup():
     except Exception as exc:
         logging.warning("Duty engine init failed: %s", exc)
     try:
+        await vbie.seed_vbie()
+    except Exception as exc:
+        logging.warning("VBIE seed failed: %s", exc)
+    try:
         await _ensure_indexes()
     except Exception as exc:
         logging.warning("Index creation failed: %s", exc)
@@ -103,6 +107,13 @@ async def _ensure_indexes():
     await db.event_payments.create_index("eventId")
     await db.uploaded_files.create_index("owner")
     await db.trade_news_admin.create_index([("featured", -1), ("createdAt", -1)])
+    # VBIE buyer graph (additive; entity graph shared with identity spine)
+    await db.entities.create_index([("entity_type", 1), ("status", 1), ("merged_into", 1)])
+    await db.entities.create_index([("trust.score", -1)])
+    await db.entities.create_index([("country", 1)])
+    await db.entities.create_index([("corridors", 1)])
+    await db.entities.create_index([("hs_families", 1)])
+    await db.buyer_claims.create_index([("geid", 1), ("created_at", -1)])
     logging.info("MongoDB indexes ensured for Command Center collections.")
 
 

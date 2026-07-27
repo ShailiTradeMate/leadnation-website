@@ -47,6 +47,8 @@ const IndustryDetail = lazy(() => import("@/pages/Industries"));
 
 const Marketplace = lazy(() => import("@/pages/Marketplace"));
 const Network = lazy(() => import("@/pages/Network"));
+const BuyerIntelligence = lazy(() => import("@/pages/BuyerIntelligence"));
+const BuyerProfile = lazy(() => import("@/pages/BuyerProfile"));
 const ServicesHub = lazy(() => import("@/pages/Services").then((m) => ({ default: m.ServicesHub })));
 const ServiceDetail = lazy(() => import("@/pages/Services"));
 
@@ -138,6 +140,10 @@ function App() {
                   <Route path="/suppliers" element={<Navigate to="/" replace />} />
                   <Route path="/marketplace" element={<Marketplace />} />
                   <Route path="/network" element={<Network />} />
+
+                  {/* VBIE — Verified Buyer Intelligence Engine */}
+                  <Route path="/buyers" element={<BuyerIntelligence />} />
+                  <Route path="/buyers/:geid" element={<BuyerProfile />} />
 
                   {/* Business Services */}
                   <Route path="/services" element={<ServicesHub />} />
