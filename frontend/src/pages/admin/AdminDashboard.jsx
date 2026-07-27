@@ -7,6 +7,7 @@ import {
   Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, GoogleLogo, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
+import { authApi } from "@/lib/authApi";
 import PricingManager from "@/pages/admin/PricingManager";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
@@ -105,6 +106,7 @@ export default function AdminDashboard() {
           { k: "dashboard", l: "Dashboard", I: ChartBar },
           { k: "cms", l: "Content", I: Database },
           { k: "leads", l: "Leads", I: UserList },
+          { k: "users", l: "Users", I: Users },
           { k: "service-requests", l: "Service Requests", I: Briefcase },
           { k: "listings", l: "Event Listings", I: CalendarCheck },
           { k: "trade-news", l: "Trade News", I: Newspaper },
@@ -127,6 +129,7 @@ export default function AdminDashboard() {
         {tab === "dashboard" && <Stats stats={stats} />}
         {tab === "cms" && <CmsManager />}
         {tab === "leads" && <Leads />}
+        {tab === "users" && <RegisteredUsers />}
         {tab === "service-requests" && <ServiceRequests />}
         {tab === "listings" && <EventListingsManager />}
         {tab === "trade-news" && <TradeNewsManager />}
@@ -248,6 +251,65 @@ function CmsManager() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function RegisteredUsers() {
+  const [items, setItems] = useState([]);
+  const [q, setQ] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    // Identity users live on the DigitalOcean identity backend (shared users record).
+    // Website admin is a client to it via authApi; admin gate is enforced server-side.
+    authApi.get("/admin_v2/users")
+      .then((r) => setItems(Array.isArray(r.data) ? r.data : (r.data?.users || r.data?.items || [])))
+      .catch(() => setErr("Could not load registered users. Ensure your admin account has access on the identity backend (/admin_v2/users)."))
+      .finally(() => setLoading(false));
+  }, []);
+  const val = (u, ...keys) => { for (const k of keys) { if (u?.[k]) return u[k]; } return ""; };
+  const filtered = useMemo(() => {
+    const ql = q.trim().toLowerCase();
+    if (!ql) return items;
+    return items.filter((u) => Object.values(u).some((v) => typeof v === "string" && v.toLowerCase().includes(ql)));
+  }, [items, q]);
+
+  return (
+    <div className="space-y-3" data-testid="admin-users-panel">
+      <div className="flex items-center gap-3 flex-wrap">
+        <input data-testid="admin-users-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email, mobile, Customer ID…" className="glass rounded-xl px-4 py-3 outline-none w-96 max-w-full" />
+        <span className="text-xs text-slate-400 ml-auto" data-testid="admin-users-count">{filtered.length} user{filtered.length === 1 ? "" : "s"}</span>
+      </div>
+      {err && <div data-testid="admin-users-error" className="glass rounded-xl p-4 text-sm text-rose-300">{err}</div>}
+      <div className="glass-strong rounded-3xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400">
+            <tr>
+              <th className="text-left px-4 py-3">Customer ID</th><th className="text-left px-4 py-3">Name</th>
+              <th className="text-left px-4 py-3">Email</th><th className="text-left px-4 py-3">Mobile</th>
+              <th className="text-left px-4 py-3">Role</th><th className="text-left px-4 py-3">Country</th>
+              <th className="text-left px-4 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((u, i) => (
+              <tr key={val(u, "customer_id", "uid", "id") || i} data-testid="admin-user-row" className="border-t border-white/5">
+                <td className="px-4 py-3 font-mono-display text-cyan-300">{val(u, "customer_id") || "—"}</td>
+                <td className="px-4 py-3">{val(u, "full_name", "name", "displayName") || "—"}</td>
+                <td className="px-4 py-3 text-xs">{val(u, "email") || "—"}</td>
+                <td className="px-4 py-3 text-xs">{val(u, "mobile", "mobile_number", "phone") || "—"}</td>
+                <td className="px-4 py-3 text-xs capitalize">{val(u, "role") || "user"}</td>
+                <td className="px-4 py-3 text-xs">{val(u, "country") || "—"}</td>
+                <td className="px-4 py-3 text-xs text-slate-400">{val(u, "verification_status", "status") || (u?.disabled ? "disabled" : "active")}</td>
+              </tr>
+            ))}
+            {!loading && filtered.length === 0 && !err && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">No registered users found.</td></tr>}
+            {loading && <tr><td colSpan={7} className="px-4 py-8 text-center text-slate-500">Loading users…</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-[11px] text-slate-500">Read-only view of the shared users record (owned by the identity backend). Customer ID + profile + contact details are visible to website & app admins alike.</p>
     </div>
   );
 }

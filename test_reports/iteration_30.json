@@ -1,0 +1,53 @@
+{
+  "summary": "Frontend-only verification of (1) Signup E.164 mobile capture with country dial-code selector (India default), (2) guarded phone-login regression on /login, and (3) admin Users tab reading /admin_v2/users. All checks pass with zero console errors. No submissions or destructive actions performed.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_results": {
+    "signup": {
+      "form_renders": true,
+      "signup-dial default": "IN (🇮🇳 +91)",
+      "signup-mobile-note text": "Your mobile number will be used for faster login and account recovery when Phone Login becomes available.",
+      "preview blank when mobile empty": true,
+      "preview '09812345678' + IN": "Saved as +919812345678 (leading zero stripped, +91 prefix) ✓",
+      "preview after switching dial to US": "Saved as +19812345678 (+1 prefix) ✓",
+      "preview hidden after clearing mobile": true,
+      "core fields present": "signup-name, signup-email, signup-password, signup-role, signup-submit, signup-google all present",
+      "form NOT submitted": true
+    },
+    "login_guarded_phone": {
+      "login-tab-credentials present": true,
+      "login-tab-mobile present": true,
+      "clicking Mobile shows login-phone-note": true,
+      "login-phone-input hidden (guarded)": true,
+      "credentials form + Google button intact": true
+    },
+    "admin_users": {
+      "admin login (00001 / Shiv@12345)": "success, redirected to /admin-cms",
+      "Users tab clickable": true,
+      "admin-users-panel renders": true,
+      "admin-users-search present": true,
+      "admin-users-count": "1 user",
+      "table headers": "Customer ID / Name / Email / Mobile / Role / Country / Status all present",
+      "/admin_v2/users call": "succeeded (returned admin row 00001, no admin-users-error shown)",
+      "console errors": "none"
+    }
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Auth.jsx Signup: register() is invoked twice on the same page (once for password signup, once for Google signup). Consider extracting the payload builder to reduce duplication.",
+    "toE164 in countryCodes.js does not validate national number length per country; malformed numbers (e.g. 3 digits) will silently produce a short E.164 string. Fine for MVP, but consider libphonenumber-js for production validation before phone-OTP goes live.",
+    "signup-mobile-preview only appears once user types — good UX. Consider adding subtle validation cue when number is too short (<7 digits) once phone login is enabled."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (frontend-only)", "frontend": "100%"},
+  "test_credentials": "admin@leadnation.app / Shiv@12345 (admin id 00001) from /app/memory/test_credentials.md",
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Signup dial+mobile+preview+note wired via COUNTRY_CODES with India first; toE164 strips leading zeros. Login mobile tab is guarded by phoneLoginEnabled flag (REACT_APP_ENABLE_PHONE_LOGIN unset -> shows login-phone-note). Admin Users tab (RegisteredUsers) reads /admin_v2/users via authApi; renders admin-users-panel/search/count/table with headers Customer ID/Name/Email/Mobile/Role/Country/Status. Admin 00001 currently the only row shown by the DO endpoint in this env."
+}

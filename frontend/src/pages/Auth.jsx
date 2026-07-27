@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { GoogleLogo, CircleNotch, SignOut, CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import SEO from "@/components/SEO";
 import { trackEvent, EVENTS } from "@/lib/analytics";
+import { COUNTRY_CODES, CC_BY_ISO, toE164 } from "@/lib/countryCodes";
 
 const BUSINESS_ROLES = [
   ["exporter", "Exporter"], ["importer", "Importer"], ["supplier", "Supplier"],
@@ -157,19 +158,22 @@ export function Login() {
 
 export function Signup() {
   const { signup, google, register, isAuthed } = useAuth();
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "exporter", mobile_number: "", country: "" });
+  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "exporter", mobile_number: "", countryIso: "IN" });
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   if (isAuthed) return <Navigate to="/account" replace />;
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const sel = CC_BY_ISO[form.countryIso] || CC_BY_ISO.IN;
+  const mobileE164 = toE164(sel.dial, form.mobile_number); // "" when left blank (optional)
 
   const submit = async (e) => {
     e.preventDefault(); setErr(""); setLoading(true);
     try {
       await signup(form.email.trim(), form.password);
-      await register({ full_name: form.full_name, role: form.role, mobile_number: form.mobile_number, provider: "password", country: form.country });
-      trackEvent(EVENTS.USER_REGISTERED, { method: "password", role: form.role, country: form.country });
+      // mobile is OPTIONAL and stored in E.164 in the shared users record (both keys for app compatibility).
+      await register({ full_name: form.full_name, role: form.role, mobile_number: mobileE164, mobile: mobileE164, provider: "password", country: sel.name });
+      trackEvent(EVENTS.USER_REGISTERED, { method: "password", role: form.role, country: sel.name });
       navigate("/account");
     } catch (e2) {
       setErr(e2?.code === "auth/email-already-in-use" ? "This email is already registered — try signing in." : "Sign-up failed. Use a valid email and a 6+ character password.");
@@ -177,7 +181,7 @@ export function Signup() {
   };
   const onGoogle = async () => {
     setErr(""); setLoading(true);
-    try { await google(); await register({ role: form.role, provider: "google" }); trackEvent(EVENTS.USER_REGISTERED, { method: "google", role: form.role }); navigate("/account"); }
+    try { await google(); await register({ role: form.role, mobile_number: mobileE164, mobile: mobileE164, country: sel.name, provider: "google" }); trackEvent(EVENTS.USER_REGISTERED, { method: "google", role: form.role }); navigate("/account"); }
     catch (e) { setErr(googleErr(e)); } finally { setLoading(false); }
   };
 
@@ -188,8 +192,15 @@ export function Signup() {
         <input data-testid="signup-name" autoFocus className={inp} value={form.full_name} onChange={(e) => set("full_name", e.target.value)} placeholder="Full name" />
         <input data-testid="signup-email" type="email" className={inp} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="Email" />
         <input data-testid="signup-password" type="password" className={inp} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="Password (min 6 characters)" />
-        <input data-testid="signup-mobile" className={inp} value={form.mobile_number} onChange={(e) => set("mobile_number", e.target.value)} placeholder="Mobile (optional)" />
-        <input data-testid="signup-country" className={inp} value={form.country} onChange={(e) => set("country", e.target.value)} placeholder="Country" />
+        <div className="flex gap-2 mt-3">
+          <select data-testid="signup-dial" aria-label="Country code" value={form.countryIso} onChange={(e) => set("countryIso", e.target.value)}
+            className="glass rounded-xl px-3 py-3 outline-none w-36 shrink-0">
+            {COUNTRY_CODES.map((c) => <option key={c.iso} value={c.iso}>{c.flag} {c.dial}</option>)}
+          </select>
+          <input data-testid="signup-mobile" type="tel" inputMode="tel" className="flex-1 glass rounded-xl px-4 py-3 outline-none" value={form.mobile_number} onChange={(e) => set("mobile_number", e.target.value)} placeholder="Mobile number (optional)" />
+        </div>
+        <p data-testid="signup-mobile-note" className="text-[11px] text-slate-500 mt-1.5">Your mobile number will be used for faster login and account recovery when Phone Login becomes available.</p>
+        {mobileE164 && <p data-testid="signup-mobile-preview" className="text-[11px] text-cyan-300/80 mt-1">Saved as {mobileE164}</p>}
         <select data-testid="signup-role" className={inp} value={form.role} onChange={(e) => set("role", e.target.value)}>
           {BUSINESS_ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
         </select>

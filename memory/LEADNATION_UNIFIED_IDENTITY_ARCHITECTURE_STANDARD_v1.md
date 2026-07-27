@@ -26,6 +26,13 @@
 ---
 
 ## 2. FINAL DECISION — the single login method (works identically on web & app)
+### 2.0 Signup mobile capture (FROZEN 2026-06)
+- Signup collects **mobile as an OPTIONAL field** with a **country flag + dial-code selector** (e.g. 🇮🇳 +91) and stores it **E.164-normalized** (`+<dial><national>`, leading zeros stripped) in the shared `users` record. Sent under BOTH `mobile` and `mobile_number` keys for app/DO compatibility; `country` is derived from the selector.
+- UI note shown: *"Your mobile number will be used for faster login and account recovery when Phone Login becomes available."*
+- Phone OTP stays DISABLED (guarded) until Blaze, but every captured number is future-ready (already E.164) so mobile login + `resolve-mobile` light up instantly with zero data cleanup.
+- Website (`Auth.jsx` + `lib/countryCodes.js`) done & verified. App must mirror the same country-code selector + E.164 storage.
+
+
 A user signs in with **any** of these; all resolve to the same Firebase identity → same `customer_id` → same data:
 
 | Method | Flow | Status |
@@ -74,6 +81,15 @@ DO NOT: create a second Firebase, a second users store, or a second customer_id 
 ```
 
 ## 5. ⚠️ THE ONE DECISION THAT NEEDS YOUR REVIEW
+
+## 4b. ADMIN ACCESS TO ALL USERS (FROZEN 2026-06)
+Both **website admin** and **app admin** must see every user's profile + contact details (Customer ID, name, email, mobile E.164, role, country, status).
+- **Single source:** the DO identity backend endpoint `GET /api/admin_v2/users` (admin-gated, Firebase admin token). This is the ONE endpoint both admin consoles use — no duplicate user store, no separate query path.
+- **Website:** AdminDashboard → "Users" tab consumes `authApi.get('/admin_v2/users')` (read-only). Done & verified.
+- **App:** must consume the SAME endpoint for its admin view.
+- **Hard-delete / mutate** stays on the DO backend (`/admin_v2/users/{cid}/hard-delete`, super-admin) — website is read-only for identity.
+
+
 **Enable "Phone Authentication" in the Firebase console for project `trademate-new`.** Mobile-number login cannot work until this provider is switched on (it has SMS-quota/billing + reCAPTCHA implications, and only the project owner can enable it). Everything else I can build without you. 
 👉 Please enable Firebase → Authentication → Sign-in method → **Phone**, and confirm. Then I ship the website mobile-login and hand the app team the order above.
 
