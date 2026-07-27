@@ -1,124 +1,353 @@
-<analysis>**original_problem_statement**: The user is building a comprehensive Global Trade Intelligence portal for LeadNation (React + FastAPI + MongoDB + Firebase Auth). A massive Polish Sprint and AI Search Optimization (AEO/Entity SEO) task was just executed. The core goal is to polish the UX, integrate final branding (Intelligence Beyond Borders, new logo), and maximize LLM/Search Engine discoverability via advanced JSON-LD schemas and Technical SEO without altering backend business logic. PRODUCT REQUIREMENTS: A React Native Expo app connects to the same FastAPI backend, Firebase, and MongoDB used by this website.
+<analysis>original_problem_statement:
+- Build LeadNation as a unified Website + Expo Mobile App + DigitalOcean backend ecosystem, with VBIE (Verified Buyer Intelligence Engine; user also says “VIBE”) as the core global trade-intelligence product.
+- Follow **Research → Design → Review → Approval → Implementation** for major VBIE work.
+- Keep the Website/Command Center backend as the single Global Trade Intelligence Server. DO backend must remain responsible only for identity, 5-digit customer ID allocation, onboarding, company profiles, member bridges, and user management.
+- Website, mobile app, and future clients must consume shared VBIE APIs; no duplicated VBIE business logic outside website backend.
+- Add buyer details urgently.
+- Avoid unnecessary app work; app-team work was to stop after A→C→B→D identity/networking alignment.
+- Preserve binding architecture:
+  - DO backend is sole  allocator.
+  - /GEID is canonical company identity.
+  -  is editable business data only.
+  -  is personal user data only.
+  -  is the user↔company join.
+  - Phone OTP remains guarded until Firebase Blaze is enabled.
+- Product requirements:
+  - Evidence/provenance-first buyer intelligence.
+  - Buyer cards must show trust and source evidence.
+  - Claim-this-company workflow.
+  - Shared API contracts usable by web and mobile.
+  - No prohibited/restricted scraping strategy; only approved official/open/licensed sources.
 
-**User's preferred language**: English (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in English only)
+**User's preferred language**: English. Respond only in English.
 
-**what currently exists?** 
-A live, production-ready React/FastAPI global trade platform. It features a 3D Trade Globe, Centralized Pricing Engine, Trade Projects, Simulation Engine, Expo & Global Events listings, real-time Trade News, and Resend transactional emails. The application was just heavily optimized for global UX (scroll routing fixes), deep technical/AEO SEO (Article/Event/Organization schemas, ), and branding has been strictly locked globally to Intelligence Beyond Borders with newly processed logo assets. The database (MongoDB) and Auth (Firebase) are SHARED with a separate external DigitalOcean backend.
+**what currently exists?**
+- Website frontend: React app with existing LeadNation pages, SEO helpers, auth UI, guarded phone login UI, E.164 signup capture, and admin Users view.
+- Website backend: FastAPI + MongoDB, Brain package, and now a new VBIE module/router.
+- App/DO code is separate and is **not included/tracked in this website repository**. It was reviewed only from ZIPs extracted under .
+- App alignment A→C→B→D was reviewed and signed off by the prior agent based on ZIP/code inspection and app-team runtime-test claims:
+  - Phase A: identity/mobile/admin parity.
+  - Phase C: GEID entities and bridges.
+  - Phase B: Firestore networking cutover to existing Mongo endpoints.
+  - Phase D: guarded mobile phone UI.
+- New website-side VBIE Phase 1 slice was implemented and testing-agent verified:
+  - buyer listing/search/filter APIs;
+  - buyer detail API;
+  - source evidence/trust-factor API;
+  - claim submission API;
+  - 10 sources and 12 **illustrative seed buyers**;
+  -  and  web UI.
 
 **Last working item**:
-    - Last item agent was working: AI Search Optimization (AEO) implementation and Brand Tagline/Logo locking. Agent locked Intelligence Beyond Borders across the site, generated proper OpenGraph and favicon assets via python scripts using the user-provided transparent mark, injected deep JSON-LD schemas (Article, NewsArticle, Product, HowTo) into detail pages, and updated email templates. Tested via .
-    - Status: USER VERIFICATION PENDING
-    - Agent Testing Done: Y
-    - Which testing method agent to use? NA (testing already done in iteration_28)
-    - User Testing Done: N
+- Last item agent was working: Implementing and validating the first VBIE buyer-intelligence slice in the Website/Command Center backend and web frontend, after the user approved website-backend-only VBIE ownership.
+- Reasoning: The user explicitly accepted the architecture where the website backend owns VBIE and asked to add buyer details ASAP. The agent implemented the smallest visible/API-backed buyer slice rather than connectors/crawlers.
+- Status: USER VERIFICATION PENDING
+- Agent Testing Done: Y
+- Which testing method agent to use?: Both backend and frontend testing agent was used. Report: . A final self-check after regex hardening used API calls.
+- User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: Admin Credential Rotation (P0 Security)
-     - Attempted fixes: N/A
-     - Next debug checklist: Change  and  to strong values in  and Firebase before full public scale to prevent unauthorized access.
-     - Why fix this issue and what will be achieved with the fix? Crucial for production environment security.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix? backend
-     - Blocked on other issue: None
 
-**In progress Task List**: 
-None.
+Issue 1: VBIE Phase 1 user acceptance and production-data readiness — P0
+- Attempted fixes: Backend and frontend implementation completed; testing agent reported 100% pass.
+- Next debug checklist:
+  - Verify  buyer seed semantics and ensure UI clearly labels all seed records as illustrative/demo until sourced through approved provenance workflows.
+  - Review buyer detail/card presentation in , , and .
+  - Confirm user approves the initial UI, buyer information hierarchy, and use of seeded illustrative data.
+- Why fix this issue and what will be achieved with the fix?: Prevents demo/example buyer data from being misconstrued as verified commercial intelligence, and establishes a user-approved baseline before expanding VBIE.
+- Status: USER VERIFICATION PENDING
+- Is recurring issue?: N
+- Should Test frontend/backend/both after fix?: Both
+- Blocked on other issue: No
+
+Issue 2: Shared  ownership/write boundary needs cross-backend enforcement — P0
+- Attempted fixes: The user approved Website Backend ownership of VBIE buyer/entity graph. The agent documented a refinement that the DO backend may read GEIDs but should not write the VBIE graph.
+- Potential issue: The app/DO backend previously implemented its own  endpoints and writes GEID entities into the same shared Mongo Atlas DB. Without enforcement, both services can still write to , contradicting the new “Website Backend owns VBIE graph” rule.
+- Next debug checklist:
+  - Review  and the app team’s  from the latest app snapshot.
+  - Decide and document an exact split: whether DO may create only  entities, or whether all entity creation—including member companies—must proxy to Website VBIE APIs.
+  - Restrict/remove/write-gate conflicting DO  routes before future production expansion.
+  - Ensure app  binding can safely reference Website-created GEIDs.
+- Why fix this issue and what will be achieved with the fix?: Enforces one writer/source of truth and prevents conflicting merge, claim, and identity operations across two FastAPI services.
+- Status: NOT STARTED
+- Is recurring issue?: Y; architectural concern surfaced after moving VBIE ownership to Website Backend.
+- Should Test frontend/backend/both after fix?: Both, including app/DO backend runtime testing.
+- Blocked on other issue: Requires explicit decision/review with app team, but should be resolved before expanding VBIE.
+
+Issue 3: App networking feature gaps accepted as backlog — P1
+- Attempted fixes: App team migrated Firestore reads/listeners to Mongo polling but reported missing server APIs:
+  -  is a no-op.
+  -  is local-only per device.
+- Next debug checklist:
+  - In app repo, inspect  and .
+  - Determine whether these features are still exposed in UI; if yes, create authenticated Mongo endpoints and validate persistence.
+- Why fix this issue and what will be achieved with the fix?: Avoids UI actions that imply persistent network/relationship changes but do not survive devices/sessions.
+- Status: NOT STARTED / intentionally deferred
+- Is recurring issue?: N
+- Should Test frontend/backend/both after fix?: Both
+- Blocked on other issue: No
+
+Issue 4: App signup optional-vs-required mobile requirement mismatch — P1
+- Attempted fixes: None. The app team retained mobile as required+verified for “Phase A parity,” while the locked website architecture says signup mobile is optional and phone login is guarded.
+- Next debug checklist:
+  - Confirm product decision: mobile optional across website and app, or required on mobile only.
+  - Inspect app  and onboarding backend validation.
+  - Align documentation and UX once decided.
+- Why fix this issue and what will be achieved with the fix?: Preserves one shared identity/onboarding standard and avoids unnecessary registration friction.
+- Status: NOT STARTED
+- Is recurring issue?: N
+- Should Test frontend/backend/both after fix?: Both
+- Blocked on other issue: Requires user/product decision.
+
+**In progress Task List**:
+- None. The previous implementation task is complete from the agent perspective and awaits user verification.
 
 **Upcoming and Future Tasks**
-    Upcoming Tasks:
-    - P1: Programmatic SEO Landing Pages. Build 20+ authoritative Export to {country} / HS code for {product} guides utilizing the newly added FAQ + HowTo schemas to capture AI engine citations.
-    - P1: My Reports history + shareable links (public/private + expiry)
-    - P1: Activate Analytics (GA4/GTM/Clarity/Meta Pixel - scaffold is present, just needs  IDs provided by user)
-    
-    Future Tasks:
-    - P2: Live Payment Keys. The user will provide live Stripe and Razorpay keys in the future. Inject them into deployment variables.
-    - P2: Vol 2B/2C/2D: Monte Carlo + Sensitivity, Recommendation/Risk/Forecast engines, Interactive World Map.
-    - P2: Vol 3 & Vol 4: Enterprise Trade OS (CRM, ERP-ready).
-    - P2: Web ↔ App deep linking.
+
+Upcoming Tasks:
+1. P0 — User review/approval of VBIE Phase 1 buyer pages and seeded buyer details.
+   - Files: , , .
+2. P0 — Formalize/enforce the Website-backend vs DO-backend ownership boundary for /GEID writes.
+   - Relevant systems: Website ; app/DO  in separate repository.
+3. P1 — Replace illustrative buyer seeding with the approved source-registry ingestion path.
+   - Files: , .
+   - Must remain within legal/provenance rules and approval gates.
+
+Future Tasks:
+1. P1 — VBIE source connector framework, starting with approved official/free sources.
+2. P1 — Evidence ingestion, provenance records, refresh scheduling, and source reliability/scoring.
+3. P1 — Trust v0 scoring evolution and explainable verification details.
+4. P1 — Claim-this-company review/approval workflow (current claim endpoint is only an initial submission mechanism).
+5. P1 — Shared API documentation and app integration against Website Backend VBIE APIs.
+6. P2 — Buyer timelines/signals, relationship graph, matching/recommendation Brain modules.
+7. P2 — Optional website conversion work: “Verified Buyers” navigation entry and home teaser, suggested by prior agent but not requested/implemented.
+8. P2 — App networking persistence for cancel request/deal status if still product-relevant.
 
 **Completed work in this session**
-- Fixed critical cross-platform Google-only Auth bug (added website graceful fallback; delivered DO backend fix prompt to user) (DONE)
-- P0 Global Scroll Fix implemented via  component in Router (DONE)
-- Performance & Polish Sprint: Lazy loaded routes (), CSS alignments, updated socials (Instagram, LinkedIn) (DONE)
-- P3 Global SEO & AI Search Optimization (AEO): JSON-LD schemas expanded across detail pages, updated , dynamic per-page metadata via  (DONE)
-- Branding locked: Replaced all logos and established Intelligence Beyond Borders as the exact permanent tagline across website, meta, and backend email templates (DONE)
+- Reviewed latest app ZIPs and approved Phase C GEID hardenings:
+  - controlled GEID minting;
+  - merge idempotency and cycle guard.
+- Reviewed and approved app A→C→B→D completion based on latest ZIP/code and reported runtime testing.
+- Confirmed website repo contains no app/Expo code and only extracted ZIP artifacts existed under .
+- Locked architecture decision:
+  - Website/Command Center Backend is the Global Trade Intelligence Server and VBIE owner.
+  - DO backend remains identity/onboarding/user-management focused.
+- Implemented VBIE Phase 1 buyer-intelligence slice:
+  - 
+  - router/index/seed registration in 
+  - buyer frontend API and screens.
+- Added search regex escaping hardening after testing-agent code-review feedback.
+- Updated  with VBIE implementation state.
+
+- Recently completed:
+  - App A→C→B→D architecture review/sign-off (external app repo; code review only in this workspace).
+  - VBIE Phase 1 buyer listing/detail/evidence/claim slice (agent-tested).
 
 **Earlier issues found/mentioned but not fixed**
-None.
+- App-side  is a no-op.
+  - Debug checklist: inspect app , add server endpoint only if UI behavior remains required.
+  - Why to solve: prevents apparent cancellation actions with no persistence.
+  - Should Test frontend/backend/both after fix: Both.
+  - Is recurring issue?: N.
+- App-side  is device-local only.
+  - Debug checklist: identify UI consumers and create authenticated persistence only if it remains in scope.
+  - Why to solve: maintains cross-device consistency.
+  - Should Test frontend/backend/both after fix: Both.
+  - Is recurring issue?: N.
+- App registration currently requires phone/mobile despite website’s optional mobile design.
+  - Debug checklist: obtain user decision, align app frontend/backend onboarding.
+  - Why to solve: one consistent identity UX.
+  - Should Test frontend/backend/both after fix: Both.
+  - Is recurring issue?: N.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: None
-  - Recurrence count: 0
-  - Status: NA
+- Issue recurrence in previous fork: Dual service/shared Mongo ownership risk for GEID .
+- Recurrence count: 1 identified architectural risk after the user shifted all VBIE ownership to Website Backend.
+- Status: NOT STARTED
+- Notes: Previous app Phase C correctly made  canonical, but new Website-backend-only VBIE ownership means writers must now be explicitly partitioned or centralized.
 
 **Code Architecture**
-- React Frontend ()
-- FastAPI Backend ()
-- External DigitalOcean Identity Backend ()
+/buyers/buyers/:geid
 
 **Key Technical Concepts**
-React, FastAPI, MongoDB Atlas, Firebase Auth, JSON-LD Structured Data, Answer Engine Optimization (AEO), Resend (Emails), Stripe, Razorpay.
+- Frontend: React, React Router, Axios, Tailwind/shadcn-oriented component system.
+- Website backend: FastAPI + MongoDB/Motor/PyMongo.
+- Existing AI: Brain modular package; any new LLM work must use  first.
+- Auth: Firebase-based shared identity flow; DO backend is the current identity owner.
+- Database: MongoDB Atlas/shared  DB, accessed through environment configuration.
+- VBIE: GEID-based buyer intelligence, evidence/provenance, trust scoring, buyer cards, claim workflow.
+- App: Separate Expo/React Native + DO FastAPI repository; not included in .
+- Networking realtime: Mobile app shifted from Firestore listeners to Mongo API polling; WebSocket/change streams deferred.
 
 **key DB schema**
-  - : Managed by external DO backend.
-  - : 
-  - : 
+- 
+  - Identity records owned by DO backend.
+  - Key fields: Firebase UID, 5-digit , email, canonical E.164 , country, role/status.
+- 
+  - DO-owned atomic customer-ID allocator;  reserved for admin.
+- 
+  - Canonical GEID company/entity layer.
+  - Key fields: /GEID, , legal identity fields, status, , timestamps.
+  - Current risk: ownership/write controls must be reconciled between DO and Website services.
+- 
+  - Editable business fields only; references ; must not define company identity.
+- 
+  - Personal uid-keyed data only.
+- 
+  -  user-to-company association.
+  - App snapshot contract: unique UID and customer ID, non-unique GEID.
+- VBIE-related collections in 
+  - Buyer/entity records, sources/evidence/trust/claim-related data as implemented.
+  - Exact collection names and fields should be checked directly in  before modifying; avoid introducing a parallel schema.
 
 **changes in tech stack**
-  - Heavy reliance on  for JSON-LD dynamic injection for AI LLM discoverability.
+- No database migration occurred.
+- App networking changed from Firestore-coupled client behavior to Mongo  endpoints with polling, in the separate app repository.
+- Website gained a FastAPI VBIE domain router/module (), without introducing a new third-party dependency.
 
-**All files of reference** 
-  -  (Router logic, contains Lazy Loading and global Scroll restoration fix)
-  -  (Core builder for JSON-LD schemas and metadata)
-  -  (Single source of truth for Tagline)
-  -  (Text file guiding AI search crawlers)
-  - , ,  (Newly generated and locked logo assets)
-  -  (Latest green-light test pass)
+**All files of reference**
+1. Updated/created in this session:
+   -  — New VBIE buyer APIs, seed setup, trust/evidence/claim behavior.
+   -  — Registered VBIE router, startup indexes/seed behavior.
+   -  — Client methods for VBIE endpoints.
+   -  — Buyer summary UI.
+   -  — Buyer discovery/list page.
+   -  — Buyer detail/evidence/claim page.
+   -  — Added buyer routes.
+   -  — Updated VBIE status/architecture notes.
+   -  — App-team execution directive.
+2. Important existing files:
+   - 
+   - 
+   - 
+   - 
+   - 
+   - 
+   - 
 
-**Areas that need refactoring**: 
-None currently; routing and SEO structure were fully refactored in the last session.
+**Areas that need refactoring**
+-  should be reviewed before Phase 2 growth to split seed/demo concerns from production ingestion concerns; the current initial slice likely centralizes models, routes, seed data, and service logic.
+- Cross-backend GEID/entity write ownership needs an explicit service contract rather than relying on documentation.
+- Consider a dedicated VBIE API contract/versioning document before mobile begins direct consumption, but do not build speculative abstractions now.
+- Ensure the illustrative buyer seed is clearly segregated/flagged from genuinely verified records.
 
 **key api endpoints**
-  - External Auth API: 
-  - Web Backend API: , , , 
+- Website VBIE endpoints were added under  in ; inspect router definitions for exact paths before extending.
+- Verified during testing:
+  - Buyer metadata/filter endpoint.
+  - Buyer search/list endpoint.
+  - Buyer detail endpoint by GEID.
+  - Trust/evidence detail endpoint behavior.
+  - Claim submission endpoint.
+- Existing shared identity/admin endpoint:
+  -  — DO identity backend endpoint, admin-gated.
+- App networking endpoints (separate repo):
+  - Existing  connection/chat/profile endpoints consumed from .
+- Do not invent endpoint names; read the relevant router/client module first.
 
-**Critical Info for New Agent** 
-1. **SHARED ARCHITECTURE WARNING:** The MongoDB Atlas database and Firebase Auth project are SHARED between the deployed website, the mobile app, and the DigitalOcean identity backend. **DO NOT** delete users blindly or modify existing auth identity logic.
-2. **BRANDING IS LOCKED:** The official tagline is . It must not be changed. The logo mark and OpenGraph images have been hardcoded and processed via scripts into the  folder. 
-3. **SEO / AEO STRICTNESS:** The platform has been deeply optimized for ChatGPT, Claude, and Perplexity via  and . Any new pages or features added MUST inject appropriate structured data schemas (Article, Product, Event, etc.) using the existing helpers.
+**Critical Info for New Agent**
+- The user explicitly approved this architecture:
+  - Website/Command Center backend owns all VBIE business logic.
+  - Mobile, website, and future clients consume the same VBIE APIs.
+  - DO backend remains identity/onboarding/user-management only.
+- However, app Phase C already introduced entity write APIs in the DO backend. This must be reconciled before more VBIE features, because both backends share Mongo and could otherwise write the same  collection.
+- The first VBIE records are **illustrative seed buyers**. Do not represent them as production-verified buyers without source-specific validation and provenance.
+- No app source code is inside the website repo. ZIPs were extracted under  only and were confirmed untracked.
+- User said “VIBE” but existing project nomenclature/docs use “VBIE.” Retain VBIE in code/docs unless user explicitly asks for a rename.
+- Do not start broad VBIE Phase 2 work without user approval; user wants disciplined, goal-focused building.
+- Before any auth or external integration modifications, follow mandatory integration-expert workflow.
+- Before deploying, the user must separately save/deploy the correct repository. Website deploy is only needed for website changes; app/DO deployment is separate.
 
-**documents and test reports created in this job** 
-  - 
-  - 
-  - 
+**documents and test reports created in this job**
+Supporting docs:
+- 
+- 
+
+Test reports:
+-  — VBIE Phase 1 test report, agent reported 100% pass.
+- Prior relevant reports:
   - 
   - 
 
-**Last 10 User Messages and any pending HUMAN messages** 
- - *Message 39*: User corrected the tagline to Intelligence Beyond Borders.
- - *Message 116*: User officially provided the new Logo assets and requested AEO (AI Search Optimization) Phase 1-8 implementation, plus applying the logo/tagline across all fronts. Agent completed these successfully. (COMPLETED)
- *(No Pending Human Messages)*
+**Last 10 User Messages and any pending HUMAN messages**
+1. User approved building VBIE entirely in Website Backend and asked to add buyer details ASAP. — Implemented/tested; user verification pending.
+2. User asked for a summary of VIBE/VBIE phases and existing work. — Answered.
+3. User asked if app code was connected to website repo before GitHub save. — Confirmed separate/no app code in website repo.
+4. User said they saved the website repository to GitHub. — Acknowledged.
+5. User asked whether to save/redeploy website after app review. — Answered: separate repos; website redeploy not needed for app-only work at that time.
+6. User shared app ZIP 4 and app-team completion summary, asked for code check/final stop prompt. — Reviewed and stop prompt supplied.
+7. User shared app ZIP 3 and asked for final app execution prompt. — Hardening reviewed; final directive supplied.
+8. User requested copy-paste-ready prompt only for app team. — Supplied.
+9. User asked what the platform “Integrations” button was and where the app prompt was. — Explained; prompt location provided.
+10. User asked agent to make senior architecture decisions and provide detailed app-team prompt. — Completed.
+
+Pending human response:
+- User has not yet reviewed/accepted the new VBIE buyer screens/data or instructed the next VBIE phase.
 
 **Project Health Check:**
-- Broken: None.
-- Mocked: Stripe and Razorpay are using test keys (Live keys pending user provision).
+- Broken:
+  - No confirmed broken website behavior from iteration 31.
+  - Potential architectural break: two services may retain write capability to shared  data despite Website Backend being declared sole VBIE owner.
+  - App no-op cancel request / local-only deal status are known feature integrity gaps if exposed in production UI.
+- Mocked:
+  - VBIE’s initial 12 buyers are illustrative seed data, not confirmed real buyer intelligence sourced from live approved connectors.
+  - Source registry remains a design/config artifact; no production connector/crawler ingestion has been built.
+  - Live phone OTP remains intentionally disabled/guarded pending Firebase Blaze.
+- Healthy:
+  - Agent testing reported backend and frontend VBIE flows passed.
+  - Website repo separation from app repo confirmed.
+  - App A→C→B→D review cycle completed, subject to app team’s own deployment/runtime environment.
 
-**3rd Party Integrations** 
-  - OpenAI gpt-5.4-mini — uses Emergent LLM Key
-  - Stripe (Payments) — uses Environment Key
-  - Razorpay (Payments) — uses Environment Key
-  - Firebase Auth — requires User API Key
-  - Resend (Emails) — requires User API Key
+**3rd Party Integrations**
+- Firebase Authentication — existing shared auth; requires platform/user Firebase configuration. Phone SMS requires Firebase Blaze and is currently disabled. Does not use Emergent LLM Key.
+- MongoDB Atlas — shared database; user/platform-managed configuration through ; no Emergent LLM Key.
+- DigitalOcean backend — separate identity/onboarding application service; user/platform deployment configuration; no Emergent LLM Key.
+- Emergent LLM Key / existing Brain integrations — applicable only to existing/future supported AI functionality. No new LLM integration was added during VBIE Phase 1.
+- Stripe/Razorpay — existing payment-related integrations may exist but are not relevant to current VBIE work; keys are environment/user managed, not Emergent LLM Key.
+- Resend — existing transactional email integration; user API key required; no work this session.
+- Firestore — legacy app networking storage; app team reports it was cut over from active networking reads/writes. Firebase-managed; no Emergent LLM Key.
 
 **Testing status**
-  - Testing agent used after significant changes: YES (iteration 27, iteration 28)
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None
-  - Known regressions: None
+- Testing agent used after significant changes: YES
+- Troubleshoot agent used after agent stuck in loop: NO
+- Test files created: No new test source files explicitly recorded in visible history.
+- Test reports:
+  - 
+- Iteration 31 reported:
+  - Backend: 11/11 passing.
+  - Frontend buyer listing/search/filter/detail/claim flows passing.
+  - Overall success rate: 100%.
+- Known regressions:
+  - None reported from website VBIE tests.
+  - User verification still pending.
+  - App feature gaps noted above remain deferred.
 
 **Credentials to test flow:**
-- Admin:  /  (ID: )
+- Read  before any authenticated test.
+- Do not use stale ; app team reported it no longer resolves in Firebase.
+- No credentials were created/changed by the website VBIE implementation in the visible history.
 
 **What agent forgot to execute**
-Everything requested in the Polish Sprint and AI Search Optimization (AEO) prompt was successfully integrated. No missed executions.</analysis>
+- The system required asking for plan approval before subsequent feature work; the user had already explicitly approved Website Backend VBIE implementation and asked to continue, so execution was reasonably authorized.
+- The agent did not use  for VBIE because no external third-party integration was added.
+- The agent did not independently inspect the full contents of ZIP 4 app runtime environment; it reviewed code-level signs and relied partly on app-team claims for the 17/17 app runtime test result.
+- The agent approved the app’s required mobile registration as “Phase A parity” despite prior frozen website standard saying mobile is optional; this mismatch should be revisited.
+- The most significant missed safeguard is not immediately reconciling DO entity write endpoints with the newly approved Website-only VBIE ownership rule.
+
+**Debugging checklist for current issue**
+Issue: Enforce single-writer ownership for VBIE GEID/entity graph.
+
+Frontend files to check:
+- 
+- Any app/mobile API service in the separate app repository that calls .
+
+Backend files to check:
+- 
+- 
+- Separate app/DO backend  from the most recent app repository snapshot.
+
+Database to check:
+
+
+Required validation:
+entities</analysis>
