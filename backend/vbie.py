@@ -240,6 +240,7 @@ def _full(e: dict) -> dict:
         "trust": e.get("trust", {}), "provenance": e.get("provenance", []),
         "created_at": _iso(e.get("created_at")), "updated_at": _iso(e.get("updated_at")),
         "last_verified": e.get("last_verified") or _iso(e.get("updated_at")),
+        "admin_edited": bool(e.get("admin_edited")),
         "status": e.get("status", "active"),
         "primary_source": _primary_source(e), "source_warning": SOURCE_WARNING,
     }
@@ -365,6 +366,8 @@ async def get_buyer(geid: str, authorization: Optional[str] = Header(default=Non
     return {**_card(e), "locked": True, "lock_reason": ent["reason"],
             "trust": e.get("trust", {}), "website": "", "provenance": [], "signals": {},
             "status": e.get("status", "active"),
+            "last_verified": e.get("last_verified") or _iso(e.get("updated_at")),
+            "admin_edited": bool(e.get("admin_edited")),
             "primary_source": _primary_source(e), "source_warning": SOURCE_WARNING}
 
 

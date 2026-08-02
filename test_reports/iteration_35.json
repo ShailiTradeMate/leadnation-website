@@ -1,0 +1,16 @@
+{
+  "summary": "Iteration 35 retest of iteration_34 fixes: unauth GET /api/buyers/{geid} now exposes last_verified + admin_edited + primary_source + source_warning; admin list ?q= matches on GEID and rows include admin_edited; buyer profile page renders buyer-last-verified/buyer-source-warning/buyer-paywall. All regressions (production audit=10719 active, 3 quarantined, meta==10719, analytics keys+xlsx, export.xlsx, export.pdf) pass. 9/9 backend tests green, UI verified against fixed GEID LN-buyer-JTX4PXKNH69XHYAS7Y3FFPNTY2.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_vbie_iteration35.py", "/app/test_reports/pytest/iter35.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": ["/app/backend/tests/test_vbie_iteration35.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "X-Admin-Token: leadnation-admin-2026",
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend test file /app/backend/tests/test_vbie_iteration35.py validates FIX1 (buyer-detail locked payload new keys), FIX2 (admin list GEID search + admin_edited flag on rows) and full regression set. Buyer profile page verified rendering buyer-last-verified='Verified 8/2/2026', buyer-source-warning and buyer-paywall for the fixed GEID.",
+  "rca of the issue": "N/A - fixes verified working."
+}

@@ -341,7 +341,7 @@ async def admin_list(q: Optional[str] = None, country: Optional[str] = None,
     if q:
         import re
         rx = {"$regex": re.escape(q.strip()), "$options": "i"}
-        query["$or"] = [{"legal_name": rx}, {"products": rx}, {"city": rx}]
+        query["$or"] = [{"legal_name": rx}, {"products": rx}, {"city": rx}, {"_id": rx}, {"geid": rx}]
     page = max(1, page); limit = max(1, min(limit, 200))
     total = await db.entities.count_documents(query)
     rows = await db.entities.find(query).sort("updated_at", -1).skip((page - 1) * limit).limit(limit).to_list(limit)
