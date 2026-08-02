@@ -7,6 +7,7 @@ export const searchBuyers = (params = {}) => api.get("/buyers/search", { params 
 export const fetchBuyer = (geid) => api.get(`/buyers/${geid}`).then((r) => r.data);
 export const fetchBuyerEvidence = (geid) => api.get(`/buyers/${geid}/evidence`).then((r) => r.data);
 export const claimBuyer = (geid, payload) => api.post(`/buyers/${geid}/claim`, payload).then((r) => r.data);
+export const fetchBuyerSources = () => api.get("/buyers/sources").then((r) => r.data);
 
 export const TRUST_COLORS = {
   emerald: "bg-emerald-500/15 text-emerald-300 border-emerald-400/30",

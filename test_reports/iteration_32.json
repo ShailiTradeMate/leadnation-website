@@ -1,0 +1,29 @@
+{
+  "summary": "VBIE iteration 32 (live real buyer ingestion + paywall) tested end-to-end. Backend: 14/14 pytest cases pass on /api/buyers/* including meta (total=257 real), search filters (country/sector/corridor/hs/trust_min/q, sorted by trust desc), sources registry (11 sources, sanctions_screening.denied_parties>1000), paywall on GET /{geid} (locked=true, lock_reason='login', website hidden, provenance=[]) and 402 on /{geid}/evidence unauth, admin token gating (401 without header, 200 with X-Admin-Token), POST /buyers/ingest/run returns ok, screened_out>=1 in last run (1 blocked), no fake demo names remain, all buyers sample=false. Backend scheduler log confirms 'VBIE daily ingestion scheduler started (02:00 UTC)' and startup ingestion 'upserted=257 screened_out=1 real_total=257 samples_removed=12'. Frontend: /buyers loads with 257 result-count (not stuck on Searching…), all filter/search testids present, home page has nav-link-verified-buyers + home-verified-buyers section + home-buyers-cta, buyer profile /buyers/:geid unauthenticated shows buyer-profile-header + buyer-paywall + paywall-signin (paywall-plan is conditional on being signed-in-without-plan, so absent when logged out — expected), buyer-claim-btn opens buyer-claim-modal and lead submission returns 'Request received' confirmation (not gated).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/buyers listing", "issues": ["Cookie consent banner overlays bottom of viewport and can intercept clicks on lower buyer cards — did not affect core flows but consider raising card z-index or auto-hiding banner after first dismissal."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vbie_live_buyers.py",
+    "/app/test_reports/pytest/iter32_vbie.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "paywall-plan testid is only rendered for signed-in users without an active plan; unauth users see paywall-signin only. This is correct but worth documenting in the testid contract so future tests don't flag it as missing.",
+    "Old test file /app/backend/tests/test_vbie_buyers.py hardcodes total==12 and non-paywalled detail/evidence — it is now obsolete and will fail if executed. Recommend deleting or superseding with test_vbie_live_buyers.py.",
+    "Search query 'rice' returned 0 results despite 257 EU TED buyers — text search may not index all buyer fields (e.g., titles). Not a bug, but noting: consider indexing display_name+sector+products for q."
+  ],
+  "updated_files": ["/app/backend/tests/test_vbie_live_buyers.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin: X-Admin-Token: leadnation-admin-2026. No UI login attempted (Firebase CORS-blocked in preview).",
+  "seed_data_creation": "None — real EU TED data (257 buyers, 27 countries, 7 sectors) already ingested at backend startup.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Real buyer count fluctuates with daily EU TED ingestion (currently 257). Always compute filter values from /meta first, don't hardcode. Paywall paths: unauth -> lock_reason='login' + 402 on evidence; entitled path can only be verified via backend fixtures because Firebase UI login is CORS-blocked in the preview. Old file /app/backend/tests/test_vbie_buyers.py is obsolete (asserts total==12). CID/SAM.gov/Companies House connectors currently return 0 (need API keys / are host-blocked) but this is expected per E1 note.",
+  "rca of the issue": "N/A — no failures."
+}

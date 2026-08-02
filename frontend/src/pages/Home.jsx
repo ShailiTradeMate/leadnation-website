@@ -231,6 +231,46 @@ export default function Home() {
         </div>
       </section>
 
+      {/* VERIFIED BUYERS */}
+      <section className="relative max-w-7xl mx-auto px-6 sm:px-10 py-12" data-testid="home-verified-buyers">
+        <div className="relative glass-strong rounded-3xl p-8 sm:p-12 overflow-hidden border border-violet-400/25">
+          <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
+          <div className="relative grid lg:grid-cols-2 gap-8 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
+                <ShieldCheck size={14} weight="fill" /> Verified Buyer Intelligence Engine
+              </div>
+              <h2 className="font-display font-extrabold text-3xl sm:text-4xl mt-4 leading-[1.08]">
+                Real global buyers — <span className="gradient-text">with the evidence to prove it.</span>
+              </h2>
+              <p className="mt-4 text-slate-300 text-sm sm:text-base max-w-xl">
+                Discover active importers and public-sector buyers ingested daily from official government sources — EU procurement (TED), the Canadian Importers Database and UN Comtrade — every record sanctions-screened and backed by cited provenance and an explainable trust score.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link to="/buyers" data-testid="home-buyers-cta" className="btn-primary">
+                  Explore Verified Buyers <ArrowRight size={16} weight="bold" />
+                </Link>
+                <Link to="/pricing" className="btn-ghost">Plans to unlock profiles</Link>
+              </div>
+              <p className="mt-3 text-[11px] text-slate-500">Full buyer profiles require sign-in + an active plan.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                ["Official sources", "EU TED · CID · UN Comtrade"],
+                ["Sanctions-screened", "trade.gov CSL hard gate"],
+                ["Explainable trust", "Every score is broken down"],
+                ["Cited provenance", "Traceable to the source"],
+              ].map(([t, s]) => (
+                <div key={t} className="glass rounded-2xl px-4 py-5">
+                  <div className="font-display font-bold text-sm">{t}</div>
+                  <div className="text-[11px] text-cyan-300 mt-1">{s}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* SERVICES HIGHLIGHT */}
       <section className="relative max-w-7xl mx-auto px-6 sm:px-10 py-12" data-testid="home-services-highlight">
         <div className="glass-strong rounded-3xl p-8 sm:p-10 grid lg:grid-cols-2 gap-8 items-center border border-cyan-400/20">

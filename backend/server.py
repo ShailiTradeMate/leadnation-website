@@ -1,4 +1,5 @@
 """LeadNation API — thin entrypoint. Domain logic lives in routers + brain/."""
+import asyncio
 import logging
 
 from fastapi import APIRouter, FastAPI
@@ -12,6 +13,7 @@ from monetize import pay_router, dl_router, acc_router, hook_router
 from pricing import pricing_router, get_config as get_pricing_config
 import events, adapters, simulation, decision_engine
 import storage, news_engine, event_listings, vbie
+import vbie_connectors
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -81,8 +83,10 @@ async def _startup():
         logging.warning("Duty engine init failed: %s", exc)
     try:
         await vbie.seed_vbie()
+        vbie_connectors.start_scheduler()
+        asyncio.create_task(vbie_connectors.run_ingestion(trigger="startup"))
     except Exception as exc:
-        logging.warning("VBIE seed failed: %s", exc)
+        logging.warning("VBIE init failed: %s", exc)
     try:
         await _ensure_indexes()
     except Exception as exc:

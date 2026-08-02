@@ -31,10 +31,11 @@ import re
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel
 
-from core import db
+from core import db, require_admin
+from firebase_auth import _bearer, verify_token
 
 router = APIRouter(prefix="/buyers")
 logger = logging.getLogger(__name__)
@@ -64,6 +65,7 @@ SOURCES_SEED = [
     {"_id": "company_website", "name": "Company Website", "tier": "directory", "category": "website", "url": "", "attribution": "Company-published information"},
     {"_id": "trade_fair_exhibitor", "name": "Trade Fair Exhibitor Directory", "tier": "directory", "category": "exhibitor", "url": "", "attribution": "Published exhibitor list"},
     {"_id": "epc_directory", "name": "Export Promotion Council Directory", "tier": "official", "category": "association", "url": "", "attribution": "Export Promotion Council member directory"},
+    {"_id": "cid_canada", "name": "Canadian Importers Database", "tier": "official", "category": "customs_bol", "url": "https://ised-isde.canada.ca/site/canadian-importers-database/en", "attribution": "Innovation, Science and Economic Development Canada (Open Government Licence)"},
 ]
 _SOURCE_BY_ID = {s["_id"]: s for s in SOURCES_SEED}
 
@@ -199,33 +201,12 @@ _BUYERS_SEED = [
 
 
 async def seed_vbie():
-    """Idempotent seed of the source registry + illustrative buyer entities.
-    Only touches VBIE-owned docs; never modifies member/company identity."""
+    """Idempotent seed of the SOURCE REGISTRY only. Buyer/entity records come EXCLUSIVELY
+    from the live connector ingestion (vbie_connectors) — no fabricated demo buyers are
+    written. Only touches VBIE-owned docs; never modifies member/company identity."""
     for s in SOURCES_SEED:
         await db.vbie_sources.update_one({"_id": s["_id"]}, {"$set": s}, upsert=True)
-
-    for b in _BUYERS_SEED:
-        geid = _stable_geid(b["slug"])
-        provenance = [_prov(sid, field, url=b.get("website", "") if field == "profile" else "")
-                      for (sid, field) in b["prov"]]
-        signals = b.get("signals", {})
-        trust = compute_trust(provenance, signals)
-        doc = {
-            "_id": geid, "geid": geid, "entity_type": "buyer", "status": "active",
-            "legal_name": b["legal_name"], "display_name": b["legal_name"],
-            "country": b["country"], "country_name": b["country_name"], "city": b["city"],
-            "sector": b["sector"], "products": b["products"], "hs_families": b["hs_families"],
-            "corridors": b["corridors"], "size": b.get("size", ""), "website": b.get("website", ""),
-            "role": "importer", "signals": signals, "provenance": provenance, "trust": trust,
-            "sample": True, "created_by": "vbie-seed", "merged_into": None,
-            "updated_at": _now(),
-        }
-        await db.entities.update_one(
-            {"_id": geid},
-            {"$set": doc, "$setOnInsert": {"created_at": _now()}},
-            upsert=True,
-        )
-    logger.info("VBIE seed complete: %d sources, %d illustrative buyers", len(SOURCES_SEED), len(_BUYERS_SEED))
+    logger.info("VBIE source registry seeded: %d sources", len(SOURCES_SEED))
 
 
 # ───────────────────────────── serialization ────────────────────────────────
@@ -266,8 +247,55 @@ async def buyers_meta():
         "sectors": sorted([s for s in sectors if s]),
         "corridors": sorted([c for c in corridors if c]),
         "trust_bands": ["Verified", "Trusted", "Emerging", "Unverified"],
-        "disclaimer": "Buyer records shown are illustrative directory data with cited sources. "
-                      "Live, connector-verified intelligence is being onboarded from official trade sources.",
+        "disclaimer": "Buyer records are ingested daily from official government sources "
+                      "(EU TED procurement, Canadian Importers Database, UN Comtrade, "
+                      "trade.gov sanctions screening) with cited provenance. Full buyer "
+                      "profiles require sign-in and an active plan.",
+    }
+
+
+async def _has_active_sub(uid: str) -> bool:
+    s = await db.subscriptions.find_one({"owner": uid, "status": "active"})
+    if not s:
+        return False
+    try:
+        return datetime.fromisoformat(s["until"]) > _now()
+    except Exception:
+        return False
+
+
+async def _entitlement(authorization: Optional[str]) -> dict:
+    """Full buyer intelligence requires a signed-in user with an active plan (admins bypass)."""
+    token = _bearer(authorization)
+    claims = verify_token(token) if token else None
+    if not claims:
+        return {"authed": False, "entitled": False, "reason": "login"}
+    uid = claims.get("uid")
+    u = await db.users.find_one({"uid": uid})
+    if u and u.get("role") == "admin":
+        return {"authed": True, "entitled": True, "reason": "admin"}
+    if await _has_active_sub(uid):
+        return {"authed": True, "entitled": True, "reason": "plan"}
+    return {"authed": True, "entitled": False, "reason": "plan"}
+
+
+@router.get("/sources")
+async def buyers_sources():
+    """Public transparency: the official sources VBIE ingests, with attribution."""
+    srcs = await db.vbie_sources.find({}).to_list(100)
+    meta = await db.vbie_sanctions_meta.find_one({"_id": "csl"})
+    last = await db.vbie_ingest_runs.find_one(sort=[("started_at", -1)])
+    return {
+        "sources": [{"id": s["_id"], "name": s.get("name"), "tier": s.get("tier"),
+                     "category": s.get("category"), "url": s.get("url"),
+                     "attribution": s.get("attribution")} for s in srcs],
+        "sanctions_screening": {"provider": "trade.gov Consolidated Screening List",
+                                "denied_parties": (meta or {}).get("count"),
+                                "refreshed_at": (meta or {}).get("refreshed_at")},
+        "last_ingestion": {"finished_at": (last or {}).get("finished_at"),
+                           "upserted": (last or {}).get("upserted"),
+                           "screened_out": (last or {}).get("screened_out"),
+                           "by_source": (last or {}).get("sources")} if last else None,
     }
 
 
@@ -306,7 +334,7 @@ async def search_buyers(
 
 
 @router.get("/{geid}")
-async def get_buyer(geid: str):
+async def get_buyer(geid: str, authorization: Optional[str] = Header(default=None)):
     e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
     if not e:
         raise HTTPException(status_code=404, detail="Buyer not found")
@@ -317,14 +345,23 @@ async def get_buyer(geid: str):
         if not nxt:
             break
         e, hops = nxt, hops + 1
-    return _full(e)
+    ent = await _entitlement(authorization)
+    if ent["entitled"]:
+        return {**_full(e), "locked": False}
+    # Locked teaser: identity + trust band only. Contact/website/evidence gated behind a plan.
+    return {**_card(e), "locked": True, "lock_reason": ent["reason"],
+            "trust": e.get("trust", {}), "website": "", "provenance": [], "signals": {},
+            "status": e.get("status", "active")}
 
 
 @router.get("/{geid}/evidence")
-async def get_buyer_evidence(geid: str):
+async def get_buyer_evidence(geid: str, authorization: Optional[str] = Header(default=None)):
     e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
     if not e:
         raise HTTPException(status_code=404, detail="Buyer not found")
+    ent = await _entitlement(authorization)
+    if not ent["entitled"]:
+        raise HTTPException(status_code=402, detail=f"locked:{ent['reason']}")
     return {"geid": geid, "evidence": e.get("provenance", []), "trust": e.get("trust", {})}
 
 
@@ -360,3 +397,25 @@ async def claim_buyer(geid: str, body: BuyerClaim, request: Request):
     except Exception:
         pass
     return {"ok": True, "claim_id": str(res.inserted_id)}
+
+
+# ─────────────────────── admin: connector ingestion ─────────────────────────
+@router.post("/ingest/run")
+async def trigger_ingestion(background: bool = True, _: dict = Depends(require_admin)):
+    """Manually trigger a daily-style ingestion of real buyers from official sources."""
+    import asyncio
+    import vbie_connectors
+    if background:
+        asyncio.create_task(vbie_connectors.run_ingestion(trigger="admin-manual"))
+        return {"ok": True, "started": True, "mode": "background"}
+    summary = await vbie_connectors.run_ingestion(trigger="admin-sync")
+    return {"ok": True, "summary": summary}
+
+
+@router.get("/ingest/status")
+async def ingestion_status(_: dict = Depends(require_admin)):
+    runs = await db.vbie_ingest_runs.find({}).sort("started_at", -1).to_list(10)
+    real = await db.entities.count_documents({"entity_type": "buyer", "sample": {"$ne": True}})
+    samples = await db.entities.count_documents({"entity_type": "buyer", "sample": True})
+    return {"real_buyers": real, "sample_buyers": samples,
+            "runs": [{k: v for k, v in r.items() if k != "_id"} for r in runs]}

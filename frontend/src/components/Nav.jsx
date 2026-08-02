@@ -4,7 +4,7 @@ import {
   Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
   GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Brain,
   Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
-  Briefcase, AddressBook, MagnifyingGlass, UserCircle, Tag,
+  Briefcase, AddressBook, MagnifyingGlass, UserCircle, Tag, ShieldCheck,
 } from "@phosphor-icons/react";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/lib/SettingsContext";
@@ -18,6 +18,7 @@ const ROUTE_FEATURE = {
 
 const PRIMARY = [
   { to: "/", label: "Home", icon: Globe },
+  { to: "/buyers", label: "Verified Buyers", icon: ShieldCheck },
   { to: "/tools", label: "Tools", icon: Calculator },
   { to: "/services", label: "Services", icon: Briefcase },
   { to: "/brain", label: "LeadNation Brain", icon: Brain },

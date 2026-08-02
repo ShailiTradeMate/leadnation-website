@@ -46,7 +46,8 @@ export default function BuyerIntelligence() {
           Buyers you can <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-400">trust</span> — with the evidence to prove it.
         </h1>
         <p className="mt-4 text-base text-slate-400 max-w-2xl">
-          Every buyer is a canonical company entity with an explainable trust score and cited sources.
+          Active importers and public-sector buyers, ingested daily from official government
+          sources — every record sanctions-screened with an explainable trust score and cited evidence.
           Not a scraped list — a verifiable intelligence graph.
         </p>
         {meta && (
