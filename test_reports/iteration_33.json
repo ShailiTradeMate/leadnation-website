@@ -1,0 +1,23 @@
+{
+  "summary": "VBIE Phase 2 (iteration 33) — 16/16 backend pytest cases pass on live preview. Confirmed scale (total=10,721 real buyers across 31 EU countries, 12+ sectors), QA audit overall_pass=true with all 8 mandatory checks (unique_geid, no_duplicate_entities, provenance_present, source_registry_compliance, trust_explainable, country_classified, sector_classified, no_demo_data) and /app/memory/VBIE_QA_REPORT.md written. Admin CRUD works with X-Admin-Token: list returns paginated buyers w/ admin_edited+created_by (401 without token), PATCH persists sector + sets admin_edited=true (verified via public GET), DELETE soft-deletes (public GET → 404), bulk-delete scope=source cid_canada returns ok:true. Exports: xlsx (spreadsheetml, >10KB) and pdf (application/pdf) both 200. Ingestion: /status shows real_buyers=10721 with run history, POST /ingest/run?background=true returns ok. Notifications: user GET /api/notifications returns broadcast 'New verified buyers added' with unread count (POST /read → 401 unauth as expected); admin GET+POST notifications work. Buyer detail unauth returns locked=true, source_warning mentioning 'verify directly / at your own risk' and primary_source='EU Tenders Electronic Daily (TED)'. Brain /ask unauth returns buyerAccess.locked=true, subscribed=false, count>0, no email/phone leaked in answer, ctas include subscribe. Frontend on preview URL: /buyers renders buyer-card-0 (10k+ cards), all filters (buyer-filter-country/sector/corridor/trust, buyer-search-input) + buyer-sources-section present, /buyers/:geid unauth shows buyer-source-warning amber banner AND buyer-paywall gate, nav-notif-bell opens nav-notif-panel with 'New verified buyers added — 9027 newly verified buyers were added across 31 markets. Sources: EU TED, Canadian Importers Database, UN Comtrade', nav-link-verified-buyers + home-verified-buyers present.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vbie_phase2.py",
+    "/app/test_reports/pytest/iter33_vbie.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PATCH /api/buyers/admin/{geid} returns 'updated' as a list of field names (['sector','admin_edited','updated_at']), while typical REST convention returns the updated document. Consider standardising to return the updated buyer doc for admin UI ease.",
+    "Admin list search (?q=) does not index geid — searching by geid returns empty. Fine for humans but noted; consider adding geid to text-search fields for admin diagnostics.",
+    "Transient 502 observed once on /api/buyers/meta during heavy ingestion — recovered on retry. Consider caching /meta or adding retry-after header when ingestion is running."
+  ],
+  "updated_files": ["/app/backend/tests/test_vbie_phase2.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin: X-Admin-Token: leadnation-admin-2026. No Firebase UI login attempted (preview CORS-blocked per E1 note).",
+  "seed_data_creation": "None — 10,721 real EU TED buyers already ingested. Test PATCH set one buyer sector='QA Sector' (persistent) and one soft-delete (persistent).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Filter testids are buyer-filter-{country,sector,corridor,trust} and buyer-search-input (not market-filter etc). Card links use /buyers/LN-buyer-{id}. Admin PATCH's 'updated' field is a list of field names, not an object. Admin list ?q= does not match geid — search by legal_name substring instead. cid_canada bulk delete is a no-op (0 rows) and correctly returns ok:true.",
+  "rca of the issue": "N/A — all tests pass."
+}

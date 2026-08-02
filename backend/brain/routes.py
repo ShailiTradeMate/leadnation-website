@@ -40,8 +40,18 @@ class AskRequest(BaseModel):
 async def brain_ask(payload: AskRequest, request: Request):
     key = payload.session_id or payload.user_id or (request.client.host if request.client else "anon")
     _rate_limit(key)
+    # Securely resolve the requester's uid from the Firebase token for subscription gating.
+    auth_uid = None
+    try:
+        from firebase_auth import _bearer, verify_token
+        token = _bearer(request.headers.get("authorization"))
+        claims = verify_token(token) if token else None
+        auth_uid = claims.get("uid") if claims else None
+    except Exception:
+        auth_uid = None
     return await orchestrate(payload.question, payload.session_id, payload.user_id,
-                             page_context=payload.page_context, language=payload.language or "en")
+                             page_context=payload.page_context, language=payload.language or "en",
+                             auth_uid=auth_uid)
 
 
 @router.get("/search")

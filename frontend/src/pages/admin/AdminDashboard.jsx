@@ -4,11 +4,12 @@ import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
 import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, GoogleLogo, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, GoogleLogo, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
 import { authApi } from "@/lib/authApi";
 import PricingManager from "@/pages/admin/PricingManager";
+import BuyersManager from "@/pages/admin/BuyersManager";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
 
@@ -113,6 +114,7 @@ export default function AdminDashboard() {
           { k: "events", l: "Web Analytics", I: Eye },
           { k: "control-center", l: "Control Center", I: SlidersHorizontal },
           { k: "pricing", l: "Pricing", I: CurrencyCircleDollar },
+          { k: "buyers", l: "Verified Buyers", I: ShieldCheck },
         ].map((t) => (
           <button key={t.k} data-testid={`admin-tab-${t.k}`} onClick={() => setTab(t.k)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap ${tab === t.k ? "tab-active text-white" : "text-slate-300 hover:bg-white/5"}`}>
@@ -136,6 +138,7 @@ export default function AdminDashboard() {
         {tab === "events" && <Events />}
         {tab === "control-center" && <ControlCenter />}
         {tab === "pricing" && <PricingManager />}
+        {tab === "buyers" && <BuyersManager />}
       </div>
     </section>
   );

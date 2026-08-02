@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
 import BuyerCard from "@/components/BuyerCard";
-import { fetchBuyerMeta, searchBuyers } from "@/lib/vbieApi";
+import { fetchBuyerMeta, searchBuyers, fetchBuyerSources } from "@/lib/vbieApi";
 import { MagnifyingGlass, ShieldCheck, Sparkle, Info } from "@phosphor-icons/react";
 
 const TRUST_MINS = [
@@ -118,8 +118,53 @@ export default function BuyerIntelligence() {
         </div>
       </section>
 
+      <SourcesSection />
+
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pb-16"><DownloadCTA /></section>
     </>
+  );
+}
+
+function SourcesSection() {
+  const [src, setSrc] = useState(null);
+  useEffect(() => { fetchBuyerSources().then(setSrc).catch(() => {}); }, []);
+  if (!src) return null;
+  return (
+    <section data-testid="buyer-sources-section" className="max-w-7xl mx-auto px-6 sm:px-10 pb-16">
+      <div className="glass-strong rounded-3xl p-7 sm:p-9">
+        <div className="flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
+          <ShieldCheck size={14} weight="fill" /> Source Transparency
+        </div>
+        <h2 className="font-display font-extrabold text-2xl sm:text-3xl mt-3">Where our buyer intelligence comes from</h2>
+        <p className="mt-2 text-sm text-slate-400 max-w-2xl">
+          Every buyer is aggregated from official, public government sources and screened against denied-party
+          lists before it appears. We publish our sources for full transparency.
+        </p>
+        <div className="mt-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {src.sources.filter((s) => s.attribution).slice(0, 12).map((s) => (
+            <div key={s.id} className="glass rounded-2xl px-4 py-3">
+              <div className="text-sm font-semibold flex items-center gap-2">{s.name}
+                <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-white/5 text-slate-400">{s.tier}</span>
+              </div>
+              <div className="text-[11px] text-slate-500 mt-1">{s.attribution}</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 flex flex-wrap gap-4 text-xs text-slate-400">
+          {src.sanctions_screening?.denied_parties != null && (
+            <span className="flex items-center gap-1.5"><ShieldCheck size={13} weight="fill" className="text-emerald-300" />
+              Sanctions-screened against {src.sanctions_screening.denied_parties.toLocaleString()} denied parties ({src.sanctions_screening.provider})</span>
+          )}
+          {src.last_ingestion?.finished_at && (
+            <span>Last updated: {new Date(src.last_ingestion.finished_at).toLocaleDateString()}</span>
+          )}
+        </div>
+        <p className="mt-4 text-[11px] text-amber-200/70 leading-relaxed">
+          Note: LeadNation has no contact arrangement with these organisations. Always verify buyer details
+          directly and treat any business you conduct with them as at your own risk.
+        </p>
+      </div>
+    </section>
   );
 }
 

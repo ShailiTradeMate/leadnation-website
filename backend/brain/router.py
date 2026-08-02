@@ -140,6 +140,94 @@ CTA_LIBRARY = {
 }
 
 
+# ---------------- Verified Buyers (subscription-gated) ----------------
+BUYER_INTENT_KWS = ("buyer", "buyers", "importer", "importers", "who imports", "who is buying",
+                    "who buys", "find buyers", "verified buyer", "leads for", "purchasers",
+                    "customers abroad", "who will buy", "potential customers")
+
+
+def _is_buyer_intent(question: str) -> bool:
+    ql = question.lower()
+    return any(k in ql for k in BUYER_INTENT_KWS)
+
+
+async def _brain_subscribed(auth_uid):
+    if not auth_uid:
+        return False
+    from core import db
+    u = await db.users.find_one({"uid": auth_uid})
+    if u and u.get("role") == "admin":
+        return True
+    s = await db.subscriptions.find_one({"owner": auth_uid, "status": "active"})
+    if not s:
+        return False
+    try:
+        return datetime.fromisoformat(s["until"]) > datetime.now(timezone.utc)
+    except Exception:
+        return False
+
+
+async def _buyer_intel(entities, subscribed):
+    from core import db
+    base = {"entity_type": "buyer", "status": "active", "merged_into": None, "admin_deleted": {"$ne": True}}
+    q = dict(base)
+    ors = []
+    if entities.get("countries"):
+        ors.append({"country_name": {"$in": entities["countries"]}})
+    if entities.get("hsn"):
+        ors.append({"hs_families": {"$in": list({h[:4] for h in entities["hsn"]})}})
+    if entities.get("products"):
+        rx = "|".join(re.escape(p) for p in entities["products"][:5])
+        ors += [{"products": {"$regex": rx, "$options": "i"}}, {"sector": {"$regex": rx, "$options": "i"}}]
+    if ors:
+        q["$or"] = ors
+    total = await db.entities.count_documents(q)
+    if total == 0:
+        q = dict(base)
+        total = await db.entities.count_documents(q)
+    if total == 0:
+        return None
+    rows = await db.entities.find(q).sort("trust.score", -1).limit(6).to_list(6)
+    markets, sectors = {}, {}
+    async for e in db.entities.find(q, {"country_name": 1, "sector": 1}):
+        markets[e.get("country_name", "—")] = markets.get(e.get("country_name", "—"), 0) + 1
+        sectors[e.get("sector", "—")] = sectors.get(e.get("sector", "—"), 0) + 1
+    top_markets = sorted(markets.items(), key=lambda x: -x[1])[:6]
+    top_sectors = sorted(sectors.items(), key=lambda x: -x[1])[:6]
+    if subscribed:
+        listing = "\n".join(
+            f"- {e.get('legal_name')} ({e.get('country_name')}) · {e.get('sector')} · "
+            f"Trust {(e.get('trust') or {}).get('score')} ({(e.get('trust') or {}).get('band')}) · "
+            f"source {((e.get('provenance') or [{}])[0]).get('source_name', '')}" for e in rows)
+        summary = (f"LeadNation has {total} verified buyers matching this query. Top matches:\n{listing}\n\n"
+                   f"All are aggregated from official government sources and sanctions-screened. Open the "
+                   f"Verified Buyers page for full profiles, trust breakdowns and cited evidence. Note: we have "
+                   f"no contact arrangement with these organisations — always verify directly before doing business.")
+    else:
+        summary = (f"LeadNation has {total} verified buyers matching this query, across markets like "
+                   f"{', '.join(m for m, _ in top_markets)} and sectors like {', '.join(s for s, _ in top_sectors)}. "
+                   f"Full buyer names, trust breakdowns and cited source evidence are available to subscribers. "
+                   f"Subscribe and open the Verified Buyers page to unlock them.")
+    engine = {"summary": summary, "sources": [{"title": "Verified Buyers", "to": "/buyers"}],
+              "data": {"total": total, "markets": dict(top_markets), "sectors": dict(top_sectors),
+                       "locked": not subscribed}}
+    return {"engine": engine, "count": total, "locked": not subscribed}
+
+
+async def _capture_buyer_signal(uid, question, entities):
+    try:
+        from core import db
+        await db.user_intent_signals.update_one(
+            {"uid": uid or "anon"},
+            {"$set": {"uid": uid or "anon", "last_buyer_query": question, "is_searching_buyers": True,
+                      "last_seen": datetime.now(timezone.utc).isoformat()},
+             "$inc": {"buyer_query_count": 1},
+             "$addToSet": {"markets_of_interest": {"$each": entities.get("countries", [])}}},
+            upsert=True)
+    except Exception:
+        pass
+
+
 async def _resolve_page_entity(page_context, entities):
     """On a country/product/hsn/service page, inject that entity even if not in the question."""
     if not page_context:
@@ -210,7 +298,7 @@ async def _recommendations(entities):
 
 
 async def orchestrate(question: str, session_id: str = None, user_id: str = None,
-                      page_context: dict = None, language: str = "en"):
+                      page_context: dict = None, language: str = "en", auth_uid: str = None):
     import hashlib
     from datetime import datetime as _dt
 
@@ -235,6 +323,17 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
         if out:
             engine_outputs[key] = out
 
+    # Verified Buyers — subscription-gated intelligence injected into the answer grounding.
+    buyer_intent = _is_buyer_intent(question)
+    buyer_access = None
+    if buyer_intent:
+        subscribed = await _brain_subscribed(auth_uid)
+        binfo = await _buyer_intel(entities, subscribed)
+        if binfo:
+            engine_outputs["buyer_intelligence"] = binfo["engine"]
+            buyer_access = {"subscribed": subscribed, "locked": binfo["locked"], "count": binfo["count"]}
+        await _capture_buyer_signal(auth_uid or user_id, question, entities)
+
     sources, suggestions = [], []
     for out in engine_outputs.values():
         for s in out.get("sources", []):
@@ -245,6 +344,10 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
 
     recommendations = await _recommendations(entities)
     ctas = _ctas(question, entities, intent)
+    if buyer_access and buyer_access.get("locked"):
+        ctas.insert(0, {"label": "Unlock Verified Buyers", "to": "/pricing", "action": "subscribe"})
+    elif buyer_intent:
+        ctas.insert(0, {"label": "Open Verified Buyers", "to": "/buyers", "action": "buyers"})
 
     provider = get_provider()
     pc_sig = f"{(page_context or {}).get('type')}:{(page_context or {}).get('slug')}"
@@ -252,7 +355,7 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
         f"{provider.name}:{getattr(provider,'model',None)}:{language}:{role}:{pc_sig}:{question.strip().lower()}".encode()
     ).hexdigest()
 
-    cached = await CACHE.find_one({"_id": cache_key})
+    cached = None if buyer_intent else await CACHE.find_one({"_id": cache_key})
     if cached:
         age = (_dt.now(timezone.utc) - _dt.fromisoformat(cached["createdAt"])).total_seconds()
         if age < CACHE_TTL_SECONDS:
@@ -264,7 +367,8 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
                 await memory.append_message(session_id, "user", question)
                 await memory.append_message(session_id, "assistant", result["answer"])
             return _shape(question, result, intent, entities, engine_keys, engine_outputs,
-                          sources, suggestions, recommendations, ctas, role, language, cached=True)
+                          sources, suggestions, recommendations, ctas, role, language, cached=True,
+                          buyer_access=buyer_access)
 
     context = await build_context(entities, session_id, user_id)
     context["language"] = language
@@ -290,16 +394,17 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
                             "tokens": result.get("tokens", {}), "cost": result.get("cost", 0.0),
                             "engines": len(engine_keys), "createdAt": _now()})
 
-    if answered and not result.get("degraded"):
+    if answered and not result.get("degraded") and not buyer_intent:
         await CACHE.replace_one({"_id": cache_key},
                                 {"_id": cache_key, "result": result, "createdAt": _now()}, upsert=True)
 
     return _shape(question, result, intent, entities, engine_keys, engine_outputs,
-                  sources, suggestions, recommendations, ctas, role, language, cached=False)
+                  sources, suggestions, recommendations, ctas, role, language, cached=False,
+                  buyer_access=buyer_access)
 
 
 def _shape(question, result, intent, entities, engine_keys, engine_outputs, sources,
-           suggestions, recommendations, ctas, role, language, cached):
+           suggestions, recommendations, ctas, role, language, cached, buyer_access=None):
     return {
         "question": question,
         "answer": result["answer"],
@@ -319,4 +424,5 @@ def _shape(question, result, intent, entities, engine_keys, engine_outputs, sour
         "ctas": ctas,
         "role": role,
         "language": language,
+        "buyerAccess": buyer_access,
     }

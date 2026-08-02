@@ -1,14 +1,48 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
   GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Brain,
   Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
-  Briefcase, AddressBook, MagnifyingGlass, UserCircle, Tag, ShieldCheck,
+  Briefcase, AddressBook, MagnifyingGlass, UserCircle, Tag, ShieldCheck, BellRinging,
 } from "@phosphor-icons/react";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/lib/SettingsContext";
 import { useAuth } from "@/lib/AuthContext";
+import { api } from "@/lib/api";
+
+function NotifBell() {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState({ notifications: [], unread: 0 });
+  const load = () => api.get("/notifications").then((r) => setData(r.data)).catch(() => {});
+  useEffect(() => { load(); }, []);
+  const toggle = async () => {
+    const next = !open; setOpen(next);
+    if (next && data.unread) { try { await api.post("/notifications/read"); } catch (_) {} setData((d) => ({ ...d, unread: 0 })); }
+  };
+  return (
+    <div className="relative">
+      <button data-testid="nav-notif-bell" aria-label="Notifications" onClick={toggle}
+        className="relative grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
+        <BellRinging size={16} weight="bold" />
+        {data.unread > 0 && <span data-testid="nav-notif-badge" className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-amber-400 text-[9px] font-bold text-black grid place-items-center">{data.unread}</span>}
+      </button>
+      {open && (
+        <div className="absolute top-full right-0 pt-2 w-[320px] z-50" onMouseLeave={() => setOpen(false)}>
+          <div data-testid="nav-notif-panel" className="glass-strong rounded-2xl p-2 border border-white/10 shadow-2xl max-h-96 overflow-auto">
+            {(data.notifications || []).length === 0 && <div className="p-4 text-xs text-slate-400">No notifications yet.</div>}
+            {(data.notifications || []).map((n, i) => (
+              <Link key={i} to="/buyers" onClick={() => setOpen(false)} className="block px-3 py-2.5 rounded-xl hover:bg-white/5">
+                <div className="text-sm font-semibold flex items-center gap-2"><ShieldCheck size={13} weight="fill" className="text-cyan-300" />{n.title}</div>
+                <div className="text-[11px] text-slate-400 mt-0.5">{(n.body || "").slice(0, 120)}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 const ROUTE_FEATURE = {
   "/tools": "tools", "/services": "services", "/brain": "brain",
@@ -134,6 +168,7 @@ export default function Nav({ active = "/" }) {
           </nav>
 
           <div className="flex items-center gap-3">
+            <NotifBell />
             <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
               <MagnifyingGlass size={16} weight="bold" />
             </Link>

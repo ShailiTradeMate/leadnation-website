@@ -174,6 +174,18 @@ BUILDERS = {
         f"<b>{str(c.get('until',''))[:10]}</b>. Renew to keep unlimited downloads.</p>",
         "Renew now", f"{SITE}/account?tab=billing")),
 
+    # ---- Verified Buyers (VBIE) ----
+    "buyers_added": lambda c: ("New verified buyers added to LeadNation", _shell(
+        "Fresh verified buyers are in 🌍",
+        f"<p>Hi {c.get('name','there')},</p><p>We've just added <b>{c.get('count','new')}</b> newly "
+        f"verified buyers to the LeadNation Verified Buyer Intelligence Engine"
+        f"{(' across ' + str(c.get('markets')) + ' markets') if c.get('markets') else ''}. "
+        f"Sourced from {c.get('sources','official government trade sources')} and sanctions-screened.</p>"
+        f"<p>Check the website or app for the latest buyer intelligence. Please note buyer records are "
+        f"aggregated from public official sources — always verify details directly with the buyer before "
+        f"doing business.</p>",
+        "See new buyers", f"{SITE}/buyers")),
+
     # ---- Admin alerts ----
     "admin_new_submission": lambda c: ("[LeadNation] New event submission", _shell(
         "New event submitted for review",

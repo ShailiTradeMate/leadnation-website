@@ -13,7 +13,7 @@ from monetize import pay_router, dl_router, acc_router, hook_router
 from pricing import pricing_router, get_config as get_pricing_config
 import events, adapters, simulation, decision_engine
 import storage, news_engine, event_listings, vbie
-import vbie_connectors
+import vbie_connectors, vbie_admin
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -32,6 +32,8 @@ api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
 for r in (pay_router, dl_router, acc_router, hook_router, pricing_router):
     api_router.include_router(r)
+api_router.include_router(vbie_admin.admin_router)
+api_router.include_router(vbie_admin.notif_router)
 
 app.include_router(api_router)
 
@@ -84,7 +86,10 @@ async def _startup():
     try:
         await vbie.seed_vbie()
         vbie_connectors.start_scheduler()
-        asyncio.create_task(vbie_connectors.run_ingestion(trigger="startup"))
+        # Only auto-ingest on startup if we don't already have a sizeable corpus (avoids re-runs on reload).
+        _real = await db.entities.count_documents({"entity_type": "buyer", "sample": {"$ne": True}})
+        if _real < 1000:
+            asyncio.create_task(vbie_connectors.run_ingestion(trigger="startup"))
     except Exception as exc:
         logging.warning("VBIE init failed: %s", exc)
     try:

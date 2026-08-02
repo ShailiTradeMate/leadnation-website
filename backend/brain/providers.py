@@ -118,6 +118,7 @@ class MockProvider(BaseProvider):
     async def generate(self, question, intent, entities, engine_outputs, context):
         sections: List[str] = []
         order = [
+            ("buyer_intelligence", "Verified Buyers"),
             ("product_intelligence", "Product Intelligence"),
             ("compliance", "Compliance & Documentation"),
             ("tariff", "Duties & Landed Cost"),

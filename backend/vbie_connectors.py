@@ -26,6 +26,7 @@ import logging
 from datetime import datetime, timezone
 
 import httpx
+from pymongo import UpdateOne
 
 from core import db
 from vbie import compute_trust, _stable_geid, _prov, _now, _iso
@@ -61,14 +62,28 @@ ISO3 = {
 
 # CPV division → (LeadNation sector, product labels, indicative HS families).
 CPV_DIVISIONS = {
-    "15": ("Agri & Foods", ["Food & Beverages", "Processed Foods", "Agri Commodities"], ["1006", "2106", "0904", "1701", "0713"]),
     "03": ("Agri & Foods", ["Agricultural Produce", "Grains & Seeds", "Spices"], ["1006", "1005", "1207", "0713", "0904"]),
-    "33": ("Pharma & Medical", ["Medical Supplies", "Pharmaceuticals", "Medical Devices"], ["3004", "3005", "9018", "3006"]),
-    "24": ("Chemicals", ["Industrial Chemicals", "Specialty Chemicals"], ["2941", "3808", "3204", "2915"]),
+    "09": ("Energy & Fuels", ["Fuels & Lubricants", "Energy Products"], ["2710", "2711", "2701"]),
+    "14": ("Minerals & Metals", ["Mining Products", "Basic Metals"], ["2515", "7208", "2601"]),
+    "15": ("Agri & Foods", ["Food & Beverages", "Processed Foods", "Agri Commodities"], ["1006", "2106", "0904", "1701", "0713"]),
+    "16": ("Agri & Machinery", ["Agricultural Machinery"], ["8432", "8433", "8436"]),
     "18": ("Textiles & Apparel", ["Apparel & Clothing", "Workwear & Uniforms"], ["6109", "6203", "6302", "6110"]),
     "19": ("Leather & Footwear", ["Leather Goods", "Footwear"], ["4202", "6403", "4203"]),
-    "44": ("Construction & Metals", ["Construction Materials", "Metal Products"], ["7308", "6810", "7214", "7325"]),
+    "22": ("Print & Paper", ["Printed Matter", "Paper Products"], ["4901", "4802", "4819"]),
+    "24": ("Chemicals", ["Industrial Chemicals", "Specialty Chemicals"], ["2941", "3808", "3204", "2915"]),
+    "30": ("IT & Electronics", ["Computers & Office Equipment"], ["8471", "8443", "8517"]),
+    "31": ("Electrical Equipment", ["Electrical Machinery & Apparatus"], ["8544", "8536", "8504"]),
+    "32": ("IT & Electronics", ["Telecom & Broadcast Equipment"], ["8517", "8528", "8518"]),
+    "33": ("Pharma & Medical", ["Medical Supplies", "Pharmaceuticals", "Medical Devices"], ["3004", "3005", "9018", "3006"]),
+    "34": ("Automotive & Transport", ["Transport Equipment", "Auto Components"], ["8708", "8716", "8703"]),
+    "37": ("Sports & Musical", ["Musical Instruments", "Sports Goods"], ["9506", "9503", "9207"]),
+    "38": ("Instruments & Lab", ["Laboratory & Precision Instruments"], ["9027", "9026", "9031"]),
     "39": ("Home & Furnishings", ["Furniture", "Home Furnishings"], ["9403", "6302", "9404"]),
+    "42": ("Industrial Machinery", ["Industrial Machinery & Equipment"], ["8479", "8438", "8422"]),
+    "43": ("Mining & Construction", ["Mining & Construction Machinery"], ["8429", "8431", "8474"]),
+    "44": ("Construction & Metals", ["Construction Materials", "Metal Products"], ["7308", "6810", "7214", "7325"]),
+    "45": ("Construction Works", ["Construction & Civil Works"], ["6810", "7308", "2523"]),
+    "48": ("IT & Software", ["Software & IT Systems"], ["8523", "8471"]),
 }
 
 
@@ -131,43 +146,49 @@ def is_sanctioned(name: str, screener: set) -> bool:
 
 
 # ───────────────────────────── connectors ───────────────────────────────────
-async def connector_ted(days: int = 180, per_division: int = 40) -> list:
-    """EU TED — real named public-sector buyers procuring goods, by country + sector."""
+async def connector_ted(days: int = 365, per_page: int = 100, pages: int = 16) -> list:
+    """EU TED — real named public-sector buyers procuring goods, by country + sector.
+    Paginates across all mapped CPV divisions to scale toward a large corpus."""
     out = {}
     fields = ["publication-number", "organisation-name-buyer", "organisation-country-buyer",
               "notice-title", "classification-cpv"]
-    async with httpx.AsyncClient(timeout=30, headers=UA) as cx:
+    async with httpx.AsyncClient(timeout=40, headers=UA) as cx:
         for div, (sector, products, hs) in CPV_DIVISIONS.items():
-            body = {"query": f"classification-cpv={div}000000 AND publication-date>=today(-{days})",
-                    "fields": fields, "limit": per_division, "page": 1, "scope": "ALL"}
-            try:
-                r = await cx.post(TED_URL, json=body)
-                notices = (r.json() or {}).get("notices", []) if r.status_code == 200 else []
-            except Exception as exc:
-                logger.warning("TED fetch failed for CPV %s: %s", div, exc)
-                continue
-            for n in notices:
-                name = _first(n.get("organisation-name-buyer"))
-                iso3 = _first(n.get("organisation-country-buyer"))
-                iso2, cname = ISO3.get(iso3, (None, None))
-                if not name or not iso2:
-                    continue
-                nk = f"ted:{iso2}:{_norm(name)}"
-                if nk in out:
-                    continue
-                pub = n.get("publication-number") or ""
-                title = _first(n.get("notice-title"))
-                url = f"https://ted.europa.eu/en/notice/-/detail/{pub}"
-                out[nk] = {
-                    "source_id": "eu_ted", "natural_key": nk, "legal_name": name,
-                    "country": iso2, "country_name": cname, "city": "",
-                    "sector": sector, "products": products, "hs_families": hs,
-                    "corridors": [f"IN-{iso2}"], "size": "Public-sector buyer",
-                    "website": "", "role": "procurement buyer",
-                    "signals": {"registry_listed": True, "sanctions_clear": True},
-                    "prov": [("eu_ted", "buying evidence",
-                              f"EU procurement notice {pub}: {title[:140]}", url)],
-                }
+            for page in range(1, pages + 1):
+                body = {"query": f"classification-cpv={div}000000 AND publication-date>=today(-{days})",
+                        "fields": fields, "limit": per_page, "page": page, "scope": "ALL"}
+                try:
+                    r = await cx.post(TED_URL, json=body)
+                    if r.status_code != 200:
+                        break
+                    notices = (r.json() or {}).get("notices", [])
+                except Exception as exc:
+                    logger.warning("TED fetch failed CPV %s p%d: %s", div, page, exc)
+                    break
+                if not notices:
+                    break
+                for n in notices:
+                    name = _first(n.get("organisation-name-buyer"))
+                    iso3 = _first(n.get("organisation-country-buyer"))
+                    iso2, cname = ISO3.get(iso3, (None, None))
+                    if not name or not iso2:
+                        continue
+                    nk = f"ted:{iso2}:{_norm(name)}"
+                    if nk in out:
+                        continue
+                    pub = n.get("publication-number") or ""
+                    title = _first(n.get("notice-title"))
+                    url = f"https://ted.europa.eu/en/notice/-/detail/{pub}"
+                    out[nk] = {
+                        "source_id": "eu_ted", "natural_key": nk, "legal_name": name,
+                        "country": iso2, "country_name": cname, "city": "",
+                        "sector": sector, "products": products, "hs_families": hs,
+                        "corridors": [f"IN-{iso2}"], "size": "Public-sector buyer",
+                        "website": "", "role": "procurement buyer",
+                        "signals": {"registry_listed": True, "sanctions_clear": True},
+                        "prov": [("eu_ted", "buying evidence",
+                                  f"EU procurement notice {pub}: {title[:140]}", url)],
+                    }
     logger.info("TED connector: %d unique buyers", len(out))
     return list(out.values())
 
@@ -349,12 +370,23 @@ async def run_ingestion(trigger: str = "manual") -> dict:
         for c in rows:
             candidates[c["natural_key"]] = c
 
-    upserted = screened = 0
+    # Admin sovereignty: never overwrite admin-edited buyers or resurrect admin-deleted ones.
+    admin_managed = set()
+    async for d in db.entities.find(
+            {"entity_type": "buyer", "$or": [{"admin_edited": True}, {"admin_deleted": True}]},
+            {"_id": 1}):
+        admin_managed.add(d["_id"])
+
+    upserted = screened = new_count = skipped_admin = 0
+    ops = []
     for c in candidates.values():
         if is_sanctioned(c["legal_name"], screener):
             screened += 1
             continue
         geid = _stable_geid(c["natural_key"])
+        if geid in admin_managed:
+            skipped_admin += 1
+            continue
         provenance = [_prov(sid, field, note, url) for (sid, field, note, url) in c["prov"]]
         trust = compute_trust(provenance, c.get("signals", {}))
         doc = {
@@ -370,26 +402,35 @@ async def run_ingestion(trigger: str = "manual") -> dict:
             "created_by": f"vbie-connector:{c['source_id']}", "merged_into": None,
             "updated_at": _now(),
         }
-        await db.entities.update_one({"_id": geid},
-                                     {"$set": doc, "$setOnInsert": {"created_at": _now()}},
-                                     upsert=True)
+        ops.append(UpdateOne({"_id": geid}, {"$set": doc, "$setOnInsert": {"created_at": _now()}}, upsert=True))
         upserted += 1
+    # Bulk-write in chunks (fast; avoids per-doc Atlas round-trips).
+    for i in range(0, len(ops), 500):
+        res = await db.entities.bulk_write(ops[i:i + 500], ordered=False)
+        new_count += (res.upserted_count or 0)
 
     try:
         await connector_comtrade_context()
     except Exception as exc:
         logger.warning("Comtrade context skipped: %s", exc)
 
-    real = await db.entities.count_documents({"entity_type": "buyer", "sample": {"$ne": True}})
+    real = await db.entities.count_documents(
+        {"entity_type": "buyer", "sample": {"$ne": True}, "admin_deleted": {"$ne": True}})
     if real > 0:
         res = await db.entities.delete_many({"entity_type": "buyer", "sample": True})
         run["samples_removed"] = res.deleted_count
 
-    run.update({"finished_at": _iso(_now()), "upserted": upserted, "screened_out": screened,
+    run.update({"finished_at": _iso(_now()), "upserted": upserted, "new_buyers": new_count,
+                "screened_out": screened, "skipped_admin": skipped_admin,
                 "real_total": real, "ok": True})
     await db.vbie_ingest_runs.insert_one(dict(run))
-    logger.info("VBIE ingestion done: upserted=%d screened_out=%d real_total=%d samples_removed=%d",
-                upserted, screened, real, run["samples_removed"])
+    logger.info("VBIE ingestion done: upserted=%d new=%d screened_out=%d skipped_admin=%d real_total=%d",
+                upserted, new_count, screened, skipped_admin, real)
+    try:
+        import vbie_admin
+        await vbie_admin.notify_ingestion(run)
+    except Exception as exc:
+        logger.warning("Ingestion notifications failed: %s", exc)
     return run
 
 

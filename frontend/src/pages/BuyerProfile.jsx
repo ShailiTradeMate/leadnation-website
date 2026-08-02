@@ -6,7 +6,7 @@ import { fetchBuyer, claimBuyer, TRUST_COLORS } from "@/lib/vbieApi";
 import { useAuth } from "@/lib/AuthContext";
 import {
   ShieldCheck, MapPin, Package, Buildings, ArrowLeft, LinkSimple,
-  CheckCircle, FileText, Handshake, Sparkle, Lock, Crown,
+  CheckCircle, FileText, Handshake, Sparkle, Lock, Crown, Warning,
 } from "@phosphor-icons/react";
 
 export default function BuyerProfile() {
@@ -67,6 +67,13 @@ export default function BuyerProfile() {
             )}
           </div>
         </div>
+
+        {b.source_warning && (
+          <div data-testid="buyer-source-warning" className="mt-5 flex items-start gap-2.5 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-4 text-xs text-amber-200/90">
+            <Warning size={16} weight="fill" className="text-amber-300 shrink-0 mt-0.5" />
+            <span><b>Source: {b.primary_source || "official public sources"}.</b> {b.source_warning}</span>
+          </div>
+        )}
 
         {b.locked ? (
           <PaywallGate reason={b.lock_reason} buyer={b} />

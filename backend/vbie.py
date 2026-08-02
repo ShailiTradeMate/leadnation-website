@@ -222,6 +222,17 @@ def _card(e: dict) -> dict:
     }
 
 
+SOURCE_WARNING = ("Buyer records are aggregated from public, official sources and are provided for "
+                  "discovery only. LeadNation has no consent or contact arrangement with these "
+                  "organisations. Independently verify all details and reach out to the buyer directly — "
+                  "any business you conduct is entirely at your own risk.")
+
+
+def _primary_source(e: dict) -> str:
+    prov = e.get("provenance") or []
+    return prov[0].get("source_name") if prov else ""
+
+
 def _full(e: dict) -> dict:
     return {
         **_card(e),
@@ -229,6 +240,7 @@ def _full(e: dict) -> dict:
         "trust": e.get("trust", {}), "provenance": e.get("provenance", []),
         "created_at": _iso(e.get("created_at")), "updated_at": _iso(e.get("updated_at")),
         "status": e.get("status", "active"),
+        "primary_source": _primary_source(e), "source_warning": SOURCE_WARNING,
     }
 
 
@@ -336,7 +348,7 @@ async def search_buyers(
 @router.get("/{geid}")
 async def get_buyer(geid: str, authorization: Optional[str] = Header(default=None)):
     e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
-    if not e:
+    if not e or e.get("admin_deleted") or e.get("status") == "deleted":
         raise HTTPException(status_code=404, detail="Buyer not found")
     # follow merges
     hops = 0
@@ -351,7 +363,8 @@ async def get_buyer(geid: str, authorization: Optional[str] = Header(default=Non
     # Locked teaser: identity + trust band only. Contact/website/evidence gated behind a plan.
     return {**_card(e), "locked": True, "lock_reason": ent["reason"],
             "trust": e.get("trust", {}), "website": "", "provenance": [], "signals": {},
-            "status": e.get("status", "active")}
+            "status": e.get("status", "active"),
+            "primary_source": _primary_source(e), "source_warning": SOURCE_WARNING}
 
 
 @router.get("/{geid}/evidence")
