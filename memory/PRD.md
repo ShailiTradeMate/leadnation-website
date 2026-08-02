@@ -1,5 +1,16 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## VBIE PHASE 2.1 — 10K SCALE + QA + ADMIN + BRAIN + NOTIFICATIONS (2026-08) — BUILT & TESTED (iteration_33, 100%, 16/16)
+- **Scaled to 10,722 real buyers** (from 257) across 31 EU countries & 12+ sectors, via EU TED (24 CPV divisions × 16 pages × 365 days), bulk_write upserts. All sanctions-screened (trade.gov CSL, 53,796 denied parties). Daily scheduler 02:00 UTC.
+- **Data Quality QA audit** — `GET /api/buyers/admin/qa` + `/app/memory/VBIE_QA_REPORT.md`. All 8 checks PASS: unique GEID, no duplicate entities, provenance present, source-registry compliance, explainable trust, country & sector classified, no demo data.
+- **Admin buyer console** (`vbie_admin.py` + `BuyersManager.jsx`, admin tab "Verified Buyers"): list/search, edit (PATCH), soft/hard delete, bulk delete by source, **Excel (.xlsx) + PDF export**, ingestion trigger/status, admin bell notifications. **Admin edits/deletes PERSIST** — daily ingestion skips `admin_edited`/`admin_deleted` docs (admin always wins).
+- **Brain integration** (`brain/router.py`): buyer-intent queries return `buyerAccess` gated by subscription (verified via Firebase token → `subscriptions`). Non-subscribers get a teaser (counts/markets/sectors) + subscribe CTA; **no contact details leaked**. Captures user buyer-search intent into `user_intent_signals`. Cache bypassed for buyer queries.
+- **Notifications**: `notifications` collection. On ingestion with new buyers → user broadcast + admin notification + best-effort subscriber emails (`buyers_added` template; MOCKED unless RESEND_API_KEY set). User bell in Nav (`GET /api/notifications`, `/read`); admin bell in console.
+- **Source transparency + warning**: buyer detail payload carries `primary_source` + `source_warning` ("verify directly; no consent/contact; business at your own risk") shown as an amber banner on `BuyerProfile`; `SourcesSection` on `/buyers` lists official sources + sanctions-screening count via `GET /api/buyers/sources`.
+- **India Buyer Signals**: delivered via the corridor filter (IN-DE, IN-FR…) on `/buyers` + Command Center; `vbie_market_stats` holds UN Comtrade India-export corridor context.
+- Pending user: SAM.gov + UK Companies House free API keys (connectors wired, currently return 0). CID host-blocked from this environment.
+- Known minor (non-blocking, from iteration_33): admin PATCH returns changed field-name list (UI reloads anyway); admin search doesn't match on GEID; a transient 502 possible on `/meta` during heavy ingestion.
+
 ## VBIE PHASE 2 — LIVE REAL BUYER INGESTION + PAYWALL (2026-08) — BUILT & TESTED (iteration_32, 100%)
 **Replaced the 12 illustrative demo buyers with REAL, daily-ingested buyer intelligence from official government sources.** Single-writer rule enforced: ALL buyer/entity writes happen in the Website backend (`vbie_connectors.py`); DO backend never writes the buyer graph. APIs-first, legally compliant — NO scraping of prohibited/tos-gated sites.
 - **New `/app/backend/vbie_connectors.py`** — connector framework + orchestrator + daily APScheduler (02:00 UTC). Connectors:
