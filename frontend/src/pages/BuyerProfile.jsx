@@ -51,6 +51,7 @@ export default function BuyerProfile() {
                 <span className="flex items-center gap-1.5"><MapPin size={14} weight="duotone" /> {b.city ? `${b.city} · ` : ""}{b.country_name}</span>
                 <span className="capitalize">{b.role}</span>
                 {b.size && <span>{b.size}</span>}
+                {b.last_verified && <span data-testid="buyer-last-verified">Verified {new Date(b.last_verified).toLocaleDateString()}</span>}
               </div>
             </div>
             <TrustBadge trust={trust} size="lg" />

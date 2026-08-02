@@ -1,6 +1,6 @@
 # VBIE Data Quality & Compliance Report
 
-Generated: 2026-08-02T22:17:12.675017+00:00
+Generated: 2026-08-02T22:45:23.147419+00:00
 Total buyers: **10722**
 Overall: **✅ PASS**
 
@@ -51,7 +51,7 @@ Overall: **✅ PASS**
 
 ## Distribution by sector
 
-- Agri & Foods: 1337
+- Agri & Foods: 1338
 - IT & Electronics: 1110
 - Energy & Fuels: 1012
 - Print & Paper: 597
@@ -71,7 +71,7 @@ Overall: **✅ PASS**
 - Industrial Machinery: 309
 - Instruments & Lab: 301
 - Mining & Construction: 264
-- QA Sector: 2
+- QA Sector: 1
 
 ## Evidence by source
 

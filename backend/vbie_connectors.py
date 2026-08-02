@@ -400,7 +400,7 @@ async def run_ingestion(trigger: str = "manual") -> dict:
             "signals": c.get("signals", {}), "provenance": provenance, "trust": trust,
             "sample": False, "source_verified": True,
             "created_by": f"vbie-connector:{c['source_id']}", "merged_into": None,
-            "updated_at": _now(),
+            "updated_at": _now(), "last_verified": _iso(_now()),
         }
         ops.append(UpdateOne({"_id": geid}, {"$set": doc, "$setOnInsert": {"created_at": _now()}}, upsert=True))
         upserted += 1
@@ -431,6 +431,14 @@ async def run_ingestion(trigger: str = "manual") -> dict:
         await vbie_admin.notify_ingestion(run)
     except Exception as exc:
         logger.warning("Ingestion notifications failed: %s", exc)
+    # Auto-quarantine any non-compliant / placeholder / duplicate records after every run.
+    try:
+        import vbie_admin
+        audit = await vbie_admin.production_audit(auto_fix=True)
+        run["quarantined_total"] = audit.get("quarantined_total")
+        run["active_production_buyers"] = audit.get("active_production_buyers")
+    except Exception as exc:
+        logger.warning("Post-ingestion production audit failed: %s", exc)
     return run
 
 

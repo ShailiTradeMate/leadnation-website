@@ -9,6 +9,7 @@ import {
 export default function BuyersManager() {
   const [qa, setQa] = useState(null);
   const [status, setStatus] = useState(null);
+  const [analytics, setAnalytics] = useState(null);
   const [notifs, setNotifs] = useState({ notifications: [], unread: 0 });
   const [rows, setRows] = useState([]);
   const [total, setTotal] = useState(0);
@@ -25,6 +26,15 @@ export default function BuyersManager() {
     adminApi.get(`/buyers/admin/qa`).then((r) => setQa(r.data)).catch(() => {});
     adminApi.get(`/buyers/ingest/status`).then((r) => setStatus(r.data)).catch(() => {});
     adminApi.get(`/buyers/admin/notifications`).then((r) => setNotifs(r.data)).catch(() => {});
+    adminApi.get(`/buyers/admin/analytics`).then((r) => setAnalytics(r.data)).catch(() => {});
+  };
+  const runAudit = async () => {
+    setBusy(true);
+    try {
+      const { data } = await adminApi.post(`/buyers/admin/production-audit?auto_fix=true`);
+      toast.success(`Audit done — ${data.active_production_buyers.toLocaleString()} active, ${data.quarantined_total} quarantined`);
+      loadMeta(); loadList();
+    } finally { setBusy(false); }
   };
   useEffect(() => { loadMeta(); }, []);
   useEffect(() => { loadList(); }, [page]);
@@ -38,15 +48,15 @@ export default function BuyersManager() {
     await adminApi.post(`/buyers/admin/notifications/read`);
     setNotifs((n) => ({ ...n, unread: 0 }));
   };
-  const download = async (kind) => {
+  const download = async (path) => {
     try {
-      const res = await adminApi.get(`/buyers/admin/export.${kind}`, { responseType: "blob" });
+      const res = await adminApi.get(`/buyers/admin/${path}`, { responseType: "blob" });
       const url = URL.createObjectURL(res.data);
       const a = document.createElement("a");
-      a.href = url; a.download = `leadnation-buyers.${kind}`; a.click();
+      a.href = url; a.download = `leadnation-buyers-${path.replace("export.", "").replace("analytics.", "analytics-")}`; a.click();
       URL.revokeObjectURL(url);
-      toast.success(`Exported ${kind.toUpperCase()}`);
-    } catch (_) { toast.error("Export failed"); }
+      toast.success(`Downloaded ${path}`);
+    } catch (_) { toast.error("Download failed"); }
   };
   const saveEdit = async () => {
     await adminApi.patch(`/buyers/admin/${editing.geid}`, {
@@ -76,18 +86,55 @@ export default function BuyersManager() {
         <h2 className="font-display font-bold text-xl flex items-center gap-2">
           <ShieldCheck size={20} weight="fill" className="text-cyan-300" /> Verified Buyers — {total.toLocaleString()} records
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button data-testid="admin-buyers-audit" onClick={runAudit} disabled={busy} className="btn-ghost !py-2 text-xs">
+            <ShieldCheck size={14} weight="bold" /> Production audit
+          </button>
           <button data-testid="admin-buyers-ingest" onClick={runIngest} disabled={busy} className="btn-ghost !py-2 text-xs">
             <ArrowsClockwise size={14} weight="bold" /> {busy ? "Running…" : "Run ingestion"}
           </button>
-          <button data-testid="admin-buyers-export-xlsx" onClick={() => download("xlsx")} className="btn-ghost !py-2 text-xs">
+          <button data-testid="admin-buyers-analytics-xlsx" onClick={() => download("analytics.xlsx")} className="btn-ghost !py-2 text-xs">
+            <DownloadSimple size={14} weight="bold" /> Analytics
+          </button>
+          <button data-testid="admin-buyers-export-xlsx" onClick={() => download("export.xlsx")} className="btn-ghost !py-2 text-xs">
             <DownloadSimple size={14} weight="bold" /> Excel
           </button>
-          <button data-testid="admin-buyers-export-pdf" onClick={() => download("pdf")} className="btn-ghost !py-2 text-xs">
+          <button data-testid="admin-buyers-export-pdf" onClick={() => download("export.pdf")} className="btn-ghost !py-2 text-xs">
             <DownloadSimple size={14} weight="bold" /> PDF
           </button>
         </div>
       </div>
+
+      {/* Analytics */}
+      {analytics && (
+        <div data-testid="admin-buyers-analytics" className="space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            {[["Today's Buyers", analytics.today_buyers], ["This Week", analytics.this_week],
+              ["This Month", analytics.this_month], ["New Countries", analytics.new_countries.length],
+              ["New Industries", analytics.new_industries.length]].map(([l, v]) => (
+              <div key={l} className="glass rounded-2xl px-4 py-3">
+                <div className="font-display font-black text-2xl">{Number(v).toLocaleString()}</div>
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 mt-1">{l}</div>
+              </div>
+            ))}
+          </div>
+          <div className="grid md:grid-cols-4 gap-3">
+            {[["Top Products", analytics.top_products], ["Top Corridors", analytics.top_corridors],
+              ["Top Sources", analytics.top_sources], ["Top Countries", analytics.top_countries]].map(([title, list]) => (
+              <div key={title} className="glass rounded-2xl p-4">
+                <div className="text-xs font-semibold text-cyan-300 mb-2">{title}</div>
+                <div className="space-y-1">
+                  {(list || []).slice(0, 6).map((x) => (
+                    <div key={x.label} className="flex justify-between text-[11px] text-slate-300">
+                      <span className="truncate mr-2">{x.label}</span><span className="text-slate-500">{x.count.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* QA + notifications */}
       <div className="grid md:grid-cols-3 gap-4">

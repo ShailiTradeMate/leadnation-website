@@ -1,5 +1,17 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## VBIE PHASE 2.2 — PRODUCTION READINESS AUDIT + ADMIN ANALYTICS (2026-08)
+- **Production Readiness Audit** (`vbie_admin.production_audit`, `POST /api/buyers/admin/production-audit`, report `/app/memory/VBIE_PRODUCTION_AUDIT.md`): auto-quarantines any buyer that is a demo/sample, not from an approved connector, from a non-license-compliant source, missing provenance/trust-factors/country/sector/last_verified, a placeholder/invalid name, or a duplicate. Quarantined → `status='quarantined'` (excluded from public search/detail). Runs automatically after every ingestion. Result: **10,719 clean active buyers**, 3 junk quarantined ("N/A", "Test_Test", ".").
+- Compliant-source allowlist (commercial reuse OK): EU TED (EU open-data reuse), Canadian Importers DB (OGL-Canada), SAM.gov (US public domain), UK Companies House (OGL v3).
+- Added `last_verified` date on every buyer (backfilled + shown on profile).
+- **Admin analytics** (`GET /api/buyers/admin/analytics` + `analytics.xlsx`): Today's Buyers, This Week, This Month, New Countries, New Industries, Top Products, Top Corridors, Top Sources, Top Countries — rendered in the admin console + downloadable Excel.
+
+## BACKLOG (user-requested enhancements, not yet built)
+- **P1 Unlock US & UK Buyers** — turn on SAM.gov + UK Companies House connectors once the free API keys are provided.
+- **P1 Buyer Alerts** — let a subscriber save a product + market and get emailed when a matching new buyer is ingested.
+- **P1 Corridor Signals Page** — country-by-country dashboard for Indian exporters showing who's buying their products abroad, with trend arrows.
+- **P1 Turn On Emails** — add Resend API key so the "new buyers added" digest actually reaches user inboxes (currently MOCKED without the key).
+
 ## VBIE PHASE 2.1 — 10K SCALE + QA + ADMIN + BRAIN + NOTIFICATIONS (2026-08) — BUILT & TESTED (iteration_33, 100%, 16/16)
 - **Scaled to 10,722 real buyers** (from 257) across 31 EU countries & 12+ sectors, via EU TED (24 CPV divisions × 16 pages × 365 days), bulk_write upserts. All sanctions-screened (trade.gov CSL, 53,796 denied parties). Daily scheduler 02:00 UTC.
 - **Data Quality QA audit** — `GET /api/buyers/admin/qa` + `/app/memory/VBIE_QA_REPORT.md`. All 8 checks PASS: unique GEID, no duplicate entities, provenance present, source-registry compliance, explainable trust, country & sector classified, no demo data.

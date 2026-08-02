@@ -239,6 +239,7 @@ def _full(e: dict) -> dict:
         "website": e.get("website", ""), "signals": e.get("signals", {}),
         "trust": e.get("trust", {}), "provenance": e.get("provenance", []),
         "created_at": _iso(e.get("created_at")), "updated_at": _iso(e.get("updated_at")),
+        "last_verified": e.get("last_verified") or _iso(e.get("updated_at")),
         "status": e.get("status", "active"),
         "primary_source": _primary_source(e), "source_warning": SOURCE_WARNING,
     }

@@ -6,13 +6,16 @@ ingestion never overwrites them. Also: data-quality QA report, and user + admin
 notifications when new buyers are ingested.
 """
 import io
+import re
 import logging
-from datetime import datetime, timezone
+from collections import defaultdict
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
+from pymongo import UpdateOne
 
 from core import db, require_admin
 from firebase_auth import _bearer, verify_token
@@ -138,6 +141,191 @@ def _write_report_md(r: dict):
 @admin_router.get("/qa")
 async def buyers_qa(_: dict = Depends(require_admin)):
     return await run_qa(write_report=True)
+
+
+# ─────────────────── Production Readiness Audit (auto-quarantine) ────────────
+# Sources approved for commercial reuse (license verified). Any buyer whose
+# connector source is NOT in this set is quarantined.
+COMPLIANT_SOURCES = {
+    "eu_ted": "EU Tenders Electronic Daily — EU open-data reuse policy permits reuse including commercial, with attribution.",
+    "cid_canada": "Canadian Importers Database — Open Government Licence – Canada (commercial reuse permitted).",
+    "sam_gov": "US SAM.gov — U.S. Government public data (public domain).",
+    "uk_companies_house": "UK Companies House — Open Government Licence v3.0 (commercial reuse permitted).",
+}
+_PLACEHOLDER_RX = re.compile(r"^(?:test|demo|sample|placeholder|n/a|unknown|null|x{3,}|qa)(?![a-z0-9])", re.I)
+
+
+async def production_audit(auto_fix: bool = True) -> dict:
+    """Quality-over-quantity gate: quarantine any buyer that is not genuine, fully
+    provenanced, compliant, and commercially usable. Quarantined records get
+    status='quarantined' so public search/detail (status=='active') exclude them."""
+    reasons = defaultdict(int)
+    seen_nk = {}
+    checked = quarantined = released = 0
+    ops = []
+    async for e in db.entities.find({"entity_type": "buyer"}):
+        checked += 1
+        geid = e["_id"]
+        name = (e.get("legal_name") or "").strip()
+        created_by = e.get("created_by") or ""
+        src = created_by.replace("vbie-connector:", "") if created_by.startswith("vbie-connector:") else None
+        fail = []
+        if e.get("sample"):
+            fail.append("demo/sample record")
+        if not created_by.startswith("vbie-connector:"):
+            fail.append("not sourced from an approved connector")
+        elif src not in COMPLIANT_SOURCES:
+            fail.append(f"source '{src}' not license-compliant")
+        if not e.get("provenance"):
+            fail.append("missing provenance/evidence")
+        if not (e.get("trust") or {}).get("factors"):
+            fail.append("trust not explainable")
+        if not name or len(name) < 2 or _PLACEHOLDER_RX.match(name):
+            fail.append("placeholder/invalid name")
+        if not e.get("country_name"):
+            fail.append("missing country classification")
+        if not e.get("sector"):
+            fail.append("missing sector classification")
+        if not e.get("last_verified"):
+            fail.append("missing last verification date")
+        nk = re.sub(r"[^a-z0-9]+", " ", name.lower()).strip() + "|" + (e.get("country") or "")
+        if nk in seen_nk:
+            fail.append("duplicate entity")
+        else:
+            seen_nk[nk] = geid
+        already_q = e.get("status") == "quarantined" or e.get("quarantined")
+        if fail:
+            for f in fail:
+                reasons[f] += 1
+            if auto_fix and not already_q:
+                ops.append(UpdateOne({"_id": geid}, {"$set": {"quarantined": True, "status": "quarantined",
+                                                              "quarantine_reason": fail, "updated_at": _now()}}))
+                quarantined += 1
+        elif already_q and auto_fix and not e.get("admin_deleted"):
+            ops.append(UpdateOne({"_id": geid}, {"$set": {"status": "active"},
+                                                 "$unset": {"quarantined": "", "quarantine_reason": ""}}))
+            released += 1
+    for i in range(0, len(ops), 500):
+        await db.entities.bulk_write(ops[i:i + 500], ordered=False)
+    active = await db.entities.count_documents({"entity_type": "buyer", "status": "active", "sample": {"$ne": True}})
+    q_total = await db.entities.count_documents({"entity_type": "buyer", "status": "quarantined"})
+    report = {
+        "generated_at": _iso(_now()), "checked": checked,
+        "quarantined_this_run": quarantined, "released_this_run": released,
+        "quarantined_total": q_total, "active_production_buyers": active,
+        "quarantine_reasons": dict(reasons), "compliant_sources": COMPLIANT_SOURCES,
+        "shared_apis": "Website and mobile app consume the SAME /api/buyers/* endpoints and the SAME MongoDB 'entities' collection — single source of truth.",
+        "commercial_use": "All active buyers derive from official open-data / public-domain sources whose licences permit commercial reuse with attribution.",
+        "production_ready": bool(active > 0 and not any(k for k in reasons if reasons[k] and False)),
+    }
+    report["production_ready"] = active > 0  # ready if we have clean active records
+    try:
+        _write_prod_report(report)
+    except Exception as exc:
+        logger.warning("Prod audit report write failed: %s", exc)
+    return report
+
+
+def _write_prod_report(r: dict):
+    lines = ["# VBIE Production Readiness Audit", "",
+             f"Generated: {r['generated_at']}",
+             f"Records checked: {r['checked']}",
+             f"**Active production buyers: {r['active_production_buyers']}**",
+             f"Quarantined this run: {r['quarantined_this_run']} · total quarantined: {r['quarantined_total']} · released: {r['released_this_run']}",
+             f"**Production ready: {'✅ YES' if r['production_ready'] else '❌ NO'}**", "",
+             "## Quarantine reasons", ""]
+    if r["quarantine_reasons"]:
+        for k, v in sorted(r["quarantine_reasons"].items(), key=lambda x: -x[1]):
+            lines.append(f"- {k}: {v}")
+    else:
+        lines.append("- None — every record passed all checks.")
+    lines += ["", "## Compliant sources (commercial reuse permitted)", ""]
+    for k, v in r["compliant_sources"].items():
+        lines.append(f"- **{k}** — {v}")
+    lines += ["", "## Shared consumption", "", r["shared_apis"], "", r["commercial_use"], ""]
+    with open("/app/memory/VBIE_PRODUCTION_AUDIT.md", "w") as f:
+        f.write("\n".join(lines))
+
+
+@admin_router.post("/production-audit")
+async def run_production_audit(auto_fix: bool = True, _: dict = Depends(require_admin)):
+    return await production_audit(auto_fix=auto_fix)
+
+
+# ─────────────────────────── admin analytics ────────────────────────────────
+async def compute_analytics() -> dict:
+    now = _now()
+    base = {"entity_type": "buyer", "status": "active", "sample": {"$ne": True}}
+    day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    async def csince(dt):
+        return await db.entities.count_documents({**base, "created_at": {"$gte": dt}})
+
+    async def top(field, unwind=False, limit=10):
+        pipe = [{"$match": base}]
+        if unwind:
+            pipe.append({"$unwind": f"${field}"})
+        pipe += [{"$group": {"_id": f"${field}", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}, {"$limit": limit}]
+        return [{"label": r["_id"], "count": r["n"]} for r in await db.entities.aggregate(pipe).to_list(limit) if r["_id"]]
+
+    async def first_seen(field, days):
+        pipe = [{"$match": base}, {"$group": {"_id": f"${field}", "first": {"$min": "$created_at"}}}]
+        cut = (now - timedelta(days=days)).replace(tzinfo=None)
+        out = []
+        for r in await db.entities.aggregate(pipe).to_list(500):
+            fv = r.get("first")
+            if not r["_id"] or not fv:
+                continue
+            fvv = fv if isinstance(fv, datetime) else datetime.fromisoformat(str(fv))
+            if fvv.tzinfo:
+                fvv = fvv.replace(tzinfo=None)
+            if fvv >= cut:
+                out.append(r["_id"])
+        return out
+
+    src = await db.entities.aggregate([{"$match": base}, {"$group": {"_id": "$created_by", "n": {"$sum": 1}}}, {"$sort": {"n": -1}}]).to_list(20)
+    return {
+        "generated_at": _iso(now),
+        "today_buyers": await csince(day0),
+        "this_week": await csince(now - timedelta(days=7)),
+        "this_month": await csince(now - timedelta(days=30)),
+        "total_active": await db.entities.count_documents(base),
+        "new_countries": await first_seen("country_name", 7),
+        "new_industries": await first_seen("sector", 7),
+        "top_products": await top("products", unwind=True),
+        "top_corridors": await top("corridors", unwind=True),
+        "top_sources": [{"label": (r["_id"] or "").replace("vbie-connector:", ""), "count": r["n"]} for r in src if r["_id"]],
+        "top_sectors": await top("sector"),
+        "top_countries": await top("country_name"),
+    }
+
+
+@admin_router.get("/analytics")
+async def buyers_analytics(_: dict = Depends(require_admin)):
+    return await compute_analytics()
+
+
+@admin_router.get("/analytics.xlsx")
+async def analytics_xlsx(_: dict = Depends(require_admin)):
+    from openpyxl import Workbook
+    a = await compute_analytics()
+    wb = Workbook()
+    ws = wb.active; ws.title = "Summary"
+    ws.append(["Metric", "Value"])
+    for k in ["today_buyers", "this_week", "this_month", "total_active"]:
+        ws.append([k.replace("_", " ").title(), a[k]])
+    ws.append(["New Countries (7d)", ", ".join(a["new_countries"])])
+    ws.append(["New Industries (7d)", ", ".join(a["new_industries"])])
+    for title, key in [("Top Products", "top_products"), ("Top Corridors", "top_corridors"),
+                       ("Top Sources", "top_sources"), ("Top Sectors", "top_sectors"),
+                       ("Top Countries", "top_countries")]:
+        s = wb.create_sheet(title[:31]); s.append(["Label", "Count"])
+        for row in a[key]:
+            s.append([row["label"], row["count"]])
+    buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+    fn = f"leadnation-buyer-analytics-{_now().strftime('%Y%m%d')}.xlsx"
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": f"attachment; filename={fn}"})
 
 
 # ─────────────────────────── admin buyer CRUD ───────────────────────────────

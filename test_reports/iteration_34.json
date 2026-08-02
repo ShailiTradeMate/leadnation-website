@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 34 — Production Readiness Audit + Quarantine + Analytics tested on live preview. 11/13 backend pytest cases PASS. Production audit runs, returns production_ready=true, active_production_buyers=10718, quarantined_total=4, quarantine_reasons populated, compliant_sources includes eu_ted+cid_canada+sam_gov+uk_companies_house, shared_apis note present, and /app/memory/VBIE_PRODUCTION_AUDIT.md is written. Audit without X-Admin-Token → 401. Quarantine effective: public GET /api/buyers/meta.total (10718) equals active_production_buyers; search returns no junk names (no 'N/A' / 'Test_Test' / '.'). QA audit overall_pass=true, no sample_records. Analytics JSON returns all required keys (today_buyers, this_week, this_month, total_active=10718, new_countries list of 31, new_industries list, top_products/corridors/sources/sectors/countries) and 401 without token. Analytics XLSX 200 + spreadsheet ct. Exports xlsx+pdf 200. DELETE soft-deletes; public GET → 404. PATCH persists (sector updated in DB) and API says admin_edited was set. Frontend: /buyers renders 10718 buyer cards, buyer-sources-section visible, nav-notif-bell opens nav-notif-panel with 'New verified buyers added' notification. Buyer profile /buyers/:geid unauth shows buyer-source-warning banner + buyer-paywall. TWO BUGS: (1) public GET /api/buyers/{geid} does NOT include last_verified field (also missing primary_source/source_warning in the top-level keys actually source_warning+primary_source ARE present — only last_verified is missing) → the [data-testid=buyer-last-verified] element is NOT rendered on the buyer profile page (0 in DOM). (2) admin_edited flag not exposed on public GET response (PATCH internally sets it — updated:['sector','admin_edited','updated_at'] — but the public serializer does not expose admin_edited).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/buyers/{geid}", "issue": "Response does NOT include 'last_verified' field for unauth (or auth) — required per spec so frontend can render buyer-last-verified. vbie.py _full is supposed to include last_verified but the served payload has: geid, legal_name, display_name, country, country_name, city, sector, products, hs_families, corridors, size, role, trust, evidence_count, sample, locked, lock_reason, website, provenance, signals, status, primary_source, source_warning — no last_verified.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "GET /api/buyers/{geid}", "issue": "admin_edited field not present in public serializer response. PATCH /api/buyers/admin/{geid} returns updated:['sector','admin_edited','updated_at'] confirming DB write, but downstream GET does not expose admin_edited so UI cannot indicate 'Admin edited' badges."},
+      {"endpoint": "GET /api/buyers/admin?q={geid}", "issue": "Text search still does not index geid (carry-over from iteration 33). q=<geid> returns 'Buyer not found'."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "BuyerProfile.jsx", "issue": "[data-testid=buyer-last-verified] not rendered because backend does not return last_verified for the buyer. Element count in DOM = 0.", "selector": "[data-testid=\"buyer-last-verified\"]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vbie_iteration34.py",
+    "/app/test_reports/pytest/iter34.xml"
+  ],
+  "action_items": [
+    "Include 'last_verified' in the public /api/buyers/{geid} response (vbie.py _full — verify field is actually returned; if buyers lack it, ingestion should backfill last_verified=first_seen or updated_at).",
+    "Expose 'admin_edited' (and optionally 'updated_at') in the public buyer detail serializer so the UI/tests can verify admin edits externally.",
+    "(Nice-to-have) Add geid to admin ?q= search fields (also in iter33 report)."
+  ],
+  "critical_code_review_comments": [
+    "Production audit endpoint correctly enforces X-Admin-Token (401 without) and writes /app/memory/VBIE_PRODUCTION_AUDIT.md.",
+    "Quarantine logic works — placeholder regex correctly excludes junk while keeping legitimate names containing 'Nan…', 'Nation…', etc.",
+    "Analytics endpoint returns full JSON structure and XLSX correctly with proper content-type; 401 gating works.",
+    "Public buyer detail payload lacks last_verified — spec-required field. If server writes it but serialisation strips it, check _full/get_buyer projection.",
+    "PATCH returns 'updated' as a list of field names (unchanged since iter33). Not blocking but non-REST; consider returning full doc."
+  ],
+  "updated_files": ["/app/backend/tests/test_vbie_iteration34.py"],
+  "success_rate": {"backend": "85%", "frontend": "85%"},
+  "test_credentials": "Admin: X-Admin-Token: leadnation-admin-2026. No Firebase UI login attempted per E1 instructions.",
+  "seed_data_creation": "PATCH set one buyer sector='TEST_I34' (LN-buyer-2V6WTPFKRJWZZ530VHTKS1WZPP) and soft-deleted one buyer (via test_delete_soft_deletes). Non-destructive to real dataset.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Search endpoint returns 'buyers' (not 'items'). Public GET /api/buyers/{geid} currently omits last_verified + admin_edited from response payload — both need serializer changes. Total buyer count on preview is 10718 (not 10719) after latest audit. Test buyer used for last_verified check: LN-buyer-JTX4PXKNH69XHYAS7Y3FFPNTY2.",
+  "rca of the issue": "buyer-last-verified UI element is absent because backend serializer for public buyer detail (vbie.py _full/get_buyer) does not include last_verified in the returned dict; frontend conditionally renders the span only when buyer.last_verified is truthy. Fix: add last_verified (and admin_edited) to the projected fields in the buyer detail response. Reproduction: curl $URL/api/buyers/LN-buyer-JTX4PXKNH69XHYAS7Y3FFPNTY2 | jq keys -> no last_verified."
+}
