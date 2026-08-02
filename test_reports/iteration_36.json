@@ -1,0 +1,19 @@
+{
+  "summary": "Iteration 36 regression after vbie_core extraction (circular-import fix). Full VBIE surface verified — 11/11 backend tests pass and frontend /buyers + buyer profile + notification bell all render correctly. Behavior identical to iteration_35: total=10719, production_ready=true, active=10719, quarantined_total=3. Brain buyer path (unauth) returns buyerAccess.locked=true with subscribe CTA — confirms compute_trust import from vbie_core resolves. No behavior drift from the refactor.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_vbie_iteration36.py", "/app/test_reports/pytest/iter36.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "vbie_core.py cleanly breaks the cycle: vbie_connectors and vbie_admin import only from vbie_core (verified via grep). vbie_admin still imports _card from vbie which is fine (one-way dependency).",
+    "Dead _BUYERS_SEED removal confirmed — seed_vbie now seeds registry only; no fabricated buyers leak into 10719 active count."
+  ],
+  "updated_files": ["/app/backend/tests/test_vbie_iteration36.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "X-Admin-Token: leadnation-admin-2026",
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Regression suite for the vbie_core refactor lives at /app/backend/tests/test_vbie_iteration36.py (11 tests, all passing). Response schemas verified: /api/buyers/search returns {buyers,total,page,limit}; /api/buyers/sources returns {sources, sanctions_screening, last_ingestion}; production-audit returns active_production_buyers=10719, quarantined_total=3; /api/buyers/ingest/status requires admin token. All frontend data-testids (buyer-card-0, buyer-sources-section, buyer-source-warning, buyer-last-verified, buyer-paywall, nav-notif-bell, nav-notif-panel) present and functional.",
+  "rca of the issue": "N/A — pure structural refactor verified with no observable behavior change."
+}

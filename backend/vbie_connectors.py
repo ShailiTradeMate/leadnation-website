@@ -29,7 +29,7 @@ import httpx
 from pymongo import UpdateOne
 
 from core import db
-from vbie import compute_trust, _stable_geid, _prov, _now, _iso
+from vbie_core import compute_trust, _stable_geid, _prov, _now, _iso
 
 logger = logging.getLogger(__name__)
 

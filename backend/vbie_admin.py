@@ -19,7 +19,8 @@ from pymongo import UpdateOne
 
 from core import db, require_admin
 from firebase_auth import _bearer, verify_token
-from vbie import SOURCES_SEED, _SOURCE_BY_ID, _card
+from vbie_core import SOURCES_SEED, _SOURCE_BY_ID
+from vbie import _card
 
 logger = logging.getLogger(__name__)
 
