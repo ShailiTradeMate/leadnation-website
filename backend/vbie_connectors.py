@@ -29,7 +29,7 @@ import httpx
 from pymongo import UpdateOne
 
 from core import db
-from vbie_core import compute_trust, _stable_geid, _prov, _now, _iso
+from vbie_core import compute_trust, _stable_geid, _prov, _now, _iso, is_source_approved
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +37,7 @@ TED_URL = "https://api.ted.europa.eu/v3/notices/search"
 CSL_URL = "https://data.trade.gov/downloadable_consolidated_screening_list/v1/consolidated.json"
 COMTRADE_PREVIEW = "https://comtradeapi.un.org/public/v1/preview/C/A/HS"
 CID_URL = "https://ised-isde.canada.ca/site/ised/sites/default/files/documents/cid-bdic-majorimportersbyhs6bycountry2022.csv"
+GLEIF_API = "https://api.gleif.org/api/v1/lei-records"
 
 SAM_GOV_API_KEY = os.environ.get("SAM_GOV_API_KEY", "").strip()
 COMPANIES_HOUSE_API_KEY = os.environ.get("COMPANIES_HOUSE_API_KEY", "").strip()
@@ -273,36 +274,54 @@ async def connector_sam_gov() -> list:
 
 
 async def connector_companies_house() -> list:
-    """UK Companies House registry (needs free COMPANIES_HOUSE_API_KEY). Skipped without a key."""
-    if not COMPANIES_HOUSE_API_KEY:
+    """UK Companies House registry (OGL v3.0). Hybrid model: this is the API-for-freshness
+    path (advanced-search by importer/wholesaler SIC codes), paginated within the
+    600-req/5-min rate limit. Needs COMPANIES_HOUSE_API_KEY. Skipped without a key.
+    NOTE: company-level identity only — director/PSC personal data is NEVER ingested
+    (UK GDPR: no marketing/contact use of individuals)."""
+    if not COMPANIES_HOUSE_API_KEY or not is_source_approved("uk_companies_house"):
         return []
     out = {}
     # SIC codes indicative of importers/wholesalers of goods.
-    sic = ["46170", "46900", "46310", "46410", "46450", "46460", "46480"]
+    sic = ["46170", "46900", "46310", "46410", "46450", "46460", "46480", "46390", "46760"]
+    base = "https://api.company-information.service.gov.uk/advanced-search/companies"
     try:
         async with httpx.AsyncClient(timeout=30, headers=UA,
                                      auth=(COMPANIES_HOUSE_API_KEY, "")) as cx:
-            r = await cx.get("https://api.company-information.service.gov.uk/advanced-search/companies",
-                             params={"company_status": "active", "sic_codes": ",".join(sic), "size": 100})
-            data = r.json() if r.status_code == 200 else {}
-        for c in data.get("items", []) or []:
-            name = (c.get("company_name") or "").strip()
-            if not name:
-                continue
-            addr = c.get("registered_office_address", {}) or {}
-            city = (addr.get("locality") or "").strip()
-            nk = f"ukch:GB:{_norm(name)}"
-            out[nk] = {
-                "source_id": "uk_companies_house", "natural_key": nk, "legal_name": name,
-                "country": "GB", "country_name": "United Kingdom", "city": city,
-                "sector": "Import & Distribution", "products": ["Imported Goods"],
-                "hs_families": [], "corridors": ["IN-GB"], "size": "Registered UK company",
-                "website": "", "role": "importer",
-                "signals": {"registry_listed": True, "sanctions_clear": True},
-                "prov": [("uk_companies_house", "identity",
-                          f"UK Companies House registered ({c.get('company_number', '')})",
-                          f"https://find-and-update.company-information.service.gov.uk/company/{c.get('company_number', '')}")],
-            }
+            for start in range(0, 1000, 100):  # up to 1000 companies/run, within rate limit
+                try:
+                    r = await cx.get(base, params={"company_status": "active",
+                                                   "sic_codes": ",".join(sic),
+                                                   "size": 100, "start_index": start})
+                    if r.status_code != 200:
+                        break
+                    items = (r.json() or {}).get("items", []) or []
+                except Exception as exc:
+                    logger.warning("Companies House page %d failed: %s", start, exc)
+                    break
+                if not items:
+                    break
+                for c in items:
+                    name = (c.get("company_name") or "").strip()
+                    if not name:
+                        continue
+                    addr = c.get("registered_office_address", {}) or {}
+                    city = (addr.get("locality") or "").strip()
+                    num = c.get("company_number", "")
+                    nk = f"ukch:GB:{_norm(name)}"
+                    if nk in out:
+                        continue
+                    out[nk] = {
+                        "source_id": "uk_companies_house", "natural_key": nk, "legal_name": name,
+                        "country": "GB", "country_name": "United Kingdom", "city": city,
+                        "sector": "Import & Distribution", "products": ["Imported Goods"],
+                        "hs_families": [], "corridors": ["IN-GB"], "size": "Registered UK company",
+                        "website": "", "role": "importer",
+                        "signals": {"registry_listed": True, "sanctions_clear": True},
+                        "prov": [("uk_companies_house", "identity",
+                                  f"UK Companies House registered ({num}) — Open Government Licence v3.0",
+                                  f"https://find-and-update.company-information.service.gov.uk/company/{num}")],
+                    }
     except Exception as exc:
         logger.warning("Companies House connector failed: %s", exc)
     logger.info("Companies House connector: %d companies", len(out))
@@ -349,6 +368,145 @@ async def connector_comtrade_context():
             return
 
 
+# ─────────────────── GLEIF — global identity backbone ───────────────────────
+# LEI (Legal Entity Identifier) is the permanent, CC0/public-domain global key
+# that every registry + buyer-signal maps to. We resolve each buyer to its LEI so
+# the same real company from different sources collapses to ONE canonical entity.
+async def resolve_lei(cx, name: str, country_iso2: str):
+    """Best-effort GLEIF LEI lookup by legal name + country. Returns LEI string or None."""
+    if not name:
+        return None
+    try:
+        r = await cx.get(GLEIF_API, params={
+            "filter[entity.legalName]": name,
+            "filter[entity.legalAddress.country]": (country_iso2 or "").upper(),
+            "page[size]": 5})
+        if r.status_code != 200:
+            return None
+        data = (r.json() or {}).get("data", [])
+    except Exception:
+        return None
+    target = _norm(name)
+    for item in data:
+        try:
+            ent = item["attributes"]["entity"]
+            cand = _norm(ent["legalName"]["name"])
+            ctry = (ent.get("legalAddress", {}) or {}).get("country")
+        except Exception:
+            continue
+        if country_iso2 and ctry and ctry.upper() != country_iso2.upper():
+            continue
+        if cand and (cand == target or cand.startswith(target) or target.startswith(cand)):
+            return item.get("id")
+    return None
+
+
+async def connector_gleif_enrich(limit: int = 150) -> int:
+    """Attach GLEIF LEI to buyers and keep the identity link durable. Two phases:
+      A. RE-LINK (no API): any buyer with a known `lei` but missing the gleif evidence
+         (e.g. because a source connector re-upserted and overwrote provenance) is healed.
+      B. RESOLVE (API): buyers with no lei yet are looked up in the GLEIF index (throttled).
+    Runs AFTER upserts so every source's records tie to the identity spine idempotently."""
+    if not is_source_approved("gleif"):
+        return 0
+    healed = 0
+    # Phase A — re-link known LEIs whose evidence was overwritten (cheap, no network).
+    async for e in db.entities.find(
+            {"entity_type": "buyer", "admin_deleted": {"$ne": True},
+             "lei": {"$nin": ["", None]}, "signals.lei_verified": {"$ne": True}},
+            {"provenance": 1, "signals": 1, "lei": 1}):
+        lei = e["lei"]
+        prov = [p for p in e.get("provenance", []) if p.get("source_id") != "gleif"]
+        prov.append(_prov("gleif", "identity", f"Matched to GLEIF Global LEI Index (LEI {lei})",
+                          f"https://search.gleif.org/#/record/{lei}"))
+        sig = dict(e.get("signals", {})); sig["lei_verified"] = True
+        await db.entities.update_one({"_id": e["_id"]}, {"$set": {
+            "provenance": prov[:12], "signals": sig, "trust": compute_trust(prov[:12], sig)}})
+        healed += 1
+
+    # Phase B — resolve new LEIs for buyers that don't have one yet.
+    n = 0
+    if limit and limit > 0:
+        async with httpx.AsyncClient(timeout=20, headers=UA) as cx:
+            cursor = db.entities.find(
+                {"entity_type": "buyer", "admin_deleted": {"$ne": True},
+                 "$or": [{"lei": {"$exists": False}}, {"lei": ""}]},
+                {"legal_name": 1, "country": 1, "provenance": 1, "signals": 1}).limit(limit)
+            async for e in cursor:
+                lei = await resolve_lei(cx, e.get("legal_name", ""), e.get("country", ""))
+                if not lei:
+                    await db.entities.update_one({"_id": e["_id"]}, {"$set": {"lei_checked": _iso(_now())}})
+                    continue
+                prov = [p for p in e.get("provenance", []) if p.get("source_id") != "gleif"]
+                prov.append(_prov("gleif", "identity", f"Matched to GLEIF Global LEI Index (LEI {lei})",
+                                  f"https://search.gleif.org/#/record/{lei}"))
+                sig = dict(e.get("signals", {})); sig["lei_verified"] = True
+                await db.entities.update_one({"_id": e["_id"]}, {"$set": {
+                    "lei": lei, "provenance": prov[:12], "signals": sig,
+                    "trust": compute_trust(prov[:12], sig), "lei_checked": _iso(_now())}})
+                n += 1
+    logger.info("GLEIF enrich: %d re-linked, %d newly matched to LEI", healed, n)
+    return n + healed
+
+
+# ──────── freshness-merge / hard-delete engine (validate current vs upcoming) ─
+async def dedupe_and_prune() -> dict:
+    """Match records that resolve to the SAME real company (LEI first, else
+    country + normalized name), MERGE their evidence into the freshest record,
+    then HARD-DELETE the stale duplicates. Admin-edited/deleted records are never
+    touched (admin sovereignty)."""
+    groups = {}
+    async for e in db.entities.find(
+            {"entity_type": "buyer", "admin_deleted": {"$ne": True}, "status": {"$ne": "deleted"}},
+            {"legal_name": 1, "country": 1, "lei": 1, "last_verified": 1, "updated_at": 1,
+             "provenance": 1, "signals": 1, "admin_edited": 1, "corridors": 1, "products": 1, "hs_families": 1}):
+        key = e.get("lei") or f"{e.get('country', '')}:{_norm(e.get('legal_name', ''))}"
+        if not key or key == ":":
+            continue
+        groups.setdefault(key, []).append(e)
+
+    merged = deleted = 0
+    for docs in groups.values():
+        if len(docs) < 2:
+            continue
+
+        def _rank(d):
+            uv = d.get("updated_at")
+            uv = uv.isoformat() if hasattr(uv, "isoformat") else (uv or "")
+            return (1 if d.get("admin_edited") else 0, d.get("last_verified") or uv, len(d.get("provenance", [])))
+
+        docs.sort(key=_rank, reverse=True)
+        keep, dups = docs[0], docs[1:]
+        stale = [d for d in dups if not d.get("admin_edited")]
+        if not stale:
+            continue
+
+        if not keep.get("admin_edited"):
+            prov = list(keep.get("provenance", []))
+            seen = {(p.get("source_id"), p.get("field"), p.get("note")) for p in prov}
+            sig = dict(keep.get("signals", {}))
+            corr = set(keep.get("corridors", [])); prods = set(keep.get("products", [])); hs = set(keep.get("hs_families", []))
+            for d in stale:
+                for p in d.get("provenance", []):
+                    k = (p.get("source_id"), p.get("field"), p.get("note"))
+                    if k not in seen:
+                        seen.add(k); prov.append(p)
+                sig.update({k: v for k, v in (d.get("signals") or {}).items() if v})
+                corr |= set(d.get("corridors", [])); prods |= set(d.get("products", [])); hs |= set(d.get("hs_families", []))
+            prov = prov[:12]
+            await db.entities.update_one({"_id": keep["_id"]}, {"$set": {
+                "provenance": prov, "signals": sig, "trust": compute_trust(prov, sig),
+                "corridors": sorted(c for c in corr if c), "products": sorted(p for p in prods if p)[:20],
+                "hs_families": sorted(h for h in hs if h), "updated_at": _now()}})
+            merged += 1
+
+        res = await db.entities.delete_many({"_id": {"$in": [d["_id"] for d in stale]}})
+        deleted += res.deleted_count
+
+    logger.info("Dedupe/prune: merged=%d hard_deleted_stale=%d", merged, deleted)
+    return {"merged": merged, "hard_deleted": deleted}
+
+
 # ───────────────────────────── orchestrator ─────────────────────────────────
 async def run_ingestion(trigger: str = "manual") -> dict:
     """Run all enabled connectors → sanctions-screen → upsert real buyers → drop demo data."""
@@ -359,6 +517,9 @@ async def run_ingestion(trigger: str = "manual") -> dict:
 
     connectors = [("eu_ted", connector_ted), ("cid_canada", connector_cid),
                   ("sam_gov", connector_sam_gov), ("uk_companies_house", connector_companies_house)]
+    # Legal gate: only run sources whose licence/ToS is reviewed + approved.
+    connectors = [(sid, fn) for sid, fn in connectors if is_source_approved(sid)]
+    run["skipped_pending_legal"] = [sid for sid in ("sam_gov",) if not is_source_approved(sid)]
     candidates = {}
     for sid, fn in connectors:
         try:
@@ -402,7 +563,7 @@ async def run_ingestion(trigger: str = "manual") -> dict:
             "created_by": f"vbie-connector:{c['source_id']}", "merged_into": None,
             "updated_at": _now(), "last_verified": _iso(_now()),
         }
-        ops.append(UpdateOne({"_id": geid}, {"$set": doc, "$setOnInsert": {"created_at": _now()}}, upsert=True))
+        ops.append(UpdateOne({"_id": geid}, {"$set": doc, "$setOnInsert": {"created_at": _now(), "lei": ""}}, upsert=True))
         upserted += 1
     # Bulk-write in chunks (fast; avoids per-doc Atlas round-trips).
     for i in range(0, len(ops), 500):
@@ -413,6 +574,18 @@ async def run_ingestion(trigger: str = "manual") -> dict:
         await connector_comtrade_context()
     except Exception as exc:
         logger.warning("Comtrade context skipped: %s", exc)
+
+    # GLEIF identity backbone: map buyers to LEI (canonical global identity).
+    try:
+        run["lei_matched"] = await connector_gleif_enrich()
+    except Exception as exc:
+        logger.warning("GLEIF enrich skipped: %s", exc)
+
+    # Freshness-merge: validate current vs upcoming, keep fresh, hard-delete stale dupes.
+    try:
+        run["dedupe"] = await dedupe_and_prune()
+    except Exception as exc:
+        logger.warning("Dedupe/prune skipped: %s", exc)
 
     real = await db.entities.count_documents(
         {"entity_type": "buyer", "sample": {"$ne": True}, "admin_deleted": {"$ne": True}})

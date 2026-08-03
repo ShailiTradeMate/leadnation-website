@@ -1,0 +1,18 @@
+{
+  "summary": "VBIE P0 regression: 8/8 backend tests + frontend intelligence panel + buyers list verified. All 11 acceptance criteria from review request pass. Total 11722 real buyers. LEI buyer LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ has LEI=894500KSGRUQ39I45P90 and GLEIF evidence chip. Locked buyer detail correctly returns intelligence + evidence_sources with provenance:[]. /evidence returns 402 when unauthenticated. Admin ingest status (X-Admin-Token) confirms eu_ted + uk_companies_house runs with sam_gov in skipped_pending_legal. Sources endpoint includes both GLEIF and UK Companies House. Frontend renders buyer-intelligence-panel, all 4 intel-metric cards (Trust=94/Verified, Confidence=Medium/2 sources, Freshness=Fresh/0d old, Source Reliability=Government/GOV), intel-lei row, and 3 evidence-source chips (EU TED, GLEIF, Brain Analysis). Buyer list renders 24 buyer-card entries with trust scores + View intelligence links.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_vbie_iter37.py", "/app/test_reports/pytest/iter37.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Console reports one 401 on unauthenticated buyer profile load (expected — likely /me/entitlements) — cosmetic; consider suppressing 401 log noise.",
+    "Cookie consent banner overlaps the LEI row and Global identity chip in default 1440x900 viewport — consider higher z-index for banner or bottom padding on IntelligencePanel so LEI is not obscured on first paint."
+  ],
+  "updated_files": ["/app/backend/tests/test_vbie_iter37.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Admin fallback header X-Admin-Token: leadnation-admin-2026 (no user login required; auth backend CORS blocked in preview as noted).",
+  "seed_data_creation": "None — used existing 11722-buyer dataset.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Reusable pytest at /app/backend/tests/test_vbie_iter37.py covers all P0 VBIE endpoints. Sample GEIDs: LEI buyer LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ (SE, GLEIF-matched), CH buyer LN-buyer-1YF6ABYE21V8F0APNZ396CJDSG (GB). Do NOT trigger POST /api/buyers/ingest/run (multi-minute). Frontend needs ~5s wait for firebase lazy-import before intelligence panel appears."
+}

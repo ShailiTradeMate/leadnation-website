@@ -37,7 +37,9 @@ from pydantic import BaseModel
 from core import db, require_admin
 from firebase_auth import _bearer, verify_token
 from vbie_core import (SOURCES_SEED, _SOURCE_BY_ID, _now, _iso, _stable_geid,
-                       compute_trust, _prov, TIER_RELIABILITY, TRUST_BANDS, _band)
+                       compute_trust, _prov, TIER_RELIABILITY, TRUST_BANDS, _band,
+                       compute_confidence, compute_freshness, source_reliability,
+                       evidence_source_labels)
 
 router = APIRouter(prefix="/buyers")
 logger = logging.getLogger(__name__)
@@ -76,11 +78,29 @@ def _primary_source(e: dict) -> str:
     return prov[0].get("source_name") if prov else ""
 
 
+def _intelligence(e: dict) -> dict:
+    """The INTELLIGENCE users see — not raw copied datasets. Deterministic summary
+    on top of provenance: Trust · Confidence · Freshness · Source Reliability."""
+    prov = e.get("provenance", []); sig = e.get("signals", {})
+    lv = e.get("last_verified") or _iso(e.get("updated_at"))
+    t = e.get("trust") or {}
+    return {
+        "trust_score": t.get("score"), "trust_band": t.get("band"), "trust_color": t.get("color"),
+        "confidence": compute_confidence(prov, sig),
+        "freshness": compute_freshness(prov, lv),
+        "source_reliability": source_reliability(prov),
+        "lei": e.get("lei", ""),
+    }
+
+
 def _full(e: dict) -> dict:
     return {
         **_card(e),
         "website": e.get("website", ""), "signals": e.get("signals", {}),
         "trust": e.get("trust", {}), "provenance": e.get("provenance", []),
+        "intelligence": _intelligence(e),
+        "evidence_sources": evidence_source_labels(e.get("provenance", [])),
+        "lei": e.get("lei", ""),
         "created_at": _iso(e.get("created_at")), "updated_at": _iso(e.get("updated_at")),
         "last_verified": e.get("last_verified") or _iso(e.get("updated_at")),
         "admin_edited": bool(e.get("admin_edited")),
@@ -104,10 +124,11 @@ async def buyers_meta():
         "sectors": sorted([s for s in sectors if s]),
         "corridors": sorted([c for c in corridors if c]),
         "trust_bands": ["Verified", "Trusted", "Emerging", "Unverified"],
-        "disclaimer": "Buyer records are ingested daily from official government sources "
-                      "(EU TED procurement, Canadian Importers Database, UN Comtrade, "
-                      "trade.gov sanctions screening) with cited provenance. Full buyer "
-                      "profiles require sign-in and an active plan.",
+        "disclaimer": "Buyer records are ingested from official, licence-cleared sources "
+                      "(EU TED procurement, Canadian Importers Database, UK Companies House, "
+                      "GLEIF Global LEI Index) with trade.gov sanctions screening and cited "
+                      "provenance. LeadNation shows verified intelligence, never raw datasets. "
+                      "Full buyer profiles require sign-in and an active plan.",
     }
 
 
@@ -205,9 +226,13 @@ async def get_buyer(geid: str, authorization: Optional[str] = Header(default=Non
     ent = await _entitlement(authorization)
     if ent["entitled"]:
         return {**_full(e), "locked": False}
-    # Locked teaser: identity + trust band only. Contact/website/evidence gated behind a plan.
+    # Locked teaser: identity + INTELLIGENCE summary + evidence source labels only.
+    # Detailed cited evidence (notes/URLs) and contact stay gated behind a plan.
     return {**_card(e), "locked": True, "lock_reason": ent["reason"],
             "trust": e.get("trust", {}), "website": "", "provenance": [], "signals": {},
+            "intelligence": _intelligence(e),
+            "evidence_sources": evidence_source_labels(e.get("provenance", [])),
+            "lei": e.get("lei", ""),
             "status": e.get("status", "active"),
             "last_verified": e.get("last_verified") or _iso(e.get("updated_at")),
             "admin_edited": bool(e.get("admin_edited")),

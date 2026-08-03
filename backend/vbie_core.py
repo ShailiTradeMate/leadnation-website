@@ -32,6 +32,7 @@ SOURCES_SEED = [
     {"_id": "trade_fair_exhibitor", "name": "Trade Fair Exhibitor Directory", "tier": "directory", "category": "exhibitor", "url": "", "attribution": "Published exhibitor list"},
     {"_id": "epc_directory", "name": "Export Promotion Council Directory", "tier": "official", "category": "association", "url": "", "attribution": "Export Promotion Council member directory"},
     {"_id": "cid_canada", "name": "Canadian Importers Database", "tier": "official", "category": "customs_bol", "url": "https://ised-isde.canada.ca/site/canadian-importers-database/en", "attribution": "Innovation, Science and Economic Development Canada (Open Government Licence)"},
+    {"_id": "gleif", "name": "GLEIF Global LEI Index", "tier": "gov", "category": "identity", "url": "https://www.gleif.org", "attribution": "Global Legal Entity Identifier Foundation (CC0 1.0)"},
 ]
 _SOURCE_BY_ID = {s["_id"]: s for s in SOURCES_SEED}
 
@@ -82,6 +83,8 @@ def compute_trust(provenance: list, signals: dict) -> dict:
         score += 6; factors.append({"label": "Company registry listed", "points": 6, "detail": "Found in official company registry"})
     if signals.get("sanctions_clear"):
         score += 10; factors.append({"label": "Sanctions screened", "points": 10, "detail": "Cleared against trade.gov CSL"})
+    if signals.get("lei_verified"):
+        score += 8; factors.append({"label": "Global LEI verified", "points": 8, "detail": "Matched to GLEIF Global LEI Index (canonical identity)"})
 
     # freshness: penalise stale provenance
     caps = [p.get("captured_at") for p in provenance if p.get("captured_at")]
@@ -108,3 +111,87 @@ def _prov(source_id: str, field: str, note: str = "", url: str = ""):
     return {"field": field, "source_id": source_id, "source_name": s.get("name", source_id),
             "source_tier": s.get("tier", "directory"), "source_url": url or s.get("url", ""),
             "attribution": s.get("attribution", ""), "captured_at": _iso(_now()), "note": note}
+
+
+# ─────────────────── per-source legal-approval gating ───────────────────────
+# Only sources whose licence/ToS have been reviewed + explicitly approved may run
+# in ingestion. Everything else stays dormant (pending_legal_approval) until a
+# human flips it on. P0 approved set (all verified GREEN in the research report):
+APPROVED_SOURCES = {"eu_ted", "cid_canada", "uk_companies_house", "trade_gov_csl", "gleif"}
+
+
+def is_source_approved(source_id: str) -> bool:
+    return source_id in APPROVED_SOURCES
+
+
+# ──────────── intelligence layer: confidence · freshness · reliability ───────
+# LeadNation exposes INTELLIGENCE, never raw copied datasets. These deterministic
+# summaries sit on top of provenance so subscribers see Trust / Confidence /
+# Freshness / Source Reliability + cited evidence labels.
+_RELIABILITY_LABEL = {"gov": "Government", "official": "Official", "licensed": "Licensed", "directory": "Directory"}
+
+
+def _distinct_sources(provenance: list) -> list:
+    seen, out = set(), []
+    for p in provenance or []:
+        sid = p.get("source_id")
+        if sid and sid not in seen:
+            seen.add(sid); out.append(p)
+    return out
+
+
+def compute_confidence(provenance: list, signals: dict) -> dict:
+    """How corroborated is this entity — more independent sources + signals = higher."""
+    n = len(_distinct_sources(provenance))
+    bonus = sum(4 for k in ("registry_listed", "sanctions_clear", "vat_validated", "website_verified", "lei_verified")
+                if (signals or {}).get(k))
+    score = min(100, (30 if n <= 1 else 55 if n == 2 else 80) + bonus)
+    label = "High" if score >= 75 else "Medium" if score >= 50 else "Low"
+    return {"score": score, "label": label, "sources": n}
+
+
+def compute_freshness(provenance: list, last_verified=None) -> dict:
+    """How recent is the newest evidence."""
+    dates = []
+    for c in ([last_verified] + [p.get("captured_at") for p in (provenance or [])]):
+        if not c:
+            continue
+        try:
+            d = datetime.fromisoformat(c) if isinstance(c, str) else c
+            if getattr(d, "tzinfo", None) is None:
+                d = d.replace(tzinfo=timezone.utc)
+            dates.append(d)
+        except Exception:
+            pass
+    if not dates:
+        return {"score": 50, "label": "Unknown", "age_days": None}
+    age = (_now() - max(dates)).days
+    if age <= 30:
+        score, label = 100, "Fresh"
+    elif age <= 180:
+        score, label = 80, "Recent"
+    elif age <= 365:
+        score, label = 55, "Aging"
+    else:
+        score, label = 30, "Stale"
+    return {"score": score, "label": label, "age_days": age}
+
+
+def source_reliability(provenance: list) -> dict:
+    """Best (highest-tier) source backing this entity."""
+    order = ["gov", "official", "licensed", "directory"]
+    tiers = [_SOURCE_BY_ID.get(p.get("source_id"), {}).get("tier", "directory") for p in (provenance or [])]
+    best = min(tiers, key=lambda t: order.index(t) if t in order else 99) if tiers else "directory"
+    return {"tier": best, "label": _RELIABILITY_LABEL.get(best, "Directory"), "score": TIER_RELIABILITY.get(best, 55)}
+
+
+def evidence_source_labels(provenance: list, has_brain: bool = True) -> list:
+    """Distinct source LABELS (not raw rows) — e.g. Companies House, Canada CID, EU TED, GLEIF."""
+    labels = []
+    for p in _distinct_sources(provenance):
+        nm = p.get("source_name")
+        if nm and nm not in labels:
+            labels.append(nm)
+    if has_brain and "Brain Analysis" not in labels:
+        labels.append("Brain Analysis")
+    return labels

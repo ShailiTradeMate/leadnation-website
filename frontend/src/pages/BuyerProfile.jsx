@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import {
   ShieldCheck, MapPin, Package, Buildings, ArrowLeft, LinkSimple,
   CheckCircle, FileText, Handshake, Sparkle, Lock, Crown, Warning,
+  Gauge, Clock, Stack, Certificate, Fingerprint,
 } from "@phosphor-icons/react";
 
 export default function BuyerProfile() {
@@ -75,6 +76,8 @@ export default function BuyerProfile() {
             <span><b>Source: {b.primary_source || "official public sources"}.</b> {b.source_warning}</span>
           </div>
         )}
+
+        {b.intelligence && <IntelligencePanel intel={b.intelligence} sources={b.evidence_sources} />}
 
         {b.locked ? (
           <PaywallGate reason={b.lock_reason} buyer={b} />
@@ -148,6 +151,63 @@ export default function BuyerProfile() {
 
       {showClaim && <ClaimModal geid={geid} buyerName={b.display_name} onClose={() => setShowClaim(false)} />}
     </>
+  );
+}
+
+function IntelligencePanel({ intel, sources }) {
+  const conf = intel.confidence || {};
+  const fresh = intel.freshness || {};
+  const rel = intel.source_reliability || {};
+  const metrics = [
+    { icon: ShieldCheck, label: "Trust Score", value: intel.trust_score ?? "—", sub: intel.trust_band || "", tone: "cyan" },
+    { icon: Gauge, label: "Confidence", value: conf.label || "—", sub: conf.sources != null ? `${conf.sources} source${conf.sources === 1 ? "" : "s"}` : "", tone: "violet" },
+    { icon: Clock, label: "Freshness", value: fresh.label || "—", sub: fresh.age_days != null ? `${fresh.age_days}d old` : "", tone: "emerald" },
+    { icon: Certificate, label: "Source Reliability", value: rel.label || "—", sub: rel.tier ? rel.tier.toUpperCase() : "", tone: "amber" },
+  ];
+  const toneMap = {
+    cyan: "text-cyan-300", violet: "text-violet-300", emerald: "text-emerald-300", amber: "text-amber-300",
+  };
+  return (
+    <div data-testid="buyer-intelligence-panel" className="mt-6 glass-strong rounded-3xl p-6 sm:p-7">
+      <div className="flex items-center gap-2 mb-1">
+        <Sparkle size={18} weight="fill" className="text-cyan-300" />
+        <h2 className="font-display font-bold text-lg">LeadNation Verified Buyer Intelligence</h2>
+      </div>
+      <p className="text-xs text-slate-500">Verified intelligence — never raw copied datasets.</p>
+
+      <div className="mt-5 grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {metrics.map((m, i) => (
+          <div key={m.label} data-testid={`intel-metric-${i}`} className="rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono-display uppercase tracking-widest text-slate-400">
+              <m.icon size={13} weight="fill" className={toneMap[m.tone]} /> {m.label}
+            </div>
+            <div className={`mt-2 font-display font-black text-2xl ${toneMap[m.tone]}`}>{m.value}</div>
+            {m.sub && <div className="text-[11px] text-slate-500 mt-0.5">{m.sub}</div>}
+          </div>
+        ))}
+      </div>
+
+      {intel.lei && (
+        <div data-testid="intel-lei" className="mt-4 flex items-center gap-2 text-xs text-slate-400">
+          <Fingerprint size={14} weight="fill" className="text-cyan-300" />
+          <span>Global identity (GLEIF LEI): <span className="font-mono-display text-slate-200">{intel.lei}</span></span>
+        </div>
+      )}
+
+      {(sources || []).length > 0 && (
+        <div className="mt-5">
+          <div className="flex items-center gap-1.5 text-[10px] font-mono-display uppercase tracking-widest text-slate-400 mb-2">
+            <Stack size={13} weight="fill" className="text-violet-300" /> Evidence
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {sources.map((s) => (
+              <span key={s} data-testid={`evidence-source-${s.replace(/\s+/g, "-").toLowerCase()}`}
+                className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-200">{s}</span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
