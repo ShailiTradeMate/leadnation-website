@@ -378,3 +378,30 @@ Build a premium 3D website for the LeadNation app to drive organic traffic, acco
 - Build with `yarn build` (CRA) and host static `build/` on DigitalOcean App Platform / nginx.
 - Backend runs as ASGI (uvicorn server:app) — Docker-friendly. MongoDB via `MONGO_URL`.
 - Update `REACT_APP_BACKEND_URL` to production domain when deploying.
+
+---
+
+## VBIE P0 — Official Bulk-Data Foundation (implemented Aug 2026)
+Full research report: `/app/memory/research/VBIE_BULK_SOURCES_RESEARCH.md` (legal matrices, country-by-country, 5-yr roadmap).
+
+**Sources live (all legally GREEN, per-source legal-approval gated via `APPROVED_SOURCES`):**
+- **GLEIF LEI (CC0)** — global identity backbone. `resolve_lei()` + `connector_gleif_enrich()` map buyers to a canonical LEI (self-healing re-link so a source re-upsert never wipes the identity evidence). All future registries/signals unify via GEID+LEI.
+- **UK Companies House (OGL v3.0)** — hybrid: REST advanced-search API active (key in env `COMPANIES_HOUSE_API_KEY`, paginated within 600/5min); bulk-file path documented. Company-level only; no director/PSC personal data (GDPR).
+- **Canada CID (OGL-Canada 2.0)** — bulk CSV importer signal (best-effort; empty from this host, guarded).
+- **EU TED** — primary named-buyer signal (free reuse). **Trade.gov CSL** — mandatory sanctions screen.
+- **SAM.gov** — kept DISABLED (`skipped_pending_legal`); D&B fields barred for prospecting.
+
+**Freshness-merge / hard-delete engine** (`dedupe_and_prune`): records resolving to the same real company (LEI first, else country+normalized-name) are merged (evidence unioned into freshest) then stale duplicates HARD-DELETED. Admin-edited/deleted records never touched.
+
+**Intelligence-not-raw-data presentation:** buyer API returns `intelligence` {trust_score, trust_band, confidence, freshness, source_reliability, lei} + `evidence_sources` (source LABELS). Locked payload shows intelligence + evidence labels but `provenance:[]` (cited detail gated). UI: `IntelligencePanel` in BuyerProfile.jsx (Trust/Confidence/Freshness/Source Reliability cards + LEI row + evidence chips).
+
+**State:** ~11,722 real buyers (EU TED 10,590 + Companies House 1,000 + prior). ~80 LEI-matched. Tested: `/app/test_reports/iteration_37.json` — 8/8 backend + frontend, 11/11 acceptance criteria pass.
+
+**Architecture invariants preserved:** website backend is the single writer of the buyer graph; one Mongo, one GEID, one Brain; web + app consume the same `/api/buyers/*`; no duplicate stores.
+
+### VBIE backlog (P1+)
+- **P1** Real-source expansion (all GREEN, official bulk-first): France SIRENE, Norway/Finland/Denmark/Czech, Singapore ACRA, Australia ABN, Japan NTA.
+- **P1** Companies House official monthly BULK file loader (full ~5M snapshot) as base corpus; API for freshness.
+- **P1** Scheduled GLEIF enrich across full corpus (throttled nightly batches) to grow LEI coverage.
+- **P2** Yellow sources with guardrails: SEC EDGAR, Germany OffeneRegister, NL KVK, Poland, Brazil CNPJ.
+- **REJECTED (do not ingest for commercial bulk):** Belgium CBE (€30k/yr), Italy Registro Imprese (paid), UN Comtrade redistribution (UN copyright), CIPC/Qatar; SAM.gov D&B fields.

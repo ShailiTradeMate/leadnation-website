@@ -21,6 +21,8 @@ once real records exist.
 """
 import os
 import re
+import io
+import csv
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -317,6 +319,7 @@ async def connector_companies_house() -> list:
                         "sector": "Import & Distribution", "products": ["Imported Goods"],
                         "hs_families": [], "corridors": ["IN-GB"], "size": "Registered UK company",
                         "website": "", "role": "importer",
+                        "identifiers": {"company_number": num},
                         "signals": {"registry_listed": True, "sanctions_clear": True},
                         "prov": [("uk_companies_house", "identity",
                                   f"UK Companies House registered ({num}) — Open Government Licence v3.0",
@@ -449,25 +452,64 @@ async def connector_gleif_enrich(limit: int = 150) -> int:
     return n + healed
 
 
-# ──────── freshness-merge / hard-delete engine (validate current vs upcoming) ─
+# ──────── duplicate resolution engine (multi-key, audit-preserving) ──────────
+def _dedupe_keys(e: dict) -> list:
+    """All identity keys a record can match on: LEI, company/registration/VAT/business
+    numbers, and country+normalized-name. Two records sharing ANY key are the same co."""
+    keys = []
+    if e.get("lei"):
+        keys.append(f"lei:{e['lei']}")
+    ids = e.get("identifiers") or {}
+    for k in ("company_number", "registration_number", "vat", "business_number"):
+        v = ids.get(k)
+        if v:
+            keys.append(f"{k}:{(e.get('country') or '')}:{str(v).strip().upper()}")
+    nm = _norm(e.get("legal_name", ""))
+    if nm:
+        keys.append(f"name:{e.get('country', '')}:{nm}")
+    return keys
+
+
 async def dedupe_and_prune() -> dict:
-    """Match records that resolve to the SAME real company (LEI first, else
-    country + normalized name), MERGE their evidence into the freshest record,
-    then HARD-DELETE the stale duplicates. Admin-edited/deleted records are never
-    touched (admin sovereignty)."""
-    groups = {}
+    """Never allow duplicate buyers. Groups records that share ANY identity key
+    (LEI / company number / reg number / VAT / business number / country+name) using
+    union-find, MERGES evidence+trust+provenance+relationships into the newest verified
+    record, ARCHIVES obsolete duplicates to `vbie_archive` (audit history preserved),
+    then HARD-DELETES them. Admin-edited/deleted records are never touched."""
+    # 1. Load candidates + build union-find over shared keys.
+    docs = []
+    key_owner = {}
+    parent = {}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]; x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
     async for e in db.entities.find(
             {"entity_type": "buyer", "admin_deleted": {"$ne": True}, "status": {"$ne": "deleted"}},
-            {"legal_name": 1, "country": 1, "lei": 1, "last_verified": 1, "updated_at": 1,
-             "provenance": 1, "signals": 1, "admin_edited": 1, "corridors": 1, "products": 1, "hs_families": 1}):
-        key = e.get("lei") or f"{e.get('country', '')}:{_norm(e.get('legal_name', ''))}"
-        if not key or key == ":":
-            continue
-        groups.setdefault(key, []).append(e)
+            {"legal_name": 1, "country": 1, "lei": 1, "identifiers": 1, "last_verified": 1,
+             "updated_at": 1, "provenance": 1, "signals": 1, "admin_edited": 1,
+             "corridors": 1, "products": 1, "hs_families": 1, "trust": 1}):
+        eid = e["_id"]; parent[eid] = eid; docs.append(e)
+        for k in _dedupe_keys(e):
+            if k in key_owner:
+                union(eid, key_owner[k])
+            else:
+                key_owner[k] = eid
+
+    groups = {}
+    for e in docs:
+        groups.setdefault(find(e["_id"]), []).append(e)
 
     merged = deleted = 0
-    for docs in groups.values():
-        if len(docs) < 2:
+    for members in groups.values():
+        if len(members) < 2:
             continue
 
         def _rank(d):
@@ -475,8 +517,8 @@ async def dedupe_and_prune() -> dict:
             uv = uv.isoformat() if hasattr(uv, "isoformat") else (uv or "")
             return (1 if d.get("admin_edited") else 0, d.get("last_verified") or uv, len(d.get("provenance", [])))
 
-        docs.sort(key=_rank, reverse=True)
-        keep, dups = docs[0], docs[1:]
+        members.sort(key=_rank, reverse=True)
+        keep, dups = members[0], members[1:]
         stale = [d for d in dups if not d.get("admin_edited")]
         if not stale:
             continue
@@ -485,26 +527,141 @@ async def dedupe_and_prune() -> dict:
             prov = list(keep.get("provenance", []))
             seen = {(p.get("source_id"), p.get("field"), p.get("note")) for p in prov}
             sig = dict(keep.get("signals", {}))
+            ids = dict(keep.get("identifiers", {}))
             corr = set(keep.get("corridors", [])); prods = set(keep.get("products", [])); hs = set(keep.get("hs_families", []))
+            lei = keep.get("lei", "")
             for d in stale:
                 for p in d.get("provenance", []):
                     k = (p.get("source_id"), p.get("field"), p.get("note"))
                     if k not in seen:
                         seen.add(k); prov.append(p)
                 sig.update({k: v for k, v in (d.get("signals") or {}).items() if v})
+                for k, v in (d.get("identifiers") or {}).items():
+                    ids.setdefault(k, v)
                 corr |= set(d.get("corridors", [])); prods |= set(d.get("products", [])); hs |= set(d.get("hs_families", []))
+                lei = lei or d.get("lei", "")
             prov = prov[:12]
             await db.entities.update_one({"_id": keep["_id"]}, {"$set": {
                 "provenance": prov, "signals": sig, "trust": compute_trust(prov, sig),
+                "identifiers": ids, "lei": lei,
                 "corridors": sorted(c for c in corr if c), "products": sorted(p for p in prods if p)[:20],
                 "hs_families": sorted(h for h in hs if h), "updated_at": _now()}})
             merged += 1
 
-        res = await db.entities.delete_many({"_id": {"$in": [d["_id"] for d in stale]}})
+        # Archive obsolete duplicates (preserve evidence/audit) BEFORE hard delete.
+        stale_ids = [d["_id"] for d in stale]
+        archived = await db.entities.find({"_id": {"$in": stale_ids}}).to_list(len(stale_ids))
+        if archived:
+            for a in archived:
+                a["archived_at"] = _iso(_now()); a["archived_reason"] = "duplicate"; a["merged_into"] = keep["_id"]
+            await db.vbie_archive.insert_many(archived)
+        res = await db.entities.delete_many({"_id": {"$in": stale_ids}})
         deleted += res.deleted_count
 
-    logger.info("Dedupe/prune: merged=%d hard_deleted_stale=%d", merged, deleted)
+    logger.info("Dedupe/prune (multi-key): merged=%d hard_deleted=%d archived", merged, deleted)
     return {"merged": merged, "hard_deleted": deleted}
+
+
+# ──────────────── bulk connectors (monthly full-register loaders) ────────────
+async def upsert_candidates(rows: list, source_label: str = "bulk") -> int:
+    """Shared upsert used by bulk loaders: sanctions-screen → respect admin sovereignty →
+    bulk-write into the ONE entities graph (same path/schema as run_ingestion)."""
+    if not rows:
+        return 0
+    screener = await load_sanctions()
+    admin_managed = set()
+    async for d in db.entities.find(
+            {"entity_type": "buyer", "$or": [{"admin_edited": True}, {"admin_deleted": True}]}, {"_id": 1}):
+        admin_managed.add(d["_id"])
+    ops = []
+    for c in rows:
+        if is_sanctioned(c["legal_name"], screener):
+            continue
+        geid = _stable_geid(c["natural_key"])
+        if geid in admin_managed:
+            continue
+        provenance = [_prov(sid, field, note, url) for (sid, field, note, url) in c["prov"]]
+        doc = {
+            "_id": geid, "geid": geid, "entity_type": "buyer", "status": "active",
+            "legal_name": c["legal_name"], "display_name": c["legal_name"],
+            "country": c["country"], "country_name": c["country_name"], "city": c.get("city", ""),
+            "sector": c["sector"], "products": c.get("products", []),
+            "hs_families": [h for h in c.get("hs_families", []) if h],
+            "corridors": c.get("corridors", []), "size": c.get("size", ""),
+            "website": c.get("website", ""), "role": c.get("role", "importer"),
+            "signals": c.get("signals", {}), "provenance": provenance,
+            "trust": compute_trust(provenance, c.get("signals", {})),
+            "identifiers": c.get("identifiers", {}), "sample": False, "source_verified": True,
+            "created_by": f"vbie-bulk:{c['source_id']}", "merged_into": None,
+            "updated_at": _now(), "last_verified": _iso(_now()),
+        }
+        ops.append(UpdateOne({"_id": geid}, {"$set": doc, "$setOnInsert": {"created_at": _now(), "lei": ""}}, upsert=True))
+    n = 0
+    for i in range(0, len(ops), 500):
+        res = await db.entities.bulk_write(ops[i:i + 500], ordered=False)
+        n += (res.upserted_count or 0)
+    logger.info("Bulk upsert (%s): %d rows, %d new", source_label, len(ops), n)
+    return n
+
+
+async def connector_companies_house_bulk(max_records: int = 5000) -> list:
+    """UK Companies House official MONTHLY full-register product (OGL v3.0). Streams the
+    'BasicCompanyDataAsOneFile' ZIP and parses up to max_records. HEAVY — intended for the
+    monthly cadence in production; capped for pod safety. Company-level identity only."""
+    if not is_source_approved("uk_companies_house"):
+        return []
+    import zipfile
+    from datetime import date
+    base = "http://download.companieshouse.gov.uk"
+    fname = f"BasicCompanyDataAsOneFile-{date.today().replace(day=1).isoformat()}.zip"
+    url = f"{base}/{fname}"
+    out = []
+    try:
+        async with httpx.AsyncClient(timeout=120, headers=UA, follow_redirects=True) as cx:
+            r = await cx.get(url)
+            if r.status_code != 200 or not r.content:
+                logger.warning("CH bulk file unavailable (%s): %s", r.status_code, url)
+                return []
+            with zipfile.ZipFile(io.BytesIO(r.content)) as z:
+                name = z.namelist()[0]
+                with z.open(name) as fh:
+                    reader = csv.DictReader((line.decode("utf-8", "ignore") for line in fh))
+                    for row in reader:
+                        if len(out) >= max_records:
+                            break
+                        nm = (row.get("CompanyName") or "").strip()
+                        num = (row.get("CompanyNumber") or "").strip()
+                        if not nm or (row.get("CompanyStatus") or "").lower() != "active":
+                            continue
+                        nk = f"ukch:GB:{_norm(nm)}"
+                        out.append({
+                            "source_id": "uk_companies_house", "natural_key": nk, "legal_name": nm,
+                            "country": "GB", "country_name": "United Kingdom",
+                            "city": (row.get("RegAddress.PostTown") or "").strip(),
+                            "sector": "Import & Distribution", "products": ["Imported Goods"],
+                            "hs_families": [], "corridors": ["IN-GB"], "size": "Registered UK company",
+                            "website": "", "role": "importer", "identifiers": {"company_number": num},
+                            "signals": {"registry_listed": True, "sanctions_clear": True},
+                            "prov": [("uk_companies_house", "identity",
+                                      f"UK Companies House full register ({num}) — OGL v3.0",
+                                      f"https://find-and-update.company-information.service.gov.uk/company/{num}")],
+                        })
+    except Exception as exc:
+        logger.warning("CH bulk connector failed: %s", exc)
+    logger.info("CH bulk connector: %d companies", len(out))
+    return out
+
+
+async def connector_sirene(max_records: int = 5000) -> list:
+    """France INSEE SIRENE (Licence Ouverte / Etalab 2.0). Requires a free INSEE API key
+    (env INSEE_API_KEY). Stays DORMANT until the key is provided AND the source is added to
+    APPROVED_SOURCES after terms review."""
+    key = os.environ.get("INSEE_API_KEY", "").strip()
+    if not key or not is_source_approved("sirene_fr"):
+        logger.info("SIRENE connector dormant (needs INSEE_API_KEY + legal approval)")
+        return []
+    # Implementation intentionally deferred until key is supplied (api.insee.fr Sirene v3).
+    return []
 
 
 # ───────────────────────────── orchestrator ─────────────────────────────────
@@ -559,6 +716,7 @@ async def run_ingestion(trigger: str = "manual") -> dict:
             "corridors": c.get("corridors", []), "size": c.get("size", ""),
             "website": c.get("website", ""), "role": c.get("role", "importer"),
             "signals": c.get("signals", {}), "provenance": provenance, "trust": trust,
+            "identifiers": c.get("identifiers", {}),
             "sample": False, "source_verified": True,
             "created_by": f"vbie-connector:{c['source_id']}", "merged_into": None,
             "updated_at": _now(), "last_verified": _iso(_now()),

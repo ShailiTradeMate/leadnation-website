@@ -85,7 +85,8 @@ async def _startup():
         logging.warning("Duty engine init failed: %s", exc)
     try:
         await vbie.seed_vbie()
-        vbie_connectors.start_scheduler()
+        import vbie_engine
+        vbie_engine.start_scheduler()
         # Only auto-ingest on startup if we don't already have a sizeable corpus (avoids re-runs on reload).
         _real = await db.entities.count_documents({"entity_type": "buyer", "sample": {"$ne": True}})
         if _real < 1000:

@@ -211,6 +211,45 @@ async def search_buyers(
     return {"buyers": [_card(r) for r in rows], "total": total, "page": page, "limit": limit}
 
 
+@router.get("/watchlist")
+async def get_watchlist(authorization: Optional[str] = Header(default=None)):
+    """Buyers the signed-in user is watching (for change alerts)."""
+    claims = verify_token(_bearer(authorization)) if authorization else None
+    if not claims:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    rows = await db.buyer_watchlist.find({"uid": claims["uid"]}).sort("created_at", -1).to_list(200)
+    geids = [r["geid"] for r in rows]
+    ents = await db.entities.find({"_id": {"$in": geids}}).to_list(len(geids))
+    by_id = {e["_id"]: e for e in ents}
+    return {"watchlist": [_card(by_id[g]) for g in geids if g in by_id]}
+
+
+@router.get("/match")
+async def match_company(name: str = Query(""), country: str = Query(""),
+                        number: str = Query("")):
+    """Networking hook: given a company (name / country / registration number), return
+    candidate VBIE buyers (by GEID) the member can CLAIM — so a verified buyer joining
+    LeadNation is auto-linked to their existing intelligence record."""
+    import re as _re
+    q = {"entity_type": "buyer", "admin_deleted": {"$ne": True}, "status": {"$ne": "deleted"}}
+    ors = []
+    if number.strip():
+        ors.append({"identifiers.company_number": number.strip()})
+    if name.strip():
+        rx = _re.compile(_re.escape(name.strip()), _re.IGNORECASE)
+        clause = {"legal_name": rx}
+        if country.strip():
+            clause["country"] = country.strip().upper()
+        ors.append(clause)
+    if not ors:
+        return {"candidates": []}
+    q["$or"] = ors
+    rows = await db.entities.find(q).limit(10).to_list(10)
+    return {"candidates": [{**_card(e), "lei": e.get("lei", ""),
+                            "claim_url": f"/buyers/{e['_id']}",
+                            "identifiers": e.get("identifiers", {})} for e in rows]}
+
+
 @router.get("/{geid}")
 async def get_buyer(geid: str, authorization: Optional[str] = Header(default=None)):
     e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
@@ -282,6 +321,31 @@ async def claim_buyer(geid: str, body: BuyerClaim, request: Request):
     except Exception:
         pass
     return {"ok": True, "claim_id": str(res.inserted_id)}
+
+
+@router.post("/{geid}/watch")
+async def watch_buyer(geid: str, authorization: Optional[str] = Header(default=None)):
+    """Add a buyer to the user's watchlist to receive change alerts."""
+    claims = verify_token(_bearer(authorization)) if authorization else None
+    if not claims:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"}, {"_id": 1})
+    if not e:
+        raise HTTPException(status_code=404, detail="Buyer not found")
+    email = claims.get("email", "")
+    await db.buyer_watchlist.update_one(
+        {"uid": claims["uid"], "geid": geid},
+        {"$set": {"uid": claims["uid"], "geid": geid, "email": email, "created_at": _now()}}, upsert=True)
+    return {"ok": True, "watching": True}
+
+
+@router.delete("/{geid}/watch")
+async def unwatch_buyer(geid: str, authorization: Optional[str] = Header(default=None)):
+    claims = verify_token(_bearer(authorization)) if authorization else None
+    if not claims:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    await db.buyer_watchlist.delete_one({"uid": claims["uid"], "geid": geid})
+    return {"ok": True, "watching": False}
 
 
 # ─────────────────────── admin: connector ingestion ─────────────────────────

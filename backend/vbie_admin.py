@@ -11,7 +11,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Body, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -522,7 +522,10 @@ async def user_notifications(authorization: Optional[str] = Header(default=None)
     token = _bearer(authorization)
     claims = verify_token(token) if token else None
     uid = claims.get("uid") if claims else None
-    rows = await db.notifications.find({"audience": "users"}).sort("created_at", -1).limit(30).to_list(30)
+    query = {"audience": "users"}
+    if uid:
+        query = {"$or": [{"audience": "users"}, {"audience": "user", "uid": uid}]}
+    rows = await db.notifications.find(query).sort("created_at", -1).limit(30).to_list(30)
     last_read = None
     if uid:
         mk = await db.notification_reads.find_one({"uid": uid})
@@ -557,3 +560,91 @@ async def admin_mark_read(_: dict = Depends(require_admin)):
     await db.notification_reads.update_one({"uid": "__admin__"},
                                            {"$set": {"uid": "__admin__", "last_read": _iso(_now())}}, upsert=True)
     return {"ok": True}
+
+
+# ═══════════════ Recurring Intelligence Engine — admin controls ══════════════
+@admin_router.get("/schedule")
+async def get_schedule(_: dict = Depends(require_admin)):
+    import vbie_engine
+    return await vbie_engine.get_schedule()
+
+
+@admin_router.put("/schedule")
+async def put_schedule(patch: dict = Body(...), _: dict = Depends(require_admin)):
+    import vbie_engine
+    cfg = await vbie_engine.set_schedule(patch)
+    try:
+        await vbie_engine.reload_scheduler()
+    except Exception as exc:
+        logger.warning("Scheduler reload failed: %s", exc)
+    return {"ok": True, "schedule": cfg}
+
+
+@admin_router.get("/legal")
+async def legal_matrix(_: dict = Depends(require_admin)):
+    import vbie_engine
+    return {"sources": await vbie_engine.validate_sources_legal()}
+
+
+@admin_router.post("/legal/{sid}")
+async def set_legal(sid: str, body: dict = Body(...), _: dict = Depends(require_admin)):
+    status = (body or {}).get("legal_status", "approved")
+    await db.vbie_sources.update_one({"_id": sid}, {"$set": {"legal_status": status}}, upsert=True)
+    import vbie_engine
+    return {"ok": True, "sources": await vbie_engine.validate_sources_legal()}
+
+
+@admin_router.get("/reports")
+async def list_reports(limit: int = 20, _: dict = Depends(require_admin)):
+    rows = await db.vbie_reports.find({}).sort("generated_at", -1).limit(limit).to_list(limit)
+    return {"reports": [{k: v for k, v in r.items() if k != "_id"} | {"id": r["_id"]} for r in rows]}
+
+
+@admin_router.post("/reports/generate")
+async def generate_report(_: dict = Depends(require_admin)):
+    import vbie_engine
+    return await vbie_engine.build_weekly_report()
+
+
+@admin_router.get("/reports/{rid}")
+async def get_report(rid: str, _: dict = Depends(require_admin)):
+    r = await db.vbie_reports.find_one({"_id": rid})
+    if not r:
+        raise HTTPException(404, "Report not found")
+    return {k: v for k, v in r.items() if k != "_id"} | {"id": r["_id"]}
+
+
+@admin_router.get("/reports/{rid}/xlsx")
+async def report_xlsx(rid: str, _: dict = Depends(require_admin)):
+    from openpyxl import Workbook
+    r = await db.vbie_reports.find_one({"_id": rid})
+    if not r:
+        raise HTTPException(404, "Report not found")
+    m = r.get("metrics", {})
+    wb = Workbook(); ws = wb.active; ws.title = "Weekly Intelligence"
+    ws.append(["Metric", "Value"])
+    for k, v in m.items():
+        ws.append([k.replace("_", " ").title(), ", ".join(v) if isinstance(v, list) else v])
+    s = wb.create_sheet("Sync Summary"); s.append(["Trigger", "At", "New Buyers"])
+    for row in r.get("sync_summary", []):
+        s.append([row.get("trigger"), row.get("at"), row.get("new")])
+    buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+    fn = f"leadnation-weekly-intelligence-{rid}.xlsx"
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": f"attachment; filename={fn}"})
+
+
+@admin_router.get("/engine/status")
+async def engine_status(_: dict = Depends(require_admin)):
+    import vbie_engine
+    cycles = await db.vbie_cycles.find({}).sort("at", -1).limit(10).to_list(10)
+    return {"schedule": await vbie_engine.get_schedule(),
+            "cycles": [{k: v for k, v in c.items() if k != "_id"} | {"id": c["_id"]} for c in cycles]}
+
+
+@admin_router.post("/engine/run-cycle")
+async def run_cycle(bg: BackgroundTasks, kind: str = "incremental", _: dict = Depends(require_admin)):
+    import vbie_engine
+    fn = vbie_engine.run_full_cycle if kind == "full" else vbie_engine.run_incremental
+    bg.add_task(fn, "manual")
+    return {"ok": True, "started": kind}

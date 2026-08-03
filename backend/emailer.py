@@ -185,6 +185,23 @@ BUILDERS = {
         f"aggregated from public official sources — always verify details directly with the buyer before "
         f"doing business.</p>",
         "See new buyers", f"{SITE}/buyers")),
+    "buyer_changed": lambda c: (f"Update on a buyer you're watching · {c.get('buyer','')}", _shell(
+        "A buyer you watch just changed 🔔",
+        f"<p>Hi there,</p><p>There's a new update on <b>{c.get('buyer','a buyer')}</b> that you're "
+        f"watching in LeadNation: <b>{c.get('summary','details changed')}</b>.</p>"
+        f"<p>Open LeadNation to review the latest verified intelligence.</p>",
+        "View buyer", f"{SITE}/buyers/{c.get('geid','')}")),
+    "weekly_report": lambda c: ("[LeadNation] Weekly Intelligence Report", _shell(
+        "Weekly VBIE Intelligence Summary 📊",
+        f"<p>Here's this week's Verified Buyer Intelligence summary:</p>"
+        f"<ul>"
+        f"<li><b>{c.get('new_buyers',0)}</b> new buyers added</li>"
+        f"<li><b>{c.get('updated',0)}</b> buyers updated</li>"
+        f"<li><b>{c.get('merged',0)}</b> duplicates merged · <b>{c.get('removed',0)}</b> obsolete records removed</li>"
+        f"<li><b>{c.get('dissolved',0)}</b> companies dissolved/inactive</li>"
+        f"<li><b>{c.get('total',0)}</b> total verified buyers · LEI coverage <b>{c.get('lei_pct',0)}%</b></li>"
+        f"</ul><p>Download the full report from the admin console.</p>",
+        "Open admin", f"{SITE}/admin-cms")),
 
     # ---- Admin alerts ----
     "admin_new_submission": lambda c: ("[LeadNation] New event submission", _shell(

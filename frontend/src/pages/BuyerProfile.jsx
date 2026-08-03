@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { TrustBadge } from "@/components/BuyerCard";
-import { fetchBuyer, claimBuyer, TRUST_COLORS } from "@/lib/vbieApi";
+import { fetchBuyer, claimBuyer, watchBuyer, unwatchBuyer, TRUST_COLORS } from "@/lib/vbieApi";
 import { useAuth } from "@/lib/AuthContext";
+import { toast } from "sonner";
 import {
   ShieldCheck, MapPin, Package, Buildings, ArrowLeft, LinkSimple,
   CheckCircle, FileText, Handshake, Sparkle, Lock, Crown, Warning,
-  Gauge, Clock, Stack, Certificate, Fingerprint,
+  Gauge, Clock, Stack, Certificate, Fingerprint, BellSimple,
 } from "@phosphor-icons/react";
 
 export default function BuyerProfile() {
@@ -62,6 +63,7 @@ export default function BuyerProfile() {
             <button data-testid="buyer-claim-btn" onClick={() => setShowClaim(true)} className="btn-primary">
               <Handshake size={15} weight="bold" /> Request introduction
             </button>
+            <WatchButton geid={geid} />
             {b.website && (
               <a href={b.website} target="_blank" rel="noreferrer" className="btn-ghost inline-flex items-center gap-1.5">
                 <LinkSimple size={15} weight="bold" /> Website
@@ -151,6 +153,28 @@ export default function BuyerProfile() {
 
       {showClaim && <ClaimModal geid={geid} buyerName={b.display_name} onClose={() => setShowClaim(false)} />}
     </>
+  );
+}
+
+function WatchButton({ geid }) {
+  const { isAuthed } = useAuth();
+  const [watching, setWatching] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    if (!isAuthed) { toast.error("Sign in to watch this buyer for change alerts"); return; }
+    setBusy(true);
+    try {
+      if (watching) { await unwatchBuyer(geid); setWatching(false); toast.success("Removed from watchlist"); }
+      else { await watchBuyer(geid); setWatching(true); toast.success("You'll be alerted when this buyer changes"); }
+    } catch { toast.error("Could not update watchlist"); }
+    setBusy(false);
+  };
+  return (
+    <button data-testid="buyer-watch-btn" onClick={toggle} disabled={busy}
+      className="btn-ghost inline-flex items-center gap-1.5">
+      <BellSimple size={15} weight={watching ? "fill" : "bold"} className={watching ? "text-cyan-300" : ""} />
+      {watching ? "Watching" : "Watch for changes"}
+    </button>
   );
 }
 

@@ -17,6 +17,8 @@ export default function BuyersManager() {
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [engine, setEngine] = useState(null);
+  const [legal, setLegal] = useState(null);
 
   const loadList = async () => {
     const { data } = await adminApi.get(`/buyers/admin/list`, { params: { q, page, limit: 25 } });
@@ -27,6 +29,8 @@ export default function BuyersManager() {
     adminApi.get(`/buyers/ingest/status`).then((r) => setStatus(r.data)).catch(() => {});
     adminApi.get(`/buyers/admin/notifications`).then((r) => setNotifs(r.data)).catch(() => {});
     adminApi.get(`/buyers/admin/analytics`).then((r) => setAnalytics(r.data)).catch(() => {});
+    adminApi.get(`/buyers/admin/engine/status`).then((r) => setEngine(r.data)).catch(() => {});
+    adminApi.get(`/buyers/admin/legal`).then((r) => setLegal(r.data.sources)).catch(() => {});
   };
   const runAudit = async () => {
     setBusy(true);
@@ -76,6 +80,23 @@ export default function BuyersManager() {
     const { data } = await adminApi.post(`/buyers/admin/delete-bulk`, { scope: "source", source_id });
     toast.success(`Deleted ${data.deleted} buyers`); loadMeta(); loadList();
   };
+  const runCycle = async (kind) => {
+    setBusy(true);
+    try { await adminApi.post(`/buyers/admin/engine/run-cycle?kind=${kind}`); toast.success(`${kind} intelligence cycle started`); setTimeout(loadMeta, 4000); }
+    finally { setBusy(false); }
+  };
+  const downloadReport = async (rid) => {
+    const res = await adminApi.get(`/buyers/admin/reports/${rid}/xlsx`, { responseType: "blob" });
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement("a"); a.href = url; a.download = `weekly-intelligence-${rid}.xlsx`; a.click();
+    URL.revokeObjectURL(url);
+  };
+  const generateReport = async () => {
+    setBusy(true);
+    try { const { data } = await adminApi.post(`/buyers/admin/reports/generate`); toast.success("Weekly intelligence report generated"); await downloadReport(data._id || data.id); }
+    catch { toast.error("Report generation failed"); }
+    finally { setBusy(false); }
+  };
 
   const pages = Math.max(1, Math.ceil(total / 25));
 
@@ -104,6 +125,62 @@ export default function BuyersManager() {
           </button>
         </div>
       </div>
+
+      {/* Recurring Intelligence Engine */}
+      {engine && (
+        <div data-testid="admin-intel-engine" className="glass-strong rounded-3xl p-5 sm:p-6">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h3 className="font-display font-bold text-base flex items-center gap-2">
+              <ArrowsClockwise size={16} weight="fill" className="text-cyan-300" /> Recurring Intelligence Engine
+            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button data-testid="engine-run-incremental" onClick={() => runCycle("incremental")} disabled={busy} className="btn-ghost !py-2 text-xs">
+                Run daily cycle
+              </button>
+              <button data-testid="engine-run-full" onClick={() => runCycle("full")} disabled={busy} className="btn-ghost !py-2 text-xs">
+                Run full refresh
+              </button>
+              <button data-testid="engine-gen-report" onClick={generateReport} disabled={busy} className="btn-ghost !py-2 text-xs">
+                <DownloadSimple size={14} weight="bold" /> Weekly report
+              </button>
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              ["Schedule", engine.schedule?.enabled ? "Active" : "Paused"],
+              ["Weekly full", `${engine.schedule?.weekly?.day_of_week} ${String(engine.schedule?.weekly?.hour).padStart(2, "0")}:00 UTC`],
+              ["Daily incremental", `${String(engine.schedule?.daily?.hour).padStart(2, "0")}:00 UTC`],
+              ["Approved sources", legal ? `${Object.values(legal).filter((s) => s.approved).length} / ${Object.keys(legal).length}` : "—"],
+            ].map(([l, v]) => (
+              <div key={l} className="glass rounded-2xl px-4 py-3">
+                <div className="font-display font-black text-lg">{v}</div>
+                <div className="text-[10px] uppercase tracking-widest text-slate-400 mt-1">{l}</div>
+              </div>
+            ))}
+          </div>
+          {engine.cycles?.length > 0 && (
+            <div className="mt-4">
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Recent cycles</div>
+              <div className="space-y-1.5">
+                {engine.cycles.slice(0, 4).map((c) => (
+                  <div key={c.id} className="flex items-center justify-between text-xs text-slate-300 border-b border-white/5 pb-1.5">
+                    <span className="capitalize">{c.type} · {c.trigger}</span>
+                    <span className="text-slate-500">{c.at ? new Date(c.at).toLocaleString() : ""}</span>
+                    <span>{c.changes != null ? `${c.changes} changes` : ""} {c.brain?.updated != null ? `· ${c.brain.updated} scored` : ""}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {legal && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {Object.entries(legal).filter(([, s]) => s.approved).map(([sid, s]) => (
+                <span key={sid} className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-300">{s.source}</span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Analytics */}
       {analytics && (

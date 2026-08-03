@@ -33,6 +33,7 @@ SOURCES_SEED = [
     {"_id": "epc_directory", "name": "Export Promotion Council Directory", "tier": "official", "category": "association", "url": "", "attribution": "Export Promotion Council member directory"},
     {"_id": "cid_canada", "name": "Canadian Importers Database", "tier": "official", "category": "customs_bol", "url": "https://ised-isde.canada.ca/site/canadian-importers-database/en", "attribution": "Innovation, Science and Economic Development Canada (Open Government Licence)"},
     {"_id": "gleif", "name": "GLEIF Global LEI Index", "tier": "gov", "category": "identity", "url": "https://www.gleif.org", "attribution": "Global Legal Entity Identifier Foundation (CC0 1.0)"},
+    {"_id": "sirene_fr", "name": "INSEE SIRENE (France)", "tier": "gov", "category": "registry", "url": "https://www.insee.fr/fr/information/3591226", "attribution": "Source: INSEE, SIRENE — Licence Ouverte / Etalab 2.0"},
 ]
 _SOURCE_BY_ID = {s["_id"]: s for s in SOURCES_SEED}
 
