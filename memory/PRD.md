@@ -405,3 +405,39 @@ Full research report: `/app/memory/research/VBIE_BULK_SOURCES_RESEARCH.md` (lega
 - **P1** Scheduled GLEIF enrich across full corpus (throttled nightly batches) to grow LEI coverage.
 - **P2** Yellow sources with guardrails: SEC EDGAR, Germany OffeneRegister, NL KVK, Poland, Brazil CNPJ.
 - **REJECTED (do not ingest for commercial bulk):** Belgium CBE (€30k/yr), Italy Registro Imprese (paid), UN Comtrade redistribution (UN copyright), CIPC/Qatar; SAM.gov D&B fields.
+
+---
+
+## VBIE P1 — Recurring Continuous Intelligence Engine (implemented Aug 2026)
+New module `backend/vbie_engine.py` turns VBIE from one-time ingestion into a permanent self-maintaining platform on the ONE shared MongoDB (one GEID, one Brain, single source of truth for web + app). Tested: `/app/test_reports/iteration_38.json` — 15/15 backend + frontend PASS.
+
+**Multi-cadence scheduler** (config in Mongo `vbie_config._id='vbie_schedule'`, editable via admin):
+- Weekly full refresh (Sun 02:00 UTC) → connectors → dedupe → brain recompute → change detection → alerts → weekly report.
+- Daily incremental (03:00 UTC) → throttled GLEIF LEI enrich + rolling brain recompute + change detection + alerts (no full re-download).
+- Monthly bulk (1st 04:00 UTC) → heavy bulk loaders (CH full register, SIRENE) when `bulk_enabled` (off by default; pod-safe cap).
+
+**Duplicate Resolution Engine** (`dedupe_and_prune`, multi-key union-find): matches on LEI / company_number / registration_number / VAT / business_number / country+name; merges evidence+trust+provenance+identifiers into the freshest record; ARCHIVES obsolete dupes to `vbie_archive` (audit preserved) then HARD-DELETES. Admin-edited/deleted never touched.
+
+**Freshness engine:** stored `freshness_score`/`freshness_label`, `last_source_sync`; stale records decay confidence/trust in brain.
+
+**Brain automation** (`brain_recompute`, rolling batches): recomputes trust/confidence/freshness/source-reliability, re-screens sanctions (CSL), detects dissolved/inactive.
+
+**Change detection + Buyer Change Alerts:** `detect_changes` → `vbie_changes` (status/address/name/legal/identity/trade); `fire_change_alerts` notifies subscribers watching a buyer (in-app `notifications` audience 'user' + Resend `buyer_changed` email). Watchlist: `buyer_watchlist` + `POST/DELETE /api/buyers/{geid}/watch`, `GET /api/buyers/watchlist` (auth). UI: "Watch for changes" button on buyer profile.
+
+**Weekly Intelligence Report:** `build_weekly_report` → `vbie_reports` (new buyers, updated, duplicates merged/removed, dissolved, new countries/industries, failed connectors, LEI coverage, sync summary); admin endpoints list/generate/{id}/xlsx; emailed to admin (`weekly_report` template).
+
+**Legal compliance matrix:** `validate_sources_legal` per-source (approved vs pending_legal_approval); auto-disables connectors flagged non-compliant. Admin: `GET /buyers/admin/legal`, `POST /buyers/admin/legal/{sid}`.
+
+**Networking match:** `GET /api/buyers/match?name=&country=&number=` returns candidate buyer GEIDs to claim (links a joining verified company to its existing intelligence record).
+
+**Bulk connectors:** `connector_companies_house_bulk` (monthly full-register ZIP, capped for pod, unbounded in prod) + `connector_sirene` scaffold (DORMANT until free INSEE_API_KEY + legal approval).
+
+**Admin UI:** BuyersManager "Recurring Intelligence Engine" panel (schedule, recent cycles, approved-source chips, run daily/full cycle, download weekly report). NOTE: admin UI needs login (blocked in Emergent preview by DO CORS) — validated via X-Admin-Token backend endpoints.
+
+**Email:** Resend wired (`RESEND_API_KEY`/`SENDER_EMAIL` in env). Actual inbox delivery requires the `leadnation.app` domain verified in Resend (owner DNS step); code path validated.
+
+### VBIE P1 remaining / next
+- **P1** Provide free INSEE_API_KEY → activate France SIRENE; add Norway/Finland/Denmark/Czech, Singapore ACRA, Australia ABN, Japan NTA connectors.
+- **P1** Enable Companies House monthly BULK (`bulk_enabled=true`) in production to grow to full ~5M base corpus.
+- **P1** Verify `leadnation.app` in Resend so subscriber change-alert + weekly digest emails actually deliver.
+- **P2** Cross-backend GEID/entities single-writer enforcement (DO backend); subscriber-facing weekly digest email.
