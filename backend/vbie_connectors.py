@@ -608,48 +608,70 @@ async def upsert_candidates(rows: list, source_label: str = "bulk") -> int:
 
 async def connector_companies_house_bulk(max_records: int = 5000) -> list:
     """UK Companies House official MONTHLY full-register product (OGL v3.0). Streams the
-    'BasicCompanyDataAsOneFile' ZIP and parses up to max_records. HEAVY — intended for the
-    monthly cadence in production; capped for pod safety. Company-level identity only."""
+    'BasicCompanyDataAsOneFile' ZIP TO DISK (pod-safe — never loads the ~500MB file into
+    RAM) and parses up to max_records. HEAVY — intended for the monthly cadence / phased
+    rollout. Company-level identity only (no director/PSC personal data)."""
     if not is_source_approved("uk_companies_house"):
         return []
     import zipfile
+    import os
+    import tempfile
     from datetime import date
     base = "http://download.companieshouse.gov.uk"
     fname = f"BasicCompanyDataAsOneFile-{date.today().replace(day=1).isoformat()}.zip"
     url = f"{base}/{fname}"
     out = []
+    tmp_path = None
     try:
-        async with httpx.AsyncClient(timeout=120, headers=UA, follow_redirects=True) as cx:
-            r = await cx.get(url)
-            if r.status_code != 200 or not r.content:
-                logger.warning("CH bulk file unavailable (%s): %s", r.status_code, url)
-                return []
-            with zipfile.ZipFile(io.BytesIO(r.content)) as z:
-                name = z.namelist()[0]
-                with z.open(name) as fh:
-                    reader = csv.DictReader((line.decode("utf-8", "ignore") for line in fh))
-                    for row in reader:
-                        if len(out) >= max_records:
-                            break
-                        nm = (row.get("CompanyName") or "").strip()
-                        num = (row.get("CompanyNumber") or "").strip()
-                        if not nm or (row.get("CompanyStatus") or "").lower() != "active":
-                            continue
-                        nk = f"ukch:GB:{_norm(nm)}"
-                        out.append({
-                            "source_id": "uk_companies_house", "natural_key": nk, "legal_name": nm,
-                            "country": "GB", "country_name": "United Kingdom",
-                            "city": (row.get("RegAddress.PostTown") or "").strip(),
-                            "sector": "Import & Distribution", "products": ["Imported Goods"],
-                            "hs_families": [], "corridors": ["IN-GB"], "size": "Registered UK company",
-                            "website": "", "role": "importer", "identifiers": {"company_number": num},
-                            "signals": {"registry_listed": True, "sanctions_clear": True},
-                            "prov": [("uk_companies_house", "identity",
-                                      f"UK Companies House full register ({num}) — OGL v3.0",
-                                      f"https://find-and-update.company-information.service.gov.uk/company/{num}")],
-                        })
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".zip")
+        tmp_path = tmp.name
+        async with httpx.AsyncClient(timeout=900, headers=UA, follow_redirects=True) as cx:
+            async with cx.stream("GET", url) as resp:
+                if resp.status_code != 200:
+                    logger.warning("CH bulk file unavailable (%s): %s", resp.status_code, url)
+                    tmp.close()
+                    return []
+                async for chunk in resp.aiter_bytes(1 << 20):  # 1MB chunks → disk
+                    tmp.write(chunk)
+        tmp.close()
+        with zipfile.ZipFile(tmp_path) as z:
+            name = z.namelist()[0]
+            with z.open(name) as fh:
+                reader = csv.DictReader((line.decode("utf-8", "ignore") for line in fh))
+                for row in reader:
+                    if len(out) >= max_records:
+                        break
+                    nm = (row.get("CompanyName") or "").strip()
+                    num = (row.get("CompanyNumber") or "").strip()
+                    if not nm or (row.get("CompanyStatus") or "").lower() != "active":
+                        continue
+                    # Quality gate: only genuine wholesale/import companies (SIC division 46),
+                    # matching the API connector's bar — never label the whole register as buyers.
+                    sic_texts = [(row.get(f"SICCode.SicText_{i}") or "") for i in (1, 2, 3, 4)]
+                    codes = [re.match(r"\s*(\d{4,5})", s).group(1) for s in sic_texts if re.match(r"\s*(\d{4,5})", s)]
+                    if not any(c.startswith("46") for c in codes):
+                        continue
+                    nk = f"ukch:GB:{_norm(nm)}"
+                    out.append({
+                        "source_id": "uk_companies_house", "natural_key": nk, "legal_name": nm,
+                        "country": "GB", "country_name": "United Kingdom",
+                        "city": (row.get("RegAddress.PostTown") or "").strip().title(),
+                        "sector": "Import & Distribution", "products": ["Imported Goods", "Wholesale Goods"],
+                        "hs_families": [], "corridors": ["IN-GB"], "size": "Registered UK company",
+                        "website": "", "role": "importer", "identifiers": {"company_number": num},
+                        "signals": {"registry_listed": True, "sanctions_clear": True},
+                        "prov": [("uk_companies_house", "identity",
+                                  f"UK Companies House full register ({num}, SIC {','.join(c for c in codes if c.startswith('46'))}) — OGL v3.0",
+                                  f"https://find-and-update.company-information.service.gov.uk/company/{num}")],
+                    })
     except Exception as exc:
         logger.warning("CH bulk connector failed: %s", exc)
+    finally:
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
     logger.info("CH bulk connector: %d companies", len(out))
     return out
 

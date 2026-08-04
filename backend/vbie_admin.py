@@ -703,9 +703,16 @@ async def bulk_phases(_: dict = Depends(require_admin)):
 
 
 @admin_router.post("/bulk/run-phase")
-async def bulk_run_phase(bg: BackgroundTasks, target: int = 100000, _: dict = Depends(require_admin)):
+async def bulk_run_phase(target: int, _: dict = Depends(require_admin)):
+    """Start a Companies House phased bulk import. `target` is REQUIRED (query param) and
+    must be an allowed phase size — no default, so it can never be triggered accidentally.
+    Rejects if a phase is already running. Runs detached so it never blocks server reload."""
+    import asyncio
     import vbie_engine
     if target not in vbie_engine.CH_BULK_PHASES:
         raise HTTPException(400, f"target must be one of {vbie_engine.CH_BULK_PHASES}")
-    bg.add_task(vbie_engine.run_ch_bulk_phase, target, "manual")
+    running = await db.vbie_bulk_phases.find_one({"status": "running"})
+    if running:
+        raise HTTPException(409, f"A bulk phase is already running ({running['_id']}). Wait for it to finish.")
+    asyncio.create_task(vbie_engine.run_ch_bulk_phase(target, "manual"))
     return {"ok": True, "started_target": target, "note": "Running in background; check /bulk/phases for QA results."}

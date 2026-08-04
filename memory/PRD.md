@@ -1,5 +1,13 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## VBIE PHASE 2.3 — PRODUCTION RECURRING INTELLIGENCE SERVICE (2026-08-04)
+- **Permanent self-growing engine** (`vbie_scheduler.py`): DB-backed job store (`vbie_jobs`) — survives restarts, auto catch-up, retry queue, failure alerts, health heartbeat, per-source incremental checkpoints, source-specific schedules, job history. Replaces the old in-memory APScheduler that never reliably fired. Admin monitoring dashboard in BuyersManager (health, jobs, checkpoints, history, CH bulk). Endpoints: `/api/buyers/admin/engine/{health,history,checkpoints,jobs/{id}/run|toggle|interval}`.
+- **New GREEN sources**: Norway Brønnøysund (NLOD) + Czechia ARES (open data) ENABLED (no key). Dormant pending keys: France SIRENE, Japan NTA, Australia ABN, Denmark CVR, Singapore ACRA, Finland PRH.
+- **Companies House phased bulk** (100K→500K→1M→5M, `/api/buyers/admin/bulk/{phases,run-phase}`): streams to disk, SIC-46 (wholesale/import) filtered, QA snapshot per phase. USER initiates each phase after QA sign-off.
+- **Auto-updating filters** verified: `/api/buyers/meta` live-distinct (Market/Sector/Corridor/Trust) now includes Norway + Czechia automatically.
+- Status: engine healthy 8/8 jobs; 13,368 clean buyers; audit 0 quarantined. Verified iteration_39 (11/11 backend + frontend PASS).
+
+
 ## VBIE PHASE 2.2 — PRODUCTION READINESS AUDIT + ADMIN ANALYTICS (2026-08)
 - **Production Readiness Audit** (`vbie_admin.production_audit`, `POST /api/buyers/admin/production-audit`, report `/app/memory/VBIE_PRODUCTION_AUDIT.md`): auto-quarantines any buyer that is a demo/sample, not from an approved connector, from a non-license-compliant source, missing provenance/trust-factors/country/sector/last_verified, a placeholder/invalid name, or a duplicate. Quarantined → `status='quarantined'` (excluded from public search/detail). Runs automatically after every ingestion. Result: **10,719 clean active buyers**, 3 junk quarantined ("N/A", "Test_Test", ".").
 - Compliant-source allowlist (commercial reuse OK): EU TED (EU open-data reuse), Canadian Importers DB (OGL-Canada), SAM.gov (US public domain), UK Companies House (OGL v3).

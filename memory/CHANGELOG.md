@@ -1,5 +1,19 @@
 # LeadNation — Changelog
 
+## 2026-08-04 — VBIE Production Recurring Intelligence Service + new GREEN sources + phased CH bulk + auto-filters
+Verified: test_reports/iteration_39.json (11/11 backend PASS + full frontend PASS) + manual curl hardening (422/400/409).
+- **Root cause found & reported**: 0 new buyers added because (a) only the WEEKLY cycle fetched new buyers — the daily job just re-scored; and (b) APScheduler used an in-memory jobstore that reset on every backend restart, so the weekly job never actually fired (`vbie_cycles` had only manual runs).
+- **NEW `vbie_scheduler.py`** — production DB-backed recurring engine (replaces in-memory APScheduler). Persistent job store in Mongo (`vbie_jobs`), survives restarts, automatic catch-up (persisted `next_due_at`), retry queue w/ exp backoff, failure alerts (admin notification + email), health heartbeat (`vbie_engine_health`), per-source incremental checkpoints (`vbie_checkpoints`), source-specific interval schedules, job history (`vbie_job_history`). 30s asyncio tick loop; single-runner locks; reclaims stuck locks on boot. No cycle silently skipped.
+- Jobs: weekly_full (Sun 02:00), daily_brain reconcile (05:00: dedupe·LEI·brain·change-detect·alerts·audit·daily digest), monthly_bulk (1st 04:00), + per-source discovery jobs (eu_ted, uk_companies_house, cid_canada, no_brreg, cz_ares). Checkpointed discovery grows the DB daily (CH pages via start_index; Norway/Czech paginate; TED rolling window).
+- **New GREEN sources ENABLED**: Norway Brønnøysund Enhetsregisteret (NLOD, no key) + Czechia ARES (MoF open data, no key — walks CZ-NACE 46 wholesale codes ≤1000/query). Scaffolded DORMANT pending keys: France SIRENE, Japan NTA, Australia ABN, Denmark CVR, Singapore ACRA, Finland PRH (added to source registry; run once key+legal approval supplied).
+- **Companies House phased bulk** (`run_ch_bulk_phase`, targets 100K→500K→1M→5M) with QA snapshot (counts, dedupe, search latency, audit). Bulk connector now STREAMS to disk (pod-safe, no 500MB in RAM) and FILTERS by importer/wholesaler SIC 46xxx (quality: never labels the whole register as buyers). Endpoint hardened: target required (no default), 409 if a phase is running, detached task.
+- **Auto-updating filters** confirmed: `/api/buyers/meta` uses live `db.distinct` → Market/Sectors/Corridors/Trust auto-include new data (Norway + Czechia now appear; corridors 30→31).
+- **Admin monitoring dashboard** in BuyersManager.jsx: engine health badge, jobs table (Run now / Pause per job), source checkpoints, job history, CH phased-bulk controls. Endpoints under `/api/buyers/admin/engine/*` + `/bulk/*`.
+- Integrity fix: removed 36,485 generic non-SIC-filtered UK records accidentally ingested during QA (mislabeled sector) — restored evidence-first accuracy. Post-fix: 13,368 buyers, audit 0 quarantined.
+- Files: vbie_scheduler.py (new), vbie_engine.py (run_reconcile, run_incremental discovery, run_ch_bulk_phase), vbie_connectors.py (connector_norway, connector_ares_cz, DISCOVERY_ADAPTERS, discover_source, streaming SIC-filtered CH bulk), vbie_core.py (sources+approvals), vbie_admin.py (monitoring+bulk endpoints, audit vbie-bulk prefix), server.py (wire scheduler+indexes), BuyersManager.jsx (dashboard).
+
+
+
 ## 2026-07-14 (later) — Brand logo + Tagline lock + AI Search Optimization (AEO/LLM) — frontend + email
 Verified: test_reports/iteration_28.json (all PASS after footer tagline fix).
 - **Tagline LOCKED** to "Intelligence Beyond Borders" everywhere: `lib/brand.js`, footer (visible sub-brand line), Organization JSON-LD slogan (dynamic + static index.html), meta description, email header (emailer.py), llms.txt. Removed stray "Without Borders" from brand guidelines. Confirmed 0 occurrences of wrong tagline in DOM.
