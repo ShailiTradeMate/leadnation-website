@@ -12,7 +12,7 @@ import time
 import requests
 import pytest
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://vbie-preview.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://buyer-intel-10.preview.emergentagent.com").rstrip("/")
 FB_KEY = "AIzaSyCHQaCkzlfOdVB1-bzuJ_NnCE7vRFmT5WA"
 ADMIN_EMAIL = "admin@leadnation.app"
 ADMIN_PASSWORD = "Shiv@12345"
