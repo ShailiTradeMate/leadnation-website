@@ -85,8 +85,8 @@ async def _startup():
         logging.warning("Duty engine init failed: %s", exc)
     try:
         await vbie.seed_vbie()
-        import vbie_engine
-        vbie_engine.start_scheduler()
+        import vbie_scheduler
+        vbie_scheduler.start()
         # Only auto-ingest on startup if we don't already have a sizeable corpus (avoids re-runs on reload).
         _real = await db.entities.count_documents({"entity_type": "buyer", "sample": {"$ne": True}})
         if _real < 1000:
@@ -124,6 +124,12 @@ async def _ensure_indexes():
     await db.entities.create_index([("corridors", 1)])
     await db.entities.create_index([("hs_families", 1)])
     await db.buyer_claims.create_index([("geid", 1), ("created_at", -1)])
+    await db.entities.create_index([("entity_type", 1), ("created_at", -1)])
+    await db.entities.create_index([("entity_type", 1), ("sector", 1)])
+    # VBIE recurring engine (persistent job store + history + checkpoints)
+    await db.vbie_jobs.create_index([("enabled", 1), ("running", 1), ("next_due_at", 1)])
+    await db.vbie_job_history.create_index([("job", 1), ("started_at", -1)])
+    await db.vbie_job_history.create_index([("started_at", -1)])
     logging.info("MongoDB indexes ensured for Command Center collections.")
 
 

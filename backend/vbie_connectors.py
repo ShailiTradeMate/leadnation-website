@@ -275,10 +275,12 @@ async def connector_sam_gov() -> list:
     return list(out.values())
 
 
-async def connector_companies_house() -> list:
+async def connector_companies_house(start_index: int = 0, max_pages: int = 10) -> list:
     """UK Companies House registry (OGL v3.0). Hybrid model: this is the API-for-freshness
     path (advanced-search by importer/wholesaler SIC codes), paginated within the
-    600-req/5-min rate limit. Needs COMPANIES_HOUSE_API_KEY. Skipped without a key.
+    600-req/5-min rate limit. `start_index` supports checkpointed incremental discovery
+    (the recurring engine advances it each run to keep discovering NEW companies).
+    Needs COMPANIES_HOUSE_API_KEY. Skipped without a key.
     NOTE: company-level identity only — director/PSC personal data is NEVER ingested
     (UK GDPR: no marketing/contact use of individuals)."""
     if not COMPANIES_HOUSE_API_KEY or not is_source_approved("uk_companies_house"):
@@ -290,7 +292,7 @@ async def connector_companies_house() -> list:
     try:
         async with httpx.AsyncClient(timeout=30, headers=UA,
                                      auth=(COMPANIES_HOUSE_API_KEY, "")) as cx:
-            for start in range(0, 1000, 100):  # up to 1000 companies/run, within rate limit
+            for start in range(start_index, start_index + max_pages * 100, 100):
                 try:
                     r = await cx.get(base, params={"company_status": "active",
                                                    "sic_codes": ",".join(sic),
@@ -664,6 +666,174 @@ async def connector_sirene(max_records: int = 5000) -> list:
     return []
 
 
+# ───────────────── new GREEN registry connectors (Nordics / EU) ──────────────
+NO_BRREG_URL = "https://data.brreg.no/enhetsregisteret/api/enheter"
+CZ_ARES_SEARCH = "https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/vyhledat"
+
+
+async def connector_norway(page: int = 0, size: int = 100) -> list:
+    """Norway — Brønnøysund Enhetsregisteret (NLOD, commercial reuse permitted, no key).
+    Wholesale/import companies (NACE division 46) as named importer buyers. Paginated for
+    checkpointed incremental discovery. Company-level identity only; excludes bankrupt/deleted."""
+    if not is_source_approved("no_brreg"):
+        return []
+    out = {}
+    try:
+        async with httpx.AsyncClient(timeout=40, headers=UA) as cx:
+            r = await cx.get(NO_BRREG_URL, params={"naeringskode": "46", "size": size, "page": page})
+            if r.status_code != 200:
+                logger.warning("Norway brreg page %d status %s", page, r.status_code)
+                return []
+            data = (r.json() or {})
+        for c in (data.get("_embedded", {}) or {}).get("enheter", []) or []:
+            name = (c.get("navn") or "").strip()
+            if not name or c.get("konkurs") or c.get("slettedato"):
+                continue
+            num = str(c.get("organisasjonsnummer") or "").strip()
+            addr = c.get("forretningsadresse", {}) or {}
+            city = (addr.get("poststed") or addr.get("kommune") or "").strip().title()
+            nace = ((c.get("naeringskode1") or {}).get("beskrivelse") or "").strip()
+            nk = f"nobr:NO:{_norm(name)}"
+            if nk in out:
+                continue
+            out[nk] = {
+                "source_id": "no_brreg", "natural_key": nk, "legal_name": name,
+                "country": "NO", "country_name": "Norway", "city": city,
+                "sector": "Import & Distribution", "products": ["Imported Goods", "Wholesale Goods"],
+                "hs_families": [], "corridors": ["IN-NO"], "size": "Registered NO company",
+                "website": "", "role": "importer", "identifiers": {"registration_number": num},
+                "signals": {"registry_listed": True, "sanctions_clear": True},
+                "prov": [("no_brreg", "identity",
+                          f"Brønnøysund Enhetsregisteret ({num}{'; ' + nace if nace else ''}) — NLOD",
+                          f"https://virksomhet.brreg.no/nb/oppslag/enheter/{num}")],
+            }
+    except Exception as exc:
+        logger.warning("Norway connector failed: %s", exc)
+    logger.info("Norway connector: %d companies (page %d)", len(out), page)
+    return list(out.values())
+
+
+CZ_NACE_46 = [
+    "46120", "46130", "46140", "46150", "46160", "46170", "46180", "46210", "46220",
+    "46230", "46240", "46310", "46320", "46330", "46340", "46350", "46360", "46370",
+    "46380", "46390", "46410", "46420", "46431", "46441", "46450", "46460", "46471",
+    "46480", "46491", "46492", "46510", "46520", "46610", "46620", "46630", "46640",
+    "46650", "46660", "46690", "46711", "46731", "46741", "46750", "46760", "46770",
+]
+
+
+async def connector_ares_cz(code: str = "46170", start: int = 0, count: int = 100) -> list:
+    """Czechia — ARES Business Register (Ministry of Finance open data, no key). Fetches one
+    CZ-NACE wholesale (46xxx) code slice (the API caps any single query at 1000 results, so
+    the recurring engine walks specific 5-digit codes with a checkpoint). Named importer buyers."""
+    if not is_source_approved("cz_ares"):
+        return []
+    out = {}
+    try:
+        body = {"start": start, "pocet": count, "czNace": [code]}
+        async with httpx.AsyncClient(timeout=40, headers={**UA, "Content-Type": "application/json"}) as cx:
+            r = await cx.post(CZ_ARES_SEARCH, json=body)
+            if r.status_code != 200:
+                logger.info("Czech ARES code %s start %d status %s (skipped)", code, start, r.status_code)
+                return []
+            data = (r.json() or {})
+        for c in data.get("ekonomickeSubjekty", []) or []:
+            name = (c.get("obchodniJmeno") or "").strip()
+            if not name:
+                continue
+            ico = str(c.get("ico") or "").strip()
+            sidlo = c.get("sidlo", {}) or {}
+            city = (sidlo.get("nazevObce") or "").strip()
+            nk = f"czares:CZ:{_norm(name)}"
+            if nk in out:
+                continue
+            out[nk] = {
+                "source_id": "cz_ares", "natural_key": nk, "legal_name": name,
+                "country": "CZ", "country_name": "Czechia", "city": city,
+                "sector": "Import & Distribution", "products": ["Imported Goods", "Wholesale Goods"],
+                "hs_families": [], "corridors": ["IN-CZ"], "size": "Registered CZ company",
+                "website": "", "role": "importer", "identifiers": {"registration_number": ico},
+                "signals": {"registry_listed": True, "sanctions_clear": True},
+                "prov": [("cz_ares", "identity",
+                          f"ARES Business Register (IČO {ico}, NACE {code}) — Czech MoF open data",
+                          f"https://ares.gov.cz/ekonomicke-subjekty?ico={ico}")],
+            }
+    except Exception as exc:
+        logger.warning("Czech ARES connector failed: %s", exc)
+    logger.info("Czech ARES connector: %d companies (NACE %s start %d)", len(out), code, start)
+    return list(out.values())
+
+
+# Key-gated GREEN sources — dormant until env key + legal approval are supplied.
+async def connector_dormant(source_id: str) -> list:
+    logger.info("Connector %s dormant (needs API key + legal approval)", source_id)
+    return []
+
+
+# ──────────── checkpointed incremental discovery (recurring engine) ──────────
+# Each adapter fetches the NEXT slice of NEW records for a source using its stored
+# checkpoint, returning (candidate_rows, next_checkpoint, exhausted). The engine
+# upserts the rows and persists next_checkpoint so daily runs keep discovering.
+async def _adapt_ted(cp: dict):
+    rows = await connector_ted(days=14, per_page=100, pages=3)
+    return rows, {"last_run": _iso(_now())}, False
+
+
+async def _adapt_ch(cp: dict):
+    start = int((cp or {}).get("start_index", 0))
+    rows = await connector_companies_house(start_index=start, max_pages=3)
+    if not rows:
+        return [], {"start_index": 0}, True  # wrap around
+    return rows, {"start_index": start + 300}, False
+
+
+async def _adapt_cid(cp: dict):
+    if (cp or {}).get("done"):
+        return [], {"done": True}, True
+    rows = await connector_cid()
+    return rows, {"done": True}, True
+
+
+async def _adapt_norway(cp: dict):
+    page = int((cp or {}).get("page", 0))
+    rows = await connector_norway(page=page, size=100)
+    if not rows:
+        return [], {"page": 0}, True
+    return rows, {"page": page + 1}, False
+
+
+async def _adapt_ares(cp: dict):
+    ci = int((cp or {}).get("code_idx", 0))
+    start = int((cp or {}).get("start", 0))
+    if ci >= len(CZ_NACE_46):
+        return [], {"code_idx": 0, "start": 0}, True  # wrap around
+    rows = await connector_ares_cz(code=CZ_NACE_46[ci], start=start, count=100)
+    if not rows:
+        return rows, {"code_idx": ci + 1, "start": 0}, (ci + 1 >= len(CZ_NACE_46))
+    return rows, {"code_idx": ci, "start": start + 100}, False
+
+
+DISCOVERY_ADAPTERS = {
+    "eu_ted": _adapt_ted,
+    "uk_companies_house": _adapt_ch,
+    "cid_canada": _adapt_cid,
+    "no_brreg": _adapt_norway,
+    "cz_ares": _adapt_ares,
+}
+
+
+async def discover_source(source_id: str, checkpoint: dict) -> dict:
+    """Run one source's checkpointed discovery slice → sanctions-screen → upsert into the
+    shared entities graph. Returns a per-source summary incl. the advanced checkpoint."""
+    adapter = DISCOVERY_ADAPTERS.get(source_id)
+    if not adapter or not is_source_approved(source_id):
+        return {"source": source_id, "ran": False, "new": 0, "checkpoint": checkpoint, "exhausted": True}
+    rows, next_cp, exhausted = await adapter(checkpoint or {})
+    new = await upsert_candidates(rows, source_label=source_id) if rows else 0
+    return {"source": source_id, "ran": True, "fetched": len(rows), "new": new,
+            "checkpoint": next_cp, "exhausted": exhausted}
+
+
 # ───────────────────────────── orchestrator ─────────────────────────────────
 async def run_ingestion(trigger: str = "manual") -> dict:
     """Run all enabled connectors → sanctions-screen → upsert real buyers → drop demo data."""
@@ -673,7 +843,8 @@ async def run_ingestion(trigger: str = "manual") -> dict:
     screener = await load_sanctions()
 
     connectors = [("eu_ted", connector_ted), ("cid_canada", connector_cid),
-                  ("sam_gov", connector_sam_gov), ("uk_companies_house", connector_companies_house)]
+                  ("sam_gov", connector_sam_gov), ("uk_companies_house", connector_companies_house),
+                  ("no_brreg", connector_norway), ("cz_ares", connector_ares_cz)]
     # Legal gate: only run sources whose licence/ToS is reviewed + approved.
     connectors = [(sid, fn) for sid, fn in connectors if is_source_approved(sid)]
     run["skipped_pending_legal"] = [sid for sid in ("sam_gov",) if not is_source_approved(sid)]

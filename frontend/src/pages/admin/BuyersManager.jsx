@@ -19,6 +19,10 @@ export default function BuyersManager() {
   const [busy, setBusy] = useState(false);
   const [engine, setEngine] = useState(null);
   const [legal, setLegal] = useState(null);
+  const [health, setHealth] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [checkpoints, setCheckpoints] = useState([]);
+  const [phases, setPhases] = useState(null);
 
   const loadList = async () => {
     const { data } = await adminApi.get(`/buyers/admin/list`, { params: { q, page, limit: 25 } });
@@ -31,6 +35,10 @@ export default function BuyersManager() {
     adminApi.get(`/buyers/admin/analytics`).then((r) => setAnalytics(r.data)).catch(() => {});
     adminApi.get(`/buyers/admin/engine/status`).then((r) => setEngine(r.data)).catch(() => {});
     adminApi.get(`/buyers/admin/legal`).then((r) => setLegal(r.data.sources)).catch(() => {});
+    adminApi.get(`/buyers/admin/engine/health`).then((r) => setHealth(r.data)).catch(() => {});
+    adminApi.get(`/buyers/admin/engine/history`).then((r) => setHistory(r.data.history || [])).catch(() => {});
+    adminApi.get(`/buyers/admin/engine/checkpoints`).then((r) => setCheckpoints(r.data.checkpoints || [])).catch(() => {});
+    adminApi.get(`/buyers/admin/bulk/phases`).then((r) => setPhases(r.data)).catch(() => {});
   };
   const runAudit = async () => {
     setBusy(true);
@@ -83,6 +91,21 @@ export default function BuyersManager() {
   const runCycle = async (kind) => {
     setBusy(true);
     try { await adminApi.post(`/buyers/admin/engine/run-cycle?kind=${kind}`); toast.success(`${kind} intelligence cycle started`); setTimeout(loadMeta, 4000); }
+    finally { setBusy(false); }
+  };
+  const runJob = async (id) => {
+    try { await adminApi.post(`/buyers/admin/engine/jobs/${encodeURIComponent(id)}/run`); toast.success(`Queued: ${id}`); setTimeout(loadMeta, 3000); }
+    catch { toast.error("Could not queue job"); }
+  };
+  const toggleJob = async (id, enabled) => {
+    try { await adminApi.post(`/buyers/admin/engine/jobs/${encodeURIComponent(id)}/toggle`, { enabled }); toast.success(`${id} ${enabled ? "enabled" : "paused"}`); loadMeta(); }
+    catch { toast.error("Toggle failed"); }
+  };
+  const runBulkPhase = async (target) => {
+    if (!window.confirm(`Import UK Companies House bulk register up to ${target.toLocaleString()} companies? This runs in the background and validates QA before you scale further.`)) return;
+    setBusy(true);
+    try { await adminApi.post(`/buyers/admin/bulk/run-phase?target=${target}`); toast.success(`CH bulk phase started (${target.toLocaleString()}). Check QA in a few minutes.`); setTimeout(loadMeta, 5000); }
+    catch (e) { toast.error(e?.response?.data?.detail || "Phase start failed"); }
     finally { setBusy(false); }
   };
   const downloadReport = async (rid) => {
@@ -177,6 +200,110 @@ export default function BuyersManager() {
               {Object.entries(legal).filter(([, s]) => s.approved).map(([sid, s]) => (
                 <span key={sid} className="text-[11px] px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/25 text-emerald-300">{s.source}</span>
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Live Engine Monitoring Dashboard */}
+      {health && (
+        <div data-testid="admin-engine-monitor" className="glass-strong rounded-3xl p-5 sm:p-6">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h3 className="font-display font-bold text-base flex items-center gap-2">
+              <ArrowsClockwise size={16} weight="fill" className="text-cyan-300" /> Engine Monitoring
+              <span data-testid="engine-health-badge" className={`ml-1 text-[11px] px-2.5 py-1 rounded-full border ${health.status === "healthy" ? "bg-emerald-500/10 border-emerald-400/30 text-emerald-300" : "bg-amber-500/10 border-amber-400/30 text-amber-300"}`}>
+                {health.status === "healthy" ? "● Healthy" : "● Stalled"}
+              </span>
+            </h3>
+            <div className="text-[11px] text-slate-400">
+              Last tick {health.last_tick_at ? new Date(health.last_tick_at).toLocaleTimeString() : "—"} · {health.jobs_enabled}/{health.jobs_total} jobs active
+            </div>
+          </div>
+
+          {/* Jobs table */}
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-xs" data-testid="engine-jobs-table">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-widest text-slate-400 border-b border-white/10">
+                  <th className="text-left py-2">Job</th><th className="text-left">Status</th>
+                  <th className="text-left">Next run</th><th className="text-right">Last result</th><th className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(health.jobs || []).map((j) => (
+                  <tr key={j._id} data-testid={`engine-job-${j._id}`} className="border-b border-white/5">
+                    <td className="py-2 pr-2">{j.label || j._id}</td>
+                    <td>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] ${j.last_status === "success" ? "bg-emerald-500/10 text-emerald-300" : j.last_status === "failed" ? "bg-rose-500/10 text-rose-300" : j.last_status === "retrying" ? "bg-amber-500/10 text-amber-300" : "bg-white/5 text-slate-400"}`}>
+                        {j.last_status || "idle"}{j.attempts > 0 ? ` (${j.attempts})` : ""}
+                      </span>
+                    </td>
+                    <td className="text-slate-400">{j.next_due_at ? new Date(j.next_due_at).toLocaleString() : "—"}</td>
+                    <td className="text-right text-slate-400">{j.last_result?.new != null ? `+${j.last_result.new} new` : (j.last_result?.new_buyers != null ? `+${j.last_result.new_buyers} new` : (j.last_error ? "error" : "—"))}</td>
+                    <td className="text-right whitespace-nowrap">
+                      <button data-testid={`engine-run-${j._id}`} onClick={() => runJob(j._id)} className="btn-ghost !py-1 !px-2 text-[11px]">Run now</button>
+                      <button data-testid={`engine-toggle-${j._id}`} onClick={() => toggleJob(j._id, !j.enabled)} className="btn-ghost !py-1 !px-2 text-[11px] ml-1">{j.enabled ? "Pause" : "Enable"}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Checkpoints + history */}
+          <div className="mt-4 grid md:grid-cols-2 gap-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Source checkpoints (incremental sync)</div>
+              <div className="space-y-1.5" data-testid="engine-checkpoints">
+                {checkpoints.length === 0 && <div className="text-xs text-slate-500">No checkpoints yet.</div>}
+                {checkpoints.map((c) => (
+                  <div key={c.source_id} className="flex items-center justify-between text-xs text-slate-300 border-b border-white/5 pb-1.5">
+                    <span>{c.source_id}</span>
+                    <span className="text-slate-500">{c.total_new || 0} added · {c.runs || 0} runs{c.exhausted ? " · full pass ✓" : ""}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Recent job history</div>
+              <div className="space-y-1.5" data-testid="engine-history">
+                {history.length === 0 && <div className="text-xs text-slate-500">No runs recorded yet.</div>}
+                {history.slice(0, 6).map((h) => (
+                  <div key={h.id} className="flex items-center justify-between text-xs border-b border-white/5 pb-1.5">
+                    <span className="text-slate-300">{h.job}</span>
+                    <span className={h.status === "success" ? "text-emerald-300" : h.status === "failed" ? "text-rose-300" : "text-slate-400"}>
+                      {h.status}{h.catchup ? " · catch-up" : ""}
+                    </span>
+                    <span className="text-slate-500">{h.started_at ? new Date(h.started_at).toLocaleTimeString() : ""}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Companies House phased bulk rollout */}
+          {phases && (
+            <div className="mt-5 pt-4 border-t border-white/10" data-testid="ch-bulk-phases">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="text-[10px] uppercase tracking-widest text-slate-400">UK Companies House — phased bulk rollout</div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {(phases.phase_targets || []).map((t) => (
+                    <button key={t} data-testid={`ch-phase-${t}`} onClick={() => runBulkPhase(t)} disabled={busy} className="btn-ghost !py-1 !px-2.5 text-[11px]">
+                      {t >= 1000000 ? `${t / 1000000}M` : `${t / 1000}K`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-2 space-y-1.5">
+                {(phases.phases || []).length === 0 && <div className="text-xs text-slate-500">No bulk phases run yet. Start with 100K to validate QA before scaling.</div>}
+                {(phases.phases || []).slice(0, 4).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between text-xs border-b border-white/5 pb-1.5">
+                    <span className="text-slate-300">{(p.target || 0).toLocaleString()} target</span>
+                    <span className={p.status === "done" ? (p.qa?.qa_pass ? "text-emerald-300" : "text-amber-300") : p.status === "failed" ? "text-rose-300" : "text-cyan-300"}>{p.status}{p.qa ? ` · +${(p.qa.new_upserted || 0).toLocaleString()} · ${p.qa.sample_search_latency_ms}ms` : ""}</span>
+                    <span className="text-slate-500">{p.started_at ? new Date(p.started_at).toLocaleString() : ""}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

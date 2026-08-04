@@ -1,8 +1,8 @@
 # VBIE Production Readiness Audit
 
-Generated: 2026-08-03T23:22:48.060431+00:00
-Records checked: 11718
-**Active production buyers: 11718**
+Generated: 2026-08-04T22:51:23.094548+00:00
+Records checked: 49753
+**Active production buyers: 49853**
 Quarantined this run: 0 · total quarantined: 0 · released: 0
 **Production ready: ✅ YES**
 
@@ -16,6 +16,8 @@ Quarantined this run: 0 · total quarantined: 0 · released: 0
 - **cid_canada** — Canadian Importers Database — Open Government Licence – Canada (commercial reuse permitted).
 - **sam_gov** — US SAM.gov — U.S. Government public data (public domain).
 - **uk_companies_house** — UK Companies House — Open Government Licence v3.0 (commercial reuse permitted).
+- **no_brreg** — Brønnøysund Register Centre (Norway) — Norwegian Licence for Open Government Data (NLOD); commercial reuse permitted with attribution.
+- **cz_ares** — ARES Business Register (Czechia) — Czech Ministry of Finance open data; reuse (incl. commercial) permitted.
 
 ## Shared consumption
 

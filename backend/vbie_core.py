@@ -34,6 +34,12 @@ SOURCES_SEED = [
     {"_id": "cid_canada", "name": "Canadian Importers Database", "tier": "official", "category": "customs_bol", "url": "https://ised-isde.canada.ca/site/canadian-importers-database/en", "attribution": "Innovation, Science and Economic Development Canada (Open Government Licence)"},
     {"_id": "gleif", "name": "GLEIF Global LEI Index", "tier": "gov", "category": "identity", "url": "https://www.gleif.org", "attribution": "Global Legal Entity Identifier Foundation (CC0 1.0)"},
     {"_id": "sirene_fr", "name": "INSEE SIRENE (France)", "tier": "gov", "category": "registry", "url": "https://www.insee.fr/fr/information/3591226", "attribution": "Source: INSEE, SIRENE — Licence Ouverte / Etalab 2.0"},
+    {"_id": "no_brreg", "name": "Brønnøysund Register Centre (Norway)", "tier": "gov", "category": "registry", "url": "https://data.brreg.no/enhetsregisteret", "attribution": "Brønnøysundregistrene — Norwegian Licence for Open Government Data (NLOD)"},
+    {"_id": "cz_ares", "name": "ARES Business Register (Czechia)", "tier": "gov", "category": "registry", "url": "https://ares.gov.cz", "attribution": "Ministry of Finance of the Czech Republic — ARES (open data)"},
+    {"_id": "sg_acra", "name": "ACRA Entities (Singapore)", "tier": "gov", "category": "registry", "url": "https://data.gov.sg", "attribution": "Accounting and Corporate Regulatory Authority via data.gov.sg (Singapore Open Data Licence)"},
+    {"_id": "fi_prh", "name": "PRH/YTJ Business Information (Finland)", "tier": "gov", "category": "registry", "url": "https://avoindata.prh.fi", "attribution": "Finnish Patent and Registration Office (PRH) — CC BY 4.0"},
+    {"_id": "jp_nta", "name": "National Tax Agency Corporate Number (Japan)", "tier": "gov", "category": "registry", "url": "https://www.houjin-bangou.nta.go.jp", "attribution": "Japan National Tax Agency Corporate Number Publication Site"},
+    {"_id": "dk_cvr", "name": "CVR Central Business Register (Denmark)", "tier": "gov", "category": "registry", "url": "https://datacvr.virk.dk", "attribution": "Erhvervsstyrelsen — Danish CVR open distribution"},
 ]
 _SOURCE_BY_ID = {s["_id"]: s for s in SOURCES_SEED}
 
@@ -118,7 +124,12 @@ def _prov(source_id: str, field: str, note: str = "", url: str = ""):
 # Only sources whose licence/ToS have been reviewed + explicitly approved may run
 # in ingestion. Everything else stays dormant (pending_legal_approval) until a
 # human flips it on. P0 approved set (all verified GREEN in the research report):
-APPROVED_SOURCES = {"eu_ted", "cid_canada", "uk_companies_house", "trade_gov_csl", "gleif"}
+# P0 approved (verified GREEN). Norway (NLOD) and Czechia (ARES open data) are
+# confirmed GREEN + commercially reusable and enabled here. Key-gated sources
+# (France SIRENE, Japan NTA, Australia ABR, Denmark CVR, Singapore ACRA, Finland
+# PRH) stay pending_legal_approval until their key/terms are supplied + reviewed.
+APPROVED_SOURCES = {"eu_ted", "cid_canada", "uk_companies_house", "trade_gov_csl",
+                    "gleif", "no_brreg", "cz_ares"}
 
 
 def is_source_approved(source_id: str) -> bool:

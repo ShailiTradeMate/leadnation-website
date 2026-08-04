@@ -152,6 +152,8 @@ COMPLIANT_SOURCES = {
     "cid_canada": "Canadian Importers Database — Open Government Licence – Canada (commercial reuse permitted).",
     "sam_gov": "US SAM.gov — U.S. Government public data (public domain).",
     "uk_companies_house": "UK Companies House — Open Government Licence v3.0 (commercial reuse permitted).",
+    "no_brreg": "Brønnøysund Register Centre (Norway) — Norwegian Licence for Open Government Data (NLOD); commercial reuse permitted with attribution.",
+    "cz_ares": "ARES Business Register (Czechia) — Czech Ministry of Finance open data; reuse (incl. commercial) permitted.",
 }
 _PLACEHOLDER_RX = re.compile(r"^(?:test|demo|sample|placeholder|n/a|unknown|null|x{3,}|qa)(?![a-z0-9])", re.I)
 
@@ -169,11 +171,15 @@ async def production_audit(auto_fix: bool = True) -> dict:
         geid = e["_id"]
         name = (e.get("legal_name") or "").strip()
         created_by = e.get("created_by") or ""
-        src = created_by.replace("vbie-connector:", "") if created_by.startswith("vbie-connector:") else None
+        src = None
+        for pfx in ("vbie-connector:", "vbie-bulk:"):
+            if created_by.startswith(pfx):
+                src = created_by[len(pfx):]
+                break
         fail = []
         if e.get("sample"):
             fail.append("demo/sample record")
-        if not created_by.startswith("vbie-connector:"):
+        if src is None:
             fail.append("not sourced from an approved connector")
         elif src not in COMPLIANT_SOURCES:
             fail.append(f"source '{src}' not license-compliant")
@@ -648,3 +654,58 @@ async def run_cycle(bg: BackgroundTasks, kind: str = "incremental", _: dict = De
     fn = vbie_engine.run_full_cycle if kind == "full" else vbie_engine.run_incremental
     bg.add_task(fn, "manual")
     return {"ok": True, "started": kind}
+
+
+# ═══════════════ Production Recurring Engine — monitoring dashboard ══════════
+@admin_router.get("/engine/health")
+async def engine_health(_: dict = Depends(require_admin)):
+    import vbie_scheduler
+    return await vbie_scheduler.health_snapshot()
+
+
+@admin_router.get("/engine/history")
+async def engine_history(limit: int = 40, _: dict = Depends(require_admin)):
+    rows = await db.vbie_job_history.find({}).sort("started_at", -1).limit(min(limit, 200)).to_list(200)
+    return {"history": [{k: v for k, v in r.items() if k != "_id"} | {"id": r["_id"]} for r in rows]}
+
+
+@admin_router.get("/engine/checkpoints")
+async def engine_checkpoints(_: dict = Depends(require_admin)):
+    rows = await db.vbie_checkpoints.find({}).to_list(100)
+    return {"checkpoints": [{k: v for k, v in r.items()} | {"source_id": r["_id"]} for r in rows]}
+
+
+@admin_router.post("/engine/jobs/{job_id}/run")
+async def engine_run_job(job_id: str, _: dict = Depends(require_admin)):
+    import vbie_scheduler
+    return await vbie_scheduler.run_now(job_id)
+
+
+@admin_router.post("/engine/jobs/{job_id}/toggle")
+async def engine_toggle_job(job_id: str, body: dict = Body(default={}), _: dict = Depends(require_admin)):
+    import vbie_scheduler
+    return await vbie_scheduler.set_enabled(job_id, bool(body.get("enabled", True)))
+
+
+@admin_router.post("/engine/jobs/{job_id}/interval")
+async def engine_set_interval(job_id: str, body: dict = Body(...), _: dict = Depends(require_admin)):
+    import vbie_scheduler
+    return await vbie_scheduler.set_interval(job_id, int(body.get("interval_seconds", 86400)))
+
+
+# ─────────────── Companies House phased bulk rollout (P1) ────────────────────
+@admin_router.get("/bulk/phases")
+async def bulk_phases(_: dict = Depends(require_admin)):
+    import vbie_engine
+    rows = await db.vbie_bulk_phases.find({}).sort("started_at", -1).limit(20).to_list(20)
+    return {"phases": [{k: v for k, v in r.items() if k != "_id"} | {"id": r["_id"]} for r in rows],
+            "phase_targets": vbie_engine.CH_BULK_PHASES}
+
+
+@admin_router.post("/bulk/run-phase")
+async def bulk_run_phase(bg: BackgroundTasks, target: int = 100000, _: dict = Depends(require_admin)):
+    import vbie_engine
+    if target not in vbie_engine.CH_BULK_PHASES:
+        raise HTTPException(400, f"target must be one of {vbie_engine.CH_BULK_PHASES}")
+    bg.add_task(vbie_engine.run_ch_bulk_phase, target, "manual")
+    return {"ok": True, "started_target": target, "note": "Running in background; check /bulk/phases for QA results."}

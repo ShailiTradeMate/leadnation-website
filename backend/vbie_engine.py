@@ -297,15 +297,81 @@ async def run_full_cycle(trigger: str = "weekly") -> dict:
 async def run_incremental(trigger: str = "daily") -> dict:
     logger.info("VBIE INCREMENTAL cycle start (trigger=%s)", trigger)
     cfg = await get_schedule()
+    # Discover NEW records from every approved source (checkpointed) so the DB grows.
+    discovery = {}
+    for sid in C.DISCOVERY_ADAPTERS.keys():
+        if not is_source_approved(sid):
+            continue
+        try:
+            cp_doc = await db.vbie_checkpoints.find_one({"_id": sid}) or {}
+            res = await C.discover_source(sid, cp_doc.get("checkpoint") or {})
+            await db.vbie_checkpoints.update_one(
+                {"_id": sid},
+                {"$set": {"checkpoint": res.get("checkpoint"), "exhausted": res.get("exhausted"),
+                          "last_run_at": _iso(_now()), "last_new": res.get("new", 0)},
+                 "$inc": {"total_new": int(res.get("new", 0) or 0), "runs": 1}}, upsert=True)
+            discovery[sid] = res.get("new", 0)
+        except Exception as exc:
+            logger.warning("Discovery %s failed: %s", sid, exc)
+            discovery[sid] = 0
+    try:
+        await C.dedupe_and_prune()
+    except Exception as exc:
+        logger.warning("Dedupe skipped: %s", exc)
     lei = await C.connector_gleif_enrich(limit=cfg.get("daily_lei_limit", 150))
     brain = await brain_recompute(rolling=cfg.get("daily_brain_batch", 2500))
     changes = await detect_changes(rolling=cfg.get("daily_brain_batch", 2500))
     alerts = await fire_change_alerts(changes)
     cycle = {"_id": f"cycle-{_now().strftime('%Y%m%d-%H%M%S')}", "type": "incremental", "trigger": trigger,
-             "at": _iso(_now()), "lei_matched": lei, "brain": brain,
-             "changes": len(changes), "alerts": alerts}
+             "at": _iso(_now()), "discovery": discovery, "new_buyers": sum(discovery.values()),
+             "lei_matched": lei, "brain": brain, "changes": len(changes), "alerts": alerts}
     await db.vbie_cycles.insert_one(dict(cycle))
-    logger.info("VBIE INCREMENTAL cycle done")
+    logger.info("VBIE INCREMENTAL cycle done (new=%d)", sum(discovery.values()))
+    return cycle
+
+
+async def run_reconcile(trigger: str = "daily") -> dict:
+    """Daily reconciliation used by the recurring engine's `daily_brain` job (source
+    discovery runs as its own per-source jobs). Dedupe → LEI enrich → brain recompute →
+    change detection → alerts → production audit → daily digest notification."""
+    logger.info("VBIE RECONCILE start (trigger=%s)", trigger)
+    cfg = await get_schedule()
+    dedupe = {}
+    try:
+        dedupe = await C.dedupe_and_prune()
+    except Exception as exc:
+        logger.warning("Reconcile dedupe skipped: %s", exc)
+    lei = await C.connector_gleif_enrich(limit=cfg.get("daily_lei_limit", 150))
+    brain = await brain_recompute(rolling=cfg.get("daily_brain_batch", 2500))
+    changes = await detect_changes(rolling=cfg.get("daily_brain_batch", 2500))
+    alerts = await fire_change_alerts(changes)
+    audit = {}
+    try:
+        import vbie_admin
+        audit = await vbie_admin.production_audit(auto_fix=True)
+    except Exception as exc:
+        logger.warning("Reconcile audit skipped: %s", exc)
+    # Daily digest: how many new buyers landed in the last 24h.
+    since = _now() - timedelta(days=1)
+    new_24h = await db.entities.count_documents(
+        {"entity_type": "buyer", "admin_deleted": {"$ne": True}, "created_at": {"$gte": since}})
+    if new_24h > 0:
+        try:
+            markets = len((await db.entities.distinct("country_name",
+                          {"entity_type": "buyer", "sample": {"$ne": True}})) or [])
+            await db.notifications.insert_one({
+                "audience": "users", "scope": "broadcast", "kind": "buyers_added",
+                "title": "New verified buyers added",
+                "body": f"{new_24h} newly verified buyers were added across {markets} markets in the last 24 hours.",
+                "meta": {"new_buyers": new_24h, "markets": markets}, "created_at": _iso(_now())})
+        except Exception:
+            pass
+    cycle = {"_id": f"cycle-{_now().strftime('%Y%m%d-%H%M%S')}", "type": "reconcile", "trigger": trigger,
+             "at": _iso(_now()), "dedupe": dedupe, "lei_matched": lei, "brain": brain,
+             "changes": len(changes), "alerts": alerts, "new_buyers_24h": new_24h,
+             "active_buyers": audit.get("active_production_buyers")}
+    await db.vbie_cycles.insert_one(dict(cycle))
+    logger.info("VBIE RECONCILE done (new_24h=%d)", new_24h)
     return cycle
 
 
@@ -331,6 +397,64 @@ async def run_bulk_monthly(trigger: str = "monthly") -> dict:
     await db.vbie_cycles.insert_one(dict(cycle))
     logger.info("VBIE MONTHLY bulk cycle done")
     return cycle
+
+
+# ───────────────── Companies House phased bulk rollout (P1) ──────────────────
+# Phased import to validate search/Mongo/GEID/dedupe/brain/storage/latency at each
+# step before scaling: 100K → 500K → 1M → 5M. Each phase records a QA snapshot.
+CH_BULK_PHASES = [100_000, 500_000, 1_000_000, 5_000_000]
+
+
+async def run_ch_bulk_phase(target: int, trigger: str = "manual") -> dict:
+    """Import UK Companies House official monthly bulk register up to `target` companies,
+    then run a QA snapshot (counts, dedupe, latency, audit) so the phase can be signed off
+    before scaling up. Runs in the background (heavy)."""
+    import time
+    started = _now()
+    phase_id = f"chbulk-{started.strftime('%Y%m%d-%H%M%S')}-{target}"
+    logger.info("CH bulk phase %s start (target=%d)", phase_id, target)
+    await db.vbie_bulk_phases.insert_one({
+        "_id": phase_id, "source": "uk_companies_house", "target": target,
+        "status": "running", "started_at": _iso(started), "trigger": trigger})
+    try:
+        t0 = time.time()
+        rows = await C.connector_companies_house_bulk(max_records=target)
+        fetched = len(rows)
+        new = await C.upsert_candidates(rows, source_label="uk_companies_house_bulk")
+        dedupe = await C.dedupe_and_prune()
+        brain = await brain_recompute(rolling=None)
+        # QA snapshot.
+        t_search = time.time()
+        _ = await db.entities.find(
+            {"entity_type": "buyer", "country": "GB", "status": "active"}
+        ).sort("trust.score", -1).limit(24).to_list(24)
+        search_ms = round((time.time() - t_search) * 1000, 1)
+        total_gb = await db.entities.count_documents({"entity_type": "buyer", "country": "GB"})
+        audit = {}
+        try:
+            import vbie_admin
+            audit = await vbie_admin.production_audit(auto_fix=True)
+        except Exception:
+            pass
+        qa = {
+            "fetched": fetched, "new_upserted": new, "dedupe": dedupe,
+            "brain_updated": brain.get("updated"), "gb_buyers_total": total_gb,
+            "sample_search_latency_ms": search_ms,
+            "active_production_buyers": audit.get("active_production_buyers"),
+            "duration_s": round(time.time() - t0, 1),
+            "qa_pass": bool(fetched > 0 and search_ms < 1500),
+        }
+        nxt = next((p for p in CH_BULK_PHASES if p > target), None)
+        await db.vbie_bulk_phases.update_one({"_id": phase_id}, {"$set": {
+            "status": "done", "finished_at": _iso(_now()), "qa": qa,
+            "next_phase": nxt}})
+        logger.info("CH bulk phase %s done: %s", phase_id, qa)
+        return {"phase_id": phase_id, "qa": qa, "next_phase": nxt}
+    except Exception as exc:
+        await db.vbie_bulk_phases.update_one({"_id": phase_id}, {"$set": {
+            "status": "failed", "finished_at": _iso(_now()), "error": str(exc)[:500]}})
+        logger.error("CH bulk phase %s failed: %s", phase_id, exc)
+        return {"phase_id": phase_id, "error": str(exc)}
 
 
 # ─────────────────────────────── scheduler ──────────────────────────────────
