@@ -1,5 +1,12 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## BACKLOG (updated 2026-08-06)
+- **CH Phase 1 bulk import (100K)** — WIRED & ready; run ONLY on user's explicit go-signal, then QA sign-off before scaling 100K→500K→1M→5M.
+- **Razorpay subscription/reports go-live** — build complete & dormant; awaiting user's TEST keys to run end-to-end, then LIVE keys + webhook + redeploy.
+- **Razorpay — professional services (GST/IEC etc.)** — SEPARATE keys (user will provide later). Must NOT reuse subscription/reports keys. Pro-services are enquiry-based today (no checkout); build a dedicated pro-services checkout only when those keys arrive.
+- **New markets** — France SIRENE / Japan NTA / Australia ABN connectors to be built + enabled once API keys supplied (Norway + Czechia already live).
+
+
 ## VBIE PHASE 2.3 — PRODUCTION RECURRING INTELLIGENCE SERVICE (2026-08-04)
 - **Permanent self-growing engine** (`vbie_scheduler.py`): DB-backed job store (`vbie_jobs`) — survives restarts, auto catch-up, retry queue, failure alerts, health heartbeat, per-source incremental checkpoints, source-specific schedules, job history. Replaces the old in-memory APScheduler that never reliably fired. Admin monitoring dashboard in BuyersManager (health, jobs, checkpoints, history, CH bulk). Endpoints: `/api/buyers/admin/engine/{health,history,checkpoints,jobs/{id}/run|toggle|interval}`.
 - **New GREEN sources**: Norway Brønnøysund (NLOD) + Czechia ARES (open data) ENABLED (no key). Dormant pending keys: France SIRENE, Japan NTA, Australia ABN, Denmark CVR, Singapore ACRA, Finland PRH.

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { startCheckout } from "@/lib/checkout";
 import { api } from "@/lib/api";
 import { useProject } from "@/lib/ProjectContext";
 import { useAuth } from "@/lib/AuthContext";
@@ -688,8 +689,7 @@ function Reports({ P, cur, compliance }) {
     trackEvent(EVENTS.PAYMENT_ATTEMPT, { kind, region });
     if (kind === "monthly" || kind === "annual") trackEvent(EVENTS.SUBSCRIPTION_STARTED, { plan: kind, region });
     api.post("/pricing/track", { event: "checkout_start", plan: kind, region, projectId: cur.id }, s()).catch(() => {});
-    const { data } = await api.post("/payments/checkout", { kind, region, projectId: cur.id, origin: window.location.origin }, s());
-    window.location.href = data.url;
+    await startCheckout({ kind, region, projectId: cur.id, headers: s().headers });
   };
   const captureEmail = async () => {
     if (!email.includes("@")) return;

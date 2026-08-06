@@ -63,7 +63,7 @@ DEFAULT_PRICING: Dict[str, Any] = {
     },
     "gateways": {
         "stripe": {"label": "Stripe", "enabled": True, "regions": ["INTL", "IN"]},
-        "razorpay": {"label": "Razorpay", "enabled": False, "regions": ["IN"]},
+        "razorpay": {"label": "Razorpay", "enabled": True, "regions": ["IN"]},
     },
     "settings": {
         "freeFirstDownload": True,

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
+import { startCheckout } from "@/lib/checkout";
 import { useProject } from "@/lib/ProjectContext";
 import SEO, { breadcrumbSchema, faqSchema } from "@/components/SEO";
 import { Check, X, Star, CircleNotch, Lightning, ArrowRight } from "@phosphor-icons/react";
@@ -36,8 +37,8 @@ export default function Pricing() {
     setBusy(planKey);
     try {
       await api.post("/pricing/track", { event: "checkout_start", plan: planKey, region }, s()).catch(() => {});
-      const { data } = await api.post("/payments/checkout", { kind: planKey, region, origin: window.location.origin }, s());
-      window.location.href = data.url;
+      const ok = await startCheckout({ kind: planKey, region, headers: { "X-Trade-Session": P?.session } });
+      if (!ok) setBusy("");
     } catch (_) { setBusy(""); }
   };
 

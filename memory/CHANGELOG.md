@@ -1,5 +1,16 @@
 # LeadNation — Changelog
 
+## 2026-08-06 — Razorpay Standard Checkout (build-ready, dormant pending keys)
+Verified via curl: gateway resolves to Stripe while no key (razorpayEnabled=false); /payments/razorpay/order & /verify return 503 until configured; Stripe checkout regression OK ($9 monthly returns url). Happy-path NOT yet tested (awaiting Razorpay TEST keys).
+- Used integration_expert verified playbook. Backend (`monetize.py`): `POST /payments/razorpay/order` (server-side price from pricing engine, amount in paise, creates Razorpay Order + TX row _id=order_id, gateway="razorpay"), `POST /payments/razorpay/verify` (server-side `verify_payment_signature` using DB order_id + `payment.fetch` captured check → idempotent entitlement), `POST /webhook/razorpay` (`verify_webhook_signature`, order.paid/payment.captured, idempotent). `_apply_paid_razorpay()` mirrors Stripe paid branch (activate 30/365-day sub + receipt email). `_sync_status` short-circuits for gateway=="razorpay" so downloads reuse existing flow.
+- Frontend: new `lib/checkout.js` `startCheckout()` auto-routes IN→Razorpay (when keys present) else Stripe; Razorpay success funnels back to the SAME `/account?session_id=<order_id>` URL so all post-payment logic (sub activation, PDF download record) stays unified. Wired into Pricing.jsx, CommandCenter.jsx, AccountPage.jsx.
+- Scope guard: Razorpay used ONLY for subscription/report/download/event checkout. **Professional services (GST/IEC registration in services.py) are enquiry/lead-based with NO online checkout — they will NOT use these keys** (separate keys later, per user).
+- Pricing config `gateways.razorpay.enabled=true` (default + live doc) — still gated by env `RAZORPAY_KEY_ID` so live users stay on Stripe until keys added.
+- Env vars needed: `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`. Razorpay SDK added to requirements.txt.
+- Deploy note: built in PREVIEW; needs redeploy to reach production (leadnation.app).
+
+
+
 ## 2026-08-04 — VBIE Production Recurring Intelligence Service + new GREEN sources + phased CH bulk + auto-filters
 Verified: test_reports/iteration_39.json (11/11 backend PASS + full frontend PASS) + manual curl hardening (422/400/409).
 - **Root cause found & reported**: 0 new buyers added because (a) only the WEEKLY cycle fetched new buyers — the daily job just re-scored; and (b) APScheduler used an in-memory jobstore that reset on every backend restart, so the weekly job never actually fired (`vbie_cycles` had only manual runs).

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { startCheckout } from "@/lib/checkout";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { trackEvent, EVENTS } from "@/lib/analytics";
@@ -73,8 +74,7 @@ export default function AccountPage() {
   const buyPass = async (kind = "monthly") => {
     trackEvent(EVENTS.PAYMENT_ATTEMPT, { kind, region });
     if (kind === "monthly" || kind === "annual") trackEvent(EVENTS.SUBSCRIPTION_STARTED, { plan: kind, region });
-    const { data: r } = await api.post("/payments/checkout", { kind, region, origin: window.location.origin }, hdrs());
-    window.location.href = r.url;
+    await startCheckout({ kind, region, headers: hdrs().headers });
   };
   const saveProfile = async () => { await api.put("/account/profile", edit, hdrs()); setEditing(false); load(); };
 

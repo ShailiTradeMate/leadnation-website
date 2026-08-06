@@ -108,6 +108,9 @@ async def _sync_status(session_id: str):
         raise HTTPException(404, "Transaction not found")
     if tx["status"] == "paid":
         return tx
+    if tx.get("gateway") == "razorpay":
+        # Razorpay status is maintained by /razorpay/verify + the webhook, not Stripe.
+        return tx
     stripe = StripeCheckout(api_key=STRIPE_KEY, webhook_url="")
     st = await stripe.get_checkout_status(session_id)
     new_status = "paid" if st.payment_status == "paid" else ("expired" if st.status == "expired" else "initiated")
@@ -159,6 +162,144 @@ async def stripe_webhook(request: Request):
             await _sync_status(res.session_id)
     except Exception as exc:
         logging.warning("Stripe webhook: %s", exc)
+    return {"ok": True}
+
+
+# ---------------- Payments (Razorpay — IN region) ----------------
+# Razorpay is used ONLY for subscription/report/download/event checkout (never for
+# professional services like GST/IEC — those are enquiry-based and have separate keys).
+RAZORPAY_KEY_ID = os.environ.get("RAZORPAY_KEY_ID", "").strip()
+RAZORPAY_KEY_SECRET = os.environ.get("RAZORPAY_KEY_SECRET", "").strip()
+RAZORPAY_WEBHOOK_SECRET = os.environ.get("RAZORPAY_WEBHOOK_SECRET", "").strip()
+_rzp_client = None
+
+
+def _razorpay():
+    """Lazily build the Razorpay client. Raises 503 until keys are configured."""
+    global _rzp_client
+    if not (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET):
+        raise HTTPException(503, "Razorpay is not configured yet")
+    if _rzp_client is None:
+        import razorpay
+        _rzp_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+    return _rzp_client
+
+
+async def _apply_paid_razorpay(tx: dict):
+    """Idempotent entitlement grant for a paid Razorpay TX — mirrors the Stripe paid
+    branch: activate a time-boxed subscription for sub kinds + email a receipt. Safe to
+    call from both /verify and the webhook (guarded by the `granted` flag)."""
+    fresh = await TX.find_one({"_id": tx["_id"]})
+    if not fresh or fresh.get("granted"):
+        return
+    await TX.update_one({"_id": tx["_id"]}, {"$set": {"status": "paid", "paymentStatus": "captured",
+                                                       "granted": True, "updatedAt": _iso(_now())}})
+    if fresh["kind"] in SUB_DAYS:
+        until = _now() + timedelta(days=SUB_DAYS[fresh["kind"]])
+        await SUB.update_one({"owner": fresh["owner"]},
+                             {"$set": {"owner": fresh["owner"], "status": "active", "plan": fresh["kind"],
+                                       "until": _iso(until), "updatedAt": _iso(_now())}}, upsert=True)
+        if fresh.get("email"):
+            from emailer import send, _amount_label
+            inv = await _make_invoice(fresh["owner"], fresh["amount"], fresh["currency"], f"{fresh['kind']} subscription")
+            await send("subscription_success", fresh["email"], {
+                "name": fresh.get("name"), "plan": fresh["kind"], "until": _iso(until),
+                "amountLabel": _amount_label(fresh["amount"], fresh["currency"]), "invoice": inv.get("number", "")})
+
+
+@pay_router.post("/razorpay/order")
+async def razorpay_create_order(body: CheckoutIn, request: Request,
+                                authorization: Optional[str] = Header(default=None),
+                                x_trade_session: Optional[str] = Header(default=None)):
+    if body.kind not in ("download", "monthly", "annual", "subscription"):
+        raise HTTPException(400, "Invalid package")
+    client = _razorpay()
+    owner, otype = _owner(authorization, x_trade_session)
+    region = _region(body.region)
+    amount, currency = await pricing_resolve(body.kind, region)   # server-side price (never trust client)
+    paise = int(round(float(amount) * 100))
+    if paise <= 0:
+        raise HTTPException(400, "Invalid price")
+    receipt = f"ln_{uuid.uuid4().hex[:28]}"
+    order = client.order.create(data={
+        "amount": paise, "currency": currency.upper(), "receipt": receipt,
+        "notes": {"owner": owner, "kind": body.kind, "region": region,
+                  "projectId": body.projectId or ""}})
+    await TX.insert_one({
+        "_id": order["id"], "sessionId": order["id"], "gateway": "razorpay",
+        "razorpay_order_id": order["id"], "owner": owner, "ownerType": otype,
+        "kind": body.kind, "amount": amount, "currency": currency, "region": region,
+        "projectId": body.projectId or "", "status": "initiated", "paymentStatus": "created",
+        "email": (body.email or "").strip(), "name": body.name,
+        "consumed": False, "granted": False, "createdAt": _iso(_now()), "updatedAt": _iso(_now())})
+    return {"gateway": "razorpay", "key_id": RAZORPAY_KEY_ID, "order_id": order["id"],
+            "amount": paise, "currency": currency.upper(), "sessionId": order["id"],
+            "name": "LeadNation", "description": f"{body.kind} — LeadNation",
+            "prefill": {"name": body.name or "", "email": (body.email or "").strip()}}
+
+
+class RazorpayVerifyIn(BaseModel):
+    razorpay_payment_id: str
+    razorpay_order_id: str
+    razorpay_signature: str
+
+
+@pay_router.post("/razorpay/verify")
+async def razorpay_verify(body: RazorpayVerifyIn,
+                          authorization: Optional[str] = Header(default=None),
+                          x_trade_session: Optional[str] = Header(default=None)):
+    client = _razorpay()
+    tx = await TX.find_one({"_id": body.razorpay_order_id, "gateway": "razorpay"})
+    if not tx:
+        raise HTTPException(404, "Unknown order")
+    try:
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": tx["razorpay_order_id"],   # from DB, never the browser
+            "razorpay_payment_id": body.razorpay_payment_id,
+            "razorpay_signature": body.razorpay_signature})
+    except Exception:
+        raise HTTPException(400, "Invalid payment signature")
+    # Signature proves authenticity; confirm the payment is actually captured.
+    try:
+        pay = client.payment.fetch(body.razorpay_payment_id)
+    except Exception:
+        pay = {}
+    if pay.get("order_id") and pay.get("order_id") != tx["razorpay_order_id"]:
+        raise HTTPException(400, "Payment/order mismatch")
+    await TX.update_one({"_id": tx["_id"]}, {"$set": {"razorpay_payment_id": body.razorpay_payment_id,
+                                                       "updatedAt": _iso(_now())}})
+    if pay.get("status") == "captured":
+        await _apply_paid_razorpay(tx)
+        return {"ok": True, "status": "paid", "kind": tx["kind"], "sessionId": tx["_id"]}
+    return {"ok": True, "status": pay.get("status", "pending"), "kind": tx["kind"], "sessionId": tx["_id"]}
+
+
+@hook_router.post("/webhook/razorpay")
+async def razorpay_webhook(request: Request):
+    raw = await request.body()
+    signature = request.headers.get("X-Razorpay-Signature", "")
+    if not (RAZORPAY_KEY_ID and RAZORPAY_WEBHOOK_SECRET):
+        return {"ok": True}
+    try:
+        _razorpay().utility.verify_webhook_signature(raw.decode("utf-8"), signature, RAZORPAY_WEBHOOK_SECRET)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logging.warning("Razorpay webhook signature invalid: %s", exc)
+        raise HTTPException(400, "invalid webhook signature")
+    try:
+        import json as _json
+        event = _json.loads(raw)
+        etype = event.get("event")
+        if etype in ("order.paid", "payment.captured"):
+            ent = (event.get("payload", {}).get("payment", {}) or {}).get("entity", {}) or {}
+            order_id = ent.get("order_id")
+            if order_id and ent.get("status") == "captured":
+                tx = await TX.find_one({"_id": order_id, "gateway": "razorpay"})
+                if tx:
+                    await _apply_paid_razorpay(tx)
+    except Exception as exc:
+        logging.warning("Razorpay webhook processing: %s", exc)
     return {"ok": True}
 
 
