@@ -32,7 +32,7 @@ export default function Pricing() {
     api.post("/pricing/track", { event: "pricing_page_view", region }, s()).catch(() => {});
   }, [region]);
 
-  const startCheckout = async (planKey) => {
+  const handleCheckout = async (planKey) => {
     if (planKey === "download") return; // download is purchased inside a project
     setBusy(planKey);
     try {
@@ -117,7 +117,7 @@ export default function Pricing() {
                 <Link to="/command-center" data-testid="pricing-cta-download"
                   className="btn-ghost justify-center mt-6">Build a report <ArrowRight size={15} weight="bold" /></Link>
               ) : (
-                <button data-testid={`pricing-cta-${p.key}`} onClick={() => startCheckout(p.key)} disabled={busy === p.key}
+                <button data-testid={`pricing-cta-${p.key}`} onClick={() => handleCheckout(p.key)} disabled={busy === p.key}
                   className={`${popular ? "btn-primary" : "btn-ghost"} justify-center mt-6 disabled:opacity-50`}>
                   {busy === p.key ? <CircleNotch size={15} className="animate-spin" /> : <Lightning size={15} weight="bold" />} Get {p.label}
                 </button>
