@@ -1,5 +1,12 @@
 # LeadNation — Changelog
 
+## 2026-08-06 (later) — Razorpay LIVE keys activated + verified
+- Added LIVE `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`RAZORPAY_WEBHOOK_SECRET` to backend/.env (env-only, never logged). Restarted. gateway_for(IN) now returns 'razorpay', razorpayEnabled=true.
+- Verified (iteration_40, 13/13 backend PASS, no real payment made): live order creation with correct paise (download 2500 / monthly 49900 / annual 399900 INR), TX persisted, /verify rejects bad signature (400), /webhook rejects bad signature (400), Stripe INTL regression OK, professional services (GST/IEC) confirmed enquiry-only (excluded from Razorpay).
+- Bug fixed (found by testing agent): Pricing.jsx local handler was named `startCheckout`, shadowing the imported helper → recursion; renamed local to `handleCheckout`. Razorpay modal now opens with live checkout (₹499, UPI/Cards/Netbanking). CommandCenter/AccountPage unaffected.
+- Webhook URL registered in dashboard = https://leadnation.app/api/webhook/razorpay (production). NOTE: keys/code are in PREVIEW; production (leadnation.app) gets them only after REDEPLOY. Handler-path verification works on preview immediately; webhook backup only reaches production post-redeploy.
+
+
 ## 2026-08-06 — Razorpay Standard Checkout (build-ready, dormant pending keys)
 Verified via curl: gateway resolves to Stripe while no key (razorpayEnabled=false); /payments/razorpay/order & /verify return 503 until configured; Stripe checkout regression OK ($9 monthly returns url). Happy-path NOT yet tested (awaiting Razorpay TEST keys).
 - Used integration_expert verified playbook. Backend (`monetize.py`): `POST /payments/razorpay/order` (server-side price from pricing engine, amount in paise, creates Razorpay Order + TX row _id=order_id, gateway="razorpay"), `POST /payments/razorpay/verify` (server-side `verify_payment_signature` using DB order_id + `payment.fetch` captured check → idempotent entitlement), `POST /webhook/razorpay` (`verify_webhook_signature`, order.paid/payment.captured, idempotent). `_apply_paid_razorpay()` mirrors Stripe paid branch (activate 30/365-day sub + receipt email). `_sync_status` short-circuits for gateway=="razorpay" so downloads reuse existing flow.
