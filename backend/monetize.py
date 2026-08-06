@@ -188,17 +188,21 @@ def _razorpay():
 async def _apply_paid_razorpay(tx: dict):
     """Idempotent entitlement grant for a paid Razorpay TX — mirrors the Stripe paid
     branch: activate a time-boxed subscription for sub kinds + email a receipt. Safe to
-    call from both /verify and the webhook (guarded by the `granted` flag)."""
+    call concurrently from both /verify and the webhook: an ATOMIC claim ensures the
+    subscription is activated and the receipt emailed exactly once per order."""
+    claim = await TX.update_one(
+        {"_id": tx["_id"], "granted": {"$ne": True}},
+        {"$set": {"status": "paid", "paymentStatus": "captured", "granted": True,
+                  "updatedAt": _iso(_now())}})
+    if claim.modified_count != 1:
+        return  # already granted by a prior /verify or webhook delivery — no double action
     fresh = await TX.find_one({"_id": tx["_id"]})
-    if not fresh or fresh.get("granted"):
-        return
-    await TX.update_one({"_id": tx["_id"]}, {"$set": {"status": "paid", "paymentStatus": "captured",
-                                                       "granted": True, "updatedAt": _iso(_now())}})
     if fresh["kind"] in SUB_DAYS:
         until = _now() + timedelta(days=SUB_DAYS[fresh["kind"]])
         await SUB.update_one({"owner": fresh["owner"]},
                              {"$set": {"owner": fresh["owner"], "status": "active", "plan": fresh["kind"],
-                                       "until": _iso(until), "updatedAt": _iso(_now())}}, upsert=True)
+                                       "until": _iso(until), "gateway": "razorpay", "updatedAt": _iso(_now())}},
+                             upsert=True)
         if fresh.get("email"):
             from emailer import send, _amount_label
             inv = await _make_invoice(fresh["owner"], fresh["amount"], fresh["currency"], f"{fresh['kind']} subscription")
