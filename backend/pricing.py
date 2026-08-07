@@ -112,14 +112,18 @@ async def resolve(plan: str, region: str) -> Tuple[float, str]:
 
 
 async def gateway_for(region: str) -> str:
-    """Pick the enabled gateway serving a region (Stripe is the universal fallback)."""
+    """Pick the payment gateway for a region. Razorpay key presence is the source of
+    truth: when RAZORPAY_KEY_ID is configured, Razorpay serves the IN region (unless an
+    admin has explicitly disabled it via config). Stripe is the universal fallback and
+    the default for INTL. This avoids depending on a stale stored 'enabled' flag."""
     r = _region(region)
-    cfg = await get_config()
-    # Region-specific enabled gateway wins (e.g. Razorpay for IN once keys exist)
-    for name, g in cfg.get("gateways", {}).items():
-        if g.get("enabled") and r in (g.get("regions") or []) and name != "stripe":
-            if name == "razorpay" and os.environ.get("RAZORPAY_KEY_ID"):
-                return name
+    if r == "IN" and os.environ.get("RAZORPAY_KEY_ID"):
+        cfg = await get_config()
+        rzp = (cfg.get("gateways", {}) or {}).get("razorpay", {}) or {}
+        # Only stay on Stripe if an admin has EXPLICITLY force-disabled Razorpay.
+        if rzp.get("enabled") is False and rzp.get("force_disabled") is True:
+            return "stripe"
+        return "razorpay"
     return "stripe"
 
 

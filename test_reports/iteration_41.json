@@ -1,0 +1,27 @@
+{
+  "summary": "Verified bug fix for India Pricing→Razorpay routing. Backend gateway_for() now correctly routes region=IN to razorpay (key-presence authoritative) and region=INTL to stripe. Frontend Pricing page opens Razorpay modal for India (₹499 monthly) and redirects to Stripe checkout for International ($9 monthly). LIVE keys — no payment authorized; modal dismissed via navigation.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_evidence": {
+    "GET /api/payments/pricing?region=IN": "200 OK, gateway='razorpay', amount=499 INR, razorpayEnabled=true",
+    "GET /api/payments/pricing?region=INTL": "200 OK, gateway='stripe', amount=9 USD",
+    "POST /api/payments/razorpay/order (X-Trade-Session: qa-fix-1, kind=monthly, region=IN)": "200 OK; order_id=order_TMqo9f1CrmY00K, key_id=rzp_live_***, amount=49900, currency=INR, gateway=razorpay",
+    "Frontend IN → Get Pro Monthly": "Called POST /api/payments/razorpay/order, opened Razorpay iframe (api.razorpay.com/v1/checkout/public) with 'Secured By Razorpay' branding, rzp_live key. Did NOT hit checkout.stripe.com.",
+    "Frontend INTL → Get Pro Monthly": "Called POST /api/payments/checkout, redirected to checkout.stripe.com/c/pay/cs_test_... as expected.",
+    "Safety": "No card/UPI details entered. Razorpay modal dismissed by navigation; no payment authorized."
+  },
+  "test_report_links": [],
+  "action_items": ["Production redeploy needed by user to pick up gateway_for() fix (keys already present in production env)."],
+  "critical_code_review_comments": [
+    "Razorpay v2 checkout iframe emits many Mixed-Content warnings for local http://localhost:707x/*.png assets — harmless (Razorpay SDK internal), not our bug.",
+    "One 401 on page load from an unauthenticated /api call (likely /me or notifications) — pre-existing, unrelated to this fix."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Guest checkout via header X-Trade-Session (no login required)",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug fix verified on preview. gateway_for() in /app/backend/pricing.py now returns 'razorpay' for IN when RAZORPAY_KEY_ID env var is set (unless admin force-disabled). Frontend startCheckout in /app/frontend/src/lib/checkout.js reads gateway from /payments/pricing and routes accordingly. All routing correct on preview.",
+  "rca of the issue": "gateway_for() previously required stored DB config gateways.razorpay.enabled=true. Production DB had this flag stale/false while LIVE Razorpay keys were configured, causing IN checkouts to fall back to Stripe. Fix: gateway_for() now treats RAZORPAY_KEY_ID presence as authoritative for IN region unless an admin explicitly force-disabled via a disable flag. Verified: /payments/pricing?region=IN returns gateway=razorpay; UI opens Razorpay modal; INTL still routes to Stripe."
+}
