@@ -1,0 +1,36 @@
+{
+  "summary": "Verified new Payments admin API and CMS Payments tab. All 8 backend pytest cases pass (admin transactions schema+filters, pricing routing IN=razorpay/INTL=stripe regression, Razorpay order 49900 paise INR, Stripe checkout URL). Frontend admin login → CMS → Payments tab renders correctly: admin-payments panel, 3 summary cards, search, filters (all/paid/initiated), and a table with 13 initiated transactions (preview DB) showing all required columns. Paid filter correctly returns 0 records (no paid txns exist in preview DB — payments happened in production, as expected).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "verification_evidence": {
+    "GET /api/payments/admin/transactions": "200 OK; keys transactions/count/paidCount/revenueINR/revenueUSD present",
+    "GET /api/payments/admin/transactions?status=paid": "200 OK; every returned row.status == 'paid'",
+    "GET /api/payments/admin/transactions?gateway=razorpay": "200 OK; every returned row.gateway == 'razorpay'",
+    "GET /api/payments/admin/transactions (no admin header)": "401/403 as expected",
+    "GET /api/payments/pricing?region=IN": "200 OK, gateway=razorpay (regression pass)",
+    "GET /api/payments/pricing?region=INTL": "200 OK, gateway=stripe (regression pass)",
+    "POST /api/payments/razorpay/order (kind=monthly,region=IN)": "200 OK; order_id, key_id, amount=49900, currency=INR — NO payment authorized",
+    "POST /api/payments/checkout (kind=monthly,region=INTL)": "200 OK; Stripe checkout URL returned",
+    "Admin CMS /admin-login": "Login with admin@leadnation.app/Shiv@12345 → /admin-cms",
+    "Payments tab (data-testid=admin-tab-payments)": "Present + clickable, activates admin-payments panel",
+    "admin-payments panel": "Visible; 3 cards (Paid transactions=0, Revenue India=₹0, Revenue International=$0.00); payments-search present; filters all/paid/initiated present; payments-count='13 records'; 13 payment-row-* rendered with columns Date, Transaction ID, Customer, User/Customer ID, Mobile, Country, Gateway·Mode, Plan, Amount, Status, Invoice",
+    "Filter=paid": "payments-count updates to '0 records' (no paid txns in preview DB — expected; paid subscription happened in production)"
+  },
+  "test_report_links": ["/app/backend/tests/test_payments_admin.py", "/app/test_reports/pytest/pytest_payments.xml"],
+  "action_items": [
+    "None for preview. Production redeploy still required by user to activate _finalize_paid()+dual email sending so future payments (like the ₹499 the user just made) fire user + admin emails and enrich the admin CMS Payments table."
+  ],
+  "critical_code_review_comments": [
+    "PaymentsManager renders 'INITIATED' filter but the review request only mandated data-testid payments-filter-all and payments-filter-paid; both exist as required (initiated is an extra affordance — not an issue).",
+    "One 401 console error on page load from an unauthenticated /api call (pre-existing, unrelated to this feature).",
+    "Cookie banner overlaps bottom rows in a 1080p viewport — cosmetic only; does not block interaction with the payments table."
+  ],
+  "updated_files": ["/app/backend/tests/test_payments_admin.py"],
+  "success_rate": {"backend": "100% (8/8)", "frontend": "100%"},
+  "test_credentials": "Admin CMS: admin@leadnation.app / Shiv@12345 ; Admin API: X-Admin-Token: leadnation-admin-2026 ; Guest checkout: X-Trade-Session: <any>",
+  "seed_data_creation": "None — used existing 13 initiated transactions in preview DB.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Live Razorpay keys — never authorize a real payment. Preview DB has 0 paid transactions (all 13 are 'initiated' — the paid ones live in production). To E2E validate the emailer + _finalize_paid() flow end-to-end on preview, main agent's direct-call verification (emailer.send('subscription_success') and notify_admin('admin_payment_alert') both returning {sent:True}) is the correct approach. All required data-testids present on Payments tab: admin-tab-payments, admin-payments, payments-search, payments-filter-all, payments-filter-paid, payments-count, payment-row-<id>.",
+  "rca of the issue": "Original 'no email' bug: buyer email was not carried through to the finalization step, so emailer.send() was skipped. Fix (already deployed on preview by main agent): Razorpay order creation resolves user profile server-side (email/mobile/country/uid/customerId) and stores on TX. A unified idempotent _finalize_paid() is called from both Razorpay /verify + webhook and Stripe _sync_status; it activates the subscription and sends BOTH the user 'subscription_success' and admin 'admin_payment_alert' emails via Resend, and enriches the TX for the CMS. Preview cannot demonstrate end-to-end paid flow (live keys, no test payments), but every code path leading up to _finalize_paid is verified: admin endpoint schema, filter correctness, gateway routing regression, and CMS UI rendering."
+}

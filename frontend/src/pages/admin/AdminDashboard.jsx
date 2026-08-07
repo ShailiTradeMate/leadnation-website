@@ -10,6 +10,7 @@ import { useSettings } from "@/lib/SettingsContext";
 import { authApi } from "@/lib/authApi";
 import PricingManager from "@/pages/admin/PricingManager";
 import BuyersManager from "@/pages/admin/BuyersManager";
+import PaymentsManager from "@/pages/admin/PaymentsManager";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
 
@@ -114,6 +115,7 @@ export default function AdminDashboard() {
           { k: "events", l: "Web Analytics", I: Eye },
           { k: "control-center", l: "Control Center", I: SlidersHorizontal },
           { k: "pricing", l: "Pricing", I: CurrencyCircleDollar },
+          { k: "payments", l: "Payments", I: CurrencyCircleDollar },
           { k: "buyers", l: "Verified Buyers", I: ShieldCheck },
         ].map((t) => (
           <button key={t.k} data-testid={`admin-tab-${t.k}`} onClick={() => setTab(t.k)}
@@ -138,6 +140,7 @@ export default function AdminDashboard() {
         {tab === "events" && <Events />}
         {tab === "control-center" && <ControlCenter />}
         {tab === "pricing" && <PricingManager />}
+        {tab === "payments" && <PaymentsManager />}
         {tab === "buyers" && <BuyersManager />}
       </div>
     </section>

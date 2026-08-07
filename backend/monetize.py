@@ -80,6 +80,7 @@ async def create_checkout(body: CheckoutIn, request: Request,
     owner, otype = _owner(authorization, x_trade_session)
     region = _region(body.region)
     amount, currency = await pricing_resolve(body.kind, region)  # server-side price from engine
+    _prof = await _profile(owner, otype, _bearer_token(authorization))
     is_sub = body.kind in ("monthly", "annual", "subscription")
 
     host_url = str(request.base_url)
@@ -95,10 +96,12 @@ async def create_checkout(body: CheckoutIn, request: Request,
 
     await TX.insert_one({
         "_id": session.session_id, "sessionId": session.session_id, "owner": owner, "ownerType": otype,
+        "gateway": "stripe", "uid": _prof.get("uid"), "customerId": _prof.get("customerId", ""),
+        "mobile": _prof.get("mobile", ""), "country": _prof.get("country") or ("International" if region == "INTL" else region),
         "kind": body.kind, "amount": amount, "currency": currency, "region": region,
         "projectId": body.projectId or "", "status": "initiated", "paymentStatus": "pending",
-        "email": (body.email or "").strip(), "name": body.name,
-        "consumed": False, "createdAt": _iso(_now()), "updatedAt": _iso(_now())})
+        "email": (body.email or _prof.get("email") or "").strip(), "name": body.name or _prof.get("name", ""),
+        "consumed": False, "granted": False, "createdAt": _iso(_now()), "updatedAt": _iso(_now())})
     return {"url": session.url, "sessionId": session.session_id, "amount": amount, "currency": currency}
 
 
@@ -116,15 +119,8 @@ async def _sync_status(session_id: str):
     new_status = "paid" if st.payment_status == "paid" else ("expired" if st.status == "expired" else "initiated")
     if new_status != tx["status"]:
         await TX.update_one({"_id": session_id}, {"$set": {"status": new_status, "paymentStatus": st.payment_status, "updatedAt": _iso(_now())}})
-        if new_status == "paid" and tx["kind"] in SUB_DAYS:
-            until = _now() + timedelta(days=SUB_DAYS[tx["kind"]])
-            await SUB.update_one({"owner": tx["owner"]}, {"$set": {"owner": tx["owner"], "status": "active", "plan": tx["kind"], "until": _iso(until), "updatedAt": _iso(_now())}}, upsert=True)
-            if tx.get("email"):
-                from emailer import send, _amount_label
-                inv = await _make_invoice(tx["owner"], tx["amount"], tx["currency"], f"{tx['kind']} subscription")
-                await send("subscription_success", tx["email"], {
-                    "name": tx.get("name"), "plan": tx["kind"], "until": _iso(until),
-                    "amountLabel": _amount_label(tx["amount"], tx["currency"]), "invoice": inv.get("number", "")})
+        if new_status == "paid":
+            await _finalize_paid(session_id, {"method": "card"})
         elif new_status == "expired" and tx.get("email"):
             from emailer import send
             await send("payment_failed", tx["email"], {"name": tx.get("name"), "item": tx.get("kind", "purchase")})
@@ -185,30 +181,78 @@ def _razorpay():
     return _rzp_client
 
 
-async def _apply_paid_razorpay(tx: dict):
-    """Idempotent entitlement grant for a paid Razorpay TX — mirrors the Stripe paid
-    branch: activate a time-boxed subscription for sub kinds + email a receipt. Safe to
-    call concurrently from both /verify and the webhook: an ATOMIC claim ensures the
-    subscription is activated and the receipt emailed exactly once per order."""
+_PLAN_LABEL = {"monthly": "Monthly Pro", "annual": "Annual Pro",
+               "subscription": "Pro Subscription", "download": "Report Download"}
+_PERIOD = {"monthly": "1 month (30 days)", "annual": "12 months (365 days)",
+           "subscription": "30 days", "download": "One-time"}
+_COUNTRY = {"IN": "India", "INTL": "International"}
+_BENEFITS = [
+    "Unlimited Trade Command Center report downloads (PDF)",
+    "Full access to Verified Buyer Intelligence (VBIE) — verified importers & buyers",
+    "Landed-cost, HS-code and trade-corridor calculators",
+    "Live trade news, expo & events intelligence",
+    "Priority updates as new verified buyers are added",
+]
+
+
+def _bearer_token(authorization):
+    if authorization and authorization.lower().startswith("bearer "):
+        return authorization.split(" ", 1)[1].strip()
+    return None
+
+
+async def _finalize_paid(tx_id: str, pay_meta: dict = None):
+    """Single idempotent finalizer for BOTH gateways (Razorpay=IN, Stripe=INTL). Atomically
+    claims the TX, activates a time-boxed subscription (sub kinds), records the payment for
+    the admin CMS, and sends TWO emails: a detailed receipt to the user + an alert to admin."""
+    pay_meta = pay_meta or {}
     claim = await TX.update_one(
-        {"_id": tx["_id"], "granted": {"$ne": True}},
+        {"_id": tx_id, "granted": {"$ne": True}},
         {"$set": {"status": "paid", "paymentStatus": "captured", "granted": True,
-                  "updatedAt": _iso(_now())}})
+                  "paidAt": _iso(_now()), "updatedAt": _iso(_now())}})
     if claim.modified_count != 1:
-        return  # already granted by a prior /verify or webhook delivery — no double action
-    fresh = await TX.find_one({"_id": tx["_id"]})
-    if fresh["kind"] in SUB_DAYS:
-        until = _now() + timedelta(days=SUB_DAYS[fresh["kind"]])
-        await SUB.update_one({"owner": fresh["owner"]},
-                             {"$set": {"owner": fresh["owner"], "status": "active", "plan": fresh["kind"],
-                                       "until": _iso(until), "gateway": "razorpay", "updatedAt": _iso(_now())}},
+        return  # already finalized by a prior /verify or webhook delivery — no double action
+    tx = await TX.find_one({"_id": tx_id})
+    from emailer import send, notify_admin, _amount_label
+
+    gateway = tx.get("gateway", "stripe")
+    email = (tx.get("email") or pay_meta.get("email") or "").strip()
+    mobile = tx.get("mobile") or pay_meta.get("contact") or ""
+    country = tx.get("country") or _COUNTRY.get(tx.get("region"), tx.get("region", ""))
+    method = (pay_meta.get("method") or tx.get("method") or ("card" if gateway == "stripe" else "")).strip()
+    txn_id = pay_meta.get("payment_id") or tx.get("razorpay_payment_id") or tx.get("_id")
+    plan_label = _PLAN_LABEL.get(tx["kind"], tx["kind"])
+    amount_label = _amount_label(tx["amount"], tx["currency"])
+    until_iso = ""
+    if tx["kind"] in SUB_DAYS:
+        until = _now() + timedelta(days=SUB_DAYS[tx["kind"]])
+        until_iso = _iso(until)
+        await SUB.update_one({"owner": tx["owner"]},
+                             {"$set": {"owner": tx["owner"], "status": "active", "plan": tx["kind"],
+                                       "until": until_iso, "gateway": gateway, "updatedAt": _iso(_now())}},
                              upsert=True)
-        if fresh.get("email"):
-            from emailer import send, _amount_label
-            inv = await _make_invoice(fresh["owner"], fresh["amount"], fresh["currency"], f"{fresh['kind']} subscription")
-            await send("subscription_success", fresh["email"], {
-                "name": fresh.get("name"), "plan": fresh["kind"], "until": _iso(until),
-                "amountLabel": _amount_label(fresh["amount"], fresh["currency"]), "invoice": inv.get("number", "")})
+    inv = await _make_invoice(tx["owner"], tx["amount"], tx["currency"], plan_label)
+
+    # Persist enriched payment record for the admin CMS payments table.
+    await TX.update_one({"_id": tx_id}, {"$set": {
+        "txnId": txn_id, "method": method, "mobile": mobile, "country": country,
+        "email": email, "invoice": inv.get("number", ""), "planLabel": plan_label,
+        "subUntil": until_iso}})
+
+    # 1) User receipt (subscription kinds).
+    if tx["kind"] in SUB_DAYS and email:
+        await send("subscription_success", email, {
+            "name": tx.get("name") or "there", "plan": plan_label, "period": _PERIOD.get(tx["kind"], ""),
+            "until": until_iso, "amountLabel": amount_label, "method": method, "txnId": txn_id,
+            "invoice": inv.get("number", ""), "userId": tx.get("uid") or tx["owner"],
+            "customerId": tx.get("customerId", ""), "email": email, "benefits": _BENEFITS})
+    # 2) Admin alert (all paid transactions).
+    await notify_admin("admin_payment_alert", {
+        "plan": plan_label, "amountLabel": amount_label, "gateway": gateway, "method": method,
+        "name": tx.get("name") or "", "email": email, "mobile": mobile, "country": country,
+        "region": tx.get("region", ""), "userId": tx.get("uid") or tx["owner"],
+        "customerId": tx.get("customerId", ""), "txnId": txn_id, "invoice": inv.get("number", ""),
+        "until": until_iso, "kind": tx["kind"]})
 
 
 @pay_router.post("/razorpay/order")
@@ -229,17 +273,22 @@ async def razorpay_create_order(body: CheckoutIn, request: Request,
         "amount": paise, "currency": currency.upper(), "receipt": receipt,
         "notes": {"owner": owner, "kind": body.kind, "region": region,
                   "projectId": body.projectId or ""}})
+    prof = await _profile(owner, otype, _bearer_token(authorization))
+    email = (body.email or prof.get("email") or "").strip()
     await TX.insert_one({
         "_id": order["id"], "sessionId": order["id"], "gateway": "razorpay",
         "razorpay_order_id": order["id"], "owner": owner, "ownerType": otype,
+        "uid": prof.get("uid"), "customerId": prof.get("customerId", ""),
+        "mobile": prof.get("mobile", ""), "country": prof.get("country") or _COUNTRY.get(region, region),
         "kind": body.kind, "amount": amount, "currency": currency, "region": region,
         "projectId": body.projectId or "", "status": "initiated", "paymentStatus": "created",
-        "email": (body.email or "").strip(), "name": body.name,
+        "email": email, "name": body.name or prof.get("name", ""),
         "consumed": False, "granted": False, "createdAt": _iso(_now()), "updatedAt": _iso(_now())})
     return {"gateway": "razorpay", "key_id": RAZORPAY_KEY_ID, "order_id": order["id"],
             "amount": paise, "currency": currency.upper(), "sessionId": order["id"],
             "name": "LeadNation", "description": f"{body.kind} — LeadNation",
-            "prefill": {"name": body.name or "", "email": (body.email or "").strip()}}
+            "prefill": {"name": body.name or prof.get("name", ""), "email": email,
+                        "contact": prof.get("mobile", "")}}
 
 
 class RazorpayVerifyIn(BaseModel):
@@ -273,7 +322,9 @@ async def razorpay_verify(body: RazorpayVerifyIn,
     await TX.update_one({"_id": tx["_id"]}, {"$set": {"razorpay_payment_id": body.razorpay_payment_id,
                                                        "updatedAt": _iso(_now())}})
     if pay.get("status") == "captured":
-        await _apply_paid_razorpay(tx)
+        await _finalize_paid(tx["_id"], {"payment_id": body.razorpay_payment_id,
+                                         "method": pay.get("method"), "email": pay.get("email"),
+                                         "contact": pay.get("contact")})
         return {"ok": True, "status": "paid", "kind": tx["kind"], "sessionId": tx["_id"]}
     return {"ok": True, "status": pay.get("status", "pending"), "kind": tx["kind"], "sessionId": tx["_id"]}
 
@@ -301,7 +352,10 @@ async def razorpay_webhook(request: Request):
             if order_id and ent.get("status") == "captured":
                 tx = await TX.find_one({"_id": order_id, "gateway": "razorpay"})
                 if tx:
-                    await _apply_paid_razorpay(tx)
+                    await _finalize_paid(order_id, {"payment_id": ent.get("id"),
+                                                    "method": ent.get("method"),
+                                                    "email": ent.get("email"),
+                                                    "contact": ent.get("contact")})
     except Exception as exc:
         logging.warning("Razorpay webhook processing: %s", exc)
     return {"ok": True}
@@ -540,3 +594,33 @@ async def admin_user(owner: str, _: dict = Depends(require_admin)):
             "downloads": [{k: v for k, v in d.items() if k != "_id"} for d in dls],
             "projects": [{"id": p["id"], "title": p.get("title"), "stage": p.get("stage")} for p in proj],
             "spend": round(sum(d.get("amount", 0) for d in dls if d.get("paid")), 2)}
+
+
+
+@pay_router.get("/admin/transactions")
+async def admin_transactions(_: dict = Depends(require_admin), limit: int = 200,
+                             status: Optional[str] = None, gateway: Optional[str] = None):
+    """Admin CMS payments log — every payment with full user + payment detail + transaction id."""
+    q = {}
+    if status:
+        q["status"] = status
+    if gateway:
+        q["gateway"] = gateway
+    rows = await TX.find(q).sort("createdAt", -1).limit(min(int(limit), 500)).to_list(500)
+    out = []
+    for t in rows:
+        out.append({
+            "id": t["_id"], "txnId": t.get("txnId") or t.get("razorpay_payment_id") or t["_id"],
+            "gateway": t.get("gateway", "stripe"), "method": t.get("method", ""),
+            "status": t.get("status"), "kind": t.get("kind"), "plan": t.get("planLabel") or t.get("kind"),
+            "amount": t.get("amount"), "currency": t.get("currency"),
+            "name": t.get("name", ""), "email": t.get("email", ""), "mobile": t.get("mobile", ""),
+            "country": t.get("country", ""), "region": t.get("region", ""),
+            "userId": t.get("uid") or t.get("owner"), "customerId": t.get("customerId", ""),
+            "invoice": t.get("invoice", ""), "subUntil": t.get("subUntil", ""),
+            "createdAt": t.get("createdAt"), "paidAt": t.get("paidAt", "")})
+    paid = [t for t in out if t["status"] == "paid"]
+    rev_inr = round(sum(t["amount"] or 0 for t in paid if str(t["currency"]).lower() == "inr"), 2)
+    rev_usd = round(sum(t["amount"] or 0 for t in paid if str(t["currency"]).lower() != "inr"), 2)
+    return {"transactions": out, "count": len(out), "paidCount": len(paid),
+            "revenueINR": rev_inr, "revenueUSD": rev_usd}

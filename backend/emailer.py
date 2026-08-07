@@ -71,6 +71,73 @@ def _amount_label(amount, currency):
     return f"\u20b9{amount:,.0f}" if str(currency).lower() == "inr" else f"${amount:,.2f}"
 
 
+def _kv_row(label, val):
+    if val in (None, "", "—"):
+        return ""
+    return (f'<tr><td style="padding:7px 12px;color:#8aa0c0;font-size:13px;border-bottom:1px solid #1c2740;">{label}</td>'
+            f'<td style="padding:7px 12px;color:#eef3fb;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #1c2740;">{val}</td></tr>')
+
+
+def _detail_table(rows):
+    body = "".join(_kv_row(l, v) for l, v in rows)
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" '
+            f'style="margin:14px 0;border:1px solid #1c2740;border-radius:10px;overflow:hidden;">{body}</table>')
+
+
+def _benefits_ul(items):
+    if not items:
+        return ""
+    lis = "".join(f'<li style="margin:4px 0;">{i}</li>' for i in items)
+    return (f'<p style="margin:16px 0 6px;color:#ffffff;font-weight:700;">What your subscription unlocks</p>'
+            f'<ul style="color:#c3ccdd;font-size:13px;line-height:1.6;padding-left:18px;margin:0;">{lis}</ul>')
+
+
+def _tpl_subscription_success(c):
+    rows = [
+        ("Subscription", c.get("plan", "")),
+        ("Amount paid", c.get("amountLabel", "")),
+        ("Billing period", c.get("period", "")),
+        ("Active until", str(c.get("until", ""))[:10]),
+        ("Payment mode", (c.get("method", "") or "").upper()),
+        ("Transaction ID", c.get("txnId", "")),
+        ("Invoice", c.get("invoice", "")),
+        ("User ID", c.get("userId", "")),
+        ("Customer ID", c.get("customerId", "")),
+        ("Registered email", c.get("email", "")),
+    ]
+    body = (f"<p>Hi {c.get('name', 'there')},</p>"
+            f"<p>Thank you for subscribing — your <b>{c.get('plan', '')}</b> plan on {BRAND} is now "
+            f"<b>active</b>. Here is your confirmation:</p>"
+            + _detail_table(rows)
+            + _benefits_ul(c.get("benefits", []))
+            + f"<p style='margin-top:16px;'>You can manage or renew your plan anytime from your account. "
+            f"{BRAND} is a product of {COMPANY}.</p>")
+    return ("Your LeadNation subscription is active ✅",
+            _shell("Subscription active 🎉", body, "Manage my subscription", f"{SITE}/account?tab=billing"))
+
+
+def _tpl_admin_payment_alert(c):
+    rows = [
+        ("Plan / item", c.get("plan", "")),
+        ("Amount", c.get("amountLabel", "")),
+        ("Gateway", (c.get("gateway", "") or "").title()),
+        ("Payment mode", (c.get("method", "") or "").upper()),
+        ("Transaction ID", c.get("txnId", "")),
+        ("Invoice", c.get("invoice", "")),
+        ("User ID", c.get("userId", "")),
+        ("Customer ID", c.get("customerId", "")),
+        ("Name", c.get("name", "")),
+        ("Email", c.get("email", "")),
+        ("Mobile", c.get("mobile", "")),
+        ("Country", c.get("country", "")),
+        ("Region", c.get("region", "")),
+        ("Active until", str(c.get("until", ""))[:10]),
+    ]
+    body = f"<p>A new payment was captured on {BRAND}:</p>" + _detail_table(rows)
+    return (f"[LeadNation] Payment received · {c.get('amountLabel', '')} · {c.get('plan', '')}",
+            _shell("New payment received 💳", body, "Open admin CMS", f"{SITE}/admin-cms"))
+
+
 # ---------------- Templates (kind -> builder(ctx) -> (subject, html)) ----------------
 def _b(name):
     return lambda c: BUILDERS[name](c)
@@ -156,13 +223,8 @@ BUILDERS = {
         "View report", c.get("reportUrl", SITE))),
 
     # ---- Payments / Subscriptions ----
-    "subscription_success": lambda c: ("Your LeadNation subscription is active", _shell(
-        "Subscription active 🎉",
-        f"<p>Hi {c.get('name','there')},</p><p>Your <b>{c.get('plan','')}</b> subscription is now active"
-        f"{(' until <b>' + str(c.get('until',''))[:10] + '</b>') if c.get('until') else ''}. "
-        f"Payment: <b>{c.get('amountLabel','')}</b>. Invoice: <b>{c.get('invoice','')}</b>.</p>"
-        f"<p>You now have unlimited report downloads. Thank you for upgrading!</p>",
-        "Manage billing", f"{SITE}/account?tab=billing")),
+    "subscription_success": _tpl_subscription_success,
+    "admin_payment_alert": _tpl_admin_payment_alert,
     "payment_failed": lambda c: ("Your LeadNation payment could not be completed", _shell(
         "Payment not completed",
         f"<p>Hi {c.get('name','there')},</p><p>We couldn't complete your recent payment for "
