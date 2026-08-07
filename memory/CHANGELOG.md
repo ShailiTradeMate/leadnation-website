@@ -1,5 +1,14 @@
 # LeadNation — Changelog
 
+## 2026-08-07 (later) — Payment emails (user + admin) + Admin CMS Payments table
+Reported: user paid ₹499 (India Razorpay) but received no email. Root cause: checkout never passed the buyer email → email send was skipped. Verified iteration_42 (8/8 backend PASS + CMS renders); emails confirmed dispatching via Resend (sent:True).
+- Unified `_finalize_paid()` in monetize.py for BOTH gateways (Razorpay IN + Stripe INTL): atomic-idempotent, activates subscription, enriches the TX, and sends TWO emails.
+- Order creation now resolves the user's profile server-side (email, name, mobile, country, uid, customerId) and stores on the TX — so receipts always have the buyer's details even if the client didn't pass them. Razorpay payment.fetch also supplies method (UPI/card/netbanking), email, contact.
+- emailer.py: rich `subscription_success` (user) email — detail table (plan, amount, period, active-until, payment mode, transaction id, invoice, user id, customer id, email), benefits list, LeadNation logo + app name + parent company 'Vametra AI Technologies Pvt. Ltd.'. New `admin_payment_alert` email to ADMIN_EMAIL with full user + payment details + transaction id.
+- Admin CMS: new **Payments** tab (`PaymentsManager.jsx`) — summary cards (paid count, revenue INR, revenue USD), search, status filters, and a table of every transaction with transaction id, customer, user/customer id, mobile, country, gateway·mode, plan, amount, status, invoice. Endpoint `GET /api/payments/admin/transactions`.
+- REDEPLOY required to activate on production. NOTE: the ₹499 payment already made on production was finalized by the OLD code (no email); only payments AFTER redeploy will send emails + log to the new CMS table.
+
+
 ## 2026-08-07 — FIX: India checkout routed to Stripe instead of Razorpay (production)
 Reported: on leadnation.app, India Pricing (₹499) opened a Stripe cs_test checkout instead of Razorpay.
 - Diagnosis (via live prod curl): production HAD the Razorpay keys (razorpayEnabled=true, /payments/razorpay/order → 200) but the stored pricing_config gateways.razorpay.enabled was stale/false in the production Mongo, so gateway_for() fell back to Stripe.
