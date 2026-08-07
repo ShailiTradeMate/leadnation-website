@@ -1,5 +1,14 @@
 # LeadNation — Changelog
 
+## 2026-08-07 — FIX: India checkout routed to Stripe instead of Razorpay (production)
+Reported: on leadnation.app, India Pricing (₹499) opened a Stripe cs_test checkout instead of Razorpay.
+- Diagnosis (via live prod curl): production HAD the Razorpay keys (razorpayEnabled=true, /payments/razorpay/order → 200) but the stored pricing_config gateways.razorpay.enabled was stale/false in the production Mongo, so gateway_for() fell back to Stripe.
+- Fix (`pricing.py gateway_for`): key-presence is now the source of truth — IN region returns 'razorpay' whenever RAZORPAY_KEY_ID is set (unless admin force_disabled), INTL → stripe. Removes dependency on the stale DB flag.
+- Verified iteration_41: preview IN→razorpay (₹499 Razorpay modal), INTL→stripe ($9). No live payment made.
+- ACTION: production must REDEPLOY to pick up this routing fix (keys already present on prod, no re-add needed).
+- Note: production STRIPE_API_KEY is a TEST/sandbox key (cs_test) — INTL live payments won't capture until swapped to a live Stripe key. India/Razorpay unaffected.
+
+
 ## 2026-08-06 (later) — Razorpay LIVE keys activated + verified
 - Added LIVE `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET`/`RAZORPAY_WEBHOOK_SECRET` to backend/.env (env-only, never logged). Restarted. gateway_for(IN) now returns 'razorpay', razorpayEnabled=true.
 - Verified (iteration_40, 13/13 backend PASS, no real payment made): live order creation with correct paise (download 2500 / monthly 49900 / annual 399900 INR), TX persisted, /verify rejects bad signature (400), /webhook rejects bad signature (400), Stripe INTL regression OK, professional services (GST/IEC) confirmed enquiry-only (excluded from Razorpay).
