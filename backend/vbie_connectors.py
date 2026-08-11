@@ -41,6 +41,43 @@ COMTRADE_PREVIEW = "https://comtradeapi.un.org/public/v1/preview/C/A/HS"
 CID_URL = "https://ised-isde.canada.ca/site/ised/sites/default/files/documents/cid-bdic-majorimportersbyhs6bycountry2022.csv"
 GLEIF_API = "https://api.gleif.org/api/v1/lei-records"
 
+# TED buyer-contact search fields (verified against api.ted.europa.eu v3).
+TED_CONTACT_FIELDS = ["organisation-email-buyer", "organisation-tel-buyer",
+                      "organisation-city-buyer", "organisation-street-buyer",
+                      "organisation-post-code-buyer", "organisation-internet-address-buyer",
+                      "touchpoint-contact-point-buyer", "organisation-contact-point-buyer"]
+
+
+def _ted_first(v) -> str:
+    if isinstance(v, list):
+        for x in v:
+            if x:
+                return str(x).strip()
+        return ""
+    return str(v).strip() if v else ""
+
+
+def ted_extract_contact(n: dict) -> dict:
+    """Pull the buyer's official contact point out of a TED notice record."""
+    street = _ted_first(n.get("organisation-street-buyer"))
+    city = _ted_first(n.get("organisation-city-buyer"))
+    postcode = _ted_first(n.get("organisation-post-code-buyer"))
+    addr = ", ".join([p for p in (street, postcode, city) if p])
+    return {
+        "email": _ted_first(n.get("organisation-email-buyer")),
+        "phone": _ted_first(n.get("organisation-tel-buyer")),
+        "website": _ted_first(n.get("organisation-internet-address-buyer")),
+        "address": addr, "city": city,
+        "contact_name": _ted_first(n.get("touchpoint-contact-point-buyer"))
+        or _ted_first(n.get("organisation-contact-point-buyer")),
+    }
+
+
+def has_contact(contact: dict) -> bool:
+    """Owner rule: a buyer is only kept/shown if it has an email OR phone."""
+    c = contact or {}
+    return bool((c.get("email") or "").strip() or (c.get("phone") or "").strip())
+
 SAM_GOV_API_KEY = os.environ.get("SAM_GOV_API_KEY", "").strip()
 COMPANIES_HOUSE_API_KEY = os.environ.get("COMPANIES_HOUSE_API_KEY", "").strip()
 COMTRADE_API_KEY = os.environ.get("COMTRADE_API_KEY", "").strip()
@@ -154,7 +191,7 @@ async def connector_ted(days: int = 365, per_page: int = 100, pages: int = 16) -
     Paginates across all mapped CPV divisions to scale toward a large corpus."""
     out = {}
     fields = ["publication-number", "organisation-name-buyer", "organisation-country-buyer",
-              "notice-title", "classification-cpv"]
+              "notice-title", "classification-cpv"] + TED_CONTACT_FIELDS
     async with httpx.AsyncClient(timeout=40, headers=UA) as cx:
         for div, (sector, products, hs) in CPV_DIVISIONS.items():
             for page in range(1, pages + 1):
@@ -176,6 +213,9 @@ async def connector_ted(days: int = 365, per_page: int = 100, pages: int = 16) -
                     iso2, cname = ISO3.get(iso3, (None, None))
                     if not name or not iso2:
                         continue
+                    contact = ted_extract_contact(n)
+                    if not has_contact(contact):
+                        continue  # owner rule: skip buyers with no email/phone
                     nk = f"ted:{iso2}:{_norm(name)}"
                     if nk in out:
                         continue
@@ -184,15 +224,16 @@ async def connector_ted(days: int = 365, per_page: int = 100, pages: int = 16) -
                     url = f"https://ted.europa.eu/en/notice/-/detail/{pub}"
                     out[nk] = {
                         "source_id": "eu_ted", "natural_key": nk, "legal_name": name,
-                        "country": iso2, "country_name": cname, "city": "",
+                        "country": iso2, "country_name": cname, "city": contact.get("city", ""),
                         "sector": sector, "products": products, "hs_families": hs,
                         "corridors": [f"IN-{iso2}"], "size": "Public-sector buyer",
-                        "website": "", "role": "procurement buyer",
+                        "website": contact.get("website", ""), "role": "procurement buyer",
+                        "contact": contact,
                         "signals": {"registry_listed": True, "sanctions_clear": True},
                         "prov": [("eu_ted", "buying evidence",
                                   f"EU procurement notice {pub}: {title[:140]}", url)],
                     }
-    logger.info("TED connector: %d unique buyers", len(out))
+    logger.info("TED connector: %d unique buyers with contact", len(out))
     return list(out.values())
 
 
@@ -889,11 +930,16 @@ async def run_ingestion(trigger: str = "manual") -> dict:
         admin_managed.add(d["_id"])
 
     upserted = screened = new_count = skipped_admin = 0
+    no_contact = 0
     ops = []
     for c in candidates.values():
         if is_sanctioned(c["legal_name"], screener):
             screened += 1
             continue
+        contact = c.get("contact") or {}
+        if not has_contact(contact):
+            no_contact += 1
+            continue  # owner rule: only store buyers that have email/phone
         geid = _stable_geid(c["natural_key"])
         if geid in admin_managed:
             skipped_admin += 1
@@ -910,6 +956,7 @@ async def run_ingestion(trigger: str = "manual") -> dict:
             "website": c.get("website", ""), "role": c.get("role", "importer"),
             "signals": c.get("signals", {}), "provenance": provenance, "trust": trust,
             "identifiers": c.get("identifiers", {}),
+            "contact": contact, "has_contact": True,
             "sample": False, "source_verified": True,
             "created_by": f"vbie-connector:{c['source_id']}", "merged_into": None,
             "updated_at": _now(), "last_verified": _iso(_now()),
@@ -946,6 +993,7 @@ async def run_ingestion(trigger: str = "manual") -> dict:
 
     run.update({"finished_at": _iso(_now()), "upserted": upserted, "new_buyers": new_count,
                 "screened_out": screened, "skipped_admin": skipped_admin,
+                "skipped_no_contact": no_contact,
                 "real_total": real, "ok": True})
     await db.vbie_ingest_runs.insert_one(dict(run))
     logger.info("VBIE ingestion done: upserted=%d new=%d screened_out=%d skipped_admin=%d real_total=%d",

@@ -2,13 +2,14 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { TrustBadge } from "@/components/BuyerCard";
-import { fetchBuyer, claimBuyer, watchBuyer, unwatchBuyer, TRUST_COLORS } from "@/lib/vbieApi";
+import { fetchBuyer, claimBuyer, watchBuyer, unwatchBuyer, revealBuyerContact, TRUST_COLORS } from "@/lib/vbieApi";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import {
   ShieldCheck, MapPin, Package, Buildings, ArrowLeft, LinkSimple,
   CheckCircle, FileText, Handshake, Sparkle, Lock, Crown, Warning,
   Gauge, Clock, Stack, Certificate, Fingerprint, BellSimple,
+  EnvelopeSimple, Phone, Globe, IdentificationCard, AddressBook,
 } from "@phosphor-icons/react";
 
 export default function BuyerProfile() {
@@ -64,11 +65,6 @@ export default function BuyerProfile() {
               <Handshake size={15} weight="bold" /> Request introduction
             </button>
             <WatchButton geid={geid} />
-            {b.website && (
-              <a href={b.website} target="_blank" rel="noreferrer" className="btn-ghost inline-flex items-center gap-1.5">
-                <LinkSimple size={15} weight="bold" /> Website
-              </a>
-            )}
           </div>
         </div>
 
@@ -84,7 +80,9 @@ export default function BuyerProfile() {
         {b.locked ? (
           <PaywallGate reason={b.lock_reason} buyer={b} />
         ) : (
-          <div className="mt-6 grid lg:grid-cols-3 gap-6">
+          <>
+            <ContactReveal geid={geid} buyerName={b.display_name} />
+            <div className="mt-6 grid lg:grid-cols-3 gap-6">
             {/* Trust breakdown */}
             <div className="lg:col-span-1 glass rounded-3xl p-6">
               <h2 className="font-display font-bold text-lg flex items-center gap-2">
@@ -124,23 +122,20 @@ export default function BuyerProfile() {
                 </div>
               </div>
 
-              {/* Evidence */}
+              {/* Evidence — generic, category-level only. No source name/link is ever shown. */}
               <div className="glass rounded-3xl p-6">
-                <h2 className="font-display font-bold text-lg flex items-center gap-2"><FileText size={18} weight="duotone" className="text-cyan-300" /> Source evidence</h2>
-                <p className="text-xs text-slate-500 mt-1">Every fact is traceable to a cited official source — the core of verifiable buyer intelligence.</p>
+                <h2 className="font-display font-bold text-lg flex items-center gap-2"><FileText size={18} weight="duotone" className="text-cyan-300" /> Verified against official records</h2>
+                <p className="text-xs text-slate-500 mt-1">LeadNation independently verifies every buyer against official government sources. We are your single, verified point of contact — no third-party links.</p>
                 <div className="mt-4 space-y-3">
-                  {(b.provenance || []).map((p, i) => (
+                  {(b.evidence || []).map((p, i) => (
                     <div key={i} data-testid={`buyer-evidence-${i}`} className="flex items-start gap-3 border border-white/5 rounded-2xl p-3.5">
                       <CheckCircle size={18} weight="fill" className="text-emerald-300 shrink-0 mt-0.5" />
                       <div className="flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-slate-100">{p.source_name}</span>
-                          <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-slate-400">{p.source_tier}</span>
-                          <span className="text-[10px] text-slate-500">→ {p.field}</span>
+                          <span className="text-sm font-semibold text-slate-100">{p.source_label}</span>
+                          <span className="text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/5 text-slate-400">{p.tier_label}</span>
+                          {p.field && <span className="text-[10px] text-slate-500">→ {p.field}</span>}
                         </div>
-                        {p.note && <div className="text-[11px] text-slate-400 mt-0.5">{p.note}</div>}
-                        {p.attribution && <div className="text-[11px] text-slate-500 mt-0.5">{p.attribution}</div>}
-                        {p.source_url && <a href={p.source_url} target="_blank" rel="noreferrer" className="text-[11px] text-cyan-300 underline break-all">{p.source_url}</a>}
                       </div>
                     </div>
                   ))}
@@ -148,6 +143,7 @@ export default function BuyerProfile() {
               </div>
             </div>
           </div>
+          </>
         )}
       </section>
 
@@ -175,6 +171,76 @@ function WatchButton({ geid }) {
       <BellSimple size={15} weight={watching ? "fill" : "bold"} className={watching ? "text-cyan-300" : ""} />
       {watching ? "Watching" : "Watch for changes"}
     </button>
+  );
+}
+
+function ContactReveal({ geid, buyerName }) {
+  const navigate = useNavigate();
+  const [contact, setContact] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const reveal = async () => {
+    setBusy(true);
+    try {
+      const res = await revealBuyerContact(geid);
+      setContact(res.contact);
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 402) {
+        toast.error("Activate a plan to reveal verified contact details");
+        navigate("/pricing");
+      } else if (status === 404) {
+        toast.error("No published contact is available for this buyer yet");
+      } else {
+        toast.error("Could not reveal contact details. Please try again.");
+      }
+    } finally { setBusy(false); }
+  };
+
+  const rows = contact ? [
+    { icon: EnvelopeSimple, label: "Email", value: contact.email, href: contact.email ? `mailto:${contact.email}` : null },
+    { icon: Phone, label: "Phone", value: contact.phone, href: contact.phone ? `tel:${contact.phone}` : null },
+    { icon: Globe, label: "Website", value: contact.website, href: contact.website ? (contact.website.startsWith("http") ? contact.website : `https://${contact.website}`) : null },
+    { icon: AddressBook, label: "Address", value: contact.address },
+    { icon: IdentificationCard, label: "Contact person", value: contact.contact_name },
+  ].filter((r) => r.value) : [];
+
+  return (
+    <div data-testid="buyer-contact-card" className="mt-6 glass-strong rounded-3xl p-6 sm:p-7 border border-cyan-400/25">
+      <div className="flex items-center gap-2 mb-1">
+        <AddressBook size={18} weight="fill" className="text-cyan-300" />
+        <h2 className="font-display font-bold text-lg">Verified contact details</h2>
+      </div>
+      <p className="text-xs text-slate-500">Sourced and verified by LeadNation from official government records. Available to active members only.</p>
+
+      {!contact ? (
+        <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3">
+          <button data-testid="reveal-contact-btn" onClick={reveal} disabled={busy}
+            className="btn-primary inline-flex items-center gap-2">
+            <Lock size={15} weight="bold" /> {busy ? "Revealing…" : "Reveal contact details"}
+          </button>
+          <span className="text-xs text-slate-500">Get {buyerName}'s verified email & phone — inside LeadNation.</span>
+        </div>
+      ) : (
+        <div className="mt-5 grid sm:grid-cols-2 gap-3">
+          {rows.map((r, i) => (
+            <div key={i} data-testid={`contact-row-${r.label.toLowerCase().replace(/\s+/g, "-")}`}
+              className="flex items-start gap-3 rounded-2xl border border-white/8 bg-white/[0.03] p-3.5">
+              <r.icon size={18} weight="duotone" className="text-cyan-300 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <div className="text-[10px] font-mono-display tracking-[0.25em] uppercase text-slate-500">{r.label}</div>
+                {r.href ? (
+                  <a href={r.href} target={r.label === "Website" ? "_blank" : undefined} rel="noreferrer"
+                    className="text-sm text-cyan-200 hover:text-white break-all transition-colors">{r.value}</a>
+                ) : (
+                  <div className="text-sm text-slate-200 break-words">{r.value}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -211,10 +277,10 @@ function IntelligencePanel({ intel, sources }) {
         ))}
       </div>
 
-      {intel.lei && (
+      {intel.lei_verified && (
         <div data-testid="intel-lei" className="mt-4 flex items-center gap-2 text-xs text-slate-400">
           <Fingerprint size={14} weight="fill" className="text-cyan-300" />
-          <span>Global identity (GLEIF LEI): <span className="font-mono-display text-slate-200">{intel.lei}</span></span>
+          <span>Globally verified company identity <span className="text-emerald-300">✓</span></span>
         </div>
       )}
 
@@ -261,7 +327,7 @@ function PaywallGate({ reason, buyer }) {
         </div>
         <div className="absolute inset-0 grid place-items-center">
           <span className="inline-flex items-center gap-2 text-xs font-mono-display uppercase tracking-widest text-cyan-300 bg-[#050816]/70 px-4 py-2 rounded-full border border-cyan-400/25">
-            <Lock size={13} weight="fill" /> Contact & source evidence locked
+            <Lock size={13} weight="fill" /> Verified contact details locked
           </span>
         </div>
       </div>
@@ -274,11 +340,11 @@ function PaywallGate({ reason, buyer }) {
         <h2 className="mt-4 font-display font-bold text-xl">Unlock the full buyer profile</h2>
         <p className="mt-2 text-sm text-slate-400">
           {needsLogin
-            ? "Sign in and activate a plan to see this buyer's trust breakdown, products, trade corridors and cited source evidence."
-            : "Activate a plan to see this buyer's full trust breakdown, products, trade corridors and cited source evidence."}
+            ? "Sign in and activate a plan to reveal this buyer's verified contact details (email & phone), trust breakdown, products and trade corridors."
+            : "Activate a plan to reveal this buyer's verified contact details (email & phone), trust breakdown, products and trade corridors."}
         </p>
         <ul className="mt-4 space-y-2 text-sm text-slate-300">
-          {["Explainable trust score breakdown", "Cited official source evidence", "Products, HS families & corridors", "Request a warm introduction"].map((t) => (
+          {["Verified contact details (email & phone)", "Explainable trust score breakdown", "Products, HS families & corridors", "Request a warm introduction"].map((t) => (
             <li key={t} className="flex items-center gap-2"><CheckCircle size={15} weight="fill" className="text-emerald-300" /> {t}</li>
           ))}
         </ul>

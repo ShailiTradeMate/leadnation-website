@@ -1,0 +1,42 @@
+{
+  "summary": "Tested LeadNation VBIE 'Verified Buyers' privacy overhaul: NEVER expose source URLs/exact registry names, gated Reveal Contact Details endpoint, and contactable-only DB. Backend: 9/11 pytest cases pass. Two FAIL — /api/buyers/{geid} (both entitled and anonymous) leaks specific registry names ('EU Tenders Electronic Daily (TED)', 'GLEIF Global LEI Index', 'trade.gov CSL') via trust.factors[].detail and also 'Global Legal Entity Identifier (GLEIF)' via evidence_sources / evidence[].source_label. All other privacy invariants pass: no provenance/website/source_url keys on payload, /evidence rows generic, /sources has no url/attribution and no TED/Companies House strings, /meta disclaimer clean, reveal gating works (anon→402, non-sub→402, subscriber vaibhav→200 with email+phone, admin firebase→200), no URLs in reveal response, spot-checked 3 random buyers all reveal successfully. Frontend: /buyers list renders (Source Transparency section is generic w.r.t. TED/Companies House/Brønnøysund but includes 'Global Legal Entity Identifier (GLEIF)' badge). Anonymous /buyers/{geid} correctly shows PaywallGate ('VERIFIED CONTACT DETAILS LOCKED'), NO Website button, NO clickable source links to ted.europa.eu/company-information/gleif — but the page text does contain 'GLEIF' (evidence chip + 'Global identity (GLEI LEI): 894500...' line).",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "GET /api/buyers/{geid}", "issue": "trust.factors[].detail leaks specific registry names: 'Best source: EU Tenders Electronic Daily (TED)', 'Matched to GLEIF Global LEI Index (canonical identity)', 'Cleared against trade.gov CSL'. Present for BOTH entitled and anonymous responses. Owner mandate: never expose exact source names.", "priority": "CRITICAL"},
+      {"endpoint": "GET /api/buyers/{geid} & /api/buyers/{geid}/evidence & /api/buyers/sources", "issue": "evidence_sources / evidence[].source_label / /sources contain 'Global Legal Entity Identifier (GLEIF)' — the substring 'GLEIF' is an explicit registry brand that should be replaced by a generic label like 'Global Company Identifier Registry'. Review request FORBIDS 'GLEIF' in /meta and by extension across all public payloads.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "BuyerProfile (anonymous)", "issue": "Displays 'Global identity (GLEI LEI): 894500KSGRUQ5YG4SP90' and evidence chip 'Global Legal Entity Identifier (GLEIF)' — leaks specific-registry name to unauthenticated visitor.", "selector": "div containing 'GLEI LEI'", "priority": "HIGH"},
+      {"component": "BuyerIntelligence SourcesSection", "issue": "Source Transparency badge renders 'Global Legal Entity Identifier (GLEIF)' — should be replaced with generic label.", "selector": "section 'Where our buyer intelligence comes from'", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "BuyerProfile (anonymous)", "issues": ["Paywall label reads 'VERIFIED CONTACT DETAILS LOCKED' in uppercase — matches intent of 'Verified contact details locked' text spec. OK."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_vbie_privacy.py",
+    "/app/test_reports/pytest/vbie_privacy.xml"
+  ],
+  "action_items": [
+    "Sanitise compute_trust() in /app/backend/vbie_core.py: replace factor `detail` strings 'Best source: <SOURCE NAME>', 'Matched to GLEIF Global LEI Index...', 'Cleared against trade.gov CSL' with generic phrasing (e.g. 'Best source: Government open-data record', 'Verified against global identity registry', 'Cleared against international sanctions list').",
+    "Update SOURCE_PUBLIC_LABEL for gleif in /app/backend/vbie_core.py to drop the 'GLEIF' brand — e.g. 'Global Company Identifier Registry' — so /sources, /evidence, evidence_sources, and BuyerProfile chips no longer emit 'GLEIF'.",
+    "Frontend /app/frontend/src/pages/BuyerProfile.jsx: hide/relabel the 'Global identity (GLEI LEI): ...' block for anonymous viewers, or drop the LEI brand ('GLEI/GLEIF') from the label — currently exposes registry brand to unauthenticated users."
+  ],
+  "critical_code_review_comments": [
+    "vbie_core.compute_trust() builds trust.factors[].detail with hard-coded specific-registry strings — this bypasses the entire public_source_labels() sanitiser and is the root cause of the payload leak in both entitled and anonymous responses.",
+    "SOURCE_PUBLIC_LABEL for gleif still contains the brand token 'GLEIF' inside parentheses — the token 'GLEIF' propagates everywhere and violates the review request's FORBIDDEN_META list.",
+    "BuyerProfile.jsx renders raw `lei` and label 'Global identity (GLEI LEI)' — the LEI is a GLEIF artefact; either mask (`•••` after first 4 chars) or gate it behind the paywall alongside contact details."
+  ],
+  "updated_files": ["/app/backend/tests/test_vbie_privacy.py", "/app/test_reports/iteration_43.json"],
+  "success_rate": {"backend": "82% (9/11)", "frontend": "70%"},
+  "test_credentials": "Subscriber: vaibhav@leadnation.app / Shiv@12345 ; Admin: admin@leadnation.app / Shiv@12345 (Firebase). Non-sub: freshly signed up testnosub_<ts>@leadtest.dev / Shiv@12345.",
+  "seed_data_creation": "Created ephemeral Firebase user testnosub_<ts>@leadtest.dev for the 402 non-subscriber path.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Sample GEID used: LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ (Domstolsverket, SE). Reveal returns email upphandling@dom.se, phone 036-155300. Admin bypass via legacy X-Admin-Token header does NOT work for POST /contact (needs Firebase Bearer) — expected per spec. Two failing pytest tests target the trust.factors leak and evidence_sources GLEIF leak — retest after main agent scrubs vbie_core.compute_trust() detail strings and SOURCE_PUBLIC_LABEL[gleif].",
+  "rca of the issue": "compute_trust() (backend/vbie_core.py lines 74-108) emits hardcoded factor.detail strings referencing exact registry brands (`EU Tenders Electronic Daily (TED)`, `GLEIF Global LEI Index`, `trade.gov CSL`). These strings are attached directly to buyer payloads (both entitled and anonymous), bypassing the public_source_labels() generic-map. Additionally, SOURCE_PUBLIC_LABEL for gleif retains the brand token 'GLEIF' inside the generic label, so even after sanitisation the string 'GLEIF' still surfaces in evidence_sources, /sources, and BuyerProfile evidence chips. Reproduction: `curl $BASE/api/buyers/<geid>` (no auth) → search response JSON for 'EU Tenders' or 'GLEIF' — both present. Mitigation: (1) replace registry-specific detail strings with generic wording in compute_trust; (2) change SOURCE_PUBLIC_LABEL['gleif'] to a token that does not include 'GLEIF'; (3) mask/hide LEI on BuyerProfile.jsx for anonymous viewers."
+}

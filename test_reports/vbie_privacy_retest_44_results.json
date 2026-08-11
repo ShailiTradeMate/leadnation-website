@@ -1,0 +1,319 @@
+{
+  "base": "https://payments-cms.preview.emergentagent.com/api",
+  "checks": [
+    {
+      "name": "GET /buyers/search returns buyers",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "count": 5
+      }
+    },
+    {
+      "name": "selected test GEID",
+      "passed": true,
+      "details": {
+        "geid": "LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ"
+      }
+    },
+    {
+      "name": "DB active buyers are contactable",
+      "passed": true,
+      "details": {
+        "no_contact_active_buyers": 0
+      }
+    },
+    {
+      "name": "DB active buyer trust factors have no forbidden registry names",
+      "passed": true,
+      "details": {
+        "trust_factor_leak_count": 0
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} anonymous status",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "locked": true
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} anonymous has no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} anonymous has no raw lei key",
+      "passed": true,
+      "details": {
+        "lei_paths": []
+      }
+    },
+    {
+      "name": "anonymous profile is locked",
+      "passed": true,
+      "details": {
+        "lock_reason": "login"
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} subscriber status",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "locked": false
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} subscriber has no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} subscriber has no raw lei key",
+      "passed": true,
+      "details": {
+        "lei_paths": []
+      }
+    },
+    {
+      "name": "subscriber profile is unlocked",
+      "passed": true,
+      "details": {
+        "locked": false
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} admin status",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "locked": false
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} admin has no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "GET /buyers/{geid} admin has no raw lei key",
+      "passed": true,
+      "details": {
+        "lei_paths": []
+      }
+    },
+    {
+      "name": "admin profile is unlocked",
+      "passed": true,
+      "details": {
+        "locked": false
+      }
+    },
+    {
+      "name": "GET /buyers/{geid}/evidence subscriber status",
+      "passed": true,
+      "details": {
+        "status": 200
+      }
+    },
+    {
+      "name": "GET /buyers/{geid}/evidence has no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "GET /buyers/{geid}/evidence has no source URL keys",
+      "passed": true,
+      "details": {
+        "source_url_key_paths": []
+      }
+    },
+    {
+      "name": "GET /buyers/sources status",
+      "passed": true,
+      "details": {
+        "status": 200
+      }
+    },
+    {
+      "name": "GET /buyers/sources has no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "GET /buyers/sources has no URL keys",
+      "passed": true,
+      "details": {
+        "source_url_key_paths": []
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact anonymous expected 402",
+      "passed": true,
+      "details": {
+        "status": 402,
+        "body": {
+          "detail": "locked:login"
+        }
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact non_subscriber expected 402",
+      "passed": true,
+      "details": {
+        "status": 402,
+        "body": {
+          "detail": "locked:plan"
+        }
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact subscriber expected 200",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "body": {
+          "keys": [
+            "geid",
+            "display_name",
+            "contact",
+            "source_note"
+          ],
+          "contact": {
+            "email": "upphandling@dom.se",
+            "phone": "036-155300",
+            "website": "",
+            "address": "Kyrkogatan 34, 555 81, Jönköping",
+            "city": "Jönköping",
+            "contact_name": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact subscriber returns email/phone",
+      "passed": true,
+      "details": {
+        "contact": {
+          "email": "upphandling@dom.se",
+          "phone": "036-155300",
+          "website": "",
+          "address": "Kyrkogatan 34, 555 81, Jönköping",
+          "city": "Jönköping",
+          "contact_name": ""
+        }
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact subscriber has no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact subscriber has no source URL/link keys",
+      "passed": true,
+      "details": {
+        "source_url_key_paths": []
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact admin expected 200",
+      "passed": true,
+      "details": {
+        "status": 200,
+        "body": {
+          "keys": [
+            "geid",
+            "display_name",
+            "contact",
+            "source_note"
+          ],
+          "contact": {
+            "email": "upphandling@dom.se",
+            "phone": "036-155300",
+            "website": "",
+            "address": "Kyrkogatan 34, 555 81, Jönköping",
+            "city": "Jönköping",
+            "contact_name": ""
+          }
+        }
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact admin returns email/phone",
+      "passed": true,
+      "details": {
+        "contact": {
+          "email": "upphandling@dom.se",
+          "phone": "036-155300",
+          "website": "",
+          "address": "Kyrkogatan 34, 555 81, Jönköping",
+          "city": "Jönköping",
+          "contact_name": ""
+        }
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact admin has no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "POST /buyers/{geid}/contact admin has no source URL/link keys",
+      "passed": true,
+      "details": {
+        "source_url_key_paths": []
+      }
+    },
+    {
+      "name": "search cards have no exact source brands/domains",
+      "passed": true,
+      "details": {
+        "hits": []
+      }
+    },
+    {
+      "name": "search cards mark buyers contactable",
+      "passed": true,
+      "details": {
+        "has_contact_values": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ]
+      }
+    }
+  ],
+  "failures": [],
+  "tokens": {
+    "subscriber": "vaibhav@leadnation.app",
+    "admin": "admin@leadnation.app",
+    "non_subscriber": "vbie-nosub-1786489329-4bmlsytbkt@leadtest.dev"
+  },
+  "mongo_probe": {
+    "available": true,
+    "no_contact_active_buyers": 0,
+    "trust_factor_leak_count": 0,
+    "selected_geid": "LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ",
+    "selected_name": "Domstolsverket",
+    "selected_has_lei": true
+  }
+}

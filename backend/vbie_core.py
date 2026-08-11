@@ -78,8 +78,9 @@ def compute_trust(provenance: list, signals: dict) -> dict:
                      for p in provenance] or [40]
     base = max(reliabilities)
     best_src = max(provenance, key=lambda p: TIER_RELIABILITY.get(_SOURCE_BY_ID.get(p.get("source_id"), {}).get("tier", "directory"), 55), default=None) if provenance else None
+    _best_label = SOURCE_PUBLIC_LABEL.get(best_src.get("source_id"), DEFAULT_PUBLIC_LABEL) if best_src else "official government sources"
     factors.append({"label": "Source reliability", "points": base,
-                    "detail": f"Best source: {_SOURCE_BY_ID.get(best_src.get('source_id'), {}).get('name', 'directory') if best_src else 'directory'}"})
+                    "detail": f"Best source: {_best_label}"})
 
     score = base * 0.7  # source reliability is 70% of the base
     if signals.get("website_verified"):
@@ -87,11 +88,11 @@ def compute_trust(provenance: list, signals: dict) -> dict:
     if signals.get("vat_validated"):
         score += 8; factors.append({"label": "Tax/VAT ID validated", "points": 8, "detail": "Government tax-ID registry match"})
     if signals.get("registry_listed"):
-        score += 6; factors.append({"label": "Company registry listed", "points": 6, "detail": "Found in official company registry"})
+        score += 6; factors.append({"label": "Company registry listed", "points": 6, "detail": "Found in official government registry"})
     if signals.get("sanctions_clear"):
-        score += 10; factors.append({"label": "Sanctions screened", "points": 10, "detail": "Cleared against trade.gov CSL"})
+        score += 10; factors.append({"label": "Sanctions screened", "points": 10, "detail": "Cleared against government sanctions & denied-party lists"})
     if signals.get("lei_verified"):
-        score += 8; factors.append({"label": "Global LEI verified", "points": 8, "detail": "Matched to GLEIF Global LEI Index (canonical identity)"})
+        score += 8; factors.append({"label": "Global identity verified", "points": 8, "detail": "Matched to the global company identity registry"})
 
     # freshness: penalise stale provenance
     caps = [p.get("captured_at") for p in provenance if p.get("captured_at")]
@@ -207,3 +208,63 @@ def evidence_source_labels(provenance: list, has_brain: bool = True) -> list:
     if has_brain and "Brain Analysis" not in labels:
         labels.append("Brain Analysis")
     return labels
+
+
+# ─────────────── source PRIVACY: never expose the exact source/URL ───────────
+# Business rule (owner-mandated): subscribers must NOT be shown the exact source
+# registry name or a link to it (that would let them bypass LeadNation and pull
+# the buyer straight from the free government site). We ONLY ever surface a
+# GENERIC, category-level provenance label (e.g. "French Government Business
+# Registry"). The real source_id/source_url stays server-side.
+SOURCE_PUBLIC_LABEL = {
+    "eu_ted": "EU Government Procurement Records (Open Data)",
+    "uk_companies_house": "UK Government Company Registry",
+    "sirene_fr": "French Government Business Registry",
+    "no_brreg": "Norwegian Government Business Registry",
+    "cz_ares": "Czech Government Business Registry",
+    "sg_acra": "Singapore Government Business Registry",
+    "fi_prh": "Finnish Government Business Registry",
+    "jp_nta": "Japanese Government Corporate Registry",
+    "dk_cvr": "Danish Government Business Registry",
+    "abr_australia": "Australian Government Business Register",
+    "sam_gov": "US Government Entity Registry",
+    "cid_canada": "Canadian Government Import Records",
+    "gleif": "Global Company Identity Registry",
+    "vies": "EU Government VAT Validation",
+    "un_comtrade": "United Nations Trade Statistics",
+    "trade_gov_csl": "Government Sanctions Screening",
+    "company_website": "Company-Published Information",
+    "trade_fair_exhibitor": "Trade Fair Exhibitor Records",
+    "epc_directory": "Export Promotion Council Directory",
+}
+DEFAULT_PUBLIC_LABEL = "Verified Government / Official Registry"
+
+
+def public_source_labels(provenance: list, has_brain: bool = True) -> list:
+    """GENERIC, category-level source labels — safe to show. Never the exact registry."""
+    labels = []
+    for p in _distinct_sources(provenance):
+        lbl = SOURCE_PUBLIC_LABEL.get(p.get("source_id"), DEFAULT_PUBLIC_LABEL)
+        if lbl not in labels:
+            labels.append(lbl)
+    if has_brain and "LeadNation Brain Analysis" not in labels:
+        labels.append("LeadNation Brain Analysis")
+    return labels
+
+
+def public_evidence(provenance: list) -> list:
+    """Evidence rows WITHOUT any source URL, exact registry name, or notice id —
+    only a generic source label + the field it verifies + reliability tier."""
+    rows, seen = [], set()
+    for p in provenance or []:
+        sid = p.get("source_id")
+        lbl = SOURCE_PUBLIC_LABEL.get(sid, DEFAULT_PUBLIC_LABEL)
+        tier = _SOURCE_BY_ID.get(sid, {}).get("tier", "directory")
+        field = p.get("field", "")
+        key = (lbl, field)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append({"source_label": lbl, "field": field, "tier": tier,
+                     "tier_label": _RELIABILITY_LABEL.get(tier, "Official")})
+    return rows

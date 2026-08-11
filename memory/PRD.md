@@ -1,5 +1,14 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## VBIE — SOURCE PRIVACY + CONTACT REVEAL (2026-06, iteration_44 PASS)
+Owner mandate: NEVER expose the data source or a source link — it let subscribers bypass LeadNation and pull buyers from the free government site. Buyers must only be kept/shown if they have contact details.
+- **Source hidden everywhere.** `_full`/`_card`/locked payloads drop `provenance`, `source_url`, `website`, exact registry names and raw `lei`. New generic, category-level labels only via `vbie_core.public_source_labels()` + `public_evidence()` (e.g. "EU Government Procurement Records (Open Data)", "French Government Business Registry", "Global Company Identity Registry"). `compute_trust()` factor `detail` strings sanitised (no TED/GLEIF/trade.gov brands); stored trust recomputed for all 15,027 buyers. `/buyers/sources` returns generic categories (no url/attribution); `/meta` disclaimer names no registries. `intelligence` sends `lei_verified` bool, never the raw LEI.
+- **Reveal Contact Details (subscriber-gated).** `POST /api/buyers/{geid}/contact` → active subscribers + admins get {email, phone, address, city, website, contact_name}; anonymous/non-subscribers → HTTP 402 (frontend routes to /pricing). Contact resolved SERVER-SIDE from source (TED buyer contact fields), cached to `entities.contact`, logged in `buyer_contact_reveals`. Frontend `ContactReveal` card on BuyerProfile; source URL never sent to browser. LEI relabelled to "Globally verified company identity ✓".
+- **Contactable-only DB.** TED connector now fetches `organisation-email/tel/street/city/internet-address-buyer`; `run_ingestion` skips buyers without email/phone (`skipped_no_contact`). One-off `vbie_contacts.enrich_and_prune()` backfilled contact for existing buyers and HARD-DELETED 1,721 uncontactable ones (admin-edited preserved). Result: **15,028 active buyers, 100% with verified contact.** Admin endpoints: `POST /api/buyers/admin/contacts/enrich-prune`, `GET /api/buyers/admin/contacts/status`.
+- New files: `vbie_contacts.py`. Test account: subscriber vaibhav@leadnation.app / Shiv@12345 (seeded active subscription). Command Center "Buyers" module is a teaser (no buyer list / no source leak) — nothing to hide there.
+
+
+
 ## BACKLOG (updated 2026-08-06)
 - **CH Phase 1 bulk import (100K)** — WIRED & ready; run ONLY on user's explicit go-signal, then QA sign-off before scaling 100K→500K→1M→5M.
 - **Razorpay subscription/reports go-live** — build complete & dormant; awaiting user's TEST keys to run end-to-end, then LIVE keys + webhook + redeploy.

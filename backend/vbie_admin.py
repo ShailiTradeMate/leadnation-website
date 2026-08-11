@@ -259,6 +259,31 @@ async def run_production_audit(auto_fix: bool = True, _: dict = Depends(require_
     return await production_audit(auto_fix=auto_fix)
 
 
+@admin_router.post("/contacts/enrich-prune")
+async def contacts_enrich_prune(background: BackgroundTasks, delete: bool = True,
+                                wait: bool = False, _: dict = Depends(require_admin)):
+    """Backfill buyer contact details from source, then hard-delete buyers that
+    still have no email/phone (owner rule). Runs in the background by default."""
+    import vbie_contacts
+    if wait:
+        return await vbie_contacts.enrich_and_prune(delete_uncontactable=delete)
+    background.add_task(vbie_contacts.enrich_and_prune, delete)
+    return {"ok": True, "status": "started",
+            "note": "Contact enrichment + prune running in background. Poll /buyers/admin/contacts/status."}
+
+
+@admin_router.get("/contacts/status")
+async def contacts_status(_: dict = Depends(require_admin)):
+    last = await db.vbie_contact_runs.find_one(sort=[("started_at", -1)])
+    with_contact = await db.entities.count_documents(
+        {"entity_type": "buyer", "status": "active", "merged_into": None, "has_contact": True})
+    total = await db.entities.count_documents(
+        {"entity_type": "buyer", "status": "active", "merged_into": None})
+    if last:
+        last.pop("_id", None)
+    return {"last_run": last, "buyers_with_contact": with_contact, "buyers_total": total}
+
+
 # ─────────────────────────── admin analytics ────────────────────────────────
 async def compute_analytics() -> dict:
     now = _now()

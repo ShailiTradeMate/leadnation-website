@@ -39,7 +39,7 @@ from firebase_auth import _bearer, verify_token
 from vbie_core import (SOURCES_SEED, _SOURCE_BY_ID, _now, _iso, _stable_geid,
                        compute_trust, _prov, TIER_RELIABILITY, TRUST_BANDS, _band,
                        compute_confidence, compute_freshness, source_reliability,
-                       evidence_source_labels)
+                       evidence_source_labels, public_source_labels, public_evidence)
 
 router = APIRouter(prefix="/buyers")
 logger = logging.getLogger(__name__)
@@ -64,18 +64,20 @@ def _card(e: dict) -> dict:
         "corridors": e.get("corridors", []), "size": e.get("size", ""), "role": e.get("role", "importer"),
         "trust": {"score": t.get("score"), "band": t.get("band"), "color": t.get("color")},
         "evidence_count": len(e.get("provenance", [])), "sample": bool(e.get("sample")),
+        "has_contact": bool(e.get("has_contact")),
     }
 
 
-SOURCE_WARNING = ("Buyer records are aggregated from public, official sources and are provided for "
-                  "discovery only. LeadNation has no consent or contact arrangement with these "
-                  "organisations. Independently verify all details and reach out to the buyer directly — "
-                  "any business you conduct is entirely at your own risk.")
+SOURCE_WARNING = ("Buyer records are aggregated from public, official government sources and are provided "
+                  "for discovery only. LeadNation independently verifies each record; we have no consent or "
+                  "contact arrangement with these organisations. Any business you conduct is entirely at your "
+                  "own risk.")
 
 
 def _primary_source(e: dict) -> str:
-    prov = e.get("provenance") or []
-    return prov[0].get("source_name") if prov else ""
+    """GENERIC provenance category only — never the exact registry / source site."""
+    labels = public_source_labels(e.get("provenance") or [], has_brain=False)
+    return labels[0] if labels else "official government sources"
 
 
 def _intelligence(e: dict) -> dict:
@@ -89,18 +91,22 @@ def _intelligence(e: dict) -> dict:
         "confidence": compute_confidence(prov, sig),
         "freshness": compute_freshness(prov, lv),
         "source_reliability": source_reliability(prov),
-        "lei": e.get("lei", ""),
+        "lei_verified": bool(e.get("lei")),
     }
 
 
 def _full(e: dict) -> dict:
+    """Full profile for entitled subscribers. NEVER includes the exact source name,
+    source URL, or the raw provenance notes (which carry notice ids). Only generic,
+    category-level evidence labels — so users cannot bypass LeadNation to the source.
+    Contact details are NOT included here; they come from the gated reveal endpoint."""
     return {
         **_card(e),
-        "website": e.get("website", ""), "signals": e.get("signals", {}),
-        "trust": e.get("trust", {}), "provenance": e.get("provenance", []),
+        "signals": e.get("signals", {}),
+        "trust": e.get("trust", {}),
+        "evidence": public_evidence(e.get("provenance", [])),
         "intelligence": _intelligence(e),
-        "evidence_sources": evidence_source_labels(e.get("provenance", [])),
-        "lei": e.get("lei", ""),
+        "evidence_sources": public_source_labels(e.get("provenance", [])),
         "created_at": _iso(e.get("created_at")), "updated_at": _iso(e.get("updated_at")),
         "last_verified": e.get("last_verified") or _iso(e.get("updated_at")),
         "admin_edited": bool(e.get("admin_edited")),
@@ -124,11 +130,11 @@ async def buyers_meta():
         "sectors": sorted([s for s in sectors if s]),
         "corridors": sorted([c for c in corridors if c]),
         "trust_bands": ["Verified", "Trusted", "Emerging", "Unverified"],
-        "disclaimer": "Buyer records are ingested from official, licence-cleared sources "
-                      "(EU TED procurement, Canadian Importers Database, UK Companies House, "
-                      "GLEIF Global LEI Index) with trade.gov sanctions screening and cited "
-                      "provenance. LeadNation shows verified intelligence, never raw datasets. "
-                      "Full buyer profiles require sign-in and an active plan.",
+        "disclaimer": "Buyer records are ingested from official, licence-cleared government "
+                      "sources and independently verified by LeadNation, with sanctions screening "
+                      "and contact resolution. LeadNation shows verified intelligence, never raw "
+                      "datasets or source links. Full buyer profiles and contact details require "
+                      "sign-in and an active plan.",
     }
 
 
@@ -159,21 +165,27 @@ async def _entitlement(authorization: Optional[str]) -> dict:
 
 @router.get("/sources")
 async def buyers_sources():
-    """Public transparency: the official sources VBIE ingests, with attribution."""
+    """Public transparency: the CATEGORIES of official sources VBIE ingests. We
+    deliberately do NOT publish exact registry names or links — LeadNation is the
+    verified intermediary, and every record is independently verified by us."""
+    from vbie_core import SOURCE_PUBLIC_LABEL, DEFAULT_PUBLIC_LABEL
     srcs = await db.vbie_sources.find({}).to_list(100)
     meta = await db.vbie_sanctions_meta.find_one({"_id": "csl"})
     last = await db.vbie_ingest_runs.find_one(sort=[("started_at", -1)])
+    seen, cats = set(), []
+    for s in srcs:
+        lbl = SOURCE_PUBLIC_LABEL.get(s["_id"], DEFAULT_PUBLIC_LABEL)
+        if lbl in seen or s.get("category") in ("sanctions",):
+            continue
+        seen.add(lbl)
+        cats.append({"name": lbl, "tier": s.get("tier"), "category": s.get("category")})
     return {
-        "sources": [{"id": s["_id"], "name": s.get("name"), "tier": s.get("tier"),
-                     "category": s.get("category"), "url": s.get("url"),
-                     "attribution": s.get("attribution")} for s in srcs],
-        "sanctions_screening": {"provider": "trade.gov Consolidated Screening List",
+        "sources": cats,
+        "sanctions_screening": {"provider": "Government sanctions & denied-party screening",
                                 "denied_parties": (meta or {}).get("count"),
                                 "refreshed_at": (meta or {}).get("refreshed_at")},
         "last_ingestion": {"finished_at": (last or {}).get("finished_at"),
-                           "upserted": (last or {}).get("upserted"),
-                           "screened_out": (last or {}).get("screened_out"),
-                           "by_source": (last or {}).get("sources")} if last else None,
+                           "upserted": (last or {}).get("upserted")} if last else None,
     }
 
 
@@ -265,17 +277,58 @@ async def get_buyer(geid: str, authorization: Optional[str] = Header(default=Non
     ent = await _entitlement(authorization)
     if ent["entitled"]:
         return {**_full(e), "locked": False}
-    # Locked teaser: identity + INTELLIGENCE summary + evidence source labels only.
-    # Detailed cited evidence (notes/URLs) and contact stay gated behind a plan.
+    # Locked teaser: identity + INTELLIGENCE summary + GENERIC source labels only.
+    # Detailed evidence and contact stay gated behind an active plan.
     return {**_card(e), "locked": True, "lock_reason": ent["reason"],
-            "trust": e.get("trust", {}), "website": "", "provenance": [], "signals": {},
+            "trust": e.get("trust", {}), "signals": {},
             "intelligence": _intelligence(e),
-            "evidence_sources": evidence_source_labels(e.get("provenance", [])),
-            "lei": e.get("lei", ""),
+            "evidence_sources": public_source_labels(e.get("provenance", [])),
             "status": e.get("status", "active"),
             "last_verified": e.get("last_verified") or _iso(e.get("updated_at")),
             "admin_edited": bool(e.get("admin_edited")),
             "primary_source": _primary_source(e), "source_warning": SOURCE_WARNING}
+
+
+class _ContactReveal(BaseModel):
+    pass
+
+
+@router.post("/{geid}/contact")
+async def reveal_buyer_contact(geid: str, authorization: Optional[str] = Header(default=None)):
+    """Reveal the buyer's official contact point (email / phone / address) to an
+    ACTIVE SUBSCRIBER only. Resolves + caches contact server-side and returns ONLY
+    the contact fields — the source URL is never exposed."""
+    e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
+    if not e or e.get("admin_deleted") or e.get("status") == "deleted":
+        raise HTTPException(status_code=404, detail="Buyer not found")
+    hops = 0
+    while e.get("merged_into") and hops < 10:
+        nxt = await db.entities.find_one({"_id": e["merged_into"]})
+        if not nxt:
+            break
+        e, hops = nxt, hops + 1
+    ent = await _entitlement(authorization)
+    if not ent["entitled"]:
+        raise HTTPException(status_code=402, detail=f"locked:{ent['reason']}")
+
+    import vbie_contacts
+    contact = await vbie_contacts.resolve_buyer_contact(e)
+    if not (contact and (contact.get("email") or contact.get("phone"))):
+        raise HTTPException(status_code=404, detail="No published contact for this buyer")
+
+    # Analytics: log the reveal (who saw which buyer's contact).
+    try:
+        uid = (verify_token(_bearer(authorization)) or {}).get("uid") if authorization else None
+        await db.buyer_contact_reveals.insert_one(
+            {"geid": geid, "uid": uid, "at": _iso(_now())})
+    except Exception:
+        pass
+
+    return {"geid": geid, "display_name": e.get("display_name"),
+            "contact": {"email": contact.get("email", ""), "phone": contact.get("phone", ""),
+                        "website": contact.get("website", ""), "address": contact.get("address", ""),
+                        "city": contact.get("city", ""), "contact_name": contact.get("contact_name", "")},
+            "source_note": "Sourced and verified by LeadNation from official government records."}
 
 
 @router.get("/{geid}/evidence")
@@ -286,7 +339,8 @@ async def get_buyer_evidence(geid: str, authorization: Optional[str] = Header(de
     ent = await _entitlement(authorization)
     if not ent["entitled"]:
         raise HTTPException(status_code=402, detail=f"locked:{ent['reason']}")
-    return {"geid": geid, "evidence": e.get("provenance", []), "trust": e.get("trust", {})}
+    return {"geid": geid, "evidence": public_evidence(e.get("provenance", [])),
+            "trust": e.get("trust", {})}
 
 
 class BuyerClaim(BaseModel):

@@ -9,6 +9,10 @@ export const fetchBuyerEvidence = (geid) => api.get(`/buyers/${geid}/evidence`).
 export const claimBuyer = (geid, payload) => api.post(`/buyers/${geid}/claim`, payload).then((r) => r.data);
 export const fetchBuyerSources = () => api.get("/buyers/sources").then((r) => r.data);
 
+// Reveal contact — active subscribers only. Contact resolved & cached server-side;
+// the source URL is never exposed to the client.
+export const revealBuyerContact = (geid) => api.post(`/buyers/${geid}/contact`).then((r) => r.data);
+
 // Watchlist — subscribers get change alerts on buyers they watch.
 export const watchBuyer = (geid) => api.post(`/buyers/${geid}/watch`).then((r) => r.data);
 export const unwatchBuyer = (geid) => api.delete(`/buyers/${geid}/watch`).then((r) => r.data);

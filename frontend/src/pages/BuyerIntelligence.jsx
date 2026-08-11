@@ -137,16 +137,16 @@ function SourcesSection() {
         </div>
         <h2 className="font-display font-extrabold text-2xl sm:text-3xl mt-3">Where our buyer intelligence comes from</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-          Every buyer is aggregated from official, public government sources and screened against denied-party
-          lists before it appears. We publish our sources for full transparency.
+          Every buyer is aggregated from official, public government sources, independently verified by
+          LeadNation and screened against denied-party lists before it appears. LeadNation is your single,
+          verified point of contact.
         </p>
         <div className="mt-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {src.sources.filter((s) => s.attribution).slice(0, 12).map((s) => (
-            <div key={s.id} className="glass rounded-2xl px-4 py-3">
+          {src.sources.slice(0, 12).map((s, i) => (
+            <div key={i} className="glass rounded-2xl px-4 py-3">
               <div className="text-sm font-semibold flex items-center gap-2">{s.name}
                 <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-white/5 text-slate-400">{s.tier}</span>
               </div>
-              <div className="text-[11px] text-slate-500 mt-1">{s.attribution}</div>
             </div>
           ))}
         </div>

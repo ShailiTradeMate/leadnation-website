@@ -1,0 +1,37 @@
+{
+  "verdict": "fixed",
+  "user_reported_bug": "In the 'Verified Buyers' tab and Command Center, subscribed users could see the data source / source link and go directly to the government source, bypassing LeadNation. Owner wants: (1) NEVER expose the exact data source name or a source link anywhere; only generic category labels (e.g. 'EU Government Procurement Records', 'French Government Business Registry'). (2) A 'Reveal Contact Details' action that shows buyer email/phone in-app to ACTIVE SUBSCRIBERS only (resolved server-side). (3) Only buyers with contact are kept.",
+  "summary": "No relevant testing skill found. Focused retest verified the VBIE source/privacy and reveal flow end to end on preview: backend buyer profile/evidence/sources/search/contact APIs no longer expose exact registry brands/source URLs or raw lei in /buyers/{geid}; DB probe found 0 active uncontactable buyers and 0 active buyer trust-factor registry-name leaks; anonymous UI profile/list/source transparency show generic labels only and no source links.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/vbie_privacy_retest_44.py",
+    "/app/tests/vbie_privacy_ui_retest_44.py",
+    "/app/test_reports/vbie_privacy_retest_44_results.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/tests/vbie_privacy_retest_44.py",
+    "/app/tests/vbie_privacy_ui_retest_44.py",
+    "/app/test_reports/vbie_privacy_retest_44_results.json",
+    "/app/test_reports/bug_verification_44.json",
+    "/app/test_reports/iteration_44.json"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "seed_data_creation": "Created ephemeral Firebase non-subscriber accounts only for the 402 plan-gating path; no app database seed data was created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Focused plan: verify prior iteration_43 failures (trust.factors exact-registry leak, GLEIF/evidence/source leak, raw lei leak), reveal gating, anonymous UI lock state, list/source transparency. Test GEID: LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ (Domstolsverket, has LEI and prior GLEIF/TED risk). Subscriber/admin reveal returned email upphandling@dom.se and phone 036-155300. Anonymous/non-subscriber reveal returned 402. Browser retest passed for /buyers/{geid} and /buyers.",
+  "rca_of_the_issue": "Retest confirms the prior RCA was addressed: trust.factors details are now generic, SOURCE_PUBLIC_LABEL['gleif'] returns 'Global Company Identity Registry', /buyers/{geid} exposes intelligence.lei_verified instead of a raw lei key, and BuyerProfile renders 'Globally verified company identity ✓' with no GLEIF/GLEI LEI/raw LEI text. No mocked APIs were used."
+}

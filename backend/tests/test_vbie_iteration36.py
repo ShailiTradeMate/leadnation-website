@@ -3,7 +3,7 @@ did NOT change any observable behavior. Covers full VBIE surface + brain buyer p
 import os
 import requests
 
-BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://buyer-intel-10.preview.emergentagent.com").rstrip("/")
+BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://payments-cms.preview.emergentagent.com").rstrip("/")
 API = f"{BASE}/api"
 ADMIN = {"X-Admin-Token": "leadnation-admin-2026"}
 
