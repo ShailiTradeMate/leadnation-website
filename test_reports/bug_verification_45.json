@@ -1,0 +1,40 @@
+{
+  "verdict": "fixed",
+  "user_reported_bug": "I am logged in as vaibhav@leadnation.app / Shiv@12345, an ACTIVE subscribed user. On a Verified Buyer profile I clicked 'Reveal contact details' but no email/phone was fetched/shown. This happened for a buyer (AK EXPORTS LTD, a UK Companies House record). I should be able to see contact details as a subscriber. Fix for ALL buyers. Also: do NOT delete any buyer that already has contact details \u2014 verify before deleting.",
+  "summary": "No relevant testing skill found. Focused backend/API verification passed: active subscriber vaibhav@leadnation.app successfully revealed non-empty email and/or phone for all 20 buyers returned by /api/buyers/search; anonymous and fresh non-subscriber reveal attempts returned 402; /api/buyers/meta total 15028 matched Mongo active buyers and all 15028 active buyers had actual email/phone; AK EXPORTS LTD no longer appears as an active buyer.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/tests/verify_vbie_contact_reveal_iteration45.py",
+    "/app/test_reports/vbie_contact_reveal_iteration45_results.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "No relevant testing skill found during mandatory skill lookup for subscriber reveal contact buyers Firebase token.",
+    "vbie.py reveal_buyer_contact gates through _entitlement and returns 402 for non-entitled users; active subscriber token returned 200 with contact objects during testing.",
+    "vbie_connectors.run_ingestion verifies has_contact(contact) before upsert and increments skipped_no_contact for candidates without email/phone, so future connector ingestion does not insert no-contact buyers.",
+    "vbie_contacts.enrich_and_prune safety review: before deletion it flags buyers with email/phone as has_contact=true; the delete_many predicate requires BOTH contact.email empty/missing AND contact.phone empty/missing, and excludes admin_edited/admin_deleted, so a buyer with a non-empty email or phone cannot match the prune delete query."
+  ],
+  "updated_files": [
+    "/app/tests/verify_vbie_contact_reveal_iteration45.py",
+    "/app/test_reports/vbie_contact_reveal_iteration45_results.json",
+    "/app/test_reports/bug_verification_45.json",
+    "/app/test_reports/iteration_45.json"
+  ],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "N/A - backend-only verification requested; frontend reveal code was inspected"
+  },
+  "seed_data_creation": "Created one fresh Firebase non-subscriber user for the 402 gating check, then deleted it via Firebase accounts:delete. No buyer/database seed data was created.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Preview backend base https://payments-cms.preview.emergentagent.com/api was tested with a minted Firebase ID token for vaibhav@leadnation.app. Result artifact shows 20/20 active subscriber reveal attempts returned 200 and contact present; anonymous and fresh non-subscriber returned 402; Mongo active buyer corpus was 15028/15028 with actual email or phone.",
+  "rca_of_the_issue": "Original production symptom was consistent with stale no-contact buyer records being exposed; current preview data and code now enforce contact presence for active buyers and subscriber reveal returns cached/resolved contact instead of empty data."
+}

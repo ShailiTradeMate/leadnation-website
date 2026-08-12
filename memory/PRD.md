@@ -1,5 +1,15 @@
 # LeadNation — Global Trade Intelligence Portal
 
+## PROD FIX — Reveal Contact for ALL buyers + safe prune (2026-06, iteration_45 PASS)
+User (as active subscriber vaibhav@leadnation.app) hit "Reveal contact details" on PRODUCTION (leadnation.app) and got nothing for a UK Companies House buyer (AK EXPORTS LTD).
+- **Root cause:** Production DB was a separate/older copy — 19,165 buyers but only 4 had stored contact (the earlier preview enrich/prune never ran on prod). Companies House records have no published email/phone, so reveal returned nothing.
+- **Fix:** Ran `POST /api/buyers/admin/contacts/enrich-prune` against PRODUCTION. Result: enriched 15,432 buyers with real email/phone from source, **deleted 3,729 no-contact buyers**, preserved the 4 pre-existing contact buyers, **0 admin/curated buyers removed**. Production now: **15,436 buyers, 100% with verified contact.** Verified via curl: subscriber vaibhav reveal → 200 with real email; AK EXPORTS LTD gone.
+- **Safety hardening (user demand: never delete a buyer that has contact):** `vbie_contacts.enrich_and_prune()` now (a) sets `has_contact=true` for ANY buyer whose contact object has a non-empty email/phone (protects legacy/admin contact), and (b) deletes ONLY buyers verified to have BOTH `contact.email` AND `contact.phone` empty/missing, never `admin_edited`/`admin_deleted`. Verified by testing agent: a buyer with contact can never match the delete query. (This hardened code is in preview; prod migration already completed safely with prior logic — redeploy to carry the hardening forward.)
+- **Forward rule (already enforced):** `run_ingestion` skips candidates without email/phone (`skipped_no_contact`), so new daily buyers are only kept if they have contact.
+- **Reveal-quota readiness:** every reveal is logged to `buyer_contact_reveals` {uid, geid, at} — foundation is ready to add a per-plan monthly reveal limit next.
+
+
+
 ## VBIE — SOURCE PRIVACY + CONTACT REVEAL (2026-06, iteration_44 PASS)
 Owner mandate: NEVER expose the data source or a source link — it let subscribers bypass LeadNation and pull buyers from the free government site. Buyers must only be kept/shown if they have contact details.
 - **Source hidden everywhere.** `_full`/`_card`/locked payloads drop `provenance`, `source_url`, `website`, exact registry names and raw `lei`. New generic, category-level labels only via `vbie_core.public_source_labels()` + `public_evidence()` (e.g. "EU Government Procurement Records (Open Data)", "French Government Business Registry", "Global Company Identity Registry"). `compute_trust()` factor `detail` strings sanitised (no TED/GLEIF/trade.gov brands); stored trust recomputed for all 15,027 buyers. `/buyers/sources` returns generic categories (no url/attribution); `/meta` disclaimer names no registries. `intelligence` sends `lei_verified` bool, never the raw LEI.

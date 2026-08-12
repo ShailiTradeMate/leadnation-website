@@ -128,15 +128,26 @@ async def enrich_and_prune(delete_uncontactable: bool = True) -> dict:
             res = await db.entities.bulk_write(ops, ordered=False)
             stats["enriched"] += (res.modified_count or 0) + (res.upserted_count or 0)
 
-    # 3) Prune buyers that STILL have no contact (never touch admin-managed ones).
+    # 3) Prune buyers that STILL have no contact — VERIFIED against the actual
+    #    contact object (email/phone), never just a flag. Admin-managed buyers and
+    #    any buyer that genuinely has contact are ALWAYS kept.
     if delete_uncontactable:
+        # 3a) SAFETY: protect every buyer that actually has an email/phone by
+        #     ensuring its has_contact flag is set (covers legacy/admin-added contact).
+        protect = await db.entities.update_many(
+            {"entity_type": "buyer", "has_contact": {"$ne": True},
+             "$or": [{"contact.email": {"$nin": ["", None]}},
+                     {"contact.phone": {"$nin": ["", None]}}]},
+            {"$set": {"has_contact": True}})
+        stats["protected_flag_fixed"] = protect.modified_count
+        # 3b) Delete ONLY buyers verified to have NO email AND NO phone.
+        no_email = {"$or": [{"contact.email": {"$in": ["", None]}}, {"contact.email": {"$exists": False}}]}
+        no_phone = {"$or": [{"contact.phone": {"$in": ["", None]}}, {"contact.phone": {"$exists": False}}]}
         prune_q = {"entity_type": "buyer",
-                   "$and": [{"$or": [{"has_contact": {"$ne": True}}, {"contact": {"$exists": False}}]},
-                            {"admin_edited": {"$ne": True}}, {"admin_deleted": {"$ne": True}}]}
-        # count admin-managed we intentionally keep
+                   "admin_edited": {"$ne": True}, "admin_deleted": {"$ne": True},
+                   "$and": [no_email, no_phone]}
         stats["kept_no_contact_admin"] = await db.entities.count_documents(
-            {"entity_type": "buyer", "admin_edited": True,
-             "$or": [{"has_contact": {"$ne": True}}, {"contact": {"$exists": False}}]})
+            {"entity_type": "buyer", "admin_edited": True, "$and": [no_email, no_phone]})
         res = await db.entities.delete_many(prune_q)
         stats["deleted"] = res.deleted_count
 

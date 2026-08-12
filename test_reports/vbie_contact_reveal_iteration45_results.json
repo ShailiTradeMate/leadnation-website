@@ -1,0 +1,75 @@
+{
+  "api_base": "https://payments-cms.preview.emergentagent.com/api",
+  "checks": {
+    "meta_status": 200,
+    "meta_total": 15028,
+    "search_status": 200,
+    "search_count": 20,
+    "cards_without_has_contact": [],
+    "ak_exports_exact_active_matches": 0,
+    "mongo_active_total": 15028,
+    "mongo_active_with_actual_email_or_phone": 15028,
+    "mongo_no_contact_examples": [],
+    "active_uid": "SPKdrHke3NNjWTpYwxHUzwLnZbO2",
+    "anonymous_reveal_status": 402,
+    "fresh_non_subscriber_uid": "iwimYJ88jpRXQsv6ZBoiRMFSWRh1",
+    "non_subscriber_reveal_status": 402,
+    "non_subscriber_reveal_body": {
+      "detail": "locked:plan"
+    },
+    "active_reveal_attempts": 20,
+    "bad_active_reveals": []
+  },
+  "sample_reveals": [
+    {
+      "geid": "LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ",
+      "name": "Domstolsverket",
+      "has_email": true,
+      "has_phone": true
+    },
+    {
+      "geid": "LN-buyer-0VQFF144JHMFYNR7NF00RTYB6F",
+      "name": "Stichting Koninklijke Auris Groep",
+      "has_email": true,
+      "has_phone": true
+    },
+    {
+      "geid": "LN-buyer-06EXSMS44JMJMGQ1JA7EJ3V0W7",
+      "name": "Gmina Miasto Marki",
+      "has_email": true,
+      "has_phone": true
+    },
+    {
+      "geid": "LN-buyer-WYSH9Q2CD2JXEFDEF354KE8QST",
+      "name": "K\u00f8benhavns Kommune",
+      "has_email": true,
+      "has_phone": true
+    },
+    {
+      "geid": "LN-buyer-HC83FQ4CGPM2Y6YYHY4X5YGHZ4",
+      "name": "Provincie Overijssel",
+      "has_email": true,
+      "has_phone": true
+    },
+    {
+      "geid": "LN-buyer-MMSK3PRHWNGTFMRCQPKC47NND4",
+      "name": "B\u00c6RUM KOMMUNE",
+      "has_email": true,
+      "has_phone": true
+    },
+    {
+      "geid": "LN-buyer-XDHCRT98TZFTJ9JVXJRG39ZF0E",
+      "name": "Stadt Wien, Unternehmung Wiener Gesundheitsverbund \u2013 Generaldirektion \u2013 Serviceeinheit Einkauf",
+      "has_email": true,
+      "has_phone": true
+    },
+    {
+      "geid": "LN-buyer-N79R96Y8232YW98NZW983V8XV2",
+      "name": "Landeshauptstadt D\u00fcsseldorf, Der Oberb\u00fcrgermeister, Amt f\u00fcr Recht, Vergabe und Versicherungen, Zentrale Vergabestelle",
+      "has_email": true,
+      "has_phone": true
+    }
+  ],
+  "failures": [],
+  "passed": true
+}
