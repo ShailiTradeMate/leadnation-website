@@ -68,6 +68,16 @@ export default function CorridorDetail() {
         description={`${c.tagline}. Complete playbook: export process, import process, customs information, documents, duties and opportunities.`}
         path={`/corridors/${c.slug}`}
         keywords={`${c.from} to ${c.to} trade, ${c.from} ${c.to} export, ${c.from} ${c.to} duty, ${c.from} ${c.to} customs`}
+        breadcrumbs={[
+          { name: "Home", path: "/" },
+          { name: "Trade Corridors", path: "/corridors" },
+          { name: `${c.from} → ${c.to}`, path: `/corridors/${c.slug}` },
+        ]}
+        faqs={[
+          { q: `What are the customs requirements for exporting from ${c.from} to ${c.to}?`, a: `${c.tagline} LeadNation provides the full ${c.from}→${c.to} playbook: export process, import clearance, required documents and applicable duties.` },
+          { q: `What documents are needed for the ${c.from} to ${c.to} trade route?`, a: `LeadNation lists the exact document set, customs procedures and duty rates for shipments from ${c.from} to ${c.to}, with a downloadable checklist.` },
+          { q: `Are there duty savings or FTAs on the ${c.from}–${c.to} corridor?`, a: `${c.tagline} Check LeadNation's Duty Calculator for FTA-based savings and preferential tariffs on the ${c.from}–${c.to} corridor.` },
+        ]}
       />
 
       <section className="relative pt-16 pb-10">

@@ -8,6 +8,8 @@ const DEFAULT_IMAGE = `${SITE}/og-default.png`;
 /**
  * SEO — dynamic per-page title/description/OG/Twitter/canonical + JSON-LD.
  * `schema` accepts a single object OR an array of schema objects (all rendered).
+ * `breadcrumbs` = [{ name, path }] → auto BreadcrumbList schema.
+ * `faqs` = [{ q, a }] → auto FAQPage schema (rich results + AI/GEO citations).
  */
 export default function SEO({
   title,
@@ -16,12 +18,16 @@ export default function SEO({
   image = DEFAULT_IMAGE,
   type = "website",
   schema,
+  breadcrumbs,
+  faqs,
   keywords,
   noindex = false,
 }) {
   const fullTitle = title?.includes(BRAND_NAME) ? title : `${title} · ${BRAND_NAME}`;
   const url = `${SITE}${path}`;
   const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
+  if (breadcrumbs?.length) schemas.push(breadcrumbSchema(breadcrumbs));
+  if (faqs?.length) schemas.push(faqSchema(faqs));
   return (
     <Helmet prioritizeSeoTags>
       <title>{fullTitle}</title>

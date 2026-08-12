@@ -45,6 +45,16 @@ export default function CountryProfile() {
         description={`${data.tagline}. Discover ${data.name}'s major imports, exports, customs duties, FTA opportunities, trade events and compliance — updated for ${new Date().getFullYear()}.`}
         path={`/countries/${data.slug}`}
         keywords={`${data.name} trade, ${data.name} imports, ${data.name} exports, ${data.name} customs duty, ${data.name} compliance, ${data.name} expo, international trade ${data.name}`}
+        breadcrumbs={[
+          { name: "Home", path: "/" },
+          { name: "Countries", path: "/countries" },
+          { name: data.name, path: `/countries/${data.slug}` },
+        ]}
+        faqs={[
+          { q: `What does ${data.name} mainly import and export?`, a: `${data.tagline} LeadNation tracks ${data.name}'s major imports, exports, customs duties and FTA opportunities, updated for ${new Date().getFullYear()}.` },
+          { q: `How do I calculate customs duty and landed cost for ${data.name}?`, a: `Use LeadNation's free Duty Calculator and Landed Cost Calculator to get HS-code-based duties, taxes and total landed cost for shipments to and from ${data.name} across all Incoterms.` },
+          { q: `How can I find verified buyers in ${data.name}?`, a: `LeadNation's Verified Buyer Intelligence surfaces real, contact-verified buyers sourced from official government trade records for ${data.name} and 195+ countries.` },
+        ]}
         schema={{
           "@context": "https://schema.org",
           "@type": "Country",
