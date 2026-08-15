@@ -119,7 +119,10 @@ def _full(e: dict) -> dict:
 @router.get("/meta")
 async def buyers_meta():
     """Facets for the buyer-search filters + totals."""
-    q = {"entity_type": "buyer", "status": "active", "merged_into": None}
+    # Owner rule: only surface buyers that HAVE contact (email/phone). This is the
+    # definitive user-facing guarantee — a no-contact buyer is never shown, no matter
+    # how it entered the DB.
+    q = {"entity_type": "buyer", "status": "active", "merged_into": None, "has_contact": True}
     total = await db.entities.count_documents(q)
     countries = await db.entities.distinct("country_name", q)
     sectors = await db.entities.distinct("sector", q)
