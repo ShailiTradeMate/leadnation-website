@@ -81,6 +81,13 @@ GAPS: (1) NOT registered with Google Search Console / Bing Webmaster Tools (user
 - P1 USER: backlinks (trade directories, EPCs/FIEO, Product Hunt, G2/Capterra, Crunchbase), LinkedIn + Instagram posting cadence (accounts already in schema sameAs), PR/outreach.
 - P2: hreflang/localization for priority markets, AggregateRating/Review schema, WhatsApp share buttons, newsletter/email capture, YouTube/short-form.
 
+## Analytics wiring — PENDING user IDs (2026-06)
+- [ ] GA4 Measurement ID (G-XXXX) — user to provide
+- [ ] Google Tag Manager ID (GTM-XXXX) — user to provide
+- [ ] Microsoft Clarity ID — user to provide
+- Wire all three into components/Analytics.jsx via frontend .env once received.
+- DONE: GSC (Domain/DNS verified) + Bing (imported) + sitemap submitted; dynamic sitemap + IndexNow live; all 68 URLs pushed to IndexNow. LinkedIn + Instagram pages created by user.
+
 ## Product backlog (2026-06)
 - [ ] Reveal Limits (per-plan monthly cap; `buyer_contact_reveals` logging ready)
 - [ ] My Revealed Buyers (saved list per subscriber)
