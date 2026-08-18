@@ -172,6 +172,8 @@ export default function Nav({ active = "/" }) {
             <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
               <MagnifyingGlass size={16} weight="bold" />
             </Link>
+            {isAuthed && <Link to="/verify" data-testid="nav-get-verified"
+              className="hidden md:inline-flex items-center gap-1.5 btn-ghost !py-2 !px-4 text-[12px] !border-emerald-400/30 !text-emerald-200 hover:!bg-emerald-500/10"><ShieldCheck size={15} weight="fill" /> Get Verified</Link>}
             <button data-testid="nav-cta-account" aria-label={isAuthed ? "My account" : "Sign in"} onClick={() => { navigate(isAuthed ? "/account" : "/login"); }}
               className="hidden sm:inline-flex btn-ghost !py-2 !px-4 text-[12px] gap-1.5"><UserCircle size={15} weight="duotone" />{isAuthed ? "Account" : "Sign in"}</button>
             <button data-testid="nav-cta-download" onClick={() => { trackEvent("download_app_click", { location: "nav" }); navigate("/#download"); }}

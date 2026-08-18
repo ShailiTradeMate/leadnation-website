@@ -1,0 +1,35 @@
+{
+  "summary": "Frontend E2E test of the Verified Buyer wizard (/verify) on the preview host. Login (email+password Firebase) works and lands on /account. Header verified-badge (verified-badge-pending), account-verify-cta card, and nav-get-verified link all render. Stepper shows all 4 steps (verify-step-0..3). Step 0 shows completion % and role dropdown; Step 1 selfie upload triggers LLM analysis and produces a verify-check-result card (real face image PASSED once as 'Selfie looks good', another run flagged 'possible AI-generated' – both are valid AI outcomes); preview image renders. Step 2 doc upload analyzes and renders result. Step 3 submit is correctly gated (disabled without consent, enabled with consent+selfie) and returned a valid 'Submitted for review' result (verify-step-result + verified-badge-needs_review). Logged-out /verify correctly redirects to /login?next=/verify. Only real issue: DO shared-identity backend intermittently returns 502 on PUT /api/verify/profile, blocking Step 0 → Step 1 progression with the error 'Could not save profile. Please check the fields and retry.'",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PUT /api/verify/profile", "issue": "Intermittent 502 Bad Gateway when the website backend proxies to DO PUT /v1/profiles/{uid}. Observed 4 back-to-back 502s during one run, then success in another run. When it fails, the user is completely stuck at Step 0 of the /verify wizard. Only workaround from the UI is to pick the empty 'Select role…' option so buildPatch produces an empty patch and the PUT is skipped – not discoverable by users.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "VerifyBuyer Step 0", "issue": "Save & continue always fires PUT /verify/profile even when nothing changed (role already set, profile 100% complete). When DO is degraded, this makes progression impossible. Suggest: if patch is empty OR role is unchanged and completion.missing is empty, skip the PUT and just setStep(1). Also add retry-on-5xx (or clearer error/retry CTA) when the proxy returns 502.", "selector": "[data-testid=verify-save-profile]", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Cookie consent banner", "issues": ["The fixed 'LeadNation uses cookies…' banner overlaps the bottom of the wizard card (covers part of Step 0 'Save & continue' button and Step 1 preview) until dismissed. Not a blocker (force=True click works) but real users on small viewports may be obstructed."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_48.json"],
+  "action_items": [
+    "Investigate/harden DO PUT /v1/profiles/{uid} 502 handling in /app/backend/verify.py::_do_put_profile (retry on 5xx, longer timeout, or fall back to local role write); and/or in /app/frontend/src/pages/VerifyBuyer.jsx::saveProfile, skip updateVerifyProfile when the patch is effectively empty (role unchanged + no missing fields) so users aren't blocked by upstream instability.",
+    "Consider showing a Retry button next to the 'Could not save profile' error banner (currently the user must reselect role and click Save again)."
+  ],
+  "critical_code_review_comments": [
+    "VerifyBuyer.jsx saveProfile always sends role in patch even when unchanged — this couples every step advance to DO write availability. Compare role to state?.profile?.role before adding to patch.",
+    "verify.py::_do_put_profile returns {ok:false,status:5xx} but update_profile raises 502 to the client without retry; add 2-3 retries with jitter for 502/503/504 from DO."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (frontend-only run; 502 observed on PUT /api/verify/profile)", "frontend": "95% (all UI steps + gating + result rendering + auth guard work; only blocked by upstream 502)"},
+  "test_credentials": "vaibhav@leadnation.app / Shiv@12345 (Firebase email/password login works in preview).",
+  "seed_data_creation": "Downloaded /tmp/real_selfie.jpg (Unsplash portrait) for selfie step; reused /tmp/doc.jpg for document step.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All verify-* data-testids exist and work. The wizard end-to-end succeeded once with outcome 'Submitted for review' (verified-badge-needs_review) which is a valid decision. If PUT /api/verify/profile keeps 502-ing, workaround: select empty role option on Step 0 to skip the PUT (buildPatch will produce {}). After main agent adds retry/no-op-skip, re-run steps 0→3 with vaibhav@leadnation.app to confirm progression without the workaround. Note: the /verify submit call flips backend state; account may show verified-badge-needs_review or verified-badge-pending depending on last submission.",
+  "rca of the issue": "PUT /api/verify/profile is a thin proxy to https://leadnation-lfrhs.ondigitalocean.app/api/v1/profiles/{uid}. During testing that upstream returned 502 for multiple consecutive requests (visible in backend logs and network panel). The FastAPI handler re-raises 502 without retry, and the React wizard treats any non-2xx as a fatal 'Could not save profile' error, blocking Step 0. Reproduction: log in as vaibhav → /verify → pick any role → click Save & continue while DO backend is degraded → see red error banner and stay on Step 0. Mitigation: (a) retry 5xx from DO 2-3 times with jitter in _do_put_profile; (b) in VerifyBuyer.saveProfile, skip the PUT when the computed patch equals the current profile (role unchanged, no missing fields)."
+}

@@ -13,7 +13,7 @@ from monetize import pay_router, dl_router, acc_router, hook_router
 from pricing import pricing_router, get_config as get_pricing_config
 import events, adapters, simulation, decision_engine
 import storage, news_engine, event_listings, vbie
-import vbie_connectors, vbie_admin, seo
+import vbie_connectors, vbie_admin, seo, verify
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -26,7 +26,7 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="LeadNation — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo, verify):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)

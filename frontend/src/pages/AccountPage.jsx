@@ -6,10 +6,12 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { trackEvent, EVENTS } from "@/lib/analytics";
 import CommandCenterReport from "@/components/CommandCenterReport";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { getVerifyState } from "@/lib/verifyApi";
 import {
   User, IdentificationCard, Envelope, Phone, MapPin, Briefcase, DownloadSimple,
   Stack, UsersThree, Receipt, Gift, CrownSimple, CircleNotch, Plus, Trash, Copy,
-  CheckCircle, PencilSimple, SignOut, Lightning,
+  CheckCircle, PencilSimple, SignOut, Lightning, ShieldCheck, ArrowRight,
 } from "@phosphor-icons/react";
 
 const SESSION_KEY = "ln_trade_session";
@@ -35,6 +37,8 @@ export default function AccountPage() {
   const [payMsg, setPayMsg] = useState("");
   const [printReport, setPrintReport] = useState(null);
   const [pricing, setPricing] = useState(null);
+  const [vstate, setVstate] = useState(null);
+  useEffect(() => { if (isAuthed) getVerifyState().then(setVstate).catch(() => {}); }, [isAuthed]);
 
   const region = (data?.profile?.country || "").toUpperCase() === "IN" ? "IN" : "INTL";
   useEffect(() => { api.get("/pricing/config", { params: { region } }).then(({ data }) => setPricing(data)).catch(() => {}); }, [region]);
@@ -99,6 +103,7 @@ export default function AccountPage() {
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="font-display font-extrabold text-2xl">{name}</h1>
               {p.role && <span className="text-xs px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-200 inline-flex items-center gap-1" data-testid="account-role-badge"><Briefcase size={12} /> {p.role}</span>}
+              {vstate && <VerifiedBadge status={vstate.verification_status} />}
               <span className="text-lg" title={p.country} data-testid="account-flag">{flag(p.country)} <span className="text-sm text-slate-300">{p.country || "Set country"}</span></span>
             </div>
             <div className="flex items-center gap-4 mt-2 text-sm text-slate-300 flex-wrap">
@@ -133,6 +138,19 @@ export default function AccountPage() {
       </div>
 
       {payMsg && <div className="glass rounded-2xl px-4 py-3 mt-4 text-sm text-cyan-200 flex items-center gap-2" data-testid="account-pay-msg"><Lightning size={15} className="text-cyan-300" /> {payMsg}</div>}
+
+      {/* Verified Buyer CTA */}
+      {vstate && vstate.verification_status !== "verified" && (
+        <Link to="/verify" data-testid="account-verify-cta"
+          className="mt-4 flex items-center gap-4 glass-strong rounded-2xl p-4 sm:p-5 border border-emerald-400/20 hover:border-emerald-400/40 transition-colors group">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500 to-emerald-500 grid place-items-center shrink-0"><ShieldCheck size={22} weight="fill" /></div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm">{vstate.verification_status === "needs_review" ? "Verification in review" : "Become a Verified Buyer"}</div>
+            <div className="text-xs text-slate-400">{vstate.verification_status === "needs_review" ? "Our team is reviewing your submission." : `Complete your profile (${vstate?.completion?.percent ?? 0}%) + verify identity to earn the Verified Member badge.`}</div>
+          </div>
+          <ArrowRight size={18} className="text-emerald-300 group-hover:translate-x-0.5 transition-transform" />
+        </Link>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto mt-6 mb-4">

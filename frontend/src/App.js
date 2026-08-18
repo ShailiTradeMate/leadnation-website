@@ -62,6 +62,7 @@ const Login = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Login 
 const Signup = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.Signup })));
 const ForgotPassword = lazy(() => import("@/pages/Auth").then((m) => ({ default: m.ForgotPassword })));
 const AccountPage = lazy(() => import("@/pages/AccountPage"));
+const VerifyBuyer = lazy(() => import("@/pages/VerifyBuyer"));
 
 const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
 const AdminLogin = lazy(() => import("@/pages/admin/AdminDashboard").then((m) => ({ default: m.AdminLogin })));
@@ -165,6 +166,7 @@ function App() {
                   <Route path="/signup" element={<Signup />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/account" element={<AccountPage />} />
+                  <Route path="/verify" element={<VerifyBuyer />} />
 
                   {/* Admin */}
                   <Route path="/admin-login" element={<AdminLogin />} />
