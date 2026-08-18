@@ -203,7 +203,7 @@ async def search_buyers(
     page: int = 1,
     limit: int = 24,
 ):
-    query: dict = {"entity_type": "buyer", "status": "active", "merged_into": None}
+    query: dict = {"entity_type": "buyer", "status": "active", "merged_into": None, "has_contact": True}
     if country:
         query["$or"] = [{"country": country}, {"country_name": country}]
     if sector:

@@ -617,8 +617,14 @@ async def upsert_candidates(rows: list, source_label: str = "bulk") -> int:
             {"entity_type": "buyer", "$or": [{"admin_edited": True}, {"admin_deleted": True}]}, {"_id": 1}):
         admin_managed.add(d["_id"])
     ops = []
+    skipped_no_contact = 0
     for c in rows:
         if is_sanctioned(c["legal_name"], screener):
+            continue
+        # ENGINE RULE (all ingestion paths): only buyers WITH contact (email/phone) are stored.
+        contact = c.get("contact") or {}
+        if not has_contact(contact):
+            skipped_no_contact += 1
             continue
         geid = _stable_geid(c["natural_key"])
         if geid in admin_managed:
@@ -635,6 +641,7 @@ async def upsert_candidates(rows: list, source_label: str = "bulk") -> int:
             "signals": c.get("signals", {}), "provenance": provenance,
             "trust": compute_trust(provenance, c.get("signals", {})),
             "identifiers": c.get("identifiers", {}), "sample": False, "source_verified": True,
+            "contact": contact, "has_contact": True,
             "created_by": f"vbie-bulk:{c['source_id']}", "merged_into": None,
             "updated_at": _now(), "last_verified": _iso(_now()),
         }
@@ -643,7 +650,7 @@ async def upsert_candidates(rows: list, source_label: str = "bulk") -> int:
     for i in range(0, len(ops), 500):
         res = await db.entities.bulk_write(ops[i:i + 500], ordered=False)
         n += (res.upserted_count or 0)
-    logger.info("Bulk upsert (%s): %d rows, %d new", source_label, len(ops), n)
+    logger.info("Bulk upsert (%s): %d rows, %d new, %d skipped (no contact)", source_label, len(ops), n, skipped_no_contact)
     return n
 
 

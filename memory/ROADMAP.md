@@ -88,6 +88,8 @@ GAPS: (1) NOT registered with Google Search Console / Bing Webmaster Tools (user
 - All three read from frontend .env (REACT_APP_GA4_ID / REACT_APP_GTM_ID / REACT_APP_CLARITY_ID); load only after analytics cookie consent. Needs redeploy to activate on production; if Realtime shows no data, add the 3 vars in Emergent deploy env settings.
 
 ## Product backlog (2026-06)
+- [x] **has_contact ENGINE (fixed 2nd recurrence, iteration_47)** — enforced on bulk loader (upsert_candidates) + daily ingestion + search/meta guard. Prod re-pruned: 17,738 buyers, 100% contact. NEEDS REDEPLOY for code guards.
+- [ ] **Importers-as-Verified-Buyers (NEW, planning)** — registered importer users auto-listed as verified buyers (company, address, official email, contact, country, products, scorecard, verified badge). Requires: new onboarding fields (company name, company address, products, importer/exporter role) + OPT-IN consent to be listed + user->buyer sync engine. User offered to create 5 test profiles.
 - [ ] Reveal Limits (per-plan monthly cap; `buyer_contact_reveals` logging ready)
 - [ ] My Revealed Buyers (saved list per subscriber)
 - [ ] Redeploy Safeguard (verify-before-delete prune hardening → prod)

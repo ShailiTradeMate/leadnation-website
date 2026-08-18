@@ -1,0 +1,24 @@
+{
+  "summary": "Iteration 47 — Verified VBIE has_contact engine fix on preview. Search guard, meta guard, subscriber reveal (incl. GB), anonymous/non-subscriber 402, and static bulk-loader code audit all PASS. 11/11 tests green (one initial transient Cloudflare 502 cleared on retry).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vbie_has_contact_guard.py",
+    "/app/test_reports/pytest/iteration_47.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "vbie_connectors.upsert_candidates (L620-644): now increments skipped_no_contact and forces has_contact:True on every inserted row — bulk loader can no longer inject no-contact buyers.",
+    "vbie_connectors.run_ingestion (L947-966): same enforcement — skips rows without email/phone and sets has_contact:True.",
+    "vbie.py search (L206) and meta (L125) queries both include has_contact:True → users can NEVER see a no-contact buyer.",
+    "No regressions detected. vbie_connectors.py at 1041 lines — approaching the 700-line advisory threshold; consider splitting connectors into per-source modules in a future refactor (non-blocking)."
+  ],
+  "updated_files": ["/app/backend/tests/test_vbie_has_contact_guard.py"],
+  "success_rate": {"backend": "100%", "frontend": "N/A (backend-only request)"},
+  "test_credentials": "Active subscriber vaibhav@leadnation.app / Shiv@12345 (Firebase). Fresh non-subs created dynamically via Firebase signUp.",
+  "seed_data_creation": "None (used existing preview buyers via /api/buyers/search).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Regression file /app/backend/tests/test_vbie_has_contact_guard.py covers: search guard (5 param combos incl. GB + pagination), meta total==has_contact_true, 15+GB spot-check reveal, anon 402/401/403, fresh-signup 402, and a static-source audit of upsert_candidates + run_ingestion. Re-run any time bulk loaders change.",
+  "rca of the issue": "Root cause: Companies House bulk loader (vbie_connectors.upsert_candidates) previously wrote buyer docs without checking contact fields → ~900 UK buyers with no email/phone were inserted → subscriber reveal returned empty contact. Fix (verified this iteration): (1) upsert_candidates now calls has_contact(contact) and skips rows without email/phone, counting them as skipped_no_contact, and stamps has_contact:True on every insert; (2) run_ingestion enforces the same rule; (3) /api/buyers/search and /api/buyers/meta both filter has_contact:True so leaked docs (if any) are never surfaced. Verified all 20 spot-checked buyers (incl. GB) reveal a non-empty email or phone as vaibhav."
+}
