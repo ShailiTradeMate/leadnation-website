@@ -90,6 +90,9 @@ GAPS: (1) NOT registered with Google Search Console / Bing Webmaster Tools (user
 ## Product backlog (2026-06)
 - [x] **has_contact ENGINE (fixed 2nd recurrence, iteration_47)** — enforced on bulk loader (upsert_candidates) + daily ingestion + search/meta guard. Prod re-pruned: 17,738 buyers, 100% contact. NEEDS REDEPLOY for code guards.
 - [ ] **Importers-as-Verified-Buyers (NEW, planning)** — registered importer users auto-listed as verified buyers (company, address, official email, contact, country, products, scorecard, verified badge). Requires: new onboarding fields (company name, company address, products, importer/exporter role) + OPT-IN consent to be listed + user->buyer sync engine. User offered to create 5 test profiles.
+- [x] **Verified Buyer flow (reference, iteration_48)** — /verify wizard (profile→selfie AI→document OCR→decision) + admin queue + live DO GEID link. BUILT; awaiting DO backend to mirror upload/selfie/review endpoints (see APP_TEAM_PROMPT_VERIFY_PHASE2.md).
+- [ ] **Reviewer Console (NEW backlog)** — admin screen in the CMS to see + approve/reject the human-review queue (`/api/verify/admin/queue` + `/decide`) with the selfie + document shown side by side.
+- [ ] **Verified Buyer Boost (NEW backlog)** — show a "Verified Member" badge + priority ranking on verified buyers across the /buyers listings.
 - [ ] Reveal Limits (per-plan monthly cap; `buyer_contact_reveals` logging ready)
 - [ ] My Revealed Buyers (saved list per subscriber)
 - [ ] Redeploy Safeguard (verify-before-delete prune hardening → prod)
