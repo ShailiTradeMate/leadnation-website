@@ -17,13 +17,13 @@ export function ServicesHub() {
   return (
     <>
       <SEO title="Business Services · RCMC, GST, IEC, Export Consulting"
-        description="LeadNation Business Services — RCMC, GST, IEC and company registration handled by certified CAs. Plus export, import, compliance, market-entry and sourcing consulting."
+        description="Vametra AI Business Services — RCMC, GST, IEC and company registration handled by certified CAs. Plus export, import, compliance, market-entry and sourcing consulting."
         path="/services"
         keywords="RCMC registration, GST registration, IEC code, company registration, export consulting, import consulting, market entry"
       />
       <PageHero testIdPrefix="services" label="Business Services"
         title="Compliance, registrations, consulting. Done."
-        sub="A LeadNation CA handles your government documentation and a certified consultant guides your global trade — end to end."
+        sub="A Vametra AI CA handles your government documentation and a certified consultant guides your global trade — end to end."
       />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 space-y-10">
@@ -92,7 +92,7 @@ export default function ServiceDetail() {
         description={s.overview.substring(0, 160)}
         path={`/services/${s.slug}`}
         keywords={`${s.name}, ${s.category}, ${s.name} India, ${s.name} online`}
-        schema={{ "@context": "https://schema.org", "@type": "Service", name: s.name, description: s.overview, provider: { "@type": "Organization", name: "LeadNation" } }}
+        schema={{ "@context": "https://schema.org", "@type": "Service", name: s.name, description: s.overview, provider: { "@type": "Organization", name: "Vametra AI" } }}
       />
 
       <section className="relative pt-16 pb-10">
@@ -149,7 +149,7 @@ export default function ServiceDetail() {
           <div className="glass-strong rounded-3xl p-6 sticky top-24">
             <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Get started</div>
             <h2 className="font-display font-bold text-2xl mt-1">Request {s.name}</h2>
-            <p className="text-xs text-slate-400 mt-1">A LeadNation CA will reach you within 4 working hours.</p>
+            <p className="text-xs text-slate-400 mt-1">A Vametra AI CA will reach you within 4 working hours.</p>
             {!submitted ? (
               <form onSubmit={submit} className="mt-5 space-y-3">
                 {[
@@ -172,7 +172,7 @@ export default function ServiceDetail() {
             ) : (
               <div data-testid="service-success" className="mt-5 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30">
                 <div className="text-emerald-300 font-display font-bold">Request received ✓</div>
-                <p className="text-sm text-slate-300 mt-2">A LeadNation CA will reach out shortly. You can also reach us instantly on WhatsApp.</p>
+                <p className="text-sm text-slate-300 mt-2">A Vametra AI CA will reach out shortly. You can also reach us instantly on WhatsApp.</p>
                 <a href="https://wa.me/918237161088" target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Chat on WhatsApp</a>
               </div>
             )}

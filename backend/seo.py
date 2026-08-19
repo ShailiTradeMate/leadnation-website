@@ -14,7 +14,7 @@ from fastapi.responses import Response, PlainTextResponse
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["seo"])
 
-SITE = "https://leadnation.app"
+SITE = "https://vametra.com"
 
 # IndexNow key (must match the file served at /{key}.txt on the frontend).
 INDEXNOW_KEY = "a3f5c9e21b7d4680b2f1c8e4d9a70f36"
@@ -117,7 +117,7 @@ async def indexnow_submit(urls: list) -> dict:
     urls = [u if u.startswith("http") else f"{SITE}{u}" for u in (urls or []) if u]
     if not urls:
         return {"ok": False, "reason": "no urls"}
-    payload = {"host": "leadnation.app", "key": INDEXNOW_KEY,
+    payload = {"host": "vametra.com", "key": INDEXNOW_KEY,
                "keyLocation": f"{SITE}/{INDEXNOW_KEY}.txt", "urlList": urls[:10000]}
     try:
         async with httpx.AsyncClient(timeout=20) as cx:

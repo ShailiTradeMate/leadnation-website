@@ -173,12 +173,12 @@ export default function VerifyBuyer() {
   if (status === "verified" && step !== 4) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-14 text-center">
-        <SEO title="Verified Member · LeadNation" description="Your LeadNation Verified Buyer status." path="/verify" />
+        <SEO title="Verified Member · Vametra AI" description="Your Vametra AI Verified Buyer status." path="/verify" />
         <div className="w-16 h-16 mx-auto rounded-full bg-emerald-500/20 border border-emerald-400/40 grid place-items-center mb-4">
           <SealCheck size={30} className="text-emerald-300" weight="fill" />
         </div>
         <h1 className="font-display font-extrabold text-3xl">You're a Verified Member</h1>
-        <p className="text-slate-300 mt-2">Your identity and business are verified. You're now listed as a Verified Buyer on LeadNation.</p>
+        <p className="text-slate-300 mt-2">Your identity and business are verified. You're now listed as a Verified Buyer on Vametra AI.</p>
         <div className="mt-4 flex justify-center"><VerifiedBadge status="verified" size="lg" /></div>
         {state?.geid && <p className="text-xs text-slate-500 mt-3">Buyer ID: <span className="font-mono text-slate-300">{state.geid}</span></p>}
         <div className="mt-6 flex gap-3 justify-center">
@@ -191,7 +191,7 @@ export default function VerifyBuyer() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
-      <SEO title="Get Verified · LeadNation" description="Complete your profile and become a Verified Buyer on LeadNation." path="/verify" />
+      <SEO title="Get Verified · Vametra AI" description="Complete your profile and become a Verified Buyer on Vametra AI." path="/verify" />
 
       <div className="text-center mb-6">
         <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 grid place-items-center mb-3">
@@ -354,7 +354,7 @@ export default function VerifyBuyer() {
             <label className="flex items-start gap-3 mt-4 text-sm cursor-pointer" data-testid="verify-consent-label">
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
                 className="mt-1 accent-cyan-400" data-testid="verify-consent-checkbox" />
-              <span className="text-slate-300">I confirm the information is accurate and I consent to being listed as a Verified Buyer on LeadNation, with my business contact details shown to active subscribers.</span>
+              <span className="text-slate-300">I confirm the information is accurate and I consent to being listed as a Verified Buyer on Vametra AI, with my business contact details shown to active subscribers.</span>
             </label>
 
             <div className="flex gap-3 mt-6">

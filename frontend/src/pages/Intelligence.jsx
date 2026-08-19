@@ -20,7 +20,7 @@ export default function Intelligence() {
     <>
       <SEO
         title="Trade Intelligence Hub · Gold, Silver, Oil, Currency Rates & Trends"
-        description="Live commodity prices, FX rates, and global market trends — curated for global traders, exporters and importers by LeadNation."
+        description="Live commodity prices, FX rates, and global market trends — curated for global traders, exporters and importers by Vametra AI."
         path="/intelligence"
         keywords="gold price today, silver price, oil price brent wti, USD INR rate, USD AED rate, trade trends, global market intelligence"
       />

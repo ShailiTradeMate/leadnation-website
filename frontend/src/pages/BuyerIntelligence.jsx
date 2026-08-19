@@ -32,7 +32,7 @@ export default function BuyerIntelligence() {
     <>
       <SEO
         title="Verified Buyer Intelligence · Find Global Importers with Evidence"
-        description="Discover verified global buyers by market, sector and HS code — each with an explainable trust score and cited source evidence. Powered by the LeadNation Verified Buyer Intelligence Engine."
+        description="Discover verified global buyers by market, sector and HS code — each with an explainable trust score and cited source evidence. Powered by the Vametra AI Verified Buyer Intelligence Engine."
         path="/buyers"
         keywords="verified buyers, global importers database, buyer intelligence, trade leads with evidence, export buyer discovery"
       />
@@ -138,7 +138,7 @@ function SourcesSection() {
         <h2 className="font-display font-extrabold text-2xl sm:text-3xl mt-3">Where our buyer intelligence comes from</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-2xl">
           Every buyer is aggregated from official, public government sources, independently verified by
-          LeadNation and screened against denied-party lists before it appears. LeadNation is your single,
+          Vametra AI and screened against denied-party lists before it appears. Vametra AI is your single,
           verified point of contact.
         </p>
         <div className="mt-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -160,7 +160,7 @@ function SourcesSection() {
           )}
         </div>
         <p className="mt-4 text-[11px] text-amber-200/70 leading-relaxed">
-          Note: LeadNation has no contact arrangement with these organisations. Always verify buyer details
+          Note: Vametra AI has no contact arrangement with these organisations. Always verify buyer details
           directly and treat any business you conduct with them as at your own risk.
         </p>
       </div>

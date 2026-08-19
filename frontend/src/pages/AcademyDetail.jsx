@@ -34,7 +34,7 @@ export default function AcademyDetail() {
 
   return (
     <>
-      <SEO title={`${course.title} · LeadNation Academy`} description={course.summary} path={`/academy/${slug}`}
+      <SEO title={`${course.title} · Vametra AI Academy`} description={course.summary} path={`/academy/${slug}`}
         keywords={`${course.title}, learn ${course.title}, trade course, ${course.level} export training`} />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-28 pb-8">

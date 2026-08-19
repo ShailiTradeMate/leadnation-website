@@ -72,9 +72,9 @@ export default function ProductDetail() {
           { name: p.name, path: `/products/${p.slug}` },
         ]}
         faqs={[
-          { q: `What is the HSN code for exporting ${p.name}?`, a: `${p.name} falls under category ${p.category}. LeadNation lists the exact HSN code, GST, RoDTEP and drawback for ${p.name}.` },
+          { q: `What is the HSN code for exporting ${p.name}?`, a: `${p.name} falls under category ${p.category}. Vametra AI lists the exact HSN code, GST, RoDTEP and drawback for ${p.name}.` },
           { q: `Which countries are the best export markets for ${p.name}?`, a: `${p.overview.substring(0, 200)}` },
-          { q: `How do I find verified buyers for ${p.name}?`, a: `Use LeadNation's Verified Buyer Intelligence to reach contact-verified importers of ${p.name} sourced from official government trade records across 195+ countries.` },
+          { q: `How do I find verified buyers for ${p.name}?`, a: `Use Vametra AI's Verified Buyer Intelligence to reach contact-verified importers of ${p.name} sourced from official government trade records across 195+ countries.` },
         ]}
         schema={{ "@context": "https://schema.org", "@type": "Product", name: p.name, category: p.category, description: p.overview }}
       />

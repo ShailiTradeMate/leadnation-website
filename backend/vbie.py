@@ -1,6 +1,6 @@
 """VBIE — Verified Buyer Intelligence Engine.
 
-This module is the FIRST production slice of the LeadNation Global Trade
+This module is the FIRST production slice of the Vametra AI Global Trade
 Intelligence Server. Per the locked architecture, the Website/Command Center
 backend is the SINGLE owner of the buyer/supplier entity graph — the mobile app
 and any future client consume these same `/api/*` endpoints. The DigitalOcean
@@ -69,7 +69,7 @@ def _card(e: dict) -> dict:
 
 
 SOURCE_WARNING = ("Buyer records are aggregated from public, official government sources and are provided "
-                  "for discovery only. LeadNation independently verifies each record; we have no consent or "
+                  "for discovery only. Vametra AI independently verifies each record; we have no consent or "
                   "contact arrangement with these organisations. Any business you conduct is entirely at your "
                   "own risk.")
 
@@ -98,7 +98,7 @@ def _intelligence(e: dict) -> dict:
 def _full(e: dict) -> dict:
     """Full profile for entitled subscribers. NEVER includes the exact source name,
     source URL, or the raw provenance notes (which carry notice ids). Only generic,
-    category-level evidence labels — so users cannot bypass LeadNation to the source.
+    category-level evidence labels — so users cannot bypass Vametra AI to the source.
     Contact details are NOT included here; they come from the gated reveal endpoint."""
     return {
         **_card(e),
@@ -134,8 +134,8 @@ async def buyers_meta():
         "corridors": sorted([c for c in corridors if c]),
         "trust_bands": ["Verified", "Trusted", "Emerging", "Unverified"],
         "disclaimer": "Buyer records are ingested from official, licence-cleared government "
-                      "sources and independently verified by LeadNation, with sanctions screening "
-                      "and contact resolution. LeadNation shows verified intelligence, never raw "
+                      "sources and independently verified by Vametra AI, with sanctions screening "
+                      "and contact resolution. Vametra AI shows verified intelligence, never raw "
                       "datasets or source links. Full buyer profiles and contact details require "
                       "sign-in and an active plan.",
     }
@@ -169,7 +169,7 @@ async def _entitlement(authorization: Optional[str]) -> dict:
 @router.get("/sources")
 async def buyers_sources():
     """Public transparency: the CATEGORIES of official sources VBIE ingests. We
-    deliberately do NOT publish exact registry names or links — LeadNation is the
+    deliberately do NOT publish exact registry names or links — Vametra AI is the
     verified intermediary, and every record is independently verified by us."""
     from vbie_core import SOURCE_PUBLIC_LABEL, DEFAULT_PUBLIC_LABEL
     srcs = await db.vbie_sources.find({}).to_list(100)
@@ -244,7 +244,7 @@ async def match_company(name: str = Query(""), country: str = Query(""),
                         number: str = Query("")):
     """Networking hook: given a company (name / country / registration number), return
     candidate VBIE buyers (by GEID) the member can CLAIM — so a verified buyer joining
-    LeadNation is auto-linked to their existing intelligence record."""
+    Vametra AI is auto-linked to their existing intelligence record."""
     import re as _re
     q = {"entity_type": "buyer", "admin_deleted": {"$ne": True}, "status": {"$ne": "deleted"}}
     ors = []
@@ -331,7 +331,7 @@ async def reveal_buyer_contact(geid: str, authorization: Optional[str] = Header(
             "contact": {"email": contact.get("email", ""), "phone": contact.get("phone", ""),
                         "website": contact.get("website", ""), "address": contact.get("address", ""),
                         "city": contact.get("city", ""), "contact_name": contact.get("contact_name", "")},
-            "source_note": "Sourced and verified by LeadNation from official government records."}
+            "source_note": "Sourced and verified by Vametra AI from official government records."}
 
 
 @router.get("/{geid}/evidence")

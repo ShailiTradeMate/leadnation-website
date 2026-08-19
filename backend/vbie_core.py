@@ -138,7 +138,7 @@ def is_source_approved(source_id: str) -> bool:
 
 
 # ──────────── intelligence layer: confidence · freshness · reliability ───────
-# LeadNation exposes INTELLIGENCE, never raw copied datasets. These deterministic
+# Vametra AI exposes INTELLIGENCE, never raw copied datasets. These deterministic
 # summaries sit on top of provenance so subscribers see Trust / Confidence /
 # Freshness / Source Reliability + cited evidence labels.
 _RELIABILITY_LABEL = {"gov": "Government", "official": "Official", "licensed": "Licensed", "directory": "Directory"}
@@ -212,7 +212,7 @@ def evidence_source_labels(provenance: list, has_brain: bool = True) -> list:
 
 # ─────────────── source PRIVACY: never expose the exact source/URL ───────────
 # Business rule (owner-mandated): subscribers must NOT be shown the exact source
-# registry name or a link to it (that would let them bypass LeadNation and pull
+# registry name or a link to it (that would let them bypass Vametra AI and pull
 # the buyer straight from the free government site). We ONLY ever surface a
 # GENERIC, category-level provenance label (e.g. "French Government Business
 # Registry"). The real source_id/source_url stays server-side.
@@ -247,8 +247,8 @@ def public_source_labels(provenance: list, has_brain: bool = True) -> list:
         lbl = SOURCE_PUBLIC_LABEL.get(p.get("source_id"), DEFAULT_PUBLIC_LABEL)
         if lbl not in labels:
             labels.append(lbl)
-    if has_brain and "LeadNation Brain Analysis" not in labels:
-        labels.append("LeadNation Brain Analysis")
+    if has_brain and "Vametra AI Brain Analysis" not in labels:
+        labels.append("Vametra AI Brain Analysis")
     return labels
 
 

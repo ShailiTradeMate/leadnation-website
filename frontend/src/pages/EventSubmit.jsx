@@ -107,7 +107,7 @@ export default function EventSubmit() {
         const { data: order } = await api.post(`/events/${eid}/pay/razorpay/order`);
         const rzp = new window.Razorpay({
           key: order.keyId, amount: order.amount, currency: order.currency,
-          name: "LeadNation", description: `Event listing: ${order.eventName}`, order_id: order.orderId,
+          name: "Vametra AI", description: `Event listing: ${order.eventName}`, order_id: order.orderId,
           prefill: { name: order.contact?.name, email: order.contact?.email, contact: order.contact?.phone },
           theme: { color: "#00C2FF" },
           handler: async (r) => {
@@ -135,7 +135,7 @@ export default function EventSubmit() {
   if (paid) {
     return (
       <>
-        <SEO title="Event submitted · LeadNation" path="/expo/submit" />
+        <SEO title="Event submitted · Vametra AI" path="/expo/submit" />
         <section className="max-w-2xl mx-auto px-6 pt-32 pb-24 text-center">
           <CheckCircle size={56} weight="duotone" className="text-emerald-300 mx-auto" />
           <h1 className="font-display font-extrabold text-3xl mt-4">Payment received 🎉</h1>
@@ -151,11 +151,11 @@ export default function EventSubmit() {
 
   return (
     <>
-      <SEO title="List Your Trade Event · LeadNation Expo Engine" path="/expo/submit"
-        description="Publish your trade fair, expo or business event to LeadNation's global network of exporters, importers and buyers — on web and mobile app." />
+      <SEO title="List Your Trade Event · Vametra AI Expo Engine" path="/expo/submit"
+        description="Publish your trade fair, expo or business event to Vametra AI's global network of exporters, importers and buyers — on web and mobile app." />
       <PageHero testIdPrefix="event-submit" label="Expo & Events Engine"
         title="List your event to the world."
-        sub="Reach exporters, importers and buyers across the LeadNation web + app network. Submit your event, pay the listing fee, and go live after a quick admin review." />
+        sub="Reach exporters, importers and buyers across the Vametra AI web + app network. Submit your event, pay the listing fee, and go live after a quick admin review." />
 
       <section className="max-w-4xl mx-auto px-6 sm:px-10 pb-24">
         {/* Price banner */}

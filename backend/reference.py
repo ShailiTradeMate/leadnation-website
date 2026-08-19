@@ -67,7 +67,7 @@ class SearchQuery(BaseModel):
 # ---------- Routes ----------
 @router.get("/")
 async def root():
-    return {"message": "LeadNation API · Global Trade Intelligence", "version": "1.0.0"}
+    return {"message": "Vametra AI API · Global Trade Intelligence", "version": "1.0.0"}
 
 
 @router.post("/status", response_model=StatusCheck)

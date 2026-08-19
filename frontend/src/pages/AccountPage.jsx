@@ -90,7 +90,7 @@ export default function AccountPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-      <SEO title="My Account · LeadNation" description="Your LeadNation trade profile, downloads, projects and invoices." path="/account" />
+      <SEO title="My Account · Vametra AI" description="Your Vametra AI trade profile, downloads, projects and invoices." path="/account" />
       {printReport && <CommandCenterReport project={printReport.project} compliance={printReport.compliance} />}
 
       {/* Profile header (Instagram-style) */}
@@ -214,7 +214,7 @@ export default function AccountPage() {
         {tab === "referral" && (
           <div className="glass rounded-3xl p-6" data-testid="account-referral">
             <h3 className="font-display font-bold text-lg">Refer &amp; earn</h3>
-            <p className="text-sm text-slate-400 mt-1">Share your link — invite fellow traders to LeadNation.</p>
+            <p className="text-sm text-slate-400 mt-1">Share your link — invite fellow traders to Vametra AI.</p>
             <div className="flex items-center gap-2 mt-4">
               <input readOnly value={data.referral.link} className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-mono-display" data-testid="account-referral-link" />
               <button onClick={() => navigator.clipboard?.writeText(data.referral.link)} className="btn-ghost"><Copy size={15} /> Copy</button>

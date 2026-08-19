@@ -485,7 +485,7 @@ async def export_pdf(_: dict = Depends(require_admin)):
     pdf = FPDF(orientation="L", unit="mm", format="A4")
     pdf.set_auto_page_break(auto=True, margin=10)
     pdf.add_page(); pdf.set_font("Helvetica", "B", 14)
-    pdf.cell(0, 8, _s("LeadNation - Verified Buyers Export"), ln=1)
+    pdf.cell(0, 8, _s("Vametra AI - Verified Buyers Export"), ln=1)
     pdf.set_font("Helvetica", "", 8)
     pdf.cell(0, 5, _s(f"Generated {_now().strftime('%Y-%m-%d %H:%M UTC')}"), ln=1)
     pdf.ln(2)

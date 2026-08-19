@@ -8,14 +8,14 @@ export default function AppFeatureNote({ feature = "This feature", path = "/", i
   const navigate = useNavigate();
   return (
     <>
-      <SEO title={`${feature} · In the LeadNation App`} description={`${feature} is built into the LeadNation mobile app. Download to connect with traders worldwide.`} path={path} />
+      <SEO title={`${feature} · In the Vametra AI App`} description={`${feature} is built into the Vametra AI mobile app. Download to connect with traders worldwide.`} path={path} />
       <section className="max-w-3xl mx-auto px-6 pt-36 pb-24 text-center">
         <div className="w-20 h-20 mx-auto rounded-3xl grid place-items-center bg-gradient-to-br from-cyan-500/25 to-violet-500/25 border border-white/10">
           <Icon size={40} weight="duotone" className="text-cyan-300" />
         </div>
         <h1 className="font-display font-extrabold text-4xl sm:text-5xl mt-6">{feature} lives in the app</h1>
         <p className="mt-4 text-base text-slate-300">
-          {feature} is built right into the <span className="text-cyan-300 font-semibold">LeadNation app</span> —
+          {feature} is built right into the <span className="text-cyan-300 font-semibold">Vametra AI app</span> —
           download it to build your connections worldwide, message verified traders and act on opportunities in real time.
         </p>
         {points.length > 0 && (

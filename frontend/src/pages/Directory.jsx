@@ -17,12 +17,12 @@ const KINDS = [
 export function DirectoryHub() {
   return (
     <>
-      <SEO title="LeadNation Directories · Exporters, Importers, Suppliers, CHA & Agents"
-        description="Verified directories of Indian exporters, global importers, suppliers, customs house agents and export agents — by LeadNation."
+      <SEO title="Vametra AI Directories · Exporters, Importers, Suppliers, CHA & Agents"
+        description="Verified directories of Indian exporters, global importers, suppliers, customs house agents and export agents — by Vametra AI."
         path="/directory"
         keywords="Indian exporters directory, global importers directory, customs house agents India, export agents directory"
       />
-      <PageHero testIdPrefix="directory" label="LeadNation Directory"
+      <PageHero testIdPrefix="directory" label="Vametra AI Directory"
         title="Verified directories. Verified opportunities."
         sub="Browse the largest, most-trusted directory of exporters, importers, suppliers and trade agents."
       />
@@ -59,8 +59,8 @@ export default function DirectoryDetail() {
 
   return (
     <>
-      <SEO title={`${label} Directory · Verified by LeadNation`}
-        description={`Verified ${label.toLowerCase()} directory — searchable by name, country and category. Powered by LeadNation.`}
+      <SEO title={`${label} Directory · Verified by Vametra AI`}
+        description={`Verified ${label.toLowerCase()} directory — searchable by name, country and category. Powered by Vametra AI.`}
         path={`/directory/${kind}`}
         keywords={`${label} directory, verified ${label.toLowerCase()}, India ${label.toLowerCase()}`}
       />
@@ -95,7 +95,7 @@ export default function DirectoryDetail() {
               <div className="mt-6 glass-strong rounded-3xl p-6 flex items-center gap-4 border border-cyan-400/20">
                 <Lock size={26} className="text-cyan-300" weight="duotone" />
                 <div className="flex-1">
-                  <div className="font-display font-bold">10,000+ more profiles inside the LeadNation app.</div>
+                  <div className="font-display font-bold">10,000+ more profiles inside the Vametra AI app.</div>
                   <div className="text-sm text-slate-400">With contact persons, deal history and direct messaging.</div>
                 </div>
                 <Link to="/contact" className="btn-primary">Create free account <ArrowRight size={14} weight="bold" /></Link>

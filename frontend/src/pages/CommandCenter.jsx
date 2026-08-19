@@ -192,7 +192,7 @@ export default function CommandCenter() {
 
   return (
     <>
-      <SEO title="Trade Command Center · Workspace · LeadNation" description="Your stateful global-trade workspace — one Trade Project, one Brain, every module connected." path="/command-center" />
+      <SEO title="Trade Command Center · Workspace · Vametra AI" description="Your stateful global-trade workspace — one Trade Project, one Brain, every module connected." path="/command-center" />
       <CommandCenterReport project={cur} compliance={compliance} session={P.session} />
       {palette && <CommandPalette P={P} setModule={setModule} close={() => setPalette(false)} />}
 
@@ -310,8 +310,8 @@ function StartScreen({ P }) {
   };
   return (
     <div className="max-w-5xl mx-auto px-6 py-12">
-      <SEO title="Trade Command Center · LeadNation" description="Start a Trade Project — the stateful workspace for global trade." path="/command-center" />
-      <div className="inline-flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300"><Lightning size={14} weight="duotone" /> LeadNation Trade Command Center™</div>
+      <SEO title="Trade Command Center · Vametra AI" description="Start a Trade Project — the stateful workspace for global trade." path="/command-center" />
+      <div className="inline-flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300"><Lightning size={14} weight="duotone" /> Vametra AI Trade Command Center™</div>
       <h1 className="font-display font-extrabold text-4xl sm:text-5xl mt-3 leading-[1.05]">Start a <span className="gradient-text">Trade Project.</span></h1>
       <p className="text-slate-400 mt-3 max-w-2xl">Every calculation, quote, document and Brain conversation lives inside one persistent project — no re-entry, ever. Create one and the whole workspace knows your context.</p>
 
@@ -638,7 +638,7 @@ function Risk({ cur }) {
 function Buyers({ cur }) {
   return (
     <Card title="Buyers & Suppliers" icon={UsersThree} testid="cc-buyers" action={<SourceBadge kind="brain" />}>
-      <p className="text-sm text-slate-300">Verified buyer & supplier contacts for <span className="text-cyan-300">{cur.product || `HS ${cur.hs}`}</span> in <span className="text-cyan-300">{cur.summary?.destination}</span> are available in the LeadNation app, with live contact details and verification.</p>
+      <p className="text-sm text-slate-300">Verified buyer & supplier contacts for <span className="text-cyan-300">{cur.product || `HS ${cur.hs}`}</span> in <span className="text-cyan-300">{cur.summary?.destination}</span> are available in the Vametra AI app, with live contact details and verification.</p>
       <div className="flex flex-wrap gap-2 mt-4">
         <a href="#download" className="btn-primary">Find buyers in the app <ArrowRight size={15} weight="bold" /></a>
         <Link to={`/brain?q=${encodeURIComponent(`Who are the top importers/buyers of ${cur.product || `HS ${cur.hs}`} in ${cur.summary?.destination}?`)}`} className="btn-ghost">Ask the Brain</Link>
@@ -729,7 +729,7 @@ function Reports({ P, cur, compliance }) {
             {gate.mode === "login" ? (
               <>
                 <div className="font-display font-bold text-lg flex items-center gap-2"><User size={18} className="text-cyan-300" /> Sign in to download</div>
-                <p className="text-sm text-slate-400 mt-2">Create a free account (shared with the LeadNation app) to download your report and keep it in your account.</p>
+                <p className="text-sm text-slate-400 mt-2">Create a free account (shared with the Vametra AI app) to download your report and keep it in your account.</p>
                 <Link to="/login" className="btn-primary w-full justify-center mt-4" data-testid="cc-paywall-login">Sign in / Create account</Link>
               </>
             ) : (
@@ -989,7 +989,7 @@ function BrainModule({ cur, P }) {
   };
   const prompts = [`Best Incoterm for ${cur.summary?.origin} → ${cur.summary?.destination}?`, `How can I cut duty on this lane?`, `What documents am I missing?`];
   return (
-    <Card title="LeadNation Brain · project-aware" icon={Brain} testid="cc-brain">
+    <Card title="Vametra AI Brain · project-aware" icon={Brain} testid="cc-brain">
       <div className="space-y-3 max-h-[420px] overflow-auto mb-3">
         {msgs.length === 0 && <div className="flex flex-wrap gap-2">{prompts.map((p, i) => <button key={i} onClick={() => ask(p)} className="glass rounded-full px-3 py-1.5 text-xs hover:border-cyan-400/30">{p}</button>)}</div>}
         {msgs.map((m, i) => (
@@ -1045,7 +1045,7 @@ function BrainPanel({ P, cur, setModule }) {
   const q = cur.lastQuote;
   return (
     <div className="glass-strong rounded-3xl p-4 lg:sticky lg:top-4 space-y-4" data-testid="cc-brain-panel">
-      <div className="flex items-center gap-2"><Brain size={18} weight="duotone" className="text-cyan-300" /><span className="font-display font-bold">LeadNation Brain</span><SourceBadge kind="brain" /></div>
+      <div className="flex items-center gap-2"><Brain size={18} weight="duotone" className="text-cyan-300" /><span className="font-display font-bold">Vametra AI Brain</span><SourceBadge kind="brain" /></div>
 
       <div>
         <div className="text-[10px] uppercase tracking-wider text-slate-400 mb-1.5">Recommendations</div>

@@ -141,7 +141,7 @@ async def recommendations(body: DecisionIn, authorization: Optional[str] = Heade
         "scores": {"summary": f"Overall trade health {scores['overall']['value']}/100 ({dec['overallVerdict']}).", "data": {}},
     }
     question = (
-        f"You are the LeadNation Brain — the orchestration & advisory layer of a Trade Command Center. "
+        f"You are the Vametra AI Brain — the orchestration & advisory layer of a Trade Command Center. "
         f"You are given STRUCTURED decision objects and candidate actions for exporting {desc} from {exp} to {imp}. "
         f"Do NOT invent or recompute any numbers — only use the figures provided. Produce concise markdown with: "
         f"(1) a 2-line Executive Summary of this trade's health, (2) the top 3 prioritised Recommendations "

@@ -1,4 +1,4 @@
-"""LeadNation Brain — the central intelligence layer.
+"""Vametra AI Brain — the central intelligence layer.
 
 Reusable across Website, Mobile App, Admin / Partner / Customer portals.
 Architecture-first: AI responses are MOCK/rule-based today; provider layer is

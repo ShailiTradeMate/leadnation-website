@@ -1,5 +1,8 @@
 # LeadNation — Global Trade Intelligence Portal
 
+> ⚠️ REBRAND (2026-08-19): Public brand is now **Vametra AI** (legal: Vametra AI Technologies Pvt. Ltd.), primary domain **https://vametra.com**. All customer-facing "LeadNation" text/SEO/assets/emails were rebranded to Vametra AI. INTERNAL identifiers stay "LeadNation" (MongoDB `DB_NAME=leadnation`, DO identity backend host, Firebase project `trademate-new`, `LN-` GEID prefix, admin login `admin@leadnation.app`, internal code/collections). Email addresses + social handles kept on leadnation.app until Vametra Resend domain + social accounts are ready. Full migration checklist: `/app/memory/VAMETRA_REBRAND_CHECKLIST.md`. Historical entries below still say "LeadNation" for context — treat them as the same product now branded Vametra AI.
+
+
 ## VERIFIED BUYER COMPLETION + VERIFICATION — REFERENCE BUILD (2026-08-18, iteration_48 PASS 95%)
 Owner directive: build the FULL importer-as-Verified-Buyer flow on the WEBSITE as a working reference that the DO/app team will mirror into the shared DO identity backend. Website stays a client of DO; DO still owns identity/profile/GEID.
 - **App-team API status (confirmed live on DO `https://leadnation-lfrhs.ondigitalocean.app/api`):** GET/PUT `/v1/profiles/{uid}` (auth: Firebase Bearer + `x-user-uid` header; PUT requires x-user-uid == path uid), GET `/v1/documents` (personal/business/trade doc catalog, country-specific), **GEID linking LIVE**: `POST /entities` (member_company/prospect) + `POST /members/bind {uid,customer_id,geid}` → returns real GEID e.g. `LN-prospect-01M0...`. NOT built on DO yet: object-storage upload, selfie/liveness/AI-fake/duplicate-face, document OCR gov cross-check + review workflow.

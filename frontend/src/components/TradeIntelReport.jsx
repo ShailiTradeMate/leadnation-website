@@ -58,7 +58,7 @@ function ReportDoc({ data, preparedFor }) {
             <div className="flex items-center gap-2">
               <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600" />
               <div>
-                <div className="font-extrabold text-xl text-slate-900 leading-none">LeadNation</div>
+                <div className="font-extrabold text-xl text-slate-900 leading-none">Vametra AI</div>
                 <div className="text-[10px] tracking-[0.25em] text-slate-500 uppercase">Trade Intelligence</div>
               </div>
             </div>
@@ -213,7 +213,7 @@ function ReportDoc({ data, preparedFor }) {
             <li>Request quotes from 2–3 freight forwarders for the modes above and lock Incoterms (e.g. CIF/FOB).</li>
             <li>Check eligibility & documentation for the export benefit{duty?.exportBenefit ? ` (${duty.exportBenefit.scheme})` : ""} and any FTA preferential rate.</li>
             <li>Shortlist verified buyers/suppliers in the top importing markets and begin outreach.</li>
-            <li>Use the LeadNation app to track leads, duties and shipments on the move.</li>
+            <li>Use the Vametra AI app to track leads, duties and shipments on the move.</li>
           </ol>
         </Section>
 
@@ -222,8 +222,8 @@ function ReportDoc({ data, preparedFor }) {
           <p className="text-[11px] text-slate-500"><strong className="text-slate-700">Sources & methodology:</strong> Trade statistics from {ts?.source || "OEC World / UN Comtrade"}; tariffs from World Bank WITS/TRAINS; India duty from CBIC; export benefits from DGFT; live FX from open.er-api.com. Figures are indicative and updated periodically.</p>
           <p className="text-[11px] text-slate-400 mt-2"><strong>Disclaimer:</strong> This report is for informational purposes only and does not constitute legal, financial or customs advice. Verify all duties, benefits and compliance requirements with the relevant authorities before transacting.</p>
           <div className="flex items-center justify-between mt-4 text-[11px] text-slate-500">
-            <span>© {new Date().getFullYear()} LeadNation · Global Trade Intelligence</span>
-            <span>leadnation.app · +91 82371 61088</span>
+            <span>© {new Date().getFullYear()} Vametra AI · Global Trade Intelligence</span>
+            <span>vametra.com · +91 82371 61088</span>
           </div>
         </section>
       </div>

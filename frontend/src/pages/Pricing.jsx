@@ -57,17 +57,17 @@ export default function Pricing() {
   return (
     <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-16 pb-28" data-testid="pricing-page">
       <SEO
-        title="Pricing · LeadNation Trade Intelligence Plans"
-        description="Simple, transparent pricing for LeadNation. Your first trade report is free. Go unlimited with Monthly or Annual Pro plans — customs duties, HS codes, landed cost, expos and trade news. Cancel anytime."
+        title="Pricing · Vametra AI Trade Intelligence Plans"
+        description="Simple, transparent pricing for Vametra AI. Your first trade report is free. Go unlimited with Monthly or Annual Pro plans — customs duties, HS codes, landed cost, expos and trade news. Cancel anytime."
         path="/pricing"
-        keywords="LeadNation pricing, trade intelligence pricing, export software price, customs duty calculator plans, trade report subscription"
+        keywords="Vametra AI pricing, trade intelligence pricing, export software price, customs duty calculator plans, trade report subscription"
         schema={[
           breadcrumbSchema([
             { name: "Home", path: "/" },
             { name: "Pricing", path: "/pricing" },
           ]),
           faqSchema([
-            { q: "Is LeadNation free to use?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
+            { q: "Is Vametra AI free to use?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
             { q: "Which payment methods are supported?", a: "International customers pay securely via Stripe (USD); customers in India can pay via Razorpay (INR)." },
             { q: "Can I cancel anytime?", a: "Yes. Pro subscriptions can be cancelled anytime and remain active until the end of the billing period." },
           ]),
@@ -154,7 +154,7 @@ export default function Pricing() {
       )}
 
       <p className="text-center text-xs text-slate-500 mt-8">
-        Prices shown in {region === "IN" ? "INR (₹)" : "USD ($)"}. Payments processed securely via {cfg.gateway === "razorpay" ? "Razorpay" : "Stripe"}. One login shared with the LeadNation app.
+        Prices shown in {region === "IN" ? "INR (₹)" : "USD ($)"}. Payments processed securely via {cfg.gateway === "razorpay" ? "Razorpay" : "Stripe"}. One login shared with the Vametra AI app.
       </p>
       <p className="text-center text-[11px] text-slate-600 mt-2" data-testid="pricing-legal">
         By purchasing you agree to our <Link to="/legal/terms" className="text-cyan-300 hover:underline">Terms</Link> and <Link to="/legal/refund" className="text-cyan-300 hover:underline">Refund &amp; Cancellation Policy</Link>.

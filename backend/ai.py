@@ -33,7 +33,7 @@ async def ai_ask(payload: AiAskRequest):
             break
     if not answer:
         answer = (
-            "Great question — based on LeadNation's compliance and trade data, the safest path is to start with an IEC code, "
+            "Great question — based on Vametra AI's compliance and trade data, the safest path is to start with an IEC code, "
             "identify your HS code, check applicable FTA benefits and validate your buyer market with our Buyer Discovery tool. "
             "Try one of the suggested prompts on the left for a more specific answer."
         )

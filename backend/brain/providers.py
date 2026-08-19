@@ -9,7 +9,7 @@ CTO design notes
   so repeat / similar questions cost nothing. If the LLM call fails (or balance is
   exhausted), we transparently fall back to deterministic engine composition so the
   product NEVER breaks and stays usable at zero budget.
-* RAG: the LLM only reasons over LeadNation engine + Knowledge Base context. It is
+* RAG: the LLM only reasons over Vametra AI engine + Knowledge Base context. It is
   instructed to say so when information is insufficient (no fabrication).
 """
 import os
@@ -44,7 +44,7 @@ def approx_tokens(text: str) -> int:
 # ---------------- Prompt management ----------------
 class PromptManager:
     SYSTEM = (
-        "You are LeadNation Brain — a global trade-intelligence assistant for importers and "
+        "You are Vametra AI Brain — a global trade-intelligence assistant for importers and "
         "exporters in ANY country. Your job is to answer the user's SPECIFIC question directly "
         "and usefully.\n\n"
         "RULES:\n"
@@ -52,7 +52,7 @@ class PromptManager:
         "across different answers. Include ONLY what is relevant to what was asked.\n"
         "2. Use the LIVE ENGINE CONTEXT (real tariffs, trade values, duty, benefits, FX, news) "
         "for every figure or number. Never invent specific rates or values — if a number is not "
-        "in the context, say it is indicative and point to the relevant LeadNation tool.\n"
+        "in the context, say it is indicative and point to the relevant Vametra AI tool.\n"
         "3. For country-specific compliance, customs procedure, required documents, certifications "
         "and logistics for ANY of the world's countries, use your own up-to-date international-trade "
         "expertise, tailored precisely to the ORIGIN and DESTINATION in the question. Be specific to "
@@ -68,7 +68,7 @@ class PromptManager:
         ents = {k: v for k, v in entities.items() if v}
         if ents:
             lines.append(f"DETECTED ENTITIES: {ents}")
-        lines.append("\nENGINE CONTEXT (each item = an engine that LeadNation routed):")
+        lines.append("\nENGINE CONTEXT (each item = an engine that Vametra AI routed):")
         for key, out in engine_outputs.items():
             summ = out.get("summary", "")
             lines.append(f"- [{key}] {summ}")
@@ -127,7 +127,7 @@ class MockProvider(BaseProvider):
             ("policy", "Policy & Incentives"),
             ("trade_news", "Relevant Trade News"),
             ("market_intelligence", "Market Intelligence"),
-            ("business_services", "How LeadNation Can Help"),
+            ("business_services", "How Vametra AI Can Help"),
             ("learning", "Learn More"),
             ("marketplace", "Marketplace"),
             ("network", "Trade Network"),
@@ -142,14 +142,14 @@ class MockProvider(BaseProvider):
         if prod and country:
             headline = f"Here's what you need to trade {prod} with {country}:"
         elif prod:
-            headline = f"Here's the LeadNation Brain briefing on {prod}:"
+            headline = f"Here's the Vametra AI Brain briefing on {prod}:"
         elif country:
-            headline = f"Here's the LeadNation Brain briefing on {country}:"
+            headline = f"Here's the Vametra AI Brain briefing on {country}:"
         else:
-            headline = "Here's what the LeadNation Brain found:"
+            headline = "Here's what the Vametra AI Brain found:"
 
         if not sections:
-            sections.append("I don't have enough LeadNation data to answer that precisely yet. "
+            sections.append("I don't have enough Vametra AI data to answer that precisely yet. "
                             "Try asking about a product, country, HSN code, duty, compliance step or service.")
         answer = headline + "\n\n" + "\n\n".join(sections)
         return {"answer": answer, "provider": self.name, "live": False, "model": None,

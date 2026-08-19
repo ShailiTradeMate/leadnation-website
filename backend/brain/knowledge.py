@@ -1,4 +1,4 @@
-"""Knowledge Base — the Single Source of Truth (SSOT) for the LeadNation ecosystem.
+"""Knowledge Base — the Single Source of Truth (SSOT) for the Vametra AI ecosystem.
 
 Every domain (countries, products, HSN, corridors, industries, services, learning,
 compliance, schemes, blogs, FAQs) is normalised into the `knowledge_base` collection.

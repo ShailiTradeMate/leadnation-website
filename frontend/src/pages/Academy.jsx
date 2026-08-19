@@ -31,14 +31,14 @@ export default function Academy() {
         schema={{
           "@context": "https://schema.org",
           "@type": "EducationalOrganization",
-          name: "LeadNation Academy",
-          url: "https://leadnation.app/academy",
+          name: "Vametra AI Academy",
+          url: "https://vametra.com/academy",
         }}
       />
 
       <PageHero
         testIdPrefix="academy"
-        label="LeadNation Academy"
+        label="Vametra AI Academy"
         title="Master global trade. In weeks, not years."
         sub="From your very first export inquiry to FTA arbitrage — premium lessons by traders, for traders. 100% free."
       >

@@ -50,14 +50,14 @@ export default function CustomsCompliance() {
   const [tab, setTab] = useState("compile");
   return (
     <>
-      <SEO title="LeadNation Trade Command Center™ — AI Global Trade Operating System"
-        description="The world's first AI-powered global trade operating system. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across 195 markets, quote in your currency and any global currency, check duty, FTA benefits, incentives and routes — analysed by the LeadNation Brain."
+      <SEO title="Vametra AI Trade Command Center™ — AI Global Trade Operating System"
+        description="The world's first AI-powered global trade operating system. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across 195 markets, quote in your currency and any global currency, check duty, FTA benefits, incentives and routes — analysed by the Vametra AI Brain."
         path="/customs-compliance"
         keywords="FOB CIF calculator, landed cost calculator, export costing tool, buyer landed cost comparison, customs duty calculator, FTA checker, RoDTEP incentives, global trade operating system, export quotation tool, dual currency trade quote" />
 
-      <PageHero testIdPrefix="customs" label="LeadNation Trade Command Center™"
+      <PageHero testIdPrefix="customs" label="Vametra AI Trade Command Center™"
         title="The World's First AI-Powered Global Trade Operating System."
-        sub="Plan, cost, comply, price and ship from one screen. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across markets, quote in your currency and any global currency, and let the LeadNation Brain analyse every number — for any product across 195 countries." />
+        sub="Plan, cost, comply, price and ship from one screen. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across markets, quote in your currency and any global currency, and let the Vametra AI Brain analyse every number — for any product across 195 countries." />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
@@ -154,7 +154,7 @@ function ReportTool() {
             )}
             <div className="glass-strong rounded-3xl p-5 flex items-center gap-4 flex-wrap">
               <Brain size={28} weight="duotone" className="text-cyan-300" />
-              <div className="flex-1 min-w-[200px] text-sm text-slate-300">Get a deeper, AI-written breakdown from the LeadNation Brain.</div>
+              <div className="flex-1 min-w-[200px] text-sm text-slate-300">Get a deeper, AI-written breakdown from the Vametra AI Brain.</div>
               <Link to={`/brain?q=${encodeURIComponent(data.brainPrompt)}`} className="btn-primary" data-testid="report-ask-brain">Ask the Brain</Link>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
@@ -349,7 +349,7 @@ function ChaDirectory() {
               <div className="flex items-center justify-between"><div className="font-display font-bold">{c.name}</div>{c.verified && <ShieldCheck size={18} weight="fill" className="text-cyan-300" />}</div>
               <div className="text-xs text-slate-400 mt-1">{c.port} · {c.city}</div>
               <div className="text-sm mt-2">{c.services}</div>
-              <a href={`https://wa.me/918237161088?text=${encodeURIComponent(`Hi LeadNation, connect me with CHA: ${c.name} (${c.port}).`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 text-xs mt-3 inline-flex justify-center">Connect via WhatsApp</a>
+              <a href={`https://wa.me/918237161088?text=${encodeURIComponent(`Hi Vametra AI, connect me with CHA: ${c.name} (${c.port}).`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 text-xs mt-3 inline-flex justify-center">Connect via WhatsApp</a>
             </div>
           ))}
         </div>
@@ -463,10 +463,10 @@ function CommandCenterTool() {
       {/* INTRO */}
       <div className="glass-strong rounded-3xl p-6 sm:p-8 border border-cyan-400/20">
         <div className="flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
-          <Lightning size={14} weight="duotone" /> LeadNation Trade Command Center™
+          <Lightning size={14} weight="duotone" /> Vametra AI Trade Command Center™
         </div>
         <h3 className="font-display font-extrabold text-2xl sm:text-3xl mt-2">Your entire deal, costed and analysed in one screen.</h3>
-        <p className="text-sm text-slate-400 mt-2 max-w-3xl">Build the full Ex-Works → FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in your own currency <span className="text-cyan-300">and</span> any globally-traded currency, and let the LeadNation Brain flag savings, risks and the best market — for any product across 195 countries.</p>
+        <p className="text-sm text-slate-400 mt-2 max-w-3xl">Build the full Ex-Works → FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in your own currency <span className="text-cyan-300">and</span> any globally-traded currency, and let the Vametra AI Brain flag savings, risks and the best market — for any product across 195 countries.</p>
         <Link to="/command-center" data-testid="cc-tab-open-workspace" className="btn-primary mt-4 inline-flex"><Lightning size={15} weight="bold" /> Open the full workspace (Trade Projects, Brain, PDF) <ArrowRight size={15} weight="bold" /></Link>
       </div>
 
@@ -577,7 +577,7 @@ function CommandCenterTool() {
             <div className="flex items-center gap-2 text-sm flex-wrap">
               <Brain size={18} weight="duotone" className="text-cyan-300" />
               <span className="font-display font-bold text-lg">AI Trade Advisor</span>
-              <span className="text-[10px] uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400/20">LeadNation Brain</span>
+              <span className="text-[10px] uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400/20">Vametra AI Brain</span>
             </div>
             <div className="mt-4">
               {advLoading && <div className="text-sm text-slate-400 flex items-center gap-2"><CircleNotch size={16} className="animate-spin" /> Analysing your costing, markets, savings and risks…</div>}
@@ -953,7 +953,7 @@ function TradeStatsTool() {
 
           <div className="glass-strong rounded-3xl p-5 flex items-center gap-4 flex-wrap">
             <Brain size={28} weight="duotone" className="text-cyan-300" />
-            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Ask the LeadNation Brain for a deeper read on demand, tariffs and opportunities for this product.</div>
+            <div className="flex-1 min-w-[200px] text-sm text-slate-300">Ask the Vametra AI Brain for a deeper read on demand, tariffs and opportunities for this product.</div>
             <Link to={`/brain?q=${encodeURIComponent(`Give me a full trade analysis for HS code ${data.hsCode} (${data.description}) — demand, top markets and opportunities`)}`} className="btn-primary" data-testid="trade-ask-brain">Ask the Brain</Link>
           </div>
         </div>

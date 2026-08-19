@@ -367,7 +367,7 @@ async def export_readiness(payload: ReadinessRequest):
         "score": score,
         "band": band,
         "summary": f"You scored {score}/100 — {band}.",
-        "recommendations": recs or ["You're export-ready. Connect with buyers on the LeadNation app."],
+        "recommendations": recs or ["You're export-ready. Connect with buyers on the Vametra AI app."],
         "leadCaptured": bool(payload.email),
     }
 

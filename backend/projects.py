@@ -1,4 +1,4 @@
-"""Trade Projects — the stateful spine of the LeadNation Trade Command Center.
+"""Trade Projects — the stateful spine of the Vametra AI Trade Command Center.
 
 Every calculation, quote, report, document and Brain conversation belongs to ONE
 persistent Trade Project. Projects are owned by a Firebase UID (signed-in) OR an

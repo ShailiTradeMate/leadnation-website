@@ -14,7 +14,7 @@ export default function CountriesIndex() {
     <>
       <SEO
         title="Country Trade Profiles · Imports, Exports, Customs & Opportunities"
-        description="Premium country-by-country trade profiles for India, UAE, USA, Australia, Armenia and 250+ markets — by LeadNation."
+        description="Premium country-by-country trade profiles for India, UAE, USA, Australia, Armenia and 250+ markets — by Vametra AI."
         path="/countries"
         keywords="country trade profiles, India trade, UAE trade, USA imports exports, Australia trade, Armenia EAEU"
       />

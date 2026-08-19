@@ -43,7 +43,7 @@ export default function TradeNewsDetail() {
 
   return (
     <>
-      <SEO title={`${item.title} · LeadNation Trade News`} description={item.excerpt} path={`/trade-news/${id}`}
+      <SEO title={`${item.title} · Vametra AI Trade News`} description={item.excerpt} path={`/trade-news/${id}`}
         keywords={`${item.category}, trade news, ${item.title}`}
         type="article"
         image={item.image || item.image_url || undefined}
@@ -79,7 +79,7 @@ export default function TradeNewsDetail() {
           <div className="flex items-center gap-2 mb-3">
             <Brain size={22} weight="duotone" className="text-cyan-300" />
             <div className="font-display font-bold text-lg">What does this mean for your trade?</div>
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400/20">LeadNation Brain</span>
+            <span className="text-[10px] uppercase tracking-wider text-slate-400 px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-400/20">Vametra AI Brain</span>
           </div>
           <Impact text={item.impact} />
           <button data-testid="news-detail-ask-brain"

@@ -54,13 +54,13 @@ export default function DutyCalculator() {
     <>
       <SEO
         title="Customs Duty Calculator · Free Import & Export Tariff Tool"
-        description="Estimate customs duty, taxes and landed cost for any product between any two countries — free, instant, and powered by LeadNation's trade engine."
+        description="Estimate customs duty, taxes and landed cost for any product between any two countries — free, instant, and powered by Vametra AI's trade engine."
         path="/tools/duty-calculator"
         keywords="customs duty calculator, import duty calculator, export duty India UAE, landed cost calculator, free tariff tool"
         schema={{
           "@context": "https://schema.org",
           "@type": "WebApplication",
-          name: "LeadNation Customs Duty Calculator",
+          name: "Vametra AI Customs Duty Calculator",
           applicationCategory: "BusinessApplication",
           operatingSystem: "Web",
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -71,7 +71,7 @@ export default function DutyCalculator() {
         testIdPrefix="duty"
         label="SEO Tool · 100% Free"
         title="Customs Duty Calculator"
-        sub="Estimate duty, taxes and landed cost in any corridor on earth. Powered by the LeadNation trade engine — no signup, no card, instant result."
+        sub="Estimate duty, taxes and landed cost in any corridor on earth. Powered by the Vametra AI trade engine — no signup, no card, instant result."
       />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-8">
@@ -148,7 +148,7 @@ export default function DutyCalculator() {
             {loading ? "Calculating…" : <>Calculate landed cost <ArrowRight size={16} weight="bold" /></>}
           </button>
           <p className="text-[11px] text-slate-500 leading-relaxed">
-            Indicative figures only. Real duties depend on HS code, certificate of origin and live tariff schedules — for exact figures, use the LeadNation app.
+            Indicative figures only. Real duties depend on HS code, certificate of origin and live tariff schedules — for exact figures, use the Vametra AI app.
           </p>
         </form>
 
@@ -194,7 +194,7 @@ export default function DutyCalculator() {
                   data-testid="duty-cta-download"
                   className="btn-ghost justify-center w-full"
                 >
-                  Download LeadNation app
+                  Download Vametra AI app
                 </a>
               </div>
             </div>

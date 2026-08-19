@@ -1,4 +1,4 @@
-"""The 12 LeadNation Brain engines.
+"""The 12 Vametra AI Brain engines.
 
 Each engine is async, reads from the Knowledge Base (SSOT) and returns a
 structured dict with a `summary` (human line) + `data` (structured payload) +
@@ -32,7 +32,7 @@ async def country_context_engine(country=None, state=None, city=None, **_):
 async def trade_news_engine(product=None, country=None, **_):
     focus = ", ".join([w for w in [product, country] if w]) or "global trade"
     return {
-        "summary": f"For live developments on {focus}, see the LeadNation Trade News feed (tariff changes, freight rates, sanctions, FTAs and demand shifts updated continuously).",
+        "summary": f"For live developments on {focus}, see the Vametra AI Trade News feed (tariff changes, freight rates, sanctions, FTAs and demand shifts updated continuously).",
         "data": {"focus": focus, "topics": ["tariff changes", "freight & shipping rates", "FTAs & trade deals", "sanctions & controls", "commodity demand"]},
         "sources": [{"kind": "news", "slug": "trade-news", "title": "Trade News", "to": "/trade-news"}],
     }
@@ -40,7 +40,7 @@ async def trade_news_engine(product=None, country=None, **_):
 
 async def market_intelligence_engine(**_):
     return {
-        "summary": "Live commodity and FX benchmarks (gold, oil, major currency pairs) and ocean/air freight indices are tracked in LeadNation Intelligence.",
+        "summary": "Live commodity and FX benchmarks (gold, oil, major currency pairs) and ocean/air freight indices are tracked in Vametra AI Intelligence.",
         "data": {"covers": ["commodities", "currencies (FX)", "freight indices"]},
         "sources": [{"kind": "intelligence", "slug": "intelligence", "title": "Trade Intelligence", "to": "/intelligence"}],
     }
@@ -129,7 +129,7 @@ async def business_services_engine(need=None, **_):
     if not hits:
         hits = await kb_by_kind("service", limit=4)
     return {
-        "summary": "LeadNation can handle this end-to-end: " + ", ".join(h["title"] for h in hits[:4]) + ".",
+        "summary": "Vametra AI can handle this end-to-end: " + ", ".join(h["title"] for h in hits[:4]) + ".",
         "data": {"services": [{"title": h["title"], "slug": h["slug"],
                                "priceFrom": h["data"].get("priceFrom")} for h in hits]},
         "sources": [{"kind": "service", "slug": hits[0]["slug"] if hits else "", "title": "Business Services", "to": "/services"}],
@@ -138,7 +138,7 @@ async def business_services_engine(need=None, **_):
 
 async def marketplace_engine(product=None, **_):
     return {
-        "summary": "Live RFQs and verified listings are available on the LeadNation Marketplace.",
+        "summary": "Live RFQs and verified listings are available on the Vametra AI Marketplace.",
         "data": {"hasRFQs": True, "product": product},
         "sources": [{"kind": "marketplace", "slug": "marketplace", "title": "Marketplace", "to": "/marketplace"}],
     }
@@ -146,7 +146,7 @@ async def marketplace_engine(product=None, **_):
 
 async def network_engine(kind=None, **_):
     return {
-        "summary": "Connect with verified exporters, importers, suppliers, CHAs and export agents in the LeadNation Network.",
+        "summary": "Connect with verified exporters, importers, suppliers, CHAs and export agents in the Vametra AI Network.",
         "data": {"directories": ["exporters", "importers", "suppliers", "cha", "export-agents"], "kind": kind},
         "sources": [{"kind": "network", "slug": "network", "title": "Trade Network", "to": "/network"}],
     }

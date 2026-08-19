@@ -55,7 +55,7 @@ export function AdminLogin() {
     <section className="min-h-[80vh] grid place-items-center px-6">
       <form onSubmit={onSubmit} data-testid="admin-login-form" className="glass-strong rounded-3xl p-8 w-full max-w-md">
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Control Center</div>
-        <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to LeadNation</h1>
+        <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to Vametra AI</h1>
         <p className="text-slate-400 text-sm mt-2">Shared admin identity — use your Admin ID or email + password.</p>
         <input
           data-testid="admin-login-username"
@@ -98,7 +98,7 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Console</div>
-          <h1 className="font-display font-extrabold text-4xl sm:text-5xl mt-2">LeadNation CMS</h1>
+          <h1 className="font-display font-extrabold text-4xl sm:text-5xl mt-2">Vametra AI CMS</h1>
         </div>
         <button data-testid="admin-logout" onClick={logout} className="btn-ghost !py-2 text-xs"><SignOut size={14} weight="bold" /> Logout</button>
       </div>
@@ -444,7 +444,7 @@ function Events() {
 
 
 const FEATURE_LABELS = {
-  tools: "Tools Hub", services: "Business Services", brain: "LeadNation Brain",
+  tools: "Tools Hub", services: "Business Services", brain: "Vametra AI Brain",
   customs: "Customs & Compliance", intelligence: "Intelligence", expo: "Expos & Events",
   academy: "Academy", blog: "Blog", trade_news: "Trade News",
 };
@@ -703,7 +703,7 @@ function EventListingsManager() {
   );
 }
 
-const EMPTY_NEWS = { title: "", excerpt: "", body: "", category: "Business", country: "Global", source: "LeadNation", image: "", url: "", featured: false, active: true };
+const EMPTY_NEWS = { title: "", excerpt: "", body: "", category: "Business", country: "Global", source: "Vametra AI", image: "", url: "", featured: false, active: true };
 
 function TradeNewsManager() {
   const [items, setItems] = useState([]);

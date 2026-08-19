@@ -78,7 +78,7 @@ export const organizationSchema = {
   image: `${SITE}/og-default.png`,
   slogan: TAGLINE,
   description:
-    "LeadNation is an AI-powered Global Trade Intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants — unifying customs duty calculation, HS/HSN code lookup, FTA analysis, landed cost across all Incoterms, trade expos, market intelligence and real-time trade news for 195+ countries.",
+    "Vametra AI is an AI-powered Global Trade Intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants — unifying customs duty calculation, HS/HSN code lookup, FTA analysis, landed cost across all Incoterms, trade expos, market intelligence and real-time trade news for 195+ countries.",
   foundingDate: "2025",
   founder: { "@type": "Person", name: "Vaibhav Deshmane" },
   foundingLocation: { "@type": "Place", name: "Ahilyanagar, Maharashtra, India" },
@@ -113,7 +113,7 @@ export const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: BRAND_NAME,
-  alternateName: "LeadNation Global Trade Intelligence",
+  alternateName: "Vametra AI Global Trade Intelligence",
   url: SITE,
   publisher: { "@type": "Organization", name: LEGAL_NAME },
   potentialAction: {

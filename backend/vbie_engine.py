@@ -1,4 +1,4 @@
-"""VBIE Recurring Intelligence Engine — LeadNation's permanent continuous data pipeline.
+"""VBIE Recurring Intelligence Engine — Vametra AI's permanent continuous data pipeline.
 
 Turns VBIE from one-time ingestion into a self-maintaining intelligence platform.
 Everything runs on the ONE shared MongoDB, ONE GEID, ONE Brain — a single source of

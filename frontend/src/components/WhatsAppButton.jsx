@@ -5,7 +5,7 @@ import { trackEvent } from "@/lib/analytics";
 
 export default function WhatsAppButton() {
   const href = `https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
-    "Hi LeadNation team, I'd like to know more about the app."
+    "Hi Vametra AI team, I'd like to know more about the app."
   )}`;
   return (
     <a

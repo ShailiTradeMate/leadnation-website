@@ -12,7 +12,7 @@ Disallow: /forgot-password
 Disallow: /command-center
 Disallow: /expo/submit
 
-# ── AI answer engines (GEO) — explicitly welcome to read & cite LeadNation ──
+# ── AI answer engines (GEO) — explicitly welcome to read & cite Vametra AI ──
 User-agent: GPTBot
 Allow: /
 User-agent: ChatGPT-User
@@ -42,5 +42,5 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
-Sitemap: https://leadnation.app/api/sitemap.xml
-Sitemap: https://leadnation.app/sitemap.xml
+Sitemap: https://vametra.com/api/sitemap.xml
+Sitemap: https://vametra.com/sitemap.xml

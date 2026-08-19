@@ -32,7 +32,7 @@ export default function BuyerProfile() {
     <>
       <SEO
         title={`${b.display_name} · Verified Buyer Intelligence`}
-        description={`Verified buyer profile for ${b.display_name} (${b.country_name}) — sector ${b.sector}, trust score ${trust.score}. Cited source evidence and trade intelligence by LeadNation.`}
+        description={`Verified buyer profile for ${b.display_name} (${b.country_name}) — sector ${b.sector}, trust score ${trust.score}. Cited source evidence and trade intelligence by Vametra AI.`}
         path={`/buyers/${geid}`}
         keywords={`${b.display_name}, ${b.sector} importer, verified buyer ${b.country_name}`}
       />
@@ -125,7 +125,7 @@ export default function BuyerProfile() {
               {/* Evidence — generic, category-level only. No source name/link is ever shown. */}
               <div className="glass rounded-3xl p-6">
                 <h2 className="font-display font-bold text-lg flex items-center gap-2"><FileText size={18} weight="duotone" className="text-cyan-300" /> Verified against official records</h2>
-                <p className="text-xs text-slate-500 mt-1">LeadNation independently verifies every buyer against official government sources. We are your single, verified point of contact — no third-party links.</p>
+                <p className="text-xs text-slate-500 mt-1">Vametra AI independently verifies every buyer against official government sources. We are your single, verified point of contact — no third-party links.</p>
                 <div className="mt-4 space-y-3">
                   {(b.evidence || []).map((p, i) => (
                     <div key={i} data-testid={`buyer-evidence-${i}`} className="flex items-start gap-3 border border-white/5 rounded-2xl p-3.5">
@@ -211,7 +211,7 @@ function ContactReveal({ geid, buyerName }) {
         <AddressBook size={18} weight="fill" className="text-cyan-300" />
         <h2 className="font-display font-bold text-lg">Verified contact details</h2>
       </div>
-      <p className="text-xs text-slate-500">Sourced and verified by LeadNation from official government records. Available to active members only.</p>
+      <p className="text-xs text-slate-500">Sourced and verified by Vametra AI from official government records. Available to active members only.</p>
 
       {!contact ? (
         <div className="mt-5 flex flex-col sm:flex-row sm:items-center gap-3">
@@ -219,7 +219,7 @@ function ContactReveal({ geid, buyerName }) {
             className="btn-primary inline-flex items-center gap-2">
             <Lock size={15} weight="bold" /> {busy ? "Revealing…" : "Reveal contact details"}
           </button>
-          <span className="text-xs text-slate-500">Get {buyerName}'s verified email & phone — inside LeadNation.</span>
+          <span className="text-xs text-slate-500">Get {buyerName}'s verified email & phone — inside Vametra AI.</span>
         </div>
       ) : (
         <div className="mt-5 grid sm:grid-cols-2 gap-3">
@@ -261,7 +261,7 @@ function IntelligencePanel({ intel, sources }) {
     <div data-testid="buyer-intelligence-panel" className="mt-6 glass-strong rounded-3xl p-6 sm:p-7">
       <div className="flex items-center gap-2 mb-1">
         <Sparkle size={18} weight="fill" className="text-cyan-300" />
-        <h2 className="font-display font-bold text-lg">LeadNation Verified Buyer Intelligence</h2>
+        <h2 className="font-display font-bold text-lg">Vametra AI Verified Buyer Intelligence</h2>
       </div>
       <p className="text-xs text-slate-500">Verified intelligence — never raw copied datasets.</p>
 
@@ -386,7 +386,7 @@ function ClaimModal({ geid, buyerName, onClose }) {
         ) : (
           <form onSubmit={submit} className="space-y-3">
             <h3 className="font-display font-bold text-xl">Request an introduction</h3>
-            <p className="text-sm text-slate-400">Connect with {buyerName} through the LeadNation trade desk.</p>
+            <p className="text-sm text-slate-400">Connect with {buyerName} through the Vametra AI trade desk.</p>
             <input data-testid="claim-name" required placeholder="Your name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none text-sm" />
             <input data-testid="claim-email" required type="email" placeholder="Work email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none text-sm" />
             <input data-testid="claim-company" placeholder="Your company" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none text-sm" />

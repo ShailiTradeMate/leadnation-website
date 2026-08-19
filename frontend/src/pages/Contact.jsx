@@ -41,16 +41,16 @@ export default function Contact() {
   return (
     <>
       <SEO
-        title="Contact LeadNation · WhatsApp, Email & HQ"
-        description="Reach LeadNation on WhatsApp +91 82371 61088, email admin@leadnation.app, or visit our HQ in Ahilyanagar, Maharashtra, India."
+        title="Contact Vametra AI · WhatsApp, Email & HQ"
+        description="Reach Vametra AI on WhatsApp +91 82371 61088, email admin@leadnation.app, or visit our HQ in Ahilyanagar, Maharashtra, India."
         path="/contact"
-        keywords="LeadNation contact, LeadNation WhatsApp, LeadNation email, Ahilyanagar office, LeadNation HQ"
+        keywords="Vametra AI contact, Vametra AI WhatsApp, Vametra AI email, Ahilyanagar office, Vametra AI HQ"
       />
       <PageHero
         testIdPrefix="contact"
         label="Contact · Create Account"
         title="Let's put your trade on autopilot."
-        sub="Reach the LeadNation team on email, WhatsApp or Instagram — we usually reply within a few hours."
+        sub="Reach the Vametra AI team on email, WhatsApp or Instagram — we usually reply within a few hours."
       />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-2 gap-8">
@@ -116,7 +116,7 @@ export default function Contact() {
           <ContactRow
             Icon={LinkedinLogo}
             label="LinkedIn"
-            value="LeadNation on LinkedIn"
+            value="Vametra AI on LinkedIn"
             href={CONTACT.linkedinUrl}
             external
             accent="#0A66C2"
@@ -138,7 +138,7 @@ export default function Contact() {
               </div>
             </div>
             <iframe
-              title="LeadNation HQ"
+              title="Vametra AI HQ"
               data-testid="contact-map"
               src={mapSrc}
               className="w-full h-[320px]"

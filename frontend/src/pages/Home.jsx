@@ -49,15 +49,15 @@ export default function Home() {
   return (
     <div className="relative">
       <SEO
-        title="LeadNation · AI-Powered Global Trade Intelligence Platform"
-        description="Search any product, country or HS code. Decode customs duties, calculate landed cost across all Incoterms, discover trade expos and follow live global trade news — powered by the LeadNation Brain. Free to start, built for 195+ countries."
+        title="Vametra AI · AI-Powered Global Trade Intelligence Platform"
+        description="Search any product, country or HS code. Decode customs duties, calculate landed cost across all Incoterms, discover trade expos and follow live global trade news — powered by the Vametra AI Brain. Free to start, built for 195+ countries."
         path="/"
-        keywords="global trade intelligence, customs duty calculator, HS code finder, landed cost calculator, Incoterms, FTA, export import platform, trade expos, trade news, LeadNation, Intelligence Beyond Borders"
+        keywords="global trade intelligence, customs duty calculator, HS code finder, landed cost calculator, Incoterms, FTA, export import platform, trade expos, trade news, Vametra AI, Intelligence Beyond Borders"
         schema={faqSchema([
-          { q: "What is LeadNation?", a: "LeadNation is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news for 195+ countries." },
-          { q: "Is LeadNation free?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
-          { q: "Which countries does LeadNation cover?", a: "LeadNation provides trade, customs and market intelligence for 195+ countries worldwide, with deep coverage of India and major trade corridors." },
-          { q: "Does LeadNation have a mobile app?", a: "Yes. LeadNation works on web, iOS and Android with a single shared login, so your trade projects sync across devices." },
+          { q: "What is Vametra AI?", a: "Vametra AI is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news for 195+ countries." },
+          { q: "Is Vametra AI free?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
+          { q: "Which countries does Vametra AI cover?", a: "Vametra AI provides trade, customs and market intelligence for 195+ countries worldwide, with deep coverage of India and major trade corridors." },
+          { q: "Does Vametra AI have a mobile app?", a: "Yes. Vametra AI works on web, iOS and Android with a single shared login, so your trade projects sync across devices." },
         ])}
       />
       {/* HERO */}
@@ -76,7 +76,7 @@ export default function Home() {
             </h1>
             <p className="mt-6 text-slate-300 text-lg max-w-xl leading-relaxed">
               Search any product, country or HS code. Decode customs, discover expos,
-              follow live trade news — all powered by the LeadNation engine.
+              follow live trade news — all powered by the Vametra AI engine.
             </p>
 
             {/* Search */}
@@ -201,13 +201,13 @@ export default function Home() {
           <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-violet-500/10 blur-3xl pointer-events-none" />
           <div className="relative">
             <div className="inline-flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
-              <Lightning size={14} weight="duotone" /> LeadNation Trade Command Center™
+              <Lightning size={14} weight="duotone" /> Vametra AI Trade Command Center™
             </div>
             <h2 className="font-display font-extrabold text-3xl sm:text-5xl mt-4 leading-[1.05] max-w-3xl">
               The World's First <span className="gradient-text">AI-Powered Global Trade Operating System.</span>
             </h2>
             <p className="mt-4 text-slate-300 text-sm sm:text-base max-w-2xl">
-              Stop juggling ten different tools. Build your full FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in any two currencies, and let the LeadNation Brain flag savings, risks and the best market — for any product across 195 countries.
+              Stop juggling ten different tools. Build your full FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in any two currencies, and let the Vametra AI Brain flag savings, risks and the best market — for any product across 195 countries.
             </p>
             <div className="mt-7 grid sm:grid-cols-3 gap-3 max-w-2xl">
               {[
@@ -225,7 +225,7 @@ export default function Home() {
               <Link to="/command-center" data-testid="home-command-center-cta" className="btn-primary">
                 Open Trade Command Center <ArrowRight size={16} weight="bold" />
               </Link>
-              <Link to="/brain" className="btn-ghost">Ask the LeadNation Brain</Link>
+              <Link to="/brain" className="btn-ghost">Ask the Vametra AI Brain</Link>
             </div>
           </div>
         </div>
@@ -334,7 +334,7 @@ export default function Home() {
             </h2>
             <p className="mt-5 text-slate-300 max-w-lg">
               From port cranes in Mundra to bonded warehouses in Jebel Ali — the
-              LeadNation app shows you every step, in motion.
+              Vametra AI app shows you every step, in motion.
             </p>
             <div className="mt-7 flex gap-3">
               <Link to="/product-info" data-testid="story-cta-explore" className="btn-primary">Explore products <ArrowRight size={16} weight="bold" /></Link>

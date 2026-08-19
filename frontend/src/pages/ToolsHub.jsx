@@ -24,7 +24,7 @@ export default function ToolsHub() {
     <>
       <SEO
         title="Free Trade Tools · HSN Finder, Duty Calculator, Buyer Discovery"
-        description="LeadNation's free trade toolbox — HSN finder, customs duty calculator, landed cost calculator, export incentive finder, buyer discovery, export readiness score, AI trade copilot."
+        description="Vametra AI's free trade toolbox — HSN finder, customs duty calculator, landed cost calculator, export incentive finder, buyer discovery, export readiness score, AI trade copilot."
         path="/tools"
         keywords="free trade tools, HSN finder, customs duty calculator, landed cost calculator, export incentive finder, buyer discovery, export readiness, AI trade assistant"
       />
@@ -32,7 +32,7 @@ export default function ToolsHub() {
         testIdPrefix="tools"
         label="Trade Tools Hub · 100% Free"
         title="Eight tools. One unfair advantage."
-        sub="Every tool a global trader needs — HSN, duties, buyers, incentives, readiness — instant, accurate, free. Powered by the LeadNation engine."
+        sub="Every tool a global trader needs — HSN, duties, buyers, incentives, readiness — instant, accurate, free. Powered by the Vametra AI engine."
       />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">

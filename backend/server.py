@@ -1,4 +1,4 @@
-"""LeadNation API — thin entrypoint. Domain logic lives in routers + brain/."""
+"""Vametra AI API — thin entrypoint. Domain logic lives in routers + brain/."""
 import asyncio
 import logging
 
@@ -23,7 +23,7 @@ from brain.routes import router as brain_router
 from brain.admin_routes import router as brain_admin_router
 from brain.knowledge import seed_knowledge_base
 
-app = FastAPI(title="LeadNation — Global Trade Intelligence API")
+app = FastAPI(title="Vametra AI — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
 for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo, verify):

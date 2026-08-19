@@ -44,12 +44,12 @@ export default function GlobalSearch() {
 
   return (
     <>
-      <SEO title={initial ? `Search "${initial}" · LeadNation` : "Search · LeadNation"}
-        description="Search products, countries, HSN codes, corridors, services, tools and articles across the LeadNation platform."
+      <SEO title={initial ? `Search "${initial}" · Vametra AI` : "Search · Vametra AI"}
+        description="Search products, countries, HSN codes, corridors, services, tools and articles across the Vametra AI platform."
         path="/search"
-        keywords="LeadNation search, trade search, HSN search, product search"
+        keywords="Vametra AI search, trade search, HSN search, product search"
       />
-      <PageHero testIdPrefix="search" label="LeadNation Brain · Universal Search"
+      <PageHero testIdPrefix="search" label="Vametra AI Brain · Universal Search"
         title="Search the entire trade brain."
         sub="One box across countries, products, HSN, corridors, industries, services, suppliers, buyers, learning, FAQs, blogs and tools — ranked by relevance."
       >

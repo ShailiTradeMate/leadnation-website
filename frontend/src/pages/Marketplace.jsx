@@ -8,7 +8,7 @@ export default function Marketplace() {
     <>
       <SEO
         title="Trade Marketplace · Live RFQs & Product Listings"
-        description="The LeadNation Marketplace connects verified exporters, importers and suppliers worldwide — post and browse live RFQs, negotiate, sample and close cross-border deals in-app."
+        description="The Vametra AI Marketplace connects verified exporters, importers and suppliers worldwide — post and browse live RFQs, negotiate, sample and close cross-border deals in-app."
         path="/marketplace"
         keywords="trade marketplace, export RFQ, import listings, B2B trade platform, connect buyers suppliers"
       />

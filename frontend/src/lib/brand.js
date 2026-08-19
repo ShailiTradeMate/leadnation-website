@@ -1,14 +1,14 @@
 // ─────────────────────────────────────────────────────────────
-// LeadNation — SINGLE SOURCE OF TRUTH for brand + social identity.
+// Vametra AI — SINGLE SOURCE OF TRUTH for brand + social identity.
 // Add a new social platform here and it propagates to the Footer,
 // Contact page, SEO sameAs / Knowledge Graph and share metadata.
 // ─────────────────────────────────────────────────────────────
-export const SITE_URL = "https://leadnation.app";
-export const BRAND_NAME = "LeadNation";
+export const SITE_URL = "https://vametra.com";
+export const BRAND_NAME = "Vametra AI";
 export const LEGAL_NAME = "Vametra AI Technologies Pvt Ltd";
 export const TAGLINE = "Intelligence Beyond Borders";
 export const BRAND_ONE_LINER =
-  "LeadNation — the AI-powered Global Trade Intelligence platform. Customs duties, HS codes, FTAs, landed cost, expos, market data and trade news for 195+ countries.";
+  "Vametra AI — the AI-powered Global Trade Intelligence platform. Customs duties, HS codes, FTAs, landed cost, expos, market data and trade news for 195+ countries.";
 
 export const EMAIL = "admin@leadnation.app";
 export const PHONE = "+91-8237161088";

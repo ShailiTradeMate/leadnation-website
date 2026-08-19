@@ -16,7 +16,7 @@ export default function ProductResearch() {
   return (
     <>
       <SEO title="Product Research · Demand, Opportunity & Markets"
-        description="Discover demand, top markets, opportunity size and trends for any product. Free product research powered by LeadNation."
+        description="Discover demand, top markets, opportunity size and trends for any product. Free product research powered by Vametra AI."
         path="/tools/product-research"
         keywords="product market research, export demand by product, top importing countries, top exporting countries, market opportunity"
       />

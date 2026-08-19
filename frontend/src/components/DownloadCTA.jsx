@@ -22,7 +22,7 @@ export default function DownloadCTA({ compact = false, id }) {
             </h3>
             <p className="mt-5 text-slate-300 max-w-md">
               Search products, check customs duties, scan expos and chase leads from
-              anywhere on earth — the LeadNation app is built for traders on the move.
+              anywhere on earth — the Vametra AI app is built for traders on the move.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
@@ -76,7 +76,7 @@ function PhoneMock() {
         <div className="absolute inset-3 rounded-[32px] overflow-hidden border border-white/5">
           <div className="absolute inset-0 bg-gradient-to-b from-[#0A2540] via-[#0a0f24] to-[#050816]" />
           <div className="absolute inset-0 p-3">
-            <div className="text-[8px] text-cyan-300 font-mono-display tracking-[0.3em] uppercase">LeadNation</div>
+            <div className="text-[8px] text-cyan-300 font-mono-display tracking-[0.3em] uppercase">Vametra AI</div>
             <div className="mt-1 text-xs font-display font-bold leading-tight">Find your next<br/>global buyer</div>
             <div className="mt-3 space-y-1.5">
               {[1,2,3,4].map((i)=>(

@@ -1,6 +1,6 @@
 """Trade News Engine — live + AI + admin, personalized by user profile.
 
-Architecture:  Live News API (NewsData.io, env-based adapter)  +  LeadNation Brain
+Architecture:  Live News API (NewsData.io, env-based adapter)  +  Vametra AI Brain
 (impact analysis)  +  User Profile Context (country / role / products)  =  personalized
 trade intelligence. Logged-in users get country/role-tailored news; guests get global
 trade news. Admins can add / edit / feature / remove news. Shared by website + app.
@@ -63,7 +63,7 @@ CURATED: List[Dict[str, Any]] = [
     {"title": "Global merchandise trade rebounds as tariff tensions ease",
      "category": "Business", "country": "Global",
      "excerpt": "WTO data points to a broad recovery in goods trade led by electronics and machinery.",
-     "source": "LeadNation Intelligence"},
+     "source": "Vametra AI Intelligence"},
     {"title": "Red Sea reroutes keep Asia–Europe container rates elevated",
      "category": "Logistics & Shipping", "country": "Global",
      "excerpt": "Carriers continue routing via the Cape of Good Hope, extending transit times 10–14 days.",
@@ -142,7 +142,7 @@ async def _admin_news(country: Optional[str]) -> List[Dict[str, Any]]:
                     "image": d.get("image") or _img_for(d.get("title", "")),
                     "category": d.get("category", "Business"), "country": d.get("country", "Global"),
                     "date": d.get("date") or (d.get("createdAt", "") or "")[:10] or "Today",
-                    "source": d.get("source", "LeadNation"), "url": d.get("url", ""),
+                    "source": d.get("source", "Vametra AI"), "url": d.get("url", ""),
                     "badge": "admin", "featured": bool(d.get("featured")),
                     "body": d.get("body", "")})
     return out
@@ -247,7 +247,7 @@ async def news_detail(news_id: str, authorization: Optional[str] = Header(defaul
         pref = await db.user_prefs.find_one({"owner": claims.get("uid")})
         if pref:
             ctx = f"The reader is a {pref.get('role','trader')} based in {pref.get('country','their country')}."
-    system = ("You are LeadNation Brain, a global trade analyst. In 90-130 words explain, in plain "
+    system = ("You are Vametra AI Brain, a global trade analyst. In 90-130 words explain, in plain "
               "language, what a trade news item MEANS for an importer/exporter — concrete actions, "
               "risks and opportunities. Use markdown bullets. Do not invent specific figures.")
     prompt = (f"NEWS: {item.get('title','')}\n{item.get('excerpt','')}\n{item.get('body','')[:600]}\n\n"
@@ -255,7 +255,7 @@ async def news_detail(news_id: str, authorization: Optional[str] = Header(defaul
     impact = await llm_util.generate(system, prompt, session=f"news-{news_id}")
     item["impact"] = impact or ("- Monitor how this affects your lane's costs and timelines.\n"
                                 "- Review duties, FTAs and freight for affected products.\n"
-                                "- Ask the LeadNation Brain for a tailored action plan.")
+                                "- Ask the Vametra AI Brain for a tailored action plan.")
     return item
 
 
@@ -266,7 +266,7 @@ class NewsIn(BaseModel):
     body: str = ""
     category: str = "Business"
     country: str = "Global"
-    source: str = "LeadNation"
+    source: str = "Vametra AI"
     image: str = ""
     url: str = ""
     date: str = ""

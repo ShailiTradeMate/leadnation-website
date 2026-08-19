@@ -16,7 +16,7 @@ const SUGGESTED = [
 
 export default function AiAssistant() {
   const [thread, setThread] = useState([
-    { role: "assistant", text: "Hi — I'm the LeadNation Trade Copilot. Ask me anything about exports, HSN, documents, certifications or markets." },
+    { role: "assistant", text: "Hi — I'm the Vametra AI Trade Copilot. Ask me anything about exports, HSN, documents, certifications or markets." },
   ]);
   const [q, setQ] = useState("");
   const [suggestedTools, setSuggestedTools] = useState([]);
@@ -37,11 +37,11 @@ export default function AiAssistant() {
   return (
     <>
       <SEO title="AI Trade Copilot · Ask Anything About Global Trade"
-        description="LeadNation's AI Trade Copilot answers any export, HSN, FTA or certification question instantly. Free preview."
+        description="Vametra AI's AI Trade Copilot answers any export, HSN, FTA or certification question instantly. Free preview."
         path="/ai-assistant"
         keywords="AI trade assistant, export AI, GPT for trade, HSN AI, customs AI, trade chatbot"
       />
-      <PageHero testIdPrefix="ai" label="LeadNation AI · Trade Copilot"
+      <PageHero testIdPrefix="ai" label="Vametra AI AI · Trade Copilot"
         title="Ask anything. Export anywhere."
         sub="The AI copilot for global traders. Ask about HSN codes, customs, certifications, markets — get a clear answer in seconds."
       />

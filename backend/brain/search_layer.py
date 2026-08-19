@@ -1,11 +1,11 @@
 """Universal Search — Brain Search.
 
-Searches across all LeadNation domains and ranks by relevance.
+Searches across all Vametra AI domains and ranks by relevance.
 Search priority (per product spec):
-  1. LeadNation Knowledge Base (SSOT)  — countries, products, HSN, corridors,
+  1. Vametra AI Knowledge Base (SSOT)  — countries, products, HSN, corridors,
      industries, services, blog, learning, compliance, schemes, FAQs
-  2. LeadNation Database (CMS collections)
-  3. LeadNation Trade Engines + Network (suppliers / buyers / tools)
+  2. Vametra AI Database (CMS collections)
+  3. Vametra AI Trade Engines + Network (suppliers / buyers / tools)
   4. Approved external APIs   (stub — disabled)
   5. Public web search        (stub — disabled, NO scraping)
 """
@@ -87,7 +87,7 @@ async def universal_search(query: str, limit: int = 30):
             eng_hits += 1
     tools = [("HSN Finder", "/tools/hsn-finder"), ("Duty Calculator", "/tools/duty-calculator"),
              ("Find Buyers", "/tools/find-buyers"), ("Export Readiness", "/tools/export-readiness"),
-             ("LeadNation Brain", "/brain")]
+             ("Vametra AI Brain", "/brain")]
     for label, to in tools:
         if not query or ql in label.lower():
             results.append({"type": "tool", "label": label, "to": to, "source": "engines"})

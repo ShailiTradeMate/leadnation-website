@@ -35,6 +35,6 @@
   "seed_data_creation": "Created one fresh Firebase non-subscriber user for the 402 gating check, then deleted it via Firebase accounts:delete. No buyer/database seed data was created.",
   "retest_needed": false,
   "should_main_agent_self_test": false,
-  "context_for_next_testing_agent": "Preview backend base https://payments-cms.preview.emergentagent.com/api was tested with a minted Firebase ID token for vaibhav@leadnation.app. Result artifact shows 20/20 active subscriber reveal attempts returned 200 and contact present; anonymous and fresh non-subscriber returned 402; Mongo active buyer corpus was 15028/15028 with actual email or phone.",
+  "context_for_next_testing_agent": "Preview backend base https://vbie-verify.preview.emergentagent.com/api was tested with a minted Firebase ID token for vaibhav@leadnation.app. Result artifact shows 20/20 active subscriber reveal attempts returned 200 and contact present; anonymous and fresh non-subscriber returned 402; Mongo active buyer corpus was 15028/15028 with actual email or phone.",
   "rca_of_the_issue": "Original production symptom was consistent with stale no-contact buyer records being exposed; current preview data and code now enforce contact presence for active buyers and subscriber reveal returns cached/resolved contact instead of empty data."
 }

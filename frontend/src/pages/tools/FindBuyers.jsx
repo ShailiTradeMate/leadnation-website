@@ -18,7 +18,7 @@ export default function FindBuyers() {
   return (
     <>
       <SEO title="Buyer Discovery · Find Verified Importers Worldwide"
-        description="Find verified global buyers for your product — by country, demand and market potential. Free preview. Unlock full database in the LeadNation app."
+        description="Find verified global buyers for your product — by country, demand and market potential. Free preview. Unlock full database in the Vametra AI app."
         path="/tools/find-buyers"
         keywords="find buyers for export, verified importers, buyer discovery India, export leads, B2B buyer database"
       />
@@ -70,7 +70,7 @@ export default function FindBuyers() {
                     <Lock size={26} className="text-cyan-300" weight="duotone" />
                     <div className="flex-1">
                       <div className="font-display font-bold">12+ more verified buyers locked.</div>
-                      <div className="text-sm text-slate-400">Full contact details, decision-makers and 3-year demand history are inside the LeadNation app.</div>
+                      <div className="text-sm text-slate-400">Full contact details, decision-makers and 3-year demand history are inside the Vametra AI app.</div>
                     </div>
                     <Link to="/contact" className="btn-primary">Create free account <ArrowRight size={14} weight="bold" /></Link>
                   </div>

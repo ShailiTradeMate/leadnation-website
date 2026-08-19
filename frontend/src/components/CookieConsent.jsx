@@ -39,7 +39,7 @@ export default function CookieConsent() {
           <div className="flex flex-col sm:flex-row items-start gap-4">
             <Cookie size={28} weight="duotone" className="text-cyan-300 shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-sm text-slate-200">LeadNation uses cookies and analytics to improve your global trade experience.</p>
+              <p className="text-sm text-slate-200">Vametra AI uses cookies and analytics to improve your global trade experience.</p>
               <p className="text-xs text-slate-500 mt-1">Essential cookies keep you signed in and secure. Read our <Link to="/legal/cookies" className="text-cyan-300 hover:underline">Cookie Policy</Link> and <Link to="/legal/privacy" className="text-cyan-300 hover:underline">Privacy Policy</Link>.</p>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">

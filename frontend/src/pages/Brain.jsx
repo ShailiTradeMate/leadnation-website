@@ -50,7 +50,7 @@ function FormattedAnswer({ text }) {
 
 export default function BrainPage() {
   const [thread, setThread] = useState([
-    { role: "assistant", answer: "I'm the **LeadNation Brain** — the trade operating system. Ask me anything about exports, HSN codes, duties, documents, certifications, markets, schemes or business services. I orchestrate 12 trade engines to give you one clear answer." },
+    { role: "assistant", answer: "I'm the **Vametra AI Brain** — the trade operating system. Ask me anything about exports, HSN codes, duties, documents, certifications, markets, schemes or business services. I orchestrate 12 trade engines to give you one clear answer." },
   ]);
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(false);
@@ -85,8 +85,8 @@ export default function BrainPage() {
 
   return (
     <>
-      <SEO title="LeadNation Brain · ChatGPT for Global Trade"
-        description="The LeadNation Brain orchestrates 12 trade engines — compliance, tariffs, HSN, country intelligence, logistics and more — into one unified answer for global traders."
+      <SEO title="Vametra AI Brain · ChatGPT for Global Trade"
+        description="The Vametra AI Brain orchestrates 12 trade engines — compliance, tariffs, HSN, country intelligence, logistics and more — into one unified answer for global traders."
         path="/brain"
         keywords="trade AI, export AI, HSN AI, customs AI, trade brain, import export assistant, India trade intelligence"
       />
@@ -94,7 +94,7 @@ export default function BrainPage() {
       {/* Hero */}
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-28 pb-10">
         <div className="flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
-          <Brain size={16} weight="duotone" /> LeadNation Intelligence Layer
+          <Brain size={16} weight="duotone" /> Vametra AI Intelligence Layer
         </div>
         <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl mt-4 max-w-4xl leading-[1.05]">
           The trade brain.<br /><span className="text-gradient">One mind for global trade.</span>

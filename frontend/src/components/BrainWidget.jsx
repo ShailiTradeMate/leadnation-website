@@ -112,7 +112,7 @@ export default function BrainWidget() {
     <>
       {/* Launcher (above WhatsApp button) */}
       <button data-testid="brain-widget-fab" onClick={() => setOpen((o) => !o)}
-        aria-label="Open LeadNation Brain"
+        aria-label="Open Vametra AI Brain"
         className="fixed bottom-24 right-6 z-[61] grid place-items-center w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_10px_40px_rgba(0,194,255,0.45)] hover:scale-110 transition-transform">
         {open ? <X size={24} weight="bold" color="#fff" /> : <Brain size={26} weight="duotone" color="#fff" />}
         {!open && <span className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-20" />}
@@ -127,7 +127,7 @@ export default function BrainWidget() {
               <Brain size={16} weight="duotone" className="text-cyan-300" />
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-display font-bold">LeadNation Brain</div>
+              <div className="text-sm font-display font-bold">Vametra AI Brain</div>
               <div className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-mono-display">Ask anything · {page.type}</div>
             </div>
             <Link to="/brain" onClick={() => setOpen(false)} className="ml-auto text-[11px] text-slate-400 hover:text-cyan-300">Open full ↗</Link>

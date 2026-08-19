@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
 
 const COMPANY = "Vametra AI Technologies Pvt Ltd";
-const PRODUCT = "LeadNation";
+const PRODUCT = "Vametra AI";
 const EMAIL = "admin@leadnation.app";
 const ADDRESS = "Tirthankar, Central Bank of India, Ekveera Chowk, Pipeline Rd, Savedi, Ahilyanagar, Maharashtra 414003, India";
 const UPDATED = "5 July 2026";
@@ -45,7 +45,7 @@ const UL = ({ items }) => <ul className="list-disc pl-5 space-y-1.5">{items.map(
 export function PrivacyPolicy() {
   return (
     <LegalLayout title="Privacy Policy" path="/legal/privacy"
-      description="How LeadNation (Vametra AI Technologies Pvt Ltd) collects, uses, stores and protects your data across our website and mobile app.">
+      description="How Vametra AI (Vametra AI Technologies Pvt Ltd) collects, uses, stores and protects your data across our website and mobile app.">
       <P>This Privacy Policy explains how {COMPANY} ("we", "us") collects, uses, discloses and safeguards your information when you use the {PRODUCT} website, mobile application and related services (collectively, the "Service"). It applies to users worldwide. By using the Service you agree to this Policy.</P>
 
       <H>1. Information we collect</H>
@@ -70,7 +70,7 @@ export function PrivacyPolicy() {
       ]} />
 
       <H>3. AI processing and limitations</H>
-      <P>{PRODUCT} uses third-party large-language-model providers to interpret and explain trade data (the "LeadNation Brain"). Deterministic engines compute all figures; AI is used to explain, recommend and summarise — it does not fabricate numbers. Project context you submit may be sent to these AI providers to generate responses. AI output may be incomplete or inaccurate and must not be relied upon as legal, financial, customs or professional advice (see our Disclaimer).</P>
+      <P>{PRODUCT} uses third-party large-language-model providers to interpret and explain trade data (the "Vametra AI Brain"). Deterministic engines compute all figures; AI is used to explain, recommend and summarise — it does not fabricate numbers. Project context you submit may be sent to these AI providers to generate responses. AI output may be incomplete or inaccurate and must not be relied upon as legal, financial, customs or professional advice (see our Disclaimer).</P>
 
       <H>4. Data storage and security</H>
       <UL items={[
@@ -105,11 +105,11 @@ export function PrivacyPolicy() {
 export function TermsOfService() {
   return (
     <LegalLayout title="Terms of Service" path="/legal/terms"
-      description="The terms governing your use of the LeadNation website, mobile app and Trade Command Center services.">
+      description="The terms governing your use of the Vametra AI website, mobile app and Trade Command Center services.">
       <P>These Terms of Service ("Terms") govern your access to and use of the {PRODUCT} website, mobile application and services operated by {COMPANY}. By accessing or using the Service, you agree to these Terms.</P>
 
       <H>1. The Service</H>
-      <P>{PRODUCT} provides a global trade-intelligence platform including the Trade Command Center (Trade Projects, costing, simulations, scenarios, decision analysis and reports), trade tools, and an AI assistant (the "LeadNation Brain"). Features are provided on an "as-is" and "as-available" basis.</P>
+      <P>{PRODUCT} provides a global trade-intelligence platform including the Trade Command Center (Trade Projects, costing, simulations, scenarios, decision analysis and reports), trade tools, and an AI assistant (the "Vametra AI Brain"). Features are provided on an "as-is" and "as-available" basis.</P>
 
       <H>2. Accounts and identity</H>
       <UL items={[
@@ -163,7 +163,7 @@ export function TermsOfService() {
 export function CookiePolicy() {
   return (
     <LegalLayout title="Cookie Policy" path="/legal/cookies"
-      description="How LeadNation uses cookies and similar technologies on its website and app.">
+      description="How Vametra AI uses cookies and similar technologies on its website and app.">
       <P>This Cookie Policy explains how {PRODUCT} ({COMPANY}) uses cookies and similar technologies.</P>
 
       <H>1. What are cookies</H>
@@ -193,7 +193,7 @@ export function CookiePolicy() {
 export function Disclaimer() {
   return (
     <LegalLayout title="Disclaimer" path="/legal/disclaimer"
-      description="Trade data, AI output and reports provided by LeadNation are for informational purposes only.">
+      description="Trade data, AI output and reports provided by Vametra AI are for informational purposes only.">
       <H>1. Informational purpose only</H>
       <P>All information provided by {PRODUCT} — including customs duties, taxes, FX rates, freight estimates, landed costs, trade scores, simulations, decision analyses, buyer/supplier and market intelligence, and generated reports — is for general informational and planning purposes only. It does not constitute legal, tax, customs, financial, or professional advice.</P>
 
@@ -201,7 +201,7 @@ export function Disclaimer() {
       <P>Trade data is aggregated from third-party and government sources (e.g., World Bank WITS/UNCTAD TRAINS, OEC, exchange-rate feeds) and may be delayed, incomplete, or inaccurate. Tariffs, taxes, incentives and regulations change frequently and vary by product, origin, destination and shipment. You must independently verify all figures with official authorities and licensed professionals before acting.</P>
 
       <H>3. AI limitations</H>
-      <P>The LeadNation Brain and other AI features generate explanations, recommendations and summaries based on the context provided. AI output can be incomplete or wrong and must not be relied upon as authoritative. Deterministic engines produce the underlying numbers; AI narrates them. Always confirm critical decisions with qualified experts.</P>
+      <P>The Vametra AI Brain and other AI features generate explanations, recommendations and summaries based on the context provided. AI output can be incomplete or wrong and must not be relied upon as authoritative. Deterministic engines produce the underlying numbers; AI narrates them. Always confirm critical decisions with qualified experts.</P>
 
       <H>4. Estimates and confidence</H>
       <P>Where a value is estimated (for example, freight where no live feed is connected), it is labelled as an estimate with an indicative confidence and assumptions. Estimates are not quotations and are not binding on any carrier, authority or counterparty.</P>
@@ -219,7 +219,7 @@ export function Disclaimer() {
 export function RefundPolicy() {
   return (
     <LegalLayout title="Refund & Cancellation Policy" path="/legal/refund"
-      description="LeadNation refund, cancellation and billing policy for subscriptions and paid reports.">
+      description="Vametra AI refund, cancellation and billing policy for subscriptions and paid reports.">
       <P>This Policy governs payments made to {COMPANY} for {PRODUCT} subscriptions and pay-per-report downloads, processed via Stripe and/or Razorpay.</P>
 
       <H>1. Subscriptions</H>

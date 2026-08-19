@@ -1,4 +1,4 @@
-"""Pluggable object-storage abstraction for LeadNation.
+"""Pluggable object-storage abstraction for Vametra AI.
 
 A single `storage_provider` interface so we can migrate between Emergent Object
 Storage (now), Firebase Storage, AWS S3 or DigitalOcean Spaces later WITHOUT

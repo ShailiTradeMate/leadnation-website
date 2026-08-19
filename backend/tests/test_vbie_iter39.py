@@ -3,7 +3,7 @@ import os
 import pytest
 import requests
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://payments-cms.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vbie-verify.preview.emergentagent.com').rstrip('/')
 ADMIN_HEADERS = {"X-Admin-Token": "leadnation-admin-2026"}
 TIMEOUT = 60
 

@@ -51,9 +51,9 @@ export default function CountryProfile() {
           { name: data.name, path: `/countries/${data.slug}` },
         ]}
         faqs={[
-          { q: `What does ${data.name} mainly import and export?`, a: `${data.tagline} LeadNation tracks ${data.name}'s major imports, exports, customs duties and FTA opportunities, updated for ${new Date().getFullYear()}.` },
-          { q: `How do I calculate customs duty and landed cost for ${data.name}?`, a: `Use LeadNation's free Duty Calculator and Landed Cost Calculator to get HS-code-based duties, taxes and total landed cost for shipments to and from ${data.name} across all Incoterms.` },
-          { q: `How can I find verified buyers in ${data.name}?`, a: `LeadNation's Verified Buyer Intelligence surfaces real, contact-verified buyers sourced from official government trade records for ${data.name} and 195+ countries.` },
+          { q: `What does ${data.name} mainly import and export?`, a: `${data.tagline} Vametra AI tracks ${data.name}'s major imports, exports, customs duties and FTA opportunities, updated for ${new Date().getFullYear()}.` },
+          { q: `How do I calculate customs duty and landed cost for ${data.name}?`, a: `Use Vametra AI's free Duty Calculator and Landed Cost Calculator to get HS-code-based duties, taxes and total landed cost for shipments to and from ${data.name} across all Incoterms.` },
+          { q: `How can I find verified buyers in ${data.name}?`, a: `Vametra AI's Verified Buyer Intelligence surfaces real, contact-verified buyers sourced from official government trade records for ${data.name} and 195+ countries.` },
         ]}
         schema={{
           "@context": "https://schema.org",

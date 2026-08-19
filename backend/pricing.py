@@ -1,4 +1,4 @@
-"""Centralized Pricing Engine for LeadNation.
+"""Centralized Pricing Engine for Vametra AI.
 
 Single source of truth for ALL prices (pay-per-report + subscriptions), currencies,
 payment gateways and paywall/monetization settings. Prices live in Mongo
@@ -81,7 +81,7 @@ DEFAULT_PRICING: Dict[str, Any] = {
          "monthly": "Unlimited", "annual": "Unlimited"},
         {"label": "Full cost & duty waterfall", "download": True, "monthly": True, "annual": True},
         {"label": "Buyer-market comparison", "download": True, "monthly": True, "annual": True},
-        {"label": "LeadNation Brain queries", "download": "Limited", "monthly": "Priority", "annual": "Priority"},
+        {"label": "Vametra AI Brain queries", "download": "Limited", "monthly": "Priority", "annual": "Priority"},
         {"label": "Saved projects & version history", "download": True, "monthly": True, "annual": True},
         {"label": "Priority support", "download": False, "monthly": True, "annual": True},
     ],

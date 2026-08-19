@@ -1,4 +1,4 @@
-"""VBIE Production Recurring Intelligence Service — LeadNation's permanent, self-growing
+"""VBIE Production Recurring Intelligence Service — Vametra AI's permanent, self-growing
 data engine. This is a CORE service, not a best-effort cron.
 
 Design goals (all satisfied here):

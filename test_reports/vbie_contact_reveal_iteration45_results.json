@@ -1,5 +1,5 @@
 {
-  "api_base": "https://payments-cms.preview.emergentagent.com/api",
+  "api_base": "https://vbie-verify.preview.emergentagent.com/api",
   "checks": {
     "meta_status": 200,
     "meta_total": 15028,

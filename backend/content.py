@@ -199,7 +199,7 @@ BLOG_DB = [
     {"slug": "incoterms-2020-cheatsheet", "title": "Incoterms 2020 cheatsheet for exporters", "category": "Trade Intelligence", "date": "Jan 8, 2026", "image": "https://images.unsplash.com/photo-1577017040065-650ee4d43339?auto=format&fit=crop&w=1200&q=80", "excerpt": "FOB or CIF? DDP or DAP? A quick chart that will save you 30% on disputes and 10% on freight.", "readMins": 5},
     {"slug": "india-uae-cepa-product-list", "title": "India–UAE CEPA: full list of products with 0% duty", "category": "Trade News", "date": "Jan 6, 2026", "image": "https://images.unsplash.com/photo-1518684079-3c830dcef090?auto=format&fit=crop&w=1200&q=80", "excerpt": "11,908 products at zero duty. Find yours in 30 seconds — and start saving 5–18% per shipment.", "readMins": 8},
     {"slug": "lcs-vs-da-vs-tt-payment-terms", "title": "LC vs DA vs TT — which payment term protects your margin?", "category": "Logistics", "date": "Jan 4, 2026", "image": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80", "excerpt": "A practical guide for first-time exporters — when to insist on an LC, when DA is fine, and when never to take TT.", "readMins": 6},
-    {"slug": "how-to-find-buyers-in-gcc", "title": "How to find your first buyer in the GCC", "category": "International Marketing", "date": "Jan 2, 2026", "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80", "excerpt": "From Gulfood to LinkedIn to LeadNation — the 9 channels that work for new GCC exporters.", "readMins": 10},
+    {"slug": "how-to-find-buyers-in-gcc", "title": "How to find your first buyer in the GCC", "category": "International Marketing", "date": "Jan 2, 2026", "image": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=1200&q=80", "excerpt": "From Gulfood to LinkedIn to Vametra AI — the 9 channels that work for new GCC exporters.", "readMins": 10},
 ]
 
 
@@ -218,7 +218,7 @@ async def blog_detail(slug: str):
         "International trade can feel overwhelming when you're just starting. But the principles never change: the right paperwork, the right partner and the right pricing.",
         "In this guide we walk through every step — from registration to shipping bill — with a checklist you can use today.",
         "The most important thing is to start with a small, friendly market and grow incrementally. Most successful Indian exporters did their first shipment to UAE or Singapore.",
-        "Want help moving faster? LeadNation's app gives you HSN codes, duty rates, buyers and compliance in one screen.",
+        "Want help moving faster? Vametra AI's app gives you HSN codes, duty rates, buyers and compliance in one screen.",
     ]}
     return full
 

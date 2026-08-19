@@ -3,7 +3,7 @@ import os
 import requests
 import pytest
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://payments-cms.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://vbie-verify.preview.emergentagent.com").rstrip("/")
 ADMIN_TOKEN = "leadnation-admin-2026"
 ADMIN_HDR = {"X-Admin-Token": ADMIN_TOKEN}
 LEI_BUYER = "LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ"

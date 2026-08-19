@@ -1,4 +1,4 @@
-"""Monetization + Account for the LeadNation website.
+"""Monetization + Account for the Vametra AI website.
 
 Paywall: building quotes is free; the FIRST PDF download is free, after that each
 download costs ₹25 (India) / $1 (international) — or an active monthly pass gives
@@ -286,7 +286,7 @@ async def razorpay_create_order(body: CheckoutIn, request: Request,
         "consumed": False, "granted": False, "createdAt": _iso(_now()), "updatedAt": _iso(_now())})
     return {"gateway": "razorpay", "key_id": RAZORPAY_KEY_ID, "order_id": order["id"],
             "amount": paise, "currency": currency.upper(), "sessionId": order["id"],
-            "name": "LeadNation", "description": f"{body.kind} — LeadNation",
+            "name": "Vametra AI", "description": f"{body.kind} — Vametra AI",
             "prefill": {"name": body.name or prof.get("name", ""), "email": email,
                         "contact": prof.get("mobile", "")}}
 
@@ -445,7 +445,7 @@ async def _make_invoice(owner, amount, currency, item):
     gst = round(amount - amount / 1.18, 2) if currency == "inr" else 0.0
     return {"id": uuid.uuid4().hex, "number": num, "date": _iso(_now()),
             "amount": amount, "currency": currency, "gst": gst,
-            "item": f"Trade Intelligence Report — {item}", "seller": "LeadNation"}
+            "item": f"Trade Intelligence Report — {item}", "seller": "Vametra AI"}
 
 
 # ---------------- Account ----------------
@@ -482,7 +482,7 @@ async def _profile(owner: str, otype: str, token: Optional[str]):
 
 def _referral(owner: str):
     code = "LN" + hashlib.sha1(owner.encode()).hexdigest()[:7].upper()
-    return {"code": code, "link": f"https://leadnation.app/?ref={code}"}
+    return {"code": code, "link": f"https://vametra.com/?ref={code}"}
 
 
 @acc_router.get("/me")

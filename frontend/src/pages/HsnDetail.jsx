@@ -32,8 +32,8 @@ export default function HsnDetail() {
         ]}
         faqs={[
           { q: `What is the GST rate for HSN ${h.code}?`, a: `HSN ${h.code} (${h.title}) attracts GST of ${h.gst}. RoDTEP is ${h.rodtep} and duty drawback is ${h.drawback}.` },
-          { q: `What export benefits apply to HSN ${h.code}?`, a: `${h.title} under HSN ${h.code} is eligible for RoDTEP (${h.rodtep}) and duty drawback (${h.drawback}). LeadNation lists the documents and compliance needed to claim them.` },
-          { q: `What documents are required to export HSN ${h.code}?`, a: `${(h.documents || []).slice(0, 6).join(", ") || "Standard export documentation applies"}. See LeadNation for the full, country-specific checklist.` },
+          { q: `What export benefits apply to HSN ${h.code}?`, a: `${h.title} under HSN ${h.code} is eligible for RoDTEP (${h.rodtep}) and duty drawback (${h.drawback}). Vametra AI lists the documents and compliance needed to claim them.` },
+          { q: `What documents are required to export HSN ${h.code}?`, a: `${(h.documents || []).slice(0, 6).join(", ") || "Standard export documentation applies"}. See Vametra AI for the full, country-specific checklist.` },
         ]}
       />
       <PageHero testIdPrefix="hsn-detail" label={`HSN · ${h.code}`}

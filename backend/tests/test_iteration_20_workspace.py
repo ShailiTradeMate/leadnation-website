@@ -4,7 +4,7 @@ import uuid
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/") or "https://payments-cms.preview.emergentagent.com"
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "").rstrip("/") or "https://vbie-verify.preview.emergentagent.com"
 SESSION_ID = str(uuid.uuid4())
 HEADERS = {"Content-Type": "application/json", "X-Trade-Session": SESSION_ID}
 

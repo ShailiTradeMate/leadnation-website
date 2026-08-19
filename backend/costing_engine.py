@@ -1,11 +1,11 @@
-"""LeadNation Trade Command Center — world-class costing & quotation engine.
+"""Vametra AI Trade Command Center — world-class costing & quotation engine.
 
 Two endpoints, by design:
   * POST /command-center/quote    → 100% deterministic FOB→CIF→Landed→Selling waterfall,
     buyer-landed-cost comparison across markets, dual + global currency conversion,
     export incentives and indicative routes. Returns INSTANTLY (no LLM) so the UI never
     blocks on a model.
-  * POST /command-center/insights → the LeadNation Brain reasons over the quote and returns
+  * POST /command-center/insights → the Vametra AI Brain reasons over the quote and returns
     recommendations, risks, savings and alternatives. Called separately by the UI so the
     numbers render first and the AI advisor fills in progressively.
 
@@ -343,7 +343,7 @@ async def explain(req: ExplainRequest):
     except Exception as exc:
         logging.warning("Explain failed: %s", exc)
     return {"ok": True, "field": f, "formula": formula, "plain": plain, "context": ctx,
-            "source": "World Bank WITS / UNCTAD TRAINS (duty) · open.er-api.com (FX) · LeadNation Brain (analysis)",
+            "source": "World Bank WITS / UNCTAD TRAINS (duty) · open.er-api.com (FX) · Vametra AI Brain (analysis)",
             "explanation": advisor}
 
 
@@ -390,7 +390,7 @@ async def compliance(req: ComplianceRequest):
             "importer": {"code": req.importer, "name": imp}, "incoterm": req.incoterm,
             "duty": duty if duty.get("ok") else None, "documents": base_docs,
             "narrative": narrative,
-            "sources": ["World Bank WITS / UNCTAD TRAINS", "LeadNation Brain"]}
+            "sources": ["World Bank WITS / UNCTAD TRAINS", "Vametra AI Brain"]}
 
 
 # ---------------- Ports (per country) & Brain autofill ----------------

@@ -14,7 +14,7 @@ const BUSINESS_ROLES = [
 const Shell = ({ title, sub, children }) => (
   <section className="min-h-[80vh] grid place-items-center px-6 py-20">
     <div className="glass-strong rounded-3xl p-8 w-full max-w-md">
-      <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">LeadNation Account</div>
+      <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Vametra AI Account</div>
       <h1 className="font-display font-extrabold text-3xl mt-2">{title}</h1>
       {sub && <p className="text-slate-400 text-sm mt-2">{sub}</p>}
       {children}
@@ -105,8 +105,8 @@ export function Login() {
   );
 
   return (
-    <Shell title="Sign in" sub="Use the same account as the LeadNation app.">
-      <SEO title="Sign in · LeadNation" description="Sign in to your LeadNation account." path="/login" />
+    <Shell title="Sign in" sub="Use the same account as the Vametra AI app.">
+      <SEO title="Sign in · Vametra AI" description="Sign in to your Vametra AI account." path="/login" />
       <div className="flex gap-1 glass rounded-2xl p-1 mt-4" data-testid="login-tabs">
         <TabBtn id="credentials" label="Email / Customer ID" />
         <TabBtn id="mobile" label="Mobile number" />
@@ -186,8 +186,8 @@ export function Signup() {
   };
 
   return (
-    <Shell title="Create your account" sub="One login for the LeadNation website and mobile app.">
-      <SEO title="Create account · LeadNation" description="Join LeadNation — global trade intelligence." path="/signup" />
+    <Shell title="Create your account" sub="One login for the Vametra AI website and mobile app.">
+      <SEO title="Create account · Vametra AI" description="Join Vametra AI — global trade intelligence." path="/signup" />
       <form onSubmit={submit} data-testid="signup-form">
         <input data-testid="signup-name" autoFocus className={inp} value={form.full_name} onChange={(e) => set("full_name", e.target.value)} placeholder="Full name" />
         <input data-testid="signup-email" type="email" className={inp} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="Email" />
@@ -226,7 +226,7 @@ export function ForgotPassword() {
   };
   return (
     <Shell title="Reset password" sub="We'll email you a secure reset link.">
-      <SEO title="Reset password · LeadNation" description="Reset your LeadNation password." path="/forgot-password" />
+      <SEO title="Reset password · Vametra AI" description="Reset your Vametra AI password." path="/forgot-password" />
       <form onSubmit={submit} data-testid="forgot-form">
         <input data-testid="forgot-email" type="email" autoFocus className={inp} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" />
         {msg && <div data-testid="forgot-msg" className="text-emerald-300 text-sm mt-2">{msg}</div>}
@@ -258,8 +258,8 @@ export function Account() {
   };
 
   return (
-    <Shell title="My Account" sub="Shared with the LeadNation mobile app.">
-      <SEO title="My Account · LeadNation" description="Your LeadNation account." path="/account" />
+    <Shell title="My Account" sub="Shared with the Vametra AI mobile app.">
+      <SEO title="My Account · Vametra AI" description="Your Vametra AI account." path="/account" />
       <div className="space-y-3 mt-4" data-testid="account-panel">
         <Row label="Customer ID" value={u.customer_id || "—"} testid="account-customer-id" />
         <Row label="Email" value={u.email || fbUser?.email} />

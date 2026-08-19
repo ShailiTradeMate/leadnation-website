@@ -12,7 +12,7 @@ export function BlogIndex() {
 
   return (
     <>
-      <SEO title="LeadNation Blog · Export, Import, Compliance & Trade News"
+      <SEO title="Vametra AI Blog · Export, Import, Compliance & Trade News"
         description="Long-form guides for global traders — export, import, compliance, logistics and trade intelligence. Updated weekly."
         path="/blog"
         keywords="trade blog India, export blog, import blog, RoDTEP guide, customs blog, trade compliance guide"
@@ -75,7 +75,7 @@ export default function BlogDetail() {
         <div className="mt-10 glass-strong rounded-3xl p-7 flex items-center gap-4 flex-wrap">
           <div className="flex-1 min-w-[200px]">
             <div className="font-display font-bold text-xl">Ready to put this into action?</div>
-            <div className="text-sm text-slate-400">Open the LeadNation app to run the checklist on your next shipment.</div>
+            <div className="text-sm text-slate-400">Open the Vametra AI app to run the checklist on your next shipment.</div>
           </div>
           <Link to="/contact" className="btn-primary">Create free account <ArrowRight size={14} weight="bold" /></Link>
         </div>

@@ -42,7 +42,7 @@ async def trade_news():
             "excerpt": "Engineering goods, electronics and pharmaceuticals drive an all-time high in outbound trade.",
             "image": "https://images.unsplash.com/photo-1487754180451-c456f719a1fc?auto=format&fit=crop&w=1200&q=80",
             "date": "2 hours ago",
-            "source": "LeadNation Intelligence"
+            "source": "Vametra AI Intelligence"
         },
         {
             "id": "n2",
@@ -404,7 +404,7 @@ _LESSON_SPINE = [
     ("Documents & compliance", "Exactly which paperwork, approvals and checks {t} requires."),
     ("Costs, duties & incentives", "How money moves — fees, duties and the schemes you can claim around {t}."),
     ("Common mistakes to avoid", "Real-world pitfalls traders hit with {t} — and how to dodge them."),
-    ("Tools & templates", "The LeadNation tools and templates that automate {t}."),
+    ("Tools & templates", "The Vametra AI tools and templates that automate {t}."),
     ("Practical checklist", "A ready-to-use checklist to execute {t} with confidence."),
     ("Summary & next steps", "A recap of {t} plus your concrete next actions."),
 ]

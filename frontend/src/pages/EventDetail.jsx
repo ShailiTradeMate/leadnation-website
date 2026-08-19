@@ -35,7 +35,7 @@ export default function EventDetail() {
 
   return (
     <>
-      <SEO title={`${ev.name} · ${ev.city || ev.country} · LeadNation Events`} description={ev.description || ev.name} path={`/expo/${id}`}
+      <SEO title={`${ev.name} · ${ev.city || ev.country} · Vametra AI Events`} description={ev.description || ev.name} path={`/expo/${id}`}
         keywords={`${ev.category}, ${ev.country}, trade event, ${ev.name}`}
         image={ev.image ? media(ev.image) : undefined}
         schema={eventSchema({
@@ -94,7 +94,7 @@ export default function EventDetail() {
           <Brain size={28} weight="duotone" className="text-cyan-300" />
           <div className="flex-1 min-w-[220px]">
             <div className="font-display font-bold">Planning to attend or exhibit?</div>
-            <div className="text-sm text-slate-400">Ask the LeadNation Brain how to prepare for {ev.name}.</div>
+            <div className="text-sm text-slate-400">Ask the Vametra AI Brain how to prepare for {ev.name}.</div>
           </div>
           <button onClick={() => navigate(`/brain?q=${encodeURIComponent(`How should an exporter prepare for the trade event ${ev.name} in ${ev.country}?`)}`)} className="btn-primary">Ask the Brain</button>
         </div>

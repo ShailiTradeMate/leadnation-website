@@ -168,7 +168,7 @@ class FreightAdapter(Adapter):
         except Exception:
             pass
         return AdapterResult(key=self.key, value={"transitDays": band},
-                             source="LeadNation heuristics", sourceTier="ai_estimate",
+                             source="Vametra AI heuristics", sourceTier="ai_estimate",
                              confidence=0.5, aiEstimated=True,
                              reason="No live freight-rate feed connected; transit estimated from lane heuristics.",
                              assumptions=["Sea FCL baseline", "Excludes seasonal surcharges & BAF/CAF"])

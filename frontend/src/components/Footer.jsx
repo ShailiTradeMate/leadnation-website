@@ -14,7 +14,7 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <LogoMark size={42} />
             <div>
-              <div className="font-display font-extrabold text-lg">LeadNation</div>
+              <div className="font-display font-extrabold text-lg">Vametra AI</div>
               <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase">
                 {TAGLINE}
               </div>
@@ -59,7 +59,7 @@ export default function Footer() {
             <li><Link to="/" className="hover:text-cyan-300" data-testid="footer-link-home">Home</Link></li>
             <li><Link to="/tools" className="hover:text-cyan-300" data-testid="footer-link-tools">Trade Tools Hub</Link></li>
             <li><Link to="/services" className="hover:text-cyan-300" data-testid="footer-link-services">Business Services</Link></li>
-            <li><Link to="/brain" className="hover:text-cyan-300" data-testid="footer-link-ai">LeadNation Brain</Link></li>
+            <li><Link to="/brain" className="hover:text-cyan-300" data-testid="footer-link-ai">Vametra AI Brain</Link></li>
             <li><Link to="/products" className="hover:text-cyan-300" data-testid="footer-link-products-index">Products</Link></li>
             <li><Link to="/corridors" className="hover:text-cyan-300" data-testid="footer-link-corridors">Trade Corridors</Link></li>
             <li><Link to="/countries" className="hover:text-cyan-300" data-testid="footer-link-countries">Country Profiles</Link></li>
@@ -92,7 +92,7 @@ export default function Footer() {
             </li>
             <li className="flex items-start gap-2">
               <LinkedinLogo size={16} className="mt-1 text-cyan-300" />
-              <a href={CONTACT.linkedinUrl} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-linkedin">LeadNation on LinkedIn</a>
+              <a href={CONTACT.linkedinUrl} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-linkedin">Vametra AI on LinkedIn</a>
             </li>
             <li className="flex items-start gap-2">
               <MapPin size={16} className="mt-1 text-cyan-300" />
@@ -113,7 +113,7 @@ export default function Footer() {
       </div>
       <div className="border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>© {new Date().getFullYear()} LeadNation · Vametra AI Technologies Pvt Ltd · All rights reserved.</div>
+          <div>© {new Date().getFullYear()} Vametra AI · Vametra AI Technologies Pvt Ltd · All rights reserved.</div>
           <div className="font-mono-display tracking-widest">Global Trade Intelligence · 195+ countries</div>
         </div>
       </div>

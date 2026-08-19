@@ -136,7 +136,7 @@ CTA_LIBRARY = {
     "download_app": {"label": "Download App", "to": "/#download", "action": "download_app"},
     "book_consultation": {"label": "Book a Consultation", "to": "/services", "action": "book_consultation"},
     "apply_iec": {"label": "Apply for IEC Registration", "to": "/services/iec-registration", "action": "apply_iec"},
-    "contact": {"label": "Contact LeadNation Team", "to": "/contact", "action": "contact"},
+    "contact": {"label": "Contact Vametra AI Team", "to": "/contact", "action": "contact"},
 }
 
 
@@ -199,12 +199,12 @@ async def _buyer_intel(entities, subscribed):
             f"- {e.get('legal_name')} ({e.get('country_name')}) · {e.get('sector')} · "
             f"Trust {(e.get('trust') or {}).get('score')} ({(e.get('trust') or {}).get('band')}) · "
             f"source {((e.get('provenance') or [{}])[0]).get('source_name', '')}" for e in rows)
-        summary = (f"LeadNation has {total} verified buyers matching this query. Top matches:\n{listing}\n\n"
+        summary = (f"Vametra AI has {total} verified buyers matching this query. Top matches:\n{listing}\n\n"
                    f"All are aggregated from official government sources and sanctions-screened. Open the "
                    f"Verified Buyers page for full profiles, trust breakdowns and cited evidence. Note: we have "
                    f"no contact arrangement with these organisations — always verify directly before doing business.")
     else:
-        summary = (f"LeadNation has {total} verified buyers matching this query, across markets like "
+        summary = (f"Vametra AI has {total} verified buyers matching this query, across markets like "
                    f"{', '.join(m for m, _ in top_markets)} and sectors like {', '.join(s for s, _ in top_sectors)}. "
                    f"Full buyer names, trust breakdowns and cited source evidence are available to subscribers. "
                    f"Subscribe and open the Verified Buyers page to unlock them.")

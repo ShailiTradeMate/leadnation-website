@@ -68,12 +68,12 @@ export default function ProductInfo() {
   return (
     <>
       <SEO title="Product Info Engine · Any product, any market (AI-powered)"
-        description="Type any product, any country, import or export — the LeadNation Brain returns HSN, duty, documents, certifications, markets and government benefits."
+        description="Type any product, any country, import or export — the Vametra AI Brain returns HSN, duty, documents, certifications, markets and government benefits."
         path="/product-info"
         keywords="product trade intelligence, HSN finder, import export duty, top markets, certifications, AI trade assistant" />
       <PageHero testIdPrefix="pi" label="Product Info Engine · Brain-powered"
         title="Any product. Any border. Real answers."
-        sub="Type any product in the world, choose import or export, add origin/destination (and HSN if you know it). The LeadNation Brain analyses markets, duty, documents, certifications and benefits — instantly." />
+        sub="Type any product in the world, choose import or export, add origin/destination (and HSN if you know it). The Vametra AI Brain analyses markets, duty, documents, certifications and benefits — instantly." />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         <div className="glass-strong rounded-3xl p-6 sm:p-8 grid grid-cols-1 md:grid-cols-6 gap-4">

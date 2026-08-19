@@ -24,7 +24,7 @@ SOURCE_LINK_SELECTORS = (
 
 try:
     print("Opening anonymous buyer profile")
-    await page.goto("https://payments-cms.preview.emergentagent.com/buyers/LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ", wait_until="domcontentloaded")
+    await page.goto("https://vbie-verify.preview.emergentagent.com/buyers/LN-buyer-C3FYC9ZJHCKS7VCGKBENZNSDHZ", wait_until="domcontentloaded")
     profile_loaded = False
     for attempt in range(8):
         try:
@@ -73,7 +73,7 @@ try:
         print("INFO: LEI indicator not visible on this profile")
 
     print("Opening buyers list / source transparency")
-    await page.goto("https://payments-cms.preview.emergentagent.com/buyers", wait_until="domcontentloaded")
+    await page.goto("https://vbie-verify.preview.emergentagent.com/buyers", wait_until="domcontentloaded")
     list_loaded = False
     for attempt in range(8):
         try:

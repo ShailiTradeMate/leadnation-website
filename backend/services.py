@@ -22,7 +22,7 @@ SERVICES_DB = {
         "faqs": [
             {"q": "Is RCMC mandatory?", "a": "Yes, to claim any DGFT export incentive you need a valid RCMC."},
             {"q": "How long is it valid?", "a": "5 years from the date of issue."},
-            {"q": "Can LeadNation help me apply?", "a": "Yes — we assign a dedicated CA from our compliance team to handle end-to-end."},
+            {"q": "Can Vametra AI help me apply?", "a": "Yes — we assign a dedicated CA from our compliance team to handle end-to-end."},
         ],
         "priceFrom": "INR 4,999",
     },
@@ -36,7 +36,7 @@ SERVICES_DB = {
         "process": ["Collect KYC documents", "Submit GST REG-01 online", "Verification by GST officer", "GSTIN issued within 7 days"],
         "faqs": [
             {"q": "Do I need GST for exports?", "a": "Yes — exports are zero-rated, and you'll claim refund of input GST. Registration is essential."},
-            {"q": "Can it be done online?", "a": "Yes. LeadNation's CA team files online and tracks until GSTIN is issued."},
+            {"q": "Can it be done online?", "a": "Yes. Vametra AI's CA team files online and tracks until GSTIN is issued."},
             {"q": "What's the timeline?", "a": "Usually 5–7 working days. We expedite via professional follow-ups."},
         ],
         "priceFrom": "INR 1,499",
@@ -52,7 +52,7 @@ SERVICES_DB = {
         "faqs": [
             {"q": "How long does it take?", "a": "Typically 1–3 working days with our team. Some cases need Aadhaar OTP verification."},
             {"q": "Is annual renewal required?", "a": "No, lifetime validity. But you must update it annually on DGFT portal."},
-            {"q": "What's the cost?", "a": "Government fee INR 500 + LeadNation professional fee."},
+            {"q": "What's the cost?", "a": "Government fee INR 500 + Vametra AI professional fee."},
         ],
         "priceFrom": "INR 1,999",
     },

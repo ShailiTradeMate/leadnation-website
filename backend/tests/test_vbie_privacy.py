@@ -1,7 +1,7 @@
 """VBIE privacy / reveal tests (iteration 43)."""
 import os, json, time, requests, pytest
 
-BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://payments-cms.preview.emergentagent.com").rstrip("/")
+BASE = os.environ.get("REACT_APP_BACKEND_URL", "https://vbie-verify.preview.emergentagent.com").rstrip("/")
 FB_KEY = "AIzaSyCHQaCkzlfOdVB1-bzuJ_NnCE7vRFmT5WA"
 ADMIN_HDR = {"X-Admin-Token": "leadnation-admin-2026"}
 

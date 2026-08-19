@@ -1,6 +1,6 @@
 """VBIE contact-resolution service.
 
-Owner-mandated business rule: LeadNation is the intermediary. Subscribers must
+Owner-mandated business rule: Vametra AI is the intermediary. Subscribers must
 NEVER be handed a link to the free government source (that lets them bypass us).
 Instead we resolve the buyer's official contact point (email / phone / address)
 SERVER-SIDE, store it in our own database, and reveal ONLY the contact fields to

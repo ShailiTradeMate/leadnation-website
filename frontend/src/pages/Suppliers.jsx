@@ -47,7 +47,7 @@ export default function Suppliers() {
                   <div className="text-xs text-slate-400 mt-1">{s.city} · {s.country}</div>
                   <div className="mt-3 text-sm">{s.products}</div>
                   <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-500 mt-2">{s.category}</div>
-                  <a href={`https://wa.me/918237161088?text=${encodeURIComponent(`Hi LeadNation, please connect me with supplier: ${s.company} (${s.products}).`)}`}
+                  <a href={`https://wa.me/918237161088?text=${encodeURIComponent(`Hi Vametra AI, please connect me with supplier: ${s.company} (${s.products}).`)}`}
                     target="_blank" rel="noopener noreferrer"
                     className="btn-ghost !py-2 text-xs mt-4 inline-flex justify-center">Connect with supplier</a>
                 </div>

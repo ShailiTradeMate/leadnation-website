@@ -55,7 +55,7 @@ const PRIMARY = [
   { to: "/buyers", label: "Verified Buyers", icon: ShieldCheck },
   { to: "/tools", label: "Tools", icon: Calculator },
   { to: "/services", label: "Services", icon: Briefcase },
-  { to: "/brain", label: "LeadNation Brain", icon: Brain },
+  { to: "/brain", label: "Vametra AI Brain", icon: Brain },
   { to: "/pricing", label: "Pricing", icon: Tag },
 ];
 
@@ -104,7 +104,7 @@ export default function Nav({ active = "/" }) {
           <Link to="/" className="flex items-center gap-2.5 group" data-testid="nav-logo-link">
             <LogoMark />
             <div className="leading-none">
-              <div className="text-[15px] font-display font-extrabold tracking-tight">LeadNation</div>
+              <div className="text-[15px] font-display font-extrabold tracking-tight">Vametra AI</div>
               <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase mt-0.5">Trade Intelligence</div>
             </div>
           </Link>
@@ -207,8 +207,8 @@ export default function Nav({ active = "/" }) {
 export function LogoMark({ size = 36 }) {
   return (
     <img
-      src="/brand/ln-mark.png"
-      alt="LeadNation logo — Intelligence Beyond Borders"
+      src="/brand/vametra-mark.png"
+      alt="Vametra AI logo — Intelligence Beyond Borders"
       height={size}
       style={{ height: size, width: "auto" }}
       className="relative shrink-0 select-none drop-shadow-[0_0_10px_rgba(0,194,255,0.35)]"
