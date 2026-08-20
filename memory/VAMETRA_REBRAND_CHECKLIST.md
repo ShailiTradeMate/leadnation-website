@@ -40,17 +40,18 @@
 - [ ] Update deploy platform env vars to mirror the new `.env` (PUBLIC_SITE_URL, CORS_ORIGINS, SENDER_EMAIL) then **redeploy**
 
 ### Firebase (identity stays `trademate-new` — DO NOT rename)
-- [ ] Add `vametra.com` + `www.vametra.com` to **Firebase → Auth → Settings → Authorized domains** (else Google login breaks on new domain)
-- [ ] Keep admin login `admin@leadnation.app` (only DO team migrates identity, if ever)
+- [x] `vametra.com` added to **Firebase → Auth → Authorized domains** (owner, screenshot confirmed)
+- [x] **Super-admin email migrated** (2026-08-20): admin@leadnation.app → **admin@vametra.com** via Firebase Admin SDK — same UID `gq5pHUPD3LPXNhycRHSdhmkhPiS2`, same password, customer_id 00001 + role admin unchanged; Mongo `users` doc synced by uid. Verified: REST login + backend token auth + `GET /api/admin/collections` → 200.
+- [ ] (Optional) Add current preview host to Authorized domains only if testing Google OAuth in preview (email/password login unaffected)
 
 ### Email (Resend)
 - [x] Contact email updated to **admin@vametra.com** (Contact page, Footer, Legal, index.html contactPoint, llms.txt, SEO JSON-LD)
 - [x] Social handles updated: Instagram **@vametra_ai**, LinkedIn **vametra** (brand.js + index.html sameAs + llms.txt)
 - [x] `ADMIN_EMAIL` (admin alert recipient) → admin@vametra.com
 - [x] vametra.com domain **Verified** in Resend (DNS/SPF/DKIM done by owner)
-- [ ] ⚠️ **BLOCKER — new Resend API key needed:** the current `RESEND_API_KEY` is scoped to `leadnation.app` only ("This API key is not authorized to send emails from vametra.com"). Create a new key in **Resend → API keys → Create API Key → Full access** (or sending access to vametra.com), then hand it over → agent sets `RESEND_API_KEY` in backend `.env` and flips `SENDER_EMAIL` to `noreply@vametra.com`.
-- [~] INTERIM: `SENDER_EMAIL` kept on `Vametra AI <noreply@leadnation.app>` (still works, branded display name) so email keeps flowing until the new key arrives.
-- [ ] If the **DO identity backend** sends any email (welcome/OTP), update ITS `RESEND_API_KEY` + sender to `@vametra.com` too (same new key works).
+- [x] **Resend API key swapped** (2026-08-20) → key authorized for vametra.com; `SENDER_EMAIL` now `Vametra AI <noreply@vametra.com>`. Real test send from vametra.com → **success**. Owner also updated the key on the DO backend.
+- [ ] If the **DO identity backend** sends any email (welcome/OTP), confirm ITS sender is `@vametra.com` too (owner updated the key already).
+- [ ] Set up receiving mailboxes: hello@, support@, admin@, noreply@ vametra.com (admin alerts now route to admin@vametra.com)
 
 ### SEO / Analytics tooling
 - [ ] **Google Search Console**: add vametra.com property, verify, submit sitemap, use Change-of-Address tool from leadnation.app (if verified there)
