@@ -4,13 +4,14 @@ import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
 import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, GoogleLogo, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
 import { authApi } from "@/lib/authApi";
 import PricingManager from "@/pages/admin/PricingManager";
 import BuyersManager from "@/pages/admin/BuyersManager";
 import PaymentsManager from "@/pages/admin/PaymentsManager";
+import VerificationReview from "@/pages/admin/VerificationReview";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
 
@@ -20,7 +21,7 @@ export function AdminLogin() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login, loginWithCustomerId, google, isAuthed, isAdmin, refreshAccount, logout } = useAuth();
+  const { login, loginWithCustomerId, isAuthed, isAdmin, refreshAccount, logout } = useAuth();
 
   useEffect(() => {
     if (isAuthed && isAdmin) navigate("/admin-cms");
@@ -37,17 +38,6 @@ export function AdminLogin() {
       if (acc?.user?.role !== "admin") { setErr("This account is not an admin."); await logout(); return; }
       navigate("/admin-cms");
     } catch (_) { setErr("Invalid credentials. Check your Admin ID/email and password."); }
-    finally { setLoading(false); }
-  };
-
-  const onGoogle = async () => {
-    setErr(""); setLoading(true);
-    try {
-      await google();
-      const acc = await refreshAccount();
-      if (acc?.user?.role !== "admin") { setErr("This Google account is not an admin."); await logout(); return; }
-      navigate("/admin-cms");
-    } catch (_) { setErr("Google sign-in failed."); }
     finally { setLoading(false); }
   };
 
@@ -73,7 +63,6 @@ export function AdminLogin() {
         />
         {err && <div data-testid="admin-login-error" className="text-rose-300 text-sm mt-2">{err}</div>}
         <button data-testid="admin-login-submit" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? "Signing in…" : "Sign in"}</button>
-        <button type="button" data-testid="admin-google" onClick={onGoogle} disabled={loading} className="btn-ghost w-full justify-center mt-3 gap-2"><GoogleLogo size={18} weight="bold" /> Continue with Google</button>
       </form>
     </section>
   );
@@ -117,6 +106,7 @@ export default function AdminDashboard() {
           { k: "pricing", l: "Pricing", I: CurrencyCircleDollar },
           { k: "payments", l: "Payments", I: CurrencyCircleDollar },
           { k: "buyers", l: "Verified Buyers", I: ShieldCheck },
+          { k: "verifications", l: "Verifications", I: SealCheck },
         ].map((t) => (
           <button key={t.k} data-testid={`admin-tab-${t.k}`} onClick={() => setTab(t.k)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap ${tab === t.k ? "tab-active text-white" : "text-slate-300 hover:bg-white/5"}`}>
@@ -142,6 +132,7 @@ export default function AdminDashboard() {
         {tab === "pricing" && <PricingManager />}
         {tab === "payments" && <PaymentsManager />}
         {tab === "buyers" && <BuyersManager />}
+        {tab === "verifications" && <VerificationReview />}
       </div>
     </section>
   );

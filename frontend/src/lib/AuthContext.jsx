@@ -24,6 +24,7 @@ export function AuthProvider({ children }) {
   const [fbUser, setFbUser] = useState(null);
   const [account, setAccount] = useState(null); // { onboarded, user, profile }
   const [loading, setLoading] = useState(true);
+  const [activationError, setActivationError] = useState(false); // DO /onboarding/register failed → no Customer ID
   const seqRef = useRef(0);
   const healRef = useRef("");   // uid we've already attempted to self-heal this session
   const recaptchaRef = useRef(null);   // invisible reCAPTCHA (phone login)
@@ -44,18 +45,25 @@ export function AuthProvider({ children }) {
       // placeholder with customer_id:null) is "half-registered" — the /onboarding/register
       // step never completed. Complete it once so the 5-digit Customer ID is allocated
       // and mobile-app login (which authenticates via the same DO backend) works.
-      const needsHeal = !profile?.customer_id && profile?._source === "legacy_hydrate";
+      const needsHeal = !profile?.customer_id;
       if (needsHeal && healRef.current !== u.uid) {
         healRef.current = u.uid;
-        try {
-          await authApi.post("/onboarding/register", {
-            full_name: u.displayName || "",
-            role: "exporter",
-            provider: u.providerData?.[0]?.providerId?.includes("google") ? "google" : "password",
-          });
-          const re = await authApi.get(`/v1/profiles/${u.uid}`);
-          if (re?.data?.customer_id) profile = re.data;
-        } catch (_) { /* leave as-is; will retry next session */ }
+        let healed = false;
+        for (let attempt = 0; attempt < 3 && !healed; attempt++) {
+          if (attempt) await new Promise((r) => setTimeout(r, 800 * attempt)); // backoff
+          try {
+            await authApi.post("/onboarding/register", {
+              full_name: u.displayName || "",
+              role: "exporter",
+              provider: u.providerData?.[0]?.providerId?.includes("google") ? "google" : "password",
+            });
+            const re = await authApi.get(`/v1/profiles/${u.uid}`);
+            if (re?.data?.customer_id) { profile = re.data; healed = true; }
+          } catch (_) { /* retry */ }
+        }
+        setActivationError(!healed);
+      } else if (profile?.customer_id) {
+        setActivationError(false);
       }
       const isAdminRole = profile?.role === "admin";
       const acct = {
@@ -132,6 +140,8 @@ export function AuthProvider({ children }) {
     fbUser, account, loading,
     isAuthed: !!fbUser,
     isAdmin: account?.user?.role === "admin",
+    activationError,
+    retryActivation: async () => { healRef.current = ""; setActivationError(false); return refreshAccount(); },
     phoneLoginEnabled: PHONE_LOGIN_ENABLED,
     startPhoneLogin,
     confirmPhoneOtp,

@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 49 — Vametra AI rebrand + reviewer console + camera capture + wait-quiz + auto-heal test. Backend admin endpoints (queue + decide 404 + auth guards) all pass. Frontend: admin-login (email AND ID 00001) succeed → /admin-cms; Google button correctly removed; Verifications tab opens Reviewer Console with 3 status tabs and counts. Verify wizard on desktop: Selfie step exposes BOTH upload label and camera button, camera modal opens/closes correctly; uploading one selfie renders the 'Please stay tuned' wait panel with trivia (quiz-option-0 clickable → quiz-next appears) and a single AI analyze-selfie call completes. Document step on 1280x820: upload label present, camera button absent, phone tip present. CRITICAL: Customer-ID auto-heal is BROKEN for brand-new signups because the shared DO backend POST /api/onboarding/register returns HTTP 500 — the account page stays on 'Activating…' indefinitely (30s+). No frontend/website-backend code bug; this is a DO identity-backend bug that must be fixed on that service.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "https://leadnation-lfrhs.ondigitalocean.app/api/onboarding/register", "issue": "Returns HTTP 500 when a freshly-signed-up user (Bearer token present) calls /onboarding/register — Customer ID never allocated, /account shows 'Activating…' forever. Reproduced by signing up test_id_hpvwgus8@vametra-test.com and observing REQ→RESP [500] on that endpoint. This is on the shared DO identity backend, not the website backend.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "AccountPage", "issue": "Because DO /onboarding/register returns 500, the 'ID: Activating…' string never resolves. Frontend has no retry/backoff/toast — user sees the stale placeholder indefinitely with no error hint. Consider surfacing an error state + a manual retry button.", "selector": "[data-testid='account-uid']", "priority": "HIGH"}
+    ],
+    "integration_issues": [
+      {"flow": "Customer-ID allocation auto-heal", "issue": "AuthContext calls DO /onboarding/register once; on 500 it does not retry or notify user, so a brand-new account is permanently stuck without a Customer ID.", "affected_selectors": ["[data-testid='account-uid']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_verify_admin.py",
+    "/app/test_reports/pytest/verify_admin_iter49.xml"
+  ],
+  "action_items": [
+    "Escalate DO backend /api/onboarding/register 500 to the DO identity-backend team — it fires for every brand-new signup, blocking Customer-ID allocation. Include a captured UID (e.g. uoIwG4QIwfYOp1JzbNUcimBvxDN2) so they can inspect logs.",
+    "In AuthContext, add a short bounded retry (3× with backoff) + surface an error state and a manual 'Retry activation' affordance so users are not stuck on 'Activating…' forever when DO 500s.",
+    "Everything else in this iteration verified GREEN — no code fix needed for admin login, reviewer console, camera capture UI, VerifyWait panel, or document-step desktop gating."
+  ],
+  "critical_code_review_comments": [
+    "verify.py admin endpoints require_admin fallback via X-Admin-Token works and returns clean shape {items, counts} — good.",
+    "VerifyBuyer.jsx correctly gates document-camera button behind IS_MOBILE and shows verify-doc-camera-note for desktops.",
+    "AuthContext auto-heal has no retry/backoff on DO 500; add exponential retry + visible error UI (see action_items).",
+    "AccountPage.jsx custId fallback text 'Activating…' has no timeout — should switch to error state after N failures."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_verify_admin.py"
+  ],
+  "success_rate": {"backend": "100% (6/6 executed, 1 skipped by design)", "frontend": "89% (8/9 features PASS, only Customer-ID auto-heal FAILS due to upstream DO 500)"},
+  "test_credentials": "Admin: admin@vametra.com / Shiv@12345 (also Admin ID 00001). Subscriber: vaibhav@leadnation.app / Shiv@12345. New test user created: test_id_hpvwgus8@vametra-test.com / TestPass@12345 (uid uoIwG4QIwfYOp1JzbNUcimBvxDN2, Firebase account created but Customer ID never allocated because DO /onboarding/register returned 500).",
+  "seed_data_creation": "Signed up ONE brand-new Firebase account test_id_hpvwgus8@vametra-test.com to verify the auto-heal flow (per test brief).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend admin queue/decide + admin login flows are solid. The last remaining failure is upstream on the DO backend (POST /api/onboarding/register → 500 for a fresh Firebase UID). Website code cannot fix that; retest only after the DO team pushes a fix. On the local side, adding a bounded retry + visible error UI in AuthContext/AccountPage would improve UX regardless.",
+  "rca of the issue": "REPRODUCTION: Sign up any new email via /signup → land on /account. Frontend AuthContext detects !profile.customer_id and POSTs to https://leadnation-lfrhs.ondigitalocean.app/api/onboarding/register with the Firebase Bearer token. DO backend responds 500. AccountPage.jsx line 110 keeps rendering 'Activating…' because custId stays empty. MITIGATION: (a) Fix the DO /onboarding/register 500 for brand-new UIDs (external team). (b) Add retry-with-backoff in AuthContext.needsHeal branch and expose an error+retry CTA in AccountPage so users are not stuck on a silent placeholder."
+}

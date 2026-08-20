@@ -24,7 +24,7 @@ const fmtMoney = (v, cur) => { if (v == null) return "—"; try { return new Int
 const TABS = [["downloads", "Downloads", DownloadSimple], ["projects", "Projects", Stack], ["buyers", "Saved Buyers", UsersThree], ["invoices", "Invoices", Receipt], ["billing", "Billing", CrownSimple], ["referral", "Referral", Gift]];
 
 export default function AccountPage() {
-  const { account, fbUser, isAuthed, logout } = useAuth();
+  const { account, fbUser, isAuthed, logout, activationError, retryActivation } = useAuth();
   const navigate = useNavigate();
   const [sp, setSp] = useSearchParams();
   const [data, setData] = useState(null);
@@ -107,7 +107,12 @@ export default function AccountPage() {
               <span className="text-lg" title={p.country} data-testid="account-flag">{flag(p.country)} <span className="text-sm text-slate-300">{p.country || "Set country"}</span></span>
             </div>
             <div className="flex items-center gap-4 mt-2 text-sm text-slate-300 flex-wrap">
-              <span className="inline-flex items-center gap-1.5" data-testid="account-uid"><IdentificationCard size={15} className="text-cyan-300" /> ID: <span className="font-mono-display text-cyan-200">{custId ? custId : "Activating…"}</span></span>
+              <span className="inline-flex items-center gap-1.5" data-testid="account-uid"><IdentificationCard size={15} className="text-cyan-300" /> ID: <span className="font-mono-display text-cyan-200">{custId ? custId : (activationError ? "Not activated" : "Activating…")}</span>
+                {!custId && activationError && (
+                  <button onClick={() => retryActivation()} data-testid="account-retry-activation"
+                    className="ml-1 text-[11px] px-2 py-0.5 rounded-full border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/10">Retry</button>
+                )}
+              </span>
               <span className="inline-flex items-center gap-1.5"><Envelope size={15} className="text-slate-400" /> {email}</span>
               <span className="inline-flex items-center gap-1.5"><Phone size={15} className="text-slate-400" /> {p.mobile || "—"}</span>
             </div>

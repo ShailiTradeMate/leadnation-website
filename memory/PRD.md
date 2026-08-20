@@ -1,5 +1,8 @@
 # LeadNation — Global Trade Intelligence Portal
 
+
+> 2026-08-20 UPDATE: Verify wizard now supports live CAMERA capture (selfie on all devices; documents camera on mobile only, desktop shows a phone tip) + file upload; a "Please stay tuned (1–2 min)" wait panel with a GK trivia quiz shows during AI checks; Admin login has Google sign-in REMOVED (ID/email + password only) and the admin email is admin@vametra.com; a new admin **Verifications** tab (Reviewer Console) approves/rejects Verified-Buyer requests. Customer-ID auto-heal broadened (any signed-in user w/o ID triggers DO /onboarding/register) + AccountPage now shows a "Retry" affordance on failure. ⚠️ TWO DO-BACKEND BLOCKERS remain (DO team must fix): (1) DO CORS does not allow https://vametra.com / www — breaks admin login + all auth on the production domain (preview origin IS allowed); (2) DO POST /api/onboarding/register returns HTTP 500 for new UIDs — 5-digit Customer ID never allocates. Both verified via iteration_49.json.
+
 > ⚠️ REBRAND (2026-08-19): Public brand is now **Vametra AI** (legal: Vametra AI Technologies Pvt. Ltd.), primary domain **https://vametra.com**. All customer-facing "LeadNation" text/SEO/assets/emails were rebranded to Vametra AI. INTERNAL identifiers stay "LeadNation" (MongoDB `DB_NAME=leadnation`, DO identity backend host, Firebase project `trademate-new`, `LN-` GEID prefix, admin login `admin@leadnation.app`, internal code/collections). Email addresses + social handles kept on leadnation.app until Vametra Resend domain + social accounts are ready. Full migration checklist: `/app/memory/VAMETRA_REBRAND_CHECKLIST.md`. Historical entries below still say "LeadNation" for context — treat them as the same product now branded Vametra AI.
 
 

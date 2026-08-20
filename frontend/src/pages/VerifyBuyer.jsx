@@ -7,12 +7,17 @@ import {
   getVerifyState, updateVerifyProfile, verifyUpload,
   analyzeSelfie, analyzeDocument, submitVerification, getVerifyDocuments,
 } from "@/lib/verifyApi";
+import CameraCapture from "@/components/CameraCapture";
+import VerifyWait from "@/components/VerifyWait";
 import {
   SealCheck, IdentificationCard, Camera, FileText, CircleNotch,
-  CheckCircle, WarningCircle, ArrowRight, ShieldCheck, Buildings,
+  CheckCircle, WarningCircle, ArrowRight, ShieldCheck, Buildings, UploadSimple,
 } from "@phosphor-icons/react";
 
 const ROLES = ["Importer", "Exporter", "Both (Import & Export)", "Wholesaler", "Distributor", "Manufacturer", "Trader"];
+
+// Give mobile users a rear-camera document capture; laptop users upload documents (no webcam capture).
+const IS_MOBILE = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(navigator.userAgent);
 
 const buildPatch = (form, profile) => {
   const patch = {};
@@ -83,6 +88,7 @@ export default function VerifyBuyer() {
   const [docCatalog, setDocCatalog] = useState({});
   const [consent, setConsent] = useState(false);
   const [result, setResult] = useState(null);
+  const [cameraFor, setCameraFor] = useState(null); // 'selfie' | 'document'
 
   const refresh = useCallback(async () => {
     const s = await getVerifyState();
@@ -262,14 +268,17 @@ export default function VerifyBuyer() {
 
             {selfie?.url && <img src={`${process.env.REACT_APP_BACKEND_URL}${selfie.url}`} alt="selfie preview" className="w-28 h-28 rounded-2xl object-cover mb-3 border border-white/10" data-testid="verify-selfie-preview" />}
 
-            <label className="block">
-              <span className="btn-ghost cursor-pointer inline-flex" data-testid="verify-selfie-input-label">
-                <Camera size={16} /> {selfie ? "Retake selfie" : "Upload / take selfie"}
-                <input type="file" accept="image/*" capture="user" className="hidden" data-testid="verify-selfie-input"
+            <div className="flex flex-wrap gap-3">
+              <label className="btn-ghost cursor-pointer inline-flex" data-testid="verify-selfie-input-label">
+                <UploadSimple size={16} /> {selfie ? "Upload another" : "Upload photo"}
+                <input type="file" accept="image/*" className="hidden" data-testid="verify-selfie-input"
                   onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], "selfie")} />
-              </span>
-            </label>
-            {busy === "selfie" && <p className="text-sm text-cyan-200 mt-3 flex items-center gap-2"><CircleNotch size={15} className="animate-spin" /> Analysing photo…</p>}
+              </label>
+              <button type="button" onClick={() => setCameraFor("selfie")} className="btn-ghost inline-flex" data-testid="verify-selfie-camera">
+                <Camera size={16} /> {selfie ? "Retake with camera" : "Use camera"}
+              </button>
+            </div>
+            {busy === "selfie" && <VerifyWait />}
 
             {selfie?.analysis && (
               <CheckResult ok={selfie.analysis.passed}
@@ -308,14 +317,20 @@ export default function VerifyBuyer() {
 
             {doc?.url && <div className="text-xs text-slate-400 mb-2 flex items-center gap-2" data-testid="verify-doc-name"><FileText size={14} /> {doc.filename}</div>}
 
-            <label className="block">
-              <span className="btn-ghost cursor-pointer inline-flex" data-testid="verify-doc-input-label">
-                <FileText size={16} /> {doc ? "Replace document" : "Upload document"}
+            <div className="flex flex-wrap gap-3">
+              <label className="btn-ghost cursor-pointer inline-flex" data-testid="verify-doc-input-label">
+                <UploadSimple size={16} /> {doc ? "Replace document" : "Upload document"}
                 <input type="file" accept="image/*,application/pdf" className="hidden" data-testid="verify-doc-input"
                   onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0], "document")} />
-              </span>
-            </label>
-            {busy === "document" && <p className="text-sm text-cyan-200 mt-3 flex items-center gap-2"><CircleNotch size={15} className="animate-spin" /> Reading document…</p>}
+              </label>
+              {IS_MOBILE && (
+                <button type="button" onClick={() => setCameraFor("document")} className="btn-ghost inline-flex" data-testid="verify-doc-camera">
+                  <Camera size={16} /> Use camera
+                </button>
+              )}
+            </div>
+            {!IS_MOBILE && <p className="text-[11px] text-slate-500 mt-2" data-testid="verify-doc-camera-note">Tip: open Vametra AI on your phone to snap the document with your camera.</p>}
+            {busy === "document" && <VerifyWait label="reading and verifying your document" />}
 
             {doc?.analysis && (
               <CheckResult ok={doc.analysis.passed}
@@ -364,6 +379,7 @@ export default function VerifyBuyer() {
                 {busy === "submit" ? <CircleNotch size={16} className="animate-spin" /> : <>Submit for verification <SealCheck size={15} /></>}
               </button>
             </div>
+            {busy === "submit" && <VerifyWait label="verifying your identity and business" />}
           </div>
         )}
 
@@ -393,6 +409,14 @@ export default function VerifyBuyer() {
             <div className="mt-4 flex justify-center"><VerifiedBadge status={result.status} size="lg" /></div>
             <Link to="/account" className="btn-ghost mt-6 inline-flex" data-testid="verify-result-account">Back to account</Link>
           </div>
+        )}
+
+        {cameraFor && (
+          <CameraCapture
+            facingMode={cameraFor === "selfie" ? "user" : "environment"}
+            onCapture={(file) => { const k = cameraFor; setCameraFor(null); handleUpload(file, k); }}
+            onClose={() => setCameraFor(null)}
+          />
         )}
       </div>
     </div>
