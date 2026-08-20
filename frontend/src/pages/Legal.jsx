@@ -4,7 +4,7 @@ import SEO from "@/components/SEO";
 
 const COMPANY = "Vametra AI Technologies Pvt Ltd";
 const PRODUCT = "Vametra AI";
-const EMAIL = "admin@leadnation.app";
+const EMAIL = "admin@vametra.com";
 const ADDRESS = "Tirthankar, Central Bank of India, Ekveera Chowk, Pipeline Rd, Savedi, Ahilyanagar, Maharashtra 414003, India";
 const UPDATED = "5 July 2026";
 

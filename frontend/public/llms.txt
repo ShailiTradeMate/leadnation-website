@@ -11,9 +11,9 @@ Operated by: Vametra AI Technologies Pvt Ltd
 Founder: Vaibhav Deshmane
 Founded: 2025 · Ahilyanagar, Maharashtra, India
 Website: https://vametra.com
-Contact: admin@leadnation.app
+Contact: admin@vametra.com
 Tagline: Intelligence Beyond Borders
-Official social profiles: https://www.instagram.com/leadnation.app/ · https://www.linkedin.com/company/leadnation-app/
+Official social profiles: https://www.instagram.com/vametra_ai/ · https://www.linkedin.com/company/vametra.com/
 
 ## Entity summary (for knowledge graphs)
 - Type: Organization / SoftwareApplication (BusinessApplication)

@@ -42,7 +42,7 @@ export default function Contact() {
     <>
       <SEO
         title="Contact Vametra AI · WhatsApp, Email & HQ"
-        description="Reach Vametra AI on WhatsApp +91 82371 61088, email admin@leadnation.app, or visit our HQ in Ahilyanagar, Maharashtra, India."
+        description="Reach Vametra AI on WhatsApp +91 82371 61088, email admin@vametra.com, or visit our HQ in Ahilyanagar, Maharashtra, India."
         path="/contact"
         keywords="Vametra AI contact, Vametra AI WhatsApp, Vametra AI email, Ahilyanagar office, Vametra AI HQ"
       />

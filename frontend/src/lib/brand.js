@@ -10,13 +10,13 @@ export const TAGLINE = "Intelligence Beyond Borders";
 export const BRAND_ONE_LINER =
   "Vametra AI — the AI-powered Global Trade Intelligence platform. Customs duties, HS codes, FTAs, landed cost, expos, market data and trade news for 195+ countries.";
 
-export const EMAIL = "admin@leadnation.app";
+export const EMAIL = "admin@vametra.com";
 export const PHONE = "+91-8237161088";
 
 // key = stable id, order = display order. url is canonical.
 export const SOCIALS = [
-  { key: "instagram", label: "Instagram", handle: "leadnation.app", url: "https://www.instagram.com/leadnation.app/" },
-  { key: "linkedin", label: "LinkedIn", handle: "leadnation-app", url: "https://www.linkedin.com/company/leadnation-app/" },
+  { key: "instagram", label: "Instagram", handle: "vametra_ai", url: "https://www.instagram.com/vametra_ai/" },
+  { key: "linkedin", label: "LinkedIn", handle: "vametra", url: "https://www.linkedin.com/company/vametra.com/" },
   // Future: add { key: "twitter", ... }, { key: "youtube", ... } here — everything else updates automatically.
 ];
 
