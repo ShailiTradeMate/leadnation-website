@@ -158,6 +158,33 @@ BUILDERS = {
         f"<p>Hi {c.get('name','there')},</p><p>{c.get('message','We detected a security-related change on your account.')} "
         f"If this wasn't you, secure your account immediately.</p>",
         "Review account", f"{SITE}/account")),
+    "verify_submitted": lambda c: ("Your Vametra AI Verified Buyer application", _shell(
+        "Application received — we're verifying you 🔎",
+        f"<p>Hi {c.get('name','there')},</p><p>Thanks for applying to become a <b>Verified Buyer</b> on {BRAND}. "
+        f"Here are the details we received:</p>"
+        + _detail_table([
+            ("User ID", c.get("userId", "—")),
+            ("Registered mobile", c.get("mobile", "—")),
+            ("Registered email", c.get("email", "—")),
+            ("Country", c.get("country", "—")),
+            ("Document submitted", c.get("docName", "—")),
+            ("Status", (c.get("status", "") or "").replace("_", " ").title()),
+        ])
+        + (f"<p><b>You're now a Verified Member 🎉</b></p>" if c.get("status") == "verified"
+           else "<p>Our team is reviewing your submission — you'll get the Verified Member badge once approved (usually within 24–48h).</p>")
+        + "<p>Welcome to the Vametra AI network — <i>Intelligence Beyond Borders</i>.</p>",
+        "View my account", f"{SITE}/account")),
+    "verified_weekly": lambda c: ("[Vametra AI] Your weekly Verified Buyer summary", _shell(
+        "Your weekly Vametra AI summary 📊",
+        f"<p>Hi {c.get('name','there')},</p><p>Here's your Verified Buyer account status this week:</p>"
+        + _detail_table([
+            ("Customer ID", c.get("customerId", "—")),
+            ("Buyer ID", c.get("geid", "—")),
+            ("Status", "Verified ✅"),
+        ])
+        + "<p>Your verified profile is live and visible to active subscribers across the Vametra AI website and app. "
+        "Keep your details up to date to attract more trade partners.</p>",
+        "Open my account", f"{SITE}/account")),
 
     # ---- Events ----
     "submitted": lambda c: ("Your event submission was received", _shell(

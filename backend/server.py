@@ -87,6 +87,7 @@ async def _startup():
         await vbie.seed_vbie()
         import vbie_scheduler
         vbie_scheduler.start()
+        verify.start_weekly_digest()
         # Only auto-ingest on startup if we don't already have a sizeable corpus (avoids re-runs on reload).
         _real = await db.entities.count_documents({"entity_type": "buyer", "sample": {"$ne": True}})
         if _real < 1000:

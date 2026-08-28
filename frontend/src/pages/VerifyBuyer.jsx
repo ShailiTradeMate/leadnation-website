@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SEO from "@/components/SEO";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useAuth } from "@/lib/AuthContext";
+import { COUNTRIES, statesFor } from "@/data/geo";
 import {
   getVerifyState, updateVerifyProfile, verifyUpload,
   analyzeSelfie, analyzeDocument, submitVerification, getVerifyDocuments,
@@ -44,11 +45,15 @@ function Step({ n, active, done, label, Icon }) {
   );
 }
 
-function Field({ path, label, value, onChange }) {
-  const isList = path === "products" || path === "hsn_codes";
+function PField({ path, label, value, onChange, provided, list, optional }) {
+  const empty = !value;
   return (
     <label className="block">
-      <span className="text-[11px] uppercase tracking-widest text-slate-400">{label}{isList ? " (comma separated)" : ""}</span>
+      <span className="text-[11px] uppercase tracking-widest text-slate-400">
+        {label}{list ? " (comma separated)" : ""}
+        {provided && <span className="text-emerald-300"> · from account</span>}
+        {!provided && empty && !optional && <span className="text-amber-300"> · required</span>}
+      </span>
       <input data-testid={`verify-field-${path.replace(/\./g, "-")}`}
         className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40"
         value={value || ""} onChange={(e) => onChange(path, e.target.value)} />
@@ -73,7 +78,7 @@ function CheckResult({ ok, title, lines }) {
 }
 
 export default function VerifyBuyer() {
-  const { isAuthed, loading } = useAuth();
+  const { isAuthed, loading, fbUser, account } = useAuth();
   const navigate = useNavigate();
   const [state, setState] = useState(null);
   const [step, setStep] = useState(0);
@@ -87,13 +92,37 @@ export default function VerifyBuyer() {
   const [docType, setDocType] = useState("");
   const [docCatalog, setDocCatalog] = useState({});
   const [consent, setConsent] = useState(false);
+  const [weeklyOptIn, setWeeklyOptIn] = useState(true);
   const [result, setResult] = useState(null);
   const [cameraFor, setCameraFor] = useState(null); // 'selfie' | 'document'
+  const seededRef = useRef(false);
+  const [provided, setProvided] = useState({});     // fields already on the profile at load
 
   const refresh = useCallback(async () => {
     const s = await getVerifyState();
     setState(s);
     setRole(s?.profile?.role || "");
+    if (!seededRef.current && s?.profile) {
+      const p = s.profile;
+      const cd = p.company_details || {};
+      const seed = {
+        name: p.name || p.full_name || "",
+        country: p.country || "",
+        state: p.state || p.province || "",
+        city: p.city || "",
+        products: Array.isArray(p.products) ? p.products.join(", ") : (p.products || ""),
+        "company_details.company_name": cd.company_name || cd.name || "",
+        "company_details.company_email": cd.company_email || "",
+        "company_details.company_phone": cd.company_phone || "",
+        "company_details.address": cd.address || "",
+      };
+      setForm(seed);
+      // Track which values arrived pre-filled (so the UI can show "provided" vs "needs completion").
+      const prov = {};
+      Object.entries(seed).forEach(([k, v]) => { if (v) prov[k] = true; });
+      setProvided(prov);
+      seededRef.current = true;
+    }
     return s;
   }, []);
 
@@ -111,6 +140,12 @@ export default function VerifyBuyer() {
   const missing = state?.completion?.missing || [];
   const status = state?.verification_status || "unverified";
   const onField = (path, val) => setForm((f) => ({ ...f, [path]: val }));
+  const stateOptions = useMemo(() => statesFor(form.country), [form.country]);
+  const onCountry = (e) => {
+    const c = e.target.value;
+    // Reset the dependent state when the country changes.
+    setForm((f) => ({ ...f, country: c, state: "" }));
+  };
 
   const docOptions = useMemo(() => {
     const arrs = [docCatalog?.business_documents, docCatalog?.trade_documents, docCatalog?.personal_documents];
@@ -160,6 +195,7 @@ export default function VerifyBuyer() {
         selfie_file_id: selfie?.id,
         document_file_id: doc?.id || null,
         doc_type: docType || null,
+        notify_opt_in: weeklyOptIn,
         profile_patch: {},
       });
       setResult(r);
@@ -235,22 +271,87 @@ export default function VerifyBuyer() {
               <div className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400" style={{ width: `${state?.completion?.percent ?? 0}%` }} />
             </div>
 
+            {/* From your account — pre-filled at signup, no need to re-enter */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 mb-5" data-testid="verify-prefill-summary">
+              <div className="text-[11px] uppercase tracking-widest text-slate-400 mb-2.5 flex items-center gap-2">
+                <CheckCircle size={13} className="text-emerald-300" weight="fill" /> From your account
+              </div>
+              <div className="grid sm:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <div className="text-slate-500 text-[11px] uppercase tracking-wider">Email</div>
+                  <div className="text-slate-200 truncate" data-testid="verify-prefill-email">{state?.profile?.email || account?.user?.email || fbUser?.email || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-slate-500 text-[11px] uppercase tracking-wider">Mobile</div>
+                  <div className="text-slate-200" data-testid="verify-prefill-mobile">{state?.profile?.mobile || state?.profile?.mobile_number || account?.user?.mobile || fbUser?.phoneNumber || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-slate-500 text-[11px] uppercase tracking-wider">Category</div>
+                  <div className="text-slate-200" data-testid="verify-prefill-category">{role || state?.profile?.role || account?.user?.user_role || "—"}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[11px] uppercase tracking-widest text-slate-400 mb-3">Complete the remaining details</div>
             <div className="grid sm:grid-cols-2 gap-4">
+              {/* Trade role / user category */}
               <label className="block">
-                <span className="text-[11px] uppercase tracking-widest text-slate-400">Trade role</span>
+                <span className="text-[11px] uppercase tracking-widest text-slate-400">Trade role / category{role ? "" : <span className="text-amber-300"> · required</span>}</span>
                 <select data-testid="verify-field-role" value={role} onChange={(e) => setRole(e.target.value)}
                   className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40">
                   <option value="">Select role…</option>
                   {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </label>
-              {missing.filter((m) => m.field !== "role").map((m) => (
-                <Field key={m.field} path={m.field} label={m.label} value={form[m.field]} onChange={onField} />
-              ))}
+
+              {/* Full name */}
+              <PField path="name" label="Full name" value={form.name} onChange={onField} provided={provided.name} />
+
+              {/* Country dropdown */}
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-widest text-slate-400">
+                  Country{form.country ? "" : <span className="text-amber-300"> · required</span>}
+                </span>
+                <select data-testid="verify-field-country" value={form.country || ""} onChange={onCountry}
+                  className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40">
+                  <option value="">Select country…</option>
+                  {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+
+              {/* State — dependent dropdown, free-text fallback */}
+              <label className="block">
+                <span className="text-[11px] uppercase tracking-widest text-slate-400">
+                  State / Province{form.state ? "" : <span className="text-amber-300"> · required</span>}
+                </span>
+                {stateOptions.length > 0 ? (
+                  <select data-testid="verify-field-state" value={form.state || ""} onChange={(e) => onField("state", e.target.value)}
+                    className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40">
+                    <option value="">Select state / province…</option>
+                    {stateOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                ) : (
+                  <input data-testid="verify-field-state" value={form.state || ""} onChange={(e) => onField("state", e.target.value)}
+                    placeholder={form.country ? "Enter state / province" : "Select a country first"}
+                    className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40" />
+                )}
+              </label>
+
+              {/* City */}
+              <PField path="city" label="City" value={form.city} onChange={onField} provided={provided.city} />
+
+              {/* Products */}
+              <PField path="products" label="Products you trade" value={form.products} onChange={onField} provided={provided.products} list />
+
+              {/* Company details */}
+              <PField path="company_details.company_name" label="Company name" value={form["company_details.company_name"]} onChange={onField} provided={provided["company_details.company_name"]} />
+              <PField path="company_details.company_email" label="Company email" value={form["company_details.company_email"]} onChange={onField} provided={provided["company_details.company_email"]} />
+              <PField path="company_details.company_phone" label="Company contact number" value={form["company_details.company_phone"]} onChange={onField} provided={provided["company_details.company_phone"]} />
+              <PField path="company_details.address" label="Company address (optional)" value={form["company_details.address"]} onChange={onField} provided={provided["company_details.address"]} optional />
             </div>
 
             {missing.length === 0 && (
-              <p className="text-sm text-emerald-300 mt-4 flex items-center gap-2"><CheckCircle size={16} weight="fill" /> Your profile is complete.</p>
+              <p className="text-sm text-emerald-300 mt-4 flex items-center gap-2" data-testid="verify-profile-complete"><CheckCircle size={16} weight="fill" /> Your profile is complete.</p>
             )}
 
             <button data-testid="verify-save-profile" onClick={saveProfile} disabled={busy === "profile"}
@@ -370,6 +471,12 @@ export default function VerifyBuyer() {
               <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
                 className="mt-1 accent-cyan-400" data-testid="verify-consent-checkbox" />
               <span className="text-slate-300">I confirm the information is accurate and I consent to being listed as a Verified Buyer on Vametra AI, with my business contact details shown to active subscribers.</span>
+            </label>
+
+            <label className="flex items-start gap-3 mt-3 text-sm cursor-pointer" data-testid="verify-optin-label">
+              <input type="checkbox" checked={weeklyOptIn} onChange={(e) => setWeeklyOptIn(e.target.checked)}
+                className="mt-1 accent-cyan-400" data-testid="verify-optin-checkbox" />
+              <span className="text-slate-300">Email me a weekly account-status summary and Verified Buyer updates. <span className="text-slate-500">(You can turn this off anytime.)</span></span>
             </label>
 
             <div className="flex gap-3 mt-6">

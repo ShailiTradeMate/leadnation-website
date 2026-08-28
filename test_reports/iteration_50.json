@@ -1,0 +1,45 @@
+{
+  "summary": "Iteration 50 backend + frontend E2E of the Verify Buyer overlay + prefill + name-mismatch + welcome email + weekly digest features. Backend: 10 pass / 3 skip (0 fail) with real Firebase auth + Mongo + 1 doc AI call: /verify/state auth guard + shape OK; PUT /verify/profile merges to profile_overlay (state, city, country, company_email, company_phone, address all reflected on follow-up GET); pure functions _names_match, _decide (needs_review on name_mismatch, verified on matching high-confidence), REQUIRED_FIELDS all validated; analyze-document correctly set name_mismatch=true + expected_company_name when OCR read GLOBEX EXPORTS while declared was TEST_Foobar Inc; submit stored company_name/company_email/company_phone/country/state/notify_opt_in on the submission doc; send_weekly_digest correctly emailed only status=verified + notify_opt_in != False (verified+optout and needs_review sentinels were NOT targeted). Frontend E2E on preview host: login via /login → /account works, /verify renders all 12 spec data-testids (verify-prefill-summary/email/mobile/category, verify-field-country/state/role, verify-field-company_details-{company_name,company_email,company_phone,address}, verify-save-profile), Country dropdown → dependent State: India shows SELECT with 35+ Indian states/UTs, Germany falls back to INPUT free-text with placeholder 'Enter state / province', USA shows SELECT — matches spec. NEW SEV-1 UPSTREAM ISSUE: DO backend GET /v1/profiles/{uid} is returning email=None, mobile=None, customer_id=None for uid SPKdrHke3NNjWTpYwxHUzwLnZbO2 (test account vaibhav@leadnation.app). Consequence: prefill card renders EMAIL '—' and MOBILE '—' (spec explicitly requires these auto-populated), and the welcome email will contain 'User ID: —' / 'Registered mobile: —' — spec violation cause is DO, not website code. Submit E2E returned 'rejected' (not needs_review) because the drawn selfie was correctly detected as non-human — this validates the never-auto-approve invariant on mismatch and does not indicate a bug; the decide-logic tests separately prove the needs_review path.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "DO GET /v1/profiles/{uid}", "issue": "For uid SPKdrHke3NNjWTpYwxHUzwLnZbO2 the DO shared-identity backend returns a profile with email=None, mobile=None, customer_id=None. The website merge (verify.py::_profile → _merge_supplement) is correct — DO is simply not returning canonical fields. This breaks: (a) the /verify prefill summary card (spec: auto-populate mobile+email+category so users don't re-enter), and (b) the verify_submitted welcome email which will now render 'User ID: —' and 'Registered mobile: —'. Cross-check: same GET on production may still work; needs DO team to inspect. Reproduce: `curl -H 'Authorization: Bearer <idToken>' -H 'x-user-uid: SPKdrHke3NNjWTpYwxHUzwLnZbO2' https://leadnation-lfrhs.ondigitalocean.app/api/v1/profiles/SPKdrHke3NNjWTpYwxHUzwLnZbO2` → email/customer_id/mobile all null.", "priority": "CRITICAL"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Verify · profile prefill", "issue": "verify-prefill-email and verify-prefill-mobile render '—' because DO profile lacks those keys (upstream). Consider a fallback: if profile.email is null, hydrate from Firebase user.email (already in AuthContext) — that at least populates the email cell.", "affected_selectors": ["[data-testid='verify-prefill-email']", "[data-testid='verify-prefill-mobile']"]}
+    ],
+    "design_issues": [
+      {"screen": "/verify (Step 0)", "issues": ["Cookie consent banner still overlaps the bottom of the wizard card at 1440x900 (same as iter48). Non-blocking but reduces the visible fields count."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_verify_iter50.py",
+    "/app/test_reports/pytest/verify_iter50.xml"
+  ],
+  "action_items": [
+    "Escalate to DO identity-backend team: GET /v1/profiles/{uid} returns email/mobile/customer_id=null for known-good user vaibhav@leadnation.app (uid SPKdrHke3NNjWTpYwxHUzwLnZbO2). This directly regresses the new signup prefill spec + the welcome-email User ID/mobile fields.",
+    "Frontend fallback: in VerifyBuyer.jsx seededRef branch AND the prefill summary card, prefer profile.email/mobile → fallback to useAuth().user.email / user.phoneNumber so the card doesn't render '—' while DO is degraded.",
+    "Consider guarding the emailer verify_submitted payload: if userId/mobile is '—' at submit time, mint them from the Firebase user object before dispatching so the welcome email always includes the required fields.",
+    "Cookie banner z-index/positioning still overlaps the wizard bottom on desktop viewports — carried over from iter48."
+  ],
+  "critical_code_review_comments": [
+    "verify.py::_profile merges overlay UNDER DO — correct: DO wins whenever it has a filled value. Once DO returns email/customer_id again, the prefill will self-heal without a code change.",
+    "verify.py::_do_put_profile already retries 5xx 3× with backoff — good hardening added since iter48.",
+    "geo.js state list for India includes all 28 states + 8 UTs; USA/UAE/Canada/Australia also complete. 'Other' country entry falls through to free-text — good.",
+    "VerifyBuyer.jsx PField component prints ' · from account' badge but only for keys present in `provided` — because DO doesn't return email/mobile, those are never in the `provided` map. Provided-badge logic itself is fine; the missing data is upstream.",
+    "verify.py::submit_verification stores notify_opt_in hardcoded True — spec calls this 'opt-in'. Consider surfacing an actual checkbox on Step 3 so users can opt OUT of the weekly digest at submit time (currently they can never opt out from the UI)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_verify_iter50.py"
+  ],
+  "success_rate": {"backend": "100% (10/10 executed, 3 skipped by design when submit auto-rejects on synthetic selfie)", "frontend": "92% (all 12 spec testids present, dependent dropdowns behave correctly; only prefill email/mobile show '—' due to upstream DO)"},
+  "test_credentials": "vaibhav@leadnation.app / Shiv@12345 (uid SPKdrHke3NNjWTpYwxHUzwLnZbO2) for user flow; X-Admin-Token leadnation-admin-2026 for admin endpoints.",
+  "seed_data_creation": "Inserted 3 sentinel submissions (TEST_ITER50_A/B/C) into verification_submissions for the weekly-digest filter test and cleaned them up in the same fixture. Rendered fake docs (GLOBEX EXPORTS PVT LTD certificate PNG) + a placeholder selfie in-memory for AI analysis. Left one 'rejected' submission for uid SPKdrHke3NNjWTpYwxHUzwLnZbO2 in the DB — status is rejected (harmless, non-verified).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All new verify features (overlay merge, name-mismatch → needs_review, welcome-email dispatch, weekly-digest opt-in filter, Country/State dropdowns, prefill card) are wired correctly in the website code — verified by both HTTP tests and in-process unit tests. The one remaining spec gap (prefill email/mobile empty) is caused by DO GET /v1/profiles/{uid} returning null for those fields on the test uid; validate again after DO team confirms fix, or after main agent adds a Firebase-user fallback in the frontend/backend. AI vision was called only twice this run (1 analyze-document via HTTP + 1 selfie analysis inside submit) to control cost.",
+  "rca of the issue": "REPRODUCE the prefill gap: 1) mint Firebase token for vaibhav@leadnation.app; 2) GET https://leadnation-lfrhs.ondigitalocean.app/api/v1/profiles/SPKdrHke3NNjWTpYwxHUzwLnZbO2 with the Bearer + x-user-uid → response body has 'email', 'mobile', 'customer_id' all null; 3) our /api/verify/state faithfully proxies+merges → same nulls surface to the UI; 4) VerifyBuyer.jsx renders '—' in verify-prefill-email/mobile. MITIGATION options: (a) DO team restores these fields on the profile document; (b) website falls back to firebase.auth().currentUser.email / phoneNumber in AuthContext when profile.email is missing (2-3 line change); (c) welcome-email builder in verify.submit reads profile.email OR user['email'] (already does — good) but also needs the same for mobile."
+}

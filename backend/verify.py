@@ -32,12 +32,18 @@ from core import db, require_admin
 from firebase_auth import require_user
 import storage
 import verify_ai
+import emailer
 
 router = APIRouter(prefix="/verify")
 log = logging.getLogger("verify")
 
 SUBS = db.verification_submissions
 FACE_INDEX = db.verification_face_index
+# Website-local SUPPLEMENT store (provenance/safety layer only — NOT an identity
+# source of truth). DO remains canonical for uid/email/customer_id/role. We only
+# keep the extra business/verification fields DO may not persist (state,
+# company_email, company_phone, address …) so completion % and re-checks are stable.
+OVERLAY = db.profile_overlay
 
 DO_BASE = os.environ.get("AUTH_API_BASE", "").rstrip("/")
 
@@ -53,9 +59,12 @@ REQUIRED_FIELDS = [
     ("mobile", "Mobile number"),
     ("email", "Email address"),
     ("country", "Country"),
+    ("state", "State / Province"),
     ("city", "City"),
     ("products", "Products you trade"),
     ("company_details.company_name", "Company name"),
+    ("company_details.company_email", "Company email"),
+    ("company_details.company_phone", "Company contact number"),
 ]
 
 
@@ -82,6 +91,22 @@ def _is_filled(v) -> bool:
     return True
 
 
+def _norm_name(s: str) -> str:
+    import re
+    s = (s or "").lower()
+    for tok in ("private", "limited", "pvt", "ltd", "llp", "inc", "corporation", "corp", "company", "&", " and ", "the "):
+        s = s.replace(tok, " ")
+    return re.sub(r"[^a-z0-9]+", "", s)
+
+
+def _names_match(a: str, b: str) -> bool:
+    """Fuzzy company-name comparison (ignores suffixes/punctuation)."""
+    na, nb = _norm_name(a), _norm_name(b)
+    if not na or not nb:
+        return True  # can't compare → don't penalise at this layer
+    return na == nb or na in nb or nb in na
+
+
 # ---------------- DO backend proxy ----------------
 def _do_headers(authorization: Optional[str], uid: str) -> dict:
     h = {"x-user-uid": uid}
@@ -100,6 +125,54 @@ def _do_get_profile(uid: str, authorization: Optional[str]) -> dict:
     except Exception as exc:
         log.warning("DO get_profile failed: %s", exc)
     return {}
+
+
+def _apply_patch(base: dict, patch: dict) -> dict:
+    """Deep-merge patch onto base (patch wins). Nested dicts merged recursively."""
+    out = dict(base or {})
+    for k, v in (patch or {}).items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = _apply_patch(out[k], v)
+        else:
+            out[k] = v
+    return out
+
+
+def _merge_supplement(overlay: dict, do: dict) -> dict:
+    """Merge the website supplement with the canonical DO profile.
+    DO wins wherever it has a filled value; overlay only fills the gaps."""
+    out = dict(overlay or {})
+    for k, v in (do or {}).items():
+        if isinstance(v, dict) and isinstance(out.get(k), dict):
+            out[k] = _merge_supplement(out[k], v)
+        elif _is_filled(v) or k not in out:
+            out[k] = v
+    return out
+
+
+async def _get_overlay(uid: str) -> dict:
+    ov = await OVERLAY.find_one({"uid": uid}) or {}
+    for k in ("_id", "uid", "updated_at"):
+        ov.pop(k, None)
+    return ov
+
+
+async def _save_overlay(uid: str, patch: dict):
+    """Persist supplement fields locally (deep-merged) — DO still owns identity."""
+    if not patch:
+        return
+    cur = await _get_overlay(uid)
+    merged = _apply_patch(cur, patch)
+    merged["uid"] = uid
+    merged["updated_at"] = _now()
+    await OVERLAY.replace_one({"uid": uid}, merged, upsert=True)
+
+
+async def _profile(uid: str, authorization: Optional[str]) -> dict:
+    """Canonical DO profile supplemented with the website-local overlay."""
+    do = _do_get_profile(uid, authorization)
+    ov = await _get_overlay(uid)
+    return _merge_supplement(ov, do)
 
 
 def _do_put_profile(uid: str, patch: dict, authorization: Optional[str]) -> dict:
@@ -214,7 +287,7 @@ def _clean_submission(doc: dict) -> dict:
 async def verify_state(user: dict = Depends(require_user),
                        authorization: Optional[str] = Header(default=None)):
     uid = user["uid"]
-    profile = _do_get_profile(uid, authorization)
+    profile = await _profile(uid, authorization)
     sub = await SUBS.find_one({"uid": uid}, sort=[("created_at", -1)])
     return {
         "uid": uid,
@@ -251,12 +324,15 @@ class ProfilePatch(BaseModel):
 @router.put("/profile")
 async def update_profile(body: ProfilePatch, user: dict = Depends(require_user),
                          authorization: Optional[str] = Header(default=None)):
-    """Fill in missing shared-profile fields (proxied to DO — DO owns the write)."""
+    """Fill in missing shared-profile fields (proxied to DO — DO owns the write).
+    Business/verification extras are also mirrored to the website-local overlay."""
     uid = user["uid"]
     res = _do_put_profile(uid, body.patch, authorization)
+    await _save_overlay(uid, body.patch)  # local supplement (never a competing identity)
     if not res.get("ok"):
-        raise HTTPException(502, f"Could not update shared profile: {res.get('error') or res.get('status')}")
-    profile = _do_get_profile(uid, authorization)
+        # DO write failed but the overlay retains the data → don't lose the user's input.
+        log.warning("DO profile write failed (%s) — kept in local overlay", res.get("status"))
+    profile = await _profile(uid, authorization)
     return {"ok": True, "profile": profile, "completion": _completion(profile)}
 
 
@@ -322,15 +398,20 @@ class DocReq(BaseModel):
 async def analyze_document_ep(body: DocReq, user: dict = Depends(require_user),
                               authorization: Optional[str] = Header(default=None)):
     uid = user["uid"]
-    profile = _do_get_profile(uid, authorization)
+    profile = await _profile(uid, authorization)
     cd = profile.get("company_details") or {}
     b64, _, _ = await _load_image_b64(body.file_id, uid)
     result = await verify_ai.analyze_document(
         b64, expected_name=cd.get("company_name") or cd.get("name") or profile.get("name") or "",
         expected_country=profile.get("country") or "", session=f"doc-{uid}")
+    expected_cn = cd.get("company_name") or cd.get("name") or profile.get("name") or ""
+    if result.get("company_name") and expected_cn and not _names_match(result.get("company_name"), expected_cn):
+        result["name_mismatch"] = True
+        result["expected_company_name"] = expected_cn
     passed = (result.get("is_business_document")
               and float(result.get("confidence") or 0) >= DOC_CONF_MIN
-              and not result.get("tamper_signs"))
+              and not result.get("tamper_signs")
+              and not result.get("name_mismatch"))
     result["passed"] = bool(passed)
     return result
 
@@ -342,6 +423,7 @@ class SubmitReq(BaseModel):
     document_file_id: Optional[str] = None
     doc_type: Optional[str] = None
     profile_patch: Optional[dict] = None
+    notify_opt_in: Optional[bool] = True
 
 
 def _entity_type_for(role: str) -> str:
@@ -365,6 +447,9 @@ def _decide(selfie: dict, doc: dict) -> tuple:
     doc_conf = float(doc.get("confidence") or 0) if doc else 0.0
     has_doc = bool(doc and doc.get("available") is not False and doc.get("is_business_document"))
     overall = round(selfie_conf * 0.6 + (doc_conf if has_doc else 0.0) * 0.4, 3)
+    if doc and doc.get("name_mismatch"):
+        reasons.append("Company name on the document doesn't match your profile — sent for admin review.")
+        return "needs_review", overall, reasons
     if not selfie.get("available", True) or (doc and doc.get("available") is False):
         reasons.append("Automated analysis unavailable for one or more items.")
         return "needs_review", overall, reasons
@@ -382,13 +467,14 @@ async def submit_verification(body: SubmitReq, user: dict = Depends(require_user
         raise HTTPException(400, "Consent to be listed as a Verified Buyer is required.")
 
     # 1) Persist any missing profile fields + role to the SHARED profile (DO owns it).
-    profile0 = _do_get_profile(uid, authorization)
+    profile0 = await _profile(uid, authorization)
     patch = dict(body.profile_patch or {})
     if (profile0.get("role") or "") != "admin":  # never demote a platform admin
         patch["role"] = body.role
     patch["contact_visibility_flag"] = True
     _do_put_profile(uid, patch, authorization)
-    profile = _do_get_profile(uid, authorization)
+    await _save_overlay(uid, patch)  # mirror to website-local supplement
+    profile = await _profile(uid, authorization)
 
     # 2) Re-run the automated checks server-side (never trust the client's verdict).
     selfie_b64, selfie_raw, _ = await _load_image_b64(body.selfie_file_id, uid)
@@ -405,10 +491,13 @@ async def submit_verification(body: SubmitReq, user: dict = Depends(require_user
     doc = None
     if body.document_file_id:
         cd = profile.get("company_details") or {}
+        expected_cn = cd.get("company_name") or cd.get("name") or profile.get("name") or ""
         doc_b64, _, _ = await _load_image_b64(body.document_file_id, uid)
         doc = await verify_ai.analyze_document(
-            doc_b64, expected_name=cd.get("company_name") or cd.get("name") or profile.get("name") or "",
+            doc_b64, expected_name=expected_cn,
             expected_country=profile.get("country") or "", session=f"doc-{uid}")
+        if doc and doc.get("company_name") and expected_cn and not _names_match(doc.get("company_name"), expected_cn):
+            doc["name_mismatch"] = True
 
     status, overall, reasons = _decide(selfie, doc)
 
@@ -422,6 +511,7 @@ async def submit_verification(body: SubmitReq, user: dict = Depends(require_user
             await FACE_INDEX.update_one(
                 {"uid": uid}, {"$set": {"uid": uid, "hash": ah, "updated_at": _now()}}, upsert=True)
 
+    cd0 = profile.get("company_details") or {}
     sid = uuid.uuid4().hex
     submission = {
         "_id": sid, "id": sid, "uid": uid, "customer_id": profile.get("customer_id"),
@@ -429,10 +519,37 @@ async def submit_verification(body: SubmitReq, user: dict = Depends(require_user
         "status": status, "confidence": overall, "reasons": reasons,
         "checks": {"selfie": selfie, "document": doc},
         "selfie_file_id": body.selfie_file_id, "document_file_id": body.document_file_id,
-        "consent": True, "geid": link.get("geid"), "linked": link.get("linked"),
+        "doc_type": body.doc_type,
+        "name": profile.get("name") or profile.get("full_name"),
+        "email": profile.get("email"),
+        "mobile": profile.get("mobile") or profile.get("mobile_number"),
+        "country": profile.get("country"),
+        "company_name": cd0.get("company_name") or cd0.get("name"),
+        "company_email": cd0.get("company_email"),
+        "company_phone": cd0.get("company_phone"),
+        "consent": True, "notify_opt_in": bool(body.notify_opt_in), "geid": link.get("geid"), "linked": link.get("linked"),
+        "state": profile.get("state") or profile.get("province"),
+        "city": profile.get("city"),
         "created_at": _now(), "updated_at": _now(),
     }
     await SUBS.insert_one(submission)
+
+    # Welcome / submission-received email (best-effort, non-blocking).
+    try:
+        import asyncio
+        to = profile.get("email") or user.get("email")
+        if to:
+            doc_name = body.doc_type or (doc.get("document_type") if doc else None) or "—"
+            asyncio.create_task(emailer.send("verify_submitted", to, {
+                "name": profile.get("name") or profile.get("full_name") or "there",
+                "userId": profile.get("customer_id") or "—",
+                "customerId": profile.get("customer_id") or "—",
+                "mobile": profile.get("mobile") or profile.get("mobile_number") or user.get("phone_number") or "—",
+                "email": to, "country": profile.get("country") or "—",
+                "docName": doc_name, "status": status,
+            }))
+    except Exception as exc:
+        log.warning("verify welcome email failed: %s", exc)
     return {"status": status, "confidence": overall, "reasons": reasons,
             "geid": link.get("geid"), "linked": link.get("linked"),
             "submission": _clean_submission(submission),
@@ -463,7 +580,7 @@ async def admin_decide(sid: str, body: DecideReq, admin: dict = Depends(require_
     if not sub:
         raise HTTPException(404, "Submission not found")
     uid = sub["uid"]
-    profile = _do_get_profile(uid, authorization)
+    profile = await _profile(uid, authorization)
     if body.decision == "approve":
         link = _do_link_buyer(uid, profile.get("customer_id"), profile,
                               sub.get("entity_type") or "prospect", authorization)
@@ -483,3 +600,44 @@ async def admin_decide(sid: str, body: DecideReq, admin: dict = Depends(require_
             "status": "rejected", "reviewer": admin.get("email") or admin.get("uid"),
             "review_note": body.note, "updated_at": _now()}})
         return {"ok": True, "status": "rejected"}
+
+
+# ---------------- Weekly verified-buyer digest ----------------
+async def send_weekly_digest():
+    """Best-effort weekly account-status email to every VERIFIED buyer who has not
+    opted out. Verification is NOT gated on subscription — every verified member is
+    eligible; we only skip users who explicitly turned notifications off."""
+    try:
+        seen = set()
+        async for sub in SUBS.find({"status": "verified", "notify_opt_in": {"$ne": False}}):
+            to = sub.get("email")
+            if not to or to in seen:
+                continue
+            seen.add(to)
+            try:
+                await emailer.send("verified_weekly", to, {
+                    "name": sub.get("name") or "there",
+                    "customerId": sub.get("customer_id") or "—",
+                    "geid": sub.get("geid") or "—",
+                })
+            except Exception as exc:
+                log.warning("weekly digest send failed for %s: %s", to, exc)
+    except Exception as exc:
+        log.warning("weekly digest failed: %s", exc)
+
+
+_weekly_scheduler = None
+def start_weekly_digest():
+    global _weekly_scheduler
+    if _weekly_scheduler is not None:
+        return
+    try:
+        from apscheduler.schedulers.asyncio import AsyncIOScheduler
+        from apscheduler.triggers.cron import CronTrigger
+        _weekly_scheduler = AsyncIOScheduler(timezone="UTC")
+        _weekly_scheduler.add_job(send_weekly_digest, CronTrigger(day_of_week="mon", hour=8, minute=0),
+                                  id="verified_weekly_digest", replace_existing=True)
+        _weekly_scheduler.start()
+        log.info("[verify] weekly verified-buyer digest scheduler started (Mon 08:00 UTC)")
+    except Exception as exc:
+        log.warning("weekly digest scheduler start failed: %s", exc)

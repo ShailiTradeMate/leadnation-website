@@ -325,8 +325,8 @@ async def razorpay_verify(body: RazorpayVerifyIn,
         await _finalize_paid(tx["_id"], {"payment_id": body.razorpay_payment_id,
                                          "method": pay.get("method"), "email": pay.get("email"),
                                          "contact": pay.get("contact")})
-        return {"ok": True, "status": "paid", "kind": tx["kind"], "sessionId": tx["_id"]}
-    return {"ok": True, "status": pay.get("status", "pending"), "kind": tx["kind"], "sessionId": tx["_id"]}
+        return {"ok": True, "status": "paid", "kind": tx["kind"], "sessionId": str(tx["_id"])}
+    return {"ok": True, "status": pay.get("status", "pending"), "kind": tx["kind"], "sessionId": str(tx["_id"])}
 
 
 @hook_router.post("/webhook/razorpay")
