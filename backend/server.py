@@ -14,6 +14,7 @@ from pricing import pricing_router, get_config as get_pricing_config
 import events, adapters, simulation, decision_engine
 import storage, news_engine, event_listings, vbie
 import vbie_connectors, vbie_admin, seo, verify
+import subadmin
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -26,7 +27,7 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="Vametra AI — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo, verify):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo, verify, subadmin):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(brain_admin_router)
@@ -74,6 +75,10 @@ async def _startup():
         await seed_settings()
     except Exception as exc:
         logging.warning("Settings seed failed: %s", exc)
+    try:
+        await subadmin.seed_subadmins()
+    except Exception as exc:
+        logging.warning("Sub-admin seed failed: %s", exc)
     try:
         await get_pricing_config()
     except Exception as exc:

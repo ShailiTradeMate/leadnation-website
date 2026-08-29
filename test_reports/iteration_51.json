@@ -1,0 +1,37 @@
+{
+  "summary": "Phase A validated end-to-end: website-local sub-admin JWT auth + Admin User Section. Backend pytest suite (12 tests) all pass (only cold-start read timeouts on first bcrypt call — reruns clean). Frontend: sub-admin login for sakshi@vametra.com routes to /admin-cms showing 'Sub-Admin Console · Sakshi' with ONLY the Users tab, admin-users-panel visible with empty-state 'No users have been allocated to you yet.'; logout returns to /admin-login. Main-admin login (admin@vametra.com / Shiv@12345) works via Firebase browser sign-in and lands on /admin-cms with all tabs (Dashboard, Content, Leads, Users, Service Requests, Event Listings, Trade News, Web Analytics, Control Center, etc.). Users tab renders UsersManager with 3 rows (customer_ids 00004, 00002, 00001), search chips, and expandable detail panel showing Personal + Company + Documents/Status (verified live). Real-time debounced search verified: q='vametra' → 1 row (admin@vametra.com); q='zzznomatch' → 0 rows ('No users found.'). Backend /api/admin/users returns rich rows with mobile, company_*, country, state, category, documents[], status ('not_applied' for signups without a submission), customer_id, subscription. Sub-admin scope confirmed empty (total=0). Mobile-capture regression: verified in source (verify-field-mobile testid, prefill from p.mobile||p.mobile_number, buildPatch mirrors mobile→mobile_number). Runtime UI walk-through of /verify not possible because end-user /login uses the external DO auth API that returns 401 in the Emergent preview host (documented CORS whitelist gap in /app/memory/test_credentials.md).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/admin-auth/login", "issue": "First bcrypt verify after container idle can exceed 15s (cold start). Subsequent calls <300ms. Consider raising server-side warm timers or pre-warming bcrypt."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "End-user /login in Emergent preview", "issue": "POST to DO backend returns 401 for valid creds (CORS/host whitelist gap; NOT a code bug — preview host missing from DO allowlist per test_credentials.md).", "affected_selectors": ["login-identifier", "login-password"]}
+    ],
+    "design_issues": [
+      {"screen": "/admin-cms Users tab (both admin & sub-admin)", "issues": ["Cookie-consent banner overlaps bottom of user table on 1920x1080 viewport until dismissed — consider auto-hide after auth or z-index lower than table."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter51_subadmin.py", "/app/test_reports/pytest/iter51.xml"],
+  "action_items": [
+    "None blocking. Phase A ready. Optional: reduce bcrypt work factor OR warm connection on first request to eliminate the ~15s cold-start login timeout observed in the preview environment.",
+    "Optional: raise cookie-banner dismissal / lower z-index so it doesn't cover the last rows of the Users table on smaller viewports."
+  ],
+  "critical_code_review_comments": [
+    "subadmin.py: _id field is set to same value as id (uuid.uuid4().hex string) — safe from ObjectId serialization since it's a str, but Mongo generally reserves _id for its own use; consider dropping the explicit _id assignment and rely on the string id field only (cleaner). No bug today.",
+    "subadmin.admin_users returns full users list (up to 8000) with subs & overlays in-memory joined — fine for Phase A (small user base) but should switch to server-side aggregation (Mongo $lookup) once user count grows.",
+    "Firebase idToken parsing branch in staff_identity() imports firebase_auth lazily inside the function — good, keeps the module optional. No changes needed.",
+    "UsersManager.jsx: search debounce (300ms) hits server every keystroke — acceptable; consider caching last result to avoid unnecessary re-render on quick typing."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter51_subadmin.py"],
+  "success_rate": {"backend": "100% (12/12 after cold-start warm-up)", "frontend": "100% for admin flows; end-user /verify runtime skipped (preview CORS)"},
+  "test_credentials": "See /app/memory/test_credentials.md — Main admin admin@vametra.com/Shiv@12345 (Firebase, Customer 00001); Sub-admins sakshi@vametra.com & patnica@vametra.com / Shiv@12345 (JWT via /api/admin-auth/login); End-user vaibhav@leadnation.app/Shiv@12345 (works in prod, blocked in preview due to DO CORS).",
+  "seed_data_creation": "None. Sub-admin seed happens automatically on backend startup via subadmin.seed_subadmins(). Verified both accounts already exist and log in successfully.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase A (sub-admin JWT + admin User Section) is stable. Next phases will add allocations to sub-admins (assigned_to on submissions) and action buttons (approve/reject/contact/edit/payments). When testing those, note that sub-admin scope filter is r.get('assigned_to') == staff.sid — allocations must set assigned_to to the sub-admin's uuid, not their email or name. Also note the preview host DOES support Firebase login for /admin-login (works browser-side) but does NOT support DO auth (/login and /verify runtime); when testing end-user features that require DO auth in the preview, use pytest with minted Firebase tokens against /api instead.",
+  "rca of the issue": "N/A — no defects surfaced during Phase A testing."
+}

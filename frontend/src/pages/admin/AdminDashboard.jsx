@@ -12,6 +12,8 @@ import PricingManager from "@/pages/admin/PricingManager";
 import BuyersManager from "@/pages/admin/BuyersManager";
 import PaymentsManager from "@/pages/admin/PaymentsManager";
 import VerificationReview from "@/pages/admin/VerificationReview";
+import UsersManager from "@/pages/admin/UsersManager";
+import { staffLogin, staffLogout, getStaffInfo, isStaff } from "@/lib/staffAuth";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
 
@@ -20,6 +22,7 @@ export function AdminLogin() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState("main"); // 'main' | 'sub'
   const navigate = useNavigate();
   const { login, loginWithCustomerId, isAuthed, isAdmin, refreshAccount, logout } = useAuth();
 
@@ -31,13 +34,21 @@ export function AdminLogin() {
     e.preventDefault();
     setErr(""); setLoading(true);
     try {
+      if (mode === "sub") {
+        await staffLogin(ident.trim(), password);
+        navigate("/admin-cms");
+        return;
+      }
       const id = ident.trim();
       if (/^\d{1,6}$/.test(id)) await loginWithCustomerId(id.padStart(5, "0"), password);
       else await login(id, password);
       const acc = await refreshAccount();
       if (acc?.user?.role !== "admin") { setErr("This account is not an admin."); await logout(); return; }
       navigate("/admin-cms");
-    } catch (_) { setErr("Invalid credentials. Check your Admin ID/email and password."); }
+    } catch (err2) {
+      if (mode === "sub") setErr(err2?.response?.data?.detail || "Invalid sub-admin credentials.");
+      else setErr("Invalid credentials. Check your Admin ID/email and password.");
+    }
     finally { setLoading(false); }
   };
 
@@ -46,13 +57,23 @@ export function AdminLogin() {
       <form onSubmit={onSubmit} data-testid="admin-login-form" className="glass-strong rounded-3xl p-8 w-full max-w-md">
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Control Center</div>
         <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to Vametra AI</h1>
-        <p className="text-slate-400 text-sm mt-2">Shared admin identity — use your Admin ID or email + password.</p>
+
+        <div className="mt-5 grid grid-cols-2 gap-1 p-1 glass rounded-xl">
+          <button type="button" data-testid="admin-login-tab-main" onClick={() => { setMode("main"); setErr(""); }}
+            className={`py-2 rounded-lg text-sm ${mode === "main" ? "tab-active text-white" : "text-slate-400"}`}>Main Admin</button>
+          <button type="button" data-testid="admin-login-tab-sub" onClick={() => { setMode("sub"); setErr(""); }}
+            className={`py-2 rounded-lg text-sm ${mode === "sub" ? "tab-active text-white" : "text-slate-400"}`}>Sub-Admin</button>
+        </div>
+
+        <p className="text-slate-400 text-sm mt-3">
+          {mode === "main" ? "Use your Admin ID or email + password." : "Sub-admin staff login — email + password."}
+        </p>
         <input
           data-testid="admin-login-username"
           autoFocus type="text" autoComplete="username"
           value={ident} onChange={(e) => setIdent(e.target.value)}
-          placeholder="Admin ID (e.g. 00001) or email"
-          className="mt-5 w-full glass rounded-xl px-4 py-3 outline-none"
+          placeholder={mode === "main" ? "Admin ID (e.g. 00001) or email" : "Sub-admin email"}
+          className="mt-3 w-full glass rounded-xl px-4 py-3 outline-none"
         />
         <input
           data-testid="admin-login-password"
@@ -69,70 +90,85 @@ export function AdminLogin() {
 }
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState("dashboard");
-  const [stats, setStats] = useState([]);
   const navigate = useNavigate();
   const { loading, isAuthed, isAdmin, logout: doLogout } = useAuth();
+  const staff = getStaffInfo();
+  const isSubAdmin = !isAdmin && isStaff();
+  const isMainAdmin = isAuthed && isAdmin;
+  const [tab, setTab] = useState(isSubAdmin ? "users" : "dashboard");
+  const [stats, setStats] = useState([]);
 
   useEffect(() => {
     if (loading) return;
-    if (!isAuthed || !isAdmin) { navigate("/admin-login"); return; }
-    adminApi.get("/admin/collections").then((r) => setStats(r.data)).catch(() => {});
-  }, [loading, isAuthed, isAdmin, navigate]);
+    if (!isMainAdmin && !isSubAdmin) { navigate("/admin-login"); return; }
+    if (isMainAdmin) adminApi.get("/admin/collections").then((r) => setStats(r.data)).catch(() => {});
+  }, [loading, isMainAdmin, isSubAdmin, navigate]);
 
-  const logout = async () => { await doLogout(); navigate("/admin-login"); };
+  const logout = async () => {
+    staffLogout();
+    if (isMainAdmin) { await doLogout(); }
+    navigate("/admin-login");
+  };
+
+  const MAIN_TABS = [
+    { k: "dashboard", l: "Dashboard", I: ChartBar },
+    { k: "cms", l: "Content", I: Database },
+    { k: "leads", l: "Leads", I: UserList },
+    { k: "users", l: "Users", I: Users },
+    { k: "service-requests", l: "Service Requests", I: Briefcase },
+    { k: "listings", l: "Event Listings", I: CalendarCheck },
+    { k: "trade-news", l: "Trade News", I: Newspaper },
+    { k: "events", l: "Web Analytics", I: Eye },
+    { k: "control-center", l: "Control Center", I: SlidersHorizontal },
+    { k: "pricing", l: "Pricing", I: CurrencyCircleDollar },
+    { k: "payments", l: "Payments", I: CurrencyCircleDollar },
+    { k: "buyers", l: "Verified Buyers", I: ShieldCheck },
+    { k: "verifications", l: "Verifications", I: SealCheck },
+  ];
+  const SUB_TABS = [{ k: "users", l: "Users", I: Users }];
+  const tabs = isSubAdmin ? SUB_TABS : MAIN_TABS;
 
   return (
     <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-24">
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Console</div>
+          <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
+            {isSubAdmin ? `Sub-Admin Console · ${staff?.name || staff?.email || ""}` : "Admin Console"}
+          </div>
           <h1 className="font-display font-extrabold text-4xl sm:text-5xl mt-2">Vametra AI CMS</h1>
         </div>
         <button data-testid="admin-logout" onClick={logout} className="btn-ghost !py-2 text-xs"><SignOut size={14} weight="bold" /> Logout</button>
       </div>
 
       <div className="mt-8 glass-strong rounded-2xl p-2 flex gap-1 overflow-auto">
-        {[
-          { k: "dashboard", l: "Dashboard", I: ChartBar },
-          { k: "cms", l: "Content", I: Database },
-          { k: "leads", l: "Leads", I: UserList },
-          { k: "users", l: "Users", I: Users },
-          { k: "service-requests", l: "Service Requests", I: Briefcase },
-          { k: "listings", l: "Event Listings", I: CalendarCheck },
-          { k: "trade-news", l: "Trade News", I: Newspaper },
-          { k: "events", l: "Web Analytics", I: Eye },
-          { k: "control-center", l: "Control Center", I: SlidersHorizontal },
-          { k: "pricing", l: "Pricing", I: CurrencyCircleDollar },
-          { k: "payments", l: "Payments", I: CurrencyCircleDollar },
-          { k: "buyers", l: "Verified Buyers", I: ShieldCheck },
-          { k: "verifications", l: "Verifications", I: SealCheck },
-        ].map((t) => (
+        {tabs.map((t) => (
           <button key={t.k} data-testid={`admin-tab-${t.k}`} onClick={() => setTab(t.k)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap ${tab === t.k ? "tab-active text-white" : "text-slate-300 hover:bg-white/5"}`}>
             <t.I size={14} weight="duotone" />{t.l}
           </button>
         ))}
-        <button data-testid="admin-tab-brain" onClick={() => navigate("/admin/brain")}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap text-violet-200 hover:bg-violet-500/10 border border-violet-400/20">
-          <Brain size={14} weight="duotone" />Brain
-        </button>
+        {isMainAdmin && (
+          <button data-testid="admin-tab-brain" onClick={() => navigate("/admin/brain")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap text-violet-200 hover:bg-violet-500/10 border border-violet-400/20">
+            <Brain size={14} weight="duotone" />Brain
+          </button>
+        )}
       </div>
 
       <div className="mt-6">
-        {tab === "dashboard" && <Stats stats={stats} />}
-        {tab === "cms" && <CmsManager />}
-        {tab === "leads" && <Leads />}
-        {tab === "users" && <RegisteredUsers />}
-        {tab === "service-requests" && <ServiceRequests />}
-        {tab === "listings" && <EventListingsManager />}
-        {tab === "trade-news" && <TradeNewsManager />}
-        {tab === "events" && <Events />}
-        {tab === "control-center" && <ControlCenter />}
-        {tab === "pricing" && <PricingManager />}
-        {tab === "payments" && <PaymentsManager />}
-        {tab === "buyers" && <BuyersManager />}
-        {tab === "verifications" && <VerificationReview />}
+        {tab === "users" && <UsersManager />}
+        {isMainAdmin && tab === "dashboard" && <Stats stats={stats} />}
+        {isMainAdmin && tab === "cms" && <CmsManager />}
+        {isMainAdmin && tab === "leads" && <Leads />}
+        {isMainAdmin && tab === "service-requests" && <ServiceRequests />}
+        {isMainAdmin && tab === "listings" && <EventListingsManager />}
+        {isMainAdmin && tab === "trade-news" && <TradeNewsManager />}
+        {isMainAdmin && tab === "events" && <Events />}
+        {isMainAdmin && tab === "control-center" && <ControlCenter />}
+        {isMainAdmin && tab === "pricing" && <PricingManager />}
+        {isMainAdmin && tab === "payments" && <PaymentsManager />}
+        {isMainAdmin && tab === "buyers" && <BuyersManager />}
+        {isMainAdmin && tab === "verifications" && <VerificationReview />}
       </div>
     </section>
   );
