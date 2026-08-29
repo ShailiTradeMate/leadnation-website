@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { staffApi } from "@/lib/staffAuth";
 import { API } from "@/lib/api";
-import { MagnifyingGlass, CaretDown, CaretUp, FileText, User, Buildings } from "@phosphor-icons/react";
+import AllocatePanel from "@/pages/admin/AllocatePanel";
+import { MagnifyingGlass, CaretDown, CaretUp, FileText, User, Buildings, UsersThree } from "@phosphor-icons/react";
 
 const STATUS_STYLE = {
   verified: "bg-emerald-500/20 text-emerald-300",
@@ -90,6 +91,8 @@ export default function UsersManager() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [role, setRole] = useState("");
+  const [isMain, setIsMain] = useState(false);
+  const [showAllocate, setShowAllocate] = useState(false);
   const [open, setOpen] = useState(null); // uid expanded
   const debounce = useRef(null);
 
@@ -99,6 +102,7 @@ export default function UsersManager() {
       const { data } = await staffApi.get("/admin/users", { params: search ? { q: search } : {} });
       setRows(data.users || []);
       setRole(data.role || "");
+      setIsMain(Boolean(data.is_main));
     } catch (e) {
       setErr(e?.response?.data?.detail || "Could not load users.");
     } finally { setLoading(false); }
@@ -135,7 +139,13 @@ export default function UsersManager() {
           <span className="px-2.5 py-1 rounded-full bg-slate-500/15 text-slate-300" data-testid="count-notapplied">Not applied {counts.not_applied}</span>
         </div>
         <span className="text-xs text-slate-400 ml-auto" data-testid="admin-users-count">{rows.length} user{rows.length === 1 ? "" : "s"}</span>
+        {isMain && (
+          <button data-testid="open-allocate" onClick={() => setShowAllocate(true)}
+            className="btn-primary !py-2 text-xs whitespace-nowrap"><UsersThree size={14} /> Allocate</button>
+        )}
       </div>
+
+      {showAllocate && <AllocatePanel onClose={() => setShowAllocate(false)} onAllocated={() => load(q)} />}
 
       {err && <div data-testid="admin-users-error" className="glass rounded-xl p-4 text-sm text-rose-300">{err}</div>}
 

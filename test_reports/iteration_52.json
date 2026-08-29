@@ -1,0 +1,36 @@
+{
+  "summary": "Phase B (Allocation + sub-admin CRUD + nightly digest) validated end-to-end. Backend pytest suite (17 tests) — 100% pass in 34s (no cold-start hits, seed sub-admins already warm). Frontend: main-admin login (admin@vametra.com / Shiv@12345) lands on /admin-cms with full tab set; Users tab shows 'Allocate' button (data-testid open-allocate) — clicking opens AllocatePanel with pending counters (0 unassigned of 1 pending — the 1 is already allocated to Sakshi), 2 active sub-admin selectable rows (Sakshi + PatniCA + any previously-created QA subs), all form testids present (subadmin-name/email/password/create, allocate-select-<id>, allocate-submit, subadmin-toggle-<id>, allocate-close). Create sub-admin succeeded (qa_phaseb_ui_5873@vametra.com) → success banner shown; toggle click flipped active state. Allocate & notify with Sakshi selected returned the expected 'No pending requests to allocate.' message (unassigned=0). Sub-admin scope verified visually: sakshi@vametra.com sees exactly 1 user (Customer 00002 · Vaibhav Deshmane · TEST_Foobar Inc · NEEDS REVIEW) and NO other tabs / NO 'Allocate' button; patnica@vametra.com sees empty state 'No users have been allocated to you yet.' with 0 users and no other tabs. RBAC verified via backend: sub-admin X-Staff-Token gets 403 on GET/POST /api/admin/subadmins, POST /api/admin/allocate, and GET /api/admin/allocate/pending. Duplicate-email create returns 409; deactivated sub-admin login returns 403; deactivate persists in list. Nightly digest registration verified in source (subadmin.start_pending_digest → AsyncIOScheduler cron hour=19 minute=30 UTC = 01:00 IST; hooked on server startup).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/admin-cms Users tab", "issues": ["Cookie-consent banner (persisted from iter51) still overlaps bottom of the users table until dismissed — cosmetic only."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter52_phaseb_allocation.py",
+    "/app/test_reports/pytest/iter52.xml"
+  ],
+  "action_items": [
+    "None blocking — Phase B is ready to ship.",
+    "Optional/nice-to-have: expose a DELETE (or hide-Inactive filter with cleanup) so QA-created sub-admins created during UI testing (e.g. qa_phaseb_ui_*@vametra.com) can be removed instead of only deactivated; the 'All sub-admins' list grows over time.",
+    "Optional: add data-testid to each user row in UsersManager (currently rows lack user-row-<id> testid — visual counter and body text confirm scoping, but a testid would harden future automation).",
+    "Optional (from iter51 carry-over): auto-dismiss cookie banner after admin auth to prevent bottom-of-page overlap."
+  ],
+  "critical_code_review_comments": [
+    "subadmin.allocate() correctly wraps emailer.send() in try/except so the Resend quota outage does not fail allocation — good.",
+    "subadmin.allocate() uses submission _id (Mongo native _id) as the match key; since submissions are inserted with a string _id (uuid) elsewhere this works, but note the API accepts submission_ids as strings — no ObjectId conversion — please keep submission._id string-only in inserts to avoid future divergence.",
+    "subadmin.admin_users() aggregates in Python (up to 8000 users + all submissions + overlays) — fine at current scale, migrate to $lookup once user count grows (already flagged in iter51).",
+    "AllocatePanel.jsx imports 'PaperPlaneTilt' from @phosphor-icons/react — verify this icon exists in the installed version; no runtime error observed but a fallback icon is safer.",
+    "The digest cron is a single-process scheduler — if backend runs multiple workers, guard with a distributed lock or run only on worker 0, otherwise the digest fires N times per night."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter52_phaseb_allocation.py"],
+  "success_rate": {"backend": "100% (17/17)", "frontend": "100% for main-admin Allocate panel + sub-admin scope"},
+  "test_credentials": "Unchanged — see /app/memory/test_credentials.md. Main admin admin@vametra.com/Shiv@12345 (Firebase, 00001), Sub-admins sakshi@vametra.com and patnica@vametra.com / Shiv@12345 (X-Staff-Token via /api/admin-auth/login).",
+  "seed_data_creation": "One extra sub-admin created via the UI (qa_phaseb_ui_5873@vametra.com) and left deactivated. The pytest suite also creates a per-run qa_phaseb_<hex>@vametra.com and deactivates it in cleanup. No DELETE endpoint exists so inactive rows accumulate — flagged as optional action item.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase B is stable. Next phases will likely add per-user action buttons (approve / reject / contact / edit / payments) inside the sub-admin Users tab — those will need data-testid on user rows and per-action confirmations. Note the round-robin allocation persists assigned_to = sub-admin.id (uuid) and assigned_to_name on the verification_submissions doc; sub-admin scope filter is r.assigned_to == staff.sid (unchanged from iter51). Nightly digest is a single-process AsyncIOScheduler — do not spawn multiple workers without a lock. Resend quota is very low — allocation-notification emails are best-effort (wrapped in try/except) and a send failure MUST NOT be treated as allocation failure.",
+  "rca of the issue": "N/A — no defects surfaced during Phase B testing."
+}

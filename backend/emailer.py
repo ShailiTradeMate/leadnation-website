@@ -186,6 +186,25 @@ BUILDERS = {
         "Keep your details up to date to attract more trade partners.</p>",
         "Open my account", f"{SITE}/account")),
 
+    # ---- Admin / sub-admin ----
+    "subadmin_allocation": lambda c: (f"[Vametra AI] {c.get('count', 0)} buyer review(s) assigned to you", _shell(
+        "New review requests assigned to you 📋",
+        f"<p>Hi {c.get('name','there')},</p><p>The main admin has assigned "
+        f"<b>{c.get('count', 0)}</b> Verified Buyer application(s) to you for review:</p>"
+        + _detail_table([(f"{u.get('customerId','—')} · {u.get('name','—')}",
+                          f"{u.get('company','—')} — {u.get('email','—')}") for u in (c.get("users") or [])])
+        + "<p>Please review and approve or reject each one from your sub-admin console.</p>",
+        "Open sub-admin console", f"{SITE}/admin-cms")),
+    "admin_pending_digest": lambda c: (f"[Vametra AI] {c.get('pending', 0)} buyer approval(s) pending", _shell(
+        "Nightly approvals digest 🌙",
+        f"<p>Daily summary of Verified Buyer applications awaiting review:</p>"
+        + _detail_table([
+            ("Total pending review", c.get("pending", 0)),
+            ("Not yet allocated", c.get("unassigned", 0)),
+        ])
+        + "<p>Open the admin console to allocate the unassigned requests to your sub-admins.</p>",
+        "Allocate now", f"{SITE}/admin-cms")),
+
     # ---- Events ----
     "submitted": lambda c: ("Your event submission was received", _shell(
         "We've received your event 🎉",
