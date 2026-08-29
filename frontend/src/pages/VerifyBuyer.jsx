@@ -29,6 +29,9 @@ const buildPatch = (form, profile) => {
       patch.company_details[k.split(".")[1]] = v;
     } else if (k === "products" || k === "hsn_codes") {
       patch[k] = String(v).split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (k === "mobile") {
+      patch.mobile = v;
+      patch.mobile_number = v;  // mirror both keys for DO/app compatibility
     } else patch[k] = v;
   }
   return patch;
@@ -107,6 +110,7 @@ export default function VerifyBuyer() {
       const cd = p.company_details || {};
       const seed = {
         name: p.name || p.full_name || "",
+        mobile: p.mobile || p.mobile_number || "",
         country: p.country || "",
         state: p.state || p.province || "",
         city: p.city || "",
@@ -276,14 +280,10 @@ export default function VerifyBuyer() {
               <div className="text-[11px] uppercase tracking-widest text-slate-400 mb-2.5 flex items-center gap-2">
                 <CheckCircle size={13} className="text-emerald-300" weight="fill" /> From your account
               </div>
-              <div className="grid sm:grid-cols-3 gap-3 text-sm">
+              <div className="grid sm:grid-cols-2 gap-3 text-sm">
                 <div>
                   <div className="text-slate-500 text-[11px] uppercase tracking-wider">Email</div>
                   <div className="text-slate-200 truncate" data-testid="verify-prefill-email">{state?.profile?.email || account?.user?.email || fbUser?.email || "—"}</div>
-                </div>
-                <div>
-                  <div className="text-slate-500 text-[11px] uppercase tracking-wider">Mobile</div>
-                  <div className="text-slate-200" data-testid="verify-prefill-mobile">{state?.profile?.mobile || state?.profile?.mobile_number || account?.user?.mobile || fbUser?.phoneNumber || "—"}</div>
                 </div>
                 <div>
                   <div className="text-slate-500 text-[11px] uppercase tracking-wider">Category</div>
@@ -306,6 +306,9 @@ export default function VerifyBuyer() {
 
               {/* Full name */}
               <PField path="name" label="Full name" value={form.name} onChange={onField} provided={provided.name} />
+
+              {/* Mobile number — prefilled from signup; editable so it's always captured */}
+              <PField path="mobile" label="Mobile number" value={form.mobile} onChange={onField} provided={provided.mobile} />
 
               {/* Country dropdown */}
               <label className="block">
