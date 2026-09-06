@@ -553,3 +553,10 @@ Enforced twice: permission gate + `_resolve()` allocation scope (`assigned_to ==
 - **P1** Re-verify PRODUCTION Resend secrets (sender `admin@vametra.com`, mobile row, vametra.com links) — still unverified.
 - **P2** Migrate `subscriptions.owner` to one canonical key (uid) — legacy rows may use customer_id.
 - **P2** Make DO calls in `_finalise()` async (httpx) instead of blocking `requests`.
+
+## Fix — Production admin CMS showed no users / no buttons (June 2026)
+**Symptom (production only, vametra.com/admin-cms):** main admin saw "Admin or sub-admin access required", 0 users, no Allocate button, no per-user action buttons.
+**Root cause:** the website backend's admin gate (`core.require_admin` and `subadmin.staff_identity`) accepted an admin ONLY if the website-local Mongo `users` doc had `role == "admin"`. The frontend derives admin status from the canonical DO shared profile. In production those two diverge, so every `/api/admin/*` call returned 401 — which the UI rendered as an empty table with no main-admin controls.
+**Fix:** new `core.resolve_admin_identity(claims, authorization)` — checks the local Mongo cache first, then falls back to the canonical DO profile (`role == "admin"` / `user_role == "admin"` / `customer_id == MAIN_ADMIN_CUSTOMER_ID`, default 00001). Used by both `require_admin` and the staff identity resolver, so the whole admin CMS behaves identically in every environment. DO remains the identity/role owner; nothing is written locally.
+**Diagnostics:** new `GET /api/admin/whoami` reports firebase_initialised, token_valid, uid, mongo_user_found/role, do_configured/do_profile_role/do_customer_id, resolved_role and a plain-English `reason`. `UsersManager` now calls it whenever the users list fails and shows the reason under the error, so a future environment mismatch is self-explaining.
+**Verified in preview:** main admin (Firebase) → whoami resolved_role=main_admin, /admin/users 200 with 3 users + Allocate button visible; sub-admin staff token → scoped list, 403 on main-admin-only endpoints; no-auth → 401. Requires a **re-deploy** to take effect on vametra.com.

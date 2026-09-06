@@ -77,16 +77,17 @@ async def staff_identity(authorization: Optional[str], x_staff_token: Optional[s
             raise
         except Exception:
             pass
-    # Firebase main admin
+    # Firebase main admin (canonical role owned by the DO shared profile)
     if authorization and authorization.lower().startswith("bearer "):
         from firebase_auth import verify_token
+        from core import resolve_admin_identity
         claims = verify_token(authorization.split(" ", 1)[1].strip())
         if claims:
-            u = await db.users.find_one({"uid": claims.get("uid")})
-            if u and u.get("role") == "admin" and not u.get("is_deleted"):
-                return {"role": "main_admin", "is_main": True, "uid": claims["uid"],
-                        "name": u.get("full_name") or u.get("name") or "Admin",
-                        "email": u.get("email"), "customer_id": u.get("customer_id")}
+            ident = await resolve_admin_identity(claims, authorization)
+            if ident:
+                return {"role": "main_admin", "is_main": True, "uid": ident["uid"],
+                        "name": ident.get("name") or "Admin", "email": ident.get("email"),
+                        "customer_id": ident.get("customer_id")}
     raise HTTPException(401, "Admin or sub-admin access required")
 
 
@@ -163,6 +164,62 @@ async def staff_login(body: StaffLogin):
 @router.get("/admin-auth/me")
 async def staff_me(staff: dict = Depends(require_staff)):
     return staff
+
+
+@router.get("/admin/whoami")
+async def whoami(authorization: Optional[str] = Header(default=None),
+                 x_staff_token: Optional[str] = Header(default=None)):
+    """Diagnostic — explains WHY an admin session is or isn't accepted (no secrets)."""
+    import firebase_admin
+    out = {"firebase_initialised": bool(firebase_admin._apps),
+           "has_authorization_header": bool(authorization),
+           "has_staff_token": bool(x_staff_token),
+           "token_valid": False, "uid": None,
+           "mongo_user_found": False, "mongo_role": None,
+           "do_configured": False, "do_profile_role": None, "do_customer_id": None,
+           "resolved_role": None, "reason": None}
+    if x_staff_token:
+        try:
+            p = jwt.decode(x_staff_token, JWT_SECRET, algorithms=[JWT_ALG])
+            sa = await SUBADMINS.find_one({"id": p.get("sid")})
+            out["resolved_role"] = "sub_admin" if sa and sa.get("active", True) else None
+            out["reason"] = None if out["resolved_role"] else "Sub-admin account not found or deactivated."
+            if out["resolved_role"]:
+                return out
+        except Exception:
+            out["reason"] = "Sub-admin session expired — sign in again."
+    if not authorization:
+        out["reason"] = out["reason"] or "No Authorization header — sign in as main admin."
+        return out
+    from firebase_auth import verify_token
+    claims = verify_token(authorization.split(" ", 1)[1].strip()) if authorization.lower().startswith("bearer ") else None
+    if not claims:
+        out["reason"] = ("Firebase token could not be verified. "
+                         + ("Session may be expired — sign out and in again."
+                            if out["firebase_initialised"]
+                            else "FIREBASE_SERVICE_ACCOUNT_B64 is missing in this environment."))
+        return out
+    out["token_valid"] = True
+    out["uid"] = claims.get("uid")
+    u = await db.users.find_one({"uid": claims.get("uid")}) or {}
+    out["mongo_user_found"] = bool(u)
+    out["mongo_role"] = u.get("role")
+    import verify as _v
+    out["do_configured"] = bool(_v.DO_BASE)
+    try:
+        p = _v._do_get_profile(claims["uid"], authorization) or {}
+    except Exception:
+        p = {}
+    out["do_profile_role"] = p.get("role") or p.get("user_role")
+    out["do_customer_id"] = p.get("customer_id")
+    from core import resolve_admin_identity
+    ident = await resolve_admin_identity(claims, authorization)
+    out["resolved_role"] = "main_admin" if ident else None
+    out["admin_source"] = (ident or {}).get("source")
+    if not ident:
+        out["reason"] = ("This signed-in account is not an admin on the shared identity backend "
+                         "(no role=admin and Customer ID is not the main-admin ID).")
+    return out
 
 
 # ---------------- User Section (all registered users) ----------------

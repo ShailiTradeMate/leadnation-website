@@ -96,6 +96,7 @@ export default function UsersManager() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [diag, setDiag] = useState("");
   const [role, setRole] = useState("");
   const [isMain, setIsMain] = useState(false);
   const [showAllocate, setShowAllocate] = useState(false);
@@ -113,6 +114,10 @@ export default function UsersManager() {
       setIsMain(Boolean(data.is_main));
     } catch (e) {
       setErr(e?.response?.data?.detail || "Could not load users.");
+      try {
+        const { data } = await staffApi.get("/admin/whoami");
+        if (data?.reason) setDiag(data.reason);
+      } catch (_) { /* diagnostics unavailable */ }
     } finally { setLoading(false); }
   };
 
@@ -163,7 +168,12 @@ export default function UsersManager() {
 
       {perms.includes("signoff.view") && <SignoffQueue key={refreshKey} onDone={refresh} />}
 
-      {err && <div data-testid="admin-users-error" className="glass rounded-xl p-4 text-sm text-rose-300">{err}</div>}
+      {err && (
+        <div data-testid="admin-users-error" className="glass rounded-xl p-4 text-sm text-rose-300">
+          {err}
+          {diag && <div className="text-xs text-amber-200 mt-2" data-testid="admin-users-diagnosis">{diag}</div>}
+        </div>
+      )}
 
       <div className="glass-strong rounded-3xl overflow-hidden">
         <table className="w-full text-sm">
