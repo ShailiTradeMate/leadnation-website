@@ -30,6 +30,7 @@ SUBS = db.verification_submissions
 OVERLAY = db.profile_overlay
 DO_USERS_CACHE = db.do_users_cache      # READ-THROUGH CACHE of the DO registry (never an identity source)
 PROFILES = db.profiles                  # shared DO-owned profile store (read-only for the website)
+TEST_ACCOUNTS = db.test_accounts        # accounts created for testing — flagged, never hidden
 DO_BASE = os.environ.get("AUTH_API_BASE", "").rstrip("/")
 STAFF_TTL_HOURS = 12
 
@@ -165,6 +166,16 @@ async def require_main_admin(authorization: Optional[str] = Header(default=None)
     if not ident.get("is_main"):
         raise HTTPException(403, "Main admin only.")
     return ident
+
+
+TEST_EMAIL_HINTS = ("@example.com", "@test.com", "dsa-probe", "dsa-loop", "dsa-login",
+                    "dsa-diagnostic", "test-probe", "+test@")
+
+
+def _looks_like_test(u: dict) -> bool:
+    """Obvious automation accounts are flagged even if nobody marked them."""
+    em = str(u.get("email") or "").lower()
+    return any(h in em for h in TEST_EMAIL_HINTS)
 
 
 # ---------------- Reusable permission model (future CMS sections just add a key) ----
@@ -333,6 +344,10 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
         if p.get("uid"):
             profiles[p["uid"]] = p
 
+    test_flags = {}
+    async for t in TEST_ACCOUNTS.find({}):
+        test_flags[t.get("uid")] = t.get("reason") or "Test account"
+
     subscriptions = {}
     try:
         async for sub in db.subscriptions.find({}):
@@ -412,6 +427,8 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
             "identity_subscription": {"status": u.get("subscription_status"),
                                       "expiry": u.get("subscription_expiry")},
             "last_activity_at": u.get("last_activity_at"),
+            "is_test_account": uid0 in test_flags or _looks_like_test(u),
+            "test_reason": test_flags.get(uid0),
         }
 
     for u in users:

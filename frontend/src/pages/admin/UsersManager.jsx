@@ -4,6 +4,7 @@ import { API } from "@/lib/api";
 import AllocatePanel from "@/pages/admin/AllocatePanel";
 import ActionBar from "@/pages/admin/user/ActionBar";
 import SignoffQueue from "@/pages/admin/user/SignoffQueue";
+import DeleteQueue from "@/pages/admin/user/DeleteQueue";
 import { adminOps } from "@/lib/adminOps";
 import { MagnifyingGlass, CaretDown, CaretUp, FileText, User, Buildings, UsersThree } from "@phosphor-icons/react";
 
@@ -221,7 +222,8 @@ export default function UsersManager() {
 
       {showAllocate && <AllocatePanel onClose={() => setShowAllocate(false)} onAllocated={() => load(q)} />}
 
-      {perms.includes("signoff.view") && <SignoffQueue key={refreshKey} onDone={refresh} />}
+      {perms.includes("signoff.view") && <SignoffQueue key={`s${refreshKey}`} onDone={refresh} />}
+      {perms.includes("users.delete") && <DeleteQueue key={`d${refreshKey}`} onDone={refresh} />}
 
       {err && (
         <div data-testid="admin-users-error" className="glass rounded-xl p-4 text-sm text-rose-300">
@@ -250,7 +252,12 @@ export default function UsersManager() {
                 <tr data-testid="admin-user-row" className="border-t border-white/5 hover:bg-white/[0.02] cursor-pointer"
                   onClick={() => setOpen(open === u.uid ? null : u.uid)}>
                   <td className="px-4 py-3 font-mono-display text-cyan-300">{u.customer_id || "—"}</td>
-                  <td className="px-4 py-3">{u.name || "—"}</td>
+                  <td className="px-4 py-3">{u.name || "—"}
+                    {u.is_test_account && (
+                      <span data-testid={`test-badge-${u.uid}`}
+                        className="ml-2 text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-300">test</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-xs">{u.email || "—"}</td>
                   <td className="px-4 py-3 text-xs">{u.mobile || "—"}</td>
                   <td className="px-4 py-3 text-xs">{u.company_name || "—"}</td>

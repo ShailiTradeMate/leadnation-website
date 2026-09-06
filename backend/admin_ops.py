@@ -12,9 +12,11 @@ document changes, subscription grants and record removal.
 import uuid
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
+import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel
 
@@ -36,6 +38,7 @@ TX = db.payment_transactions
 DL = db.downloads
 
 PLAN_DAYS = {"monthly": 30, "quarterly": 90, "annual": 365}
+DO_BASE = os.environ.get("AUTH_API_BASE", "").rstrip("/")
 
 
 def _now() -> str:
@@ -451,44 +454,230 @@ async def manage_subscription(uid: str, body: GrantIn,
             "email": res["email"]}
 
 
-# ================= C1 — Hard delete =================
+# ================= C1 — Hard delete (two-tier) =================
+DELETE_REQUESTS = db.delete_requests
+
+# Every website-local store that holds anything about a user.
+WEBSITE_STORES = [
+    ("verification_submissions", "uid"), ("profile_overlay", "uid"),
+    ("admin_contact_notes", "uid"), ("profile_changes", "uid"),
+    ("notifications", "uid"), ("user_context", "user_id"),
+    ("do_users_cache", "uid"), ("delete_requests", "uid"),
+    ("test_accounts", "uid"),
+]
+
+
+class DeleteRequestIn(BaseModel):
+    business_case: str
+
+
+@router.post("/users/{uid}/delete-request")
+async def request_hard_delete(uid: str, body: DeleteRequestIn,
+                              actor: dict = Depends(require_perm("users.review_recommend"))):
+    """A sub-admin cannot delete — they raise a hard-delete request with a business
+    case for the main admin to approve."""
+    if len((body.business_case or "").strip()) < 10:
+        raise HTTPException(400, "Describe the business case for deleting this user (min 10 characters).")
+    user, sub, ov = await _resolve(uid, actor)
+    c = _contact(user, sub, ov)
+    doc = {"_id": uuid.uuid4().hex, "uid": uid, "status": "pending",
+           "business_case": body.business_case,
+           "user_name": c["name"], "user_email": c["email"],
+           "customer_id": _pick(user.get("customer_id"), sub.get("customer_id")),
+           "requested_by": actor.get("name"), "requested_by_email": actor.get("email"),
+           "requested_at": _now()}
+    await DELETE_REQUESTS.insert_one(dict(doc))
+    await _audit(actor, "delete.request", uid, {"business_case": body.business_case})
+    try:
+        await emailer.notify_admin("admin_delete_request", {
+            "subadmin": actor.get("name"), "userName": c["name"], "userEmail": c["email"],
+            "customerId": doc["customer_id"] or "—", "note": body.business_case})
+    except Exception as exc:
+        log.warning("delete request email failed: %s", exc)
+    return {"ok": True, "stage": "awaiting_admin_approval", "request_id": doc["_id"],
+            "message": "Hard-delete request sent to the main admin for approval."}
+
+
+@router.get("/delete-requests")
+async def delete_requests(actor: dict = Depends(require_perm("users.delete"))):
+    rows = await DELETE_REQUESTS.find({"status": "pending"}).sort("requested_at", 1).to_list(200)
+    return {"queue": [{**_clean(r), "id": r["_id"]} for r in rows], "count": len(rows)}
+
+
+@router.post("/delete-requests/{request_id}/decline")
+async def decline_delete_request(request_id: str, note: Optional[str] = None,
+                                 actor: dict = Depends(require_perm("users.delete"))):
+    res = await DELETE_REQUESTS.update_one({"_id": request_id, "status": "pending"}, {"$set": {
+        "status": "declined", "declined_by": actor.get("name"),
+        "decline_note": note, "declined_at": _now()}})
+    if res.matched_count == 0:
+        raise HTTPException(404, "Request not found.")
+    return {"ok": True, "status": "declined"}
+
+
 class DeleteIn(BaseModel):
     confirm: str
     note: Optional[str] = None
+    request_id: Optional[str] = None
+    force: bool = False
 
 
-@router.post("/users/{uid}/delete")
+@router.post("/users/{uid}/hard-delete")
 async def hard_delete(uid: str, body: DeleteIn,
-                      actor: dict = Depends(require_perm("users.delete"))):
-    """Hard-delete the website-local buyer records (verification + overlay + notes).
-    The shared DO identity, Customer ID and GEID are NEVER silently destroyed."""
+                      actor: dict = Depends(require_perm("users.delete")),
+                      authorization: Optional[str] = Header(default=None)):
+    """MAIN ADMIN ONLY — erase a user from EVERY system in one action: identity
+    registry (DO), sign-in account (Firebase), shared profile, verification records,
+    documents, notes, activity and subscriptions. A full copy is archived first so
+    the deletion itself stays auditable.
+
+    Identity is removed BEFORE the local purge: if the identity backend cannot be
+    reached we abort with nothing deleted, so a user can never end up able to sign
+    in with an emptied account. `force: true` overrides that guard."""
     if (body.confirm or "").strip().upper() != "DELETE":
-        raise HTTPException(400, 'Type DELETE to confirm this permanent action.')
+        raise HTTPException(400, "Type DELETE to confirm this permanent action.")
     user = await _user_doc(uid)
     subs = await SUBS.find({"uid": uid}).to_list(50)
     ov = await OVERLAY.find_one({"uid": uid}) or {}
-    if not user and not subs:
+    shared = await db.profiles.find_one({"uid": uid}) or {}
+    if not user and not subs and not shared:
         raise HTTPException(404, "User not found.")
     c = _contact(user, subs[0] if subs else {}, ov)
+    cid = _pick(user.get("customer_id"), shared.get("customer_id"),
+                (subs[0] if subs else {}).get("customer_id"))
+    files = await db.uploaded_files.find({"owner": uid}).to_list(200)
 
+    # 1. archive everything first
     await db.admin_deleted_archive.insert_one({
-        "_id": uuid.uuid4().hex, "uid": uid, "user": _clean(user),
+        "_id": uuid.uuid4().hex, "uid": uid, "customer_id": cid,
+        "user": _clean(user), "shared_profile": _clean(shared),
         "submissions": [_clean(s) for s in subs], "overlay": _clean(ov),
+        "files": [_clean(f) for f in files],
+        "notes": [_clean(n) for n in await NOTES.find({"uid": uid}).to_list(200)],
+        "brain_events": await profile_brain.feed(uid, 200),
+        "audit": [_clean(a) for a in await AUDIT.find({"uid": uid}).to_list(200)],
         "deleted_by": actor.get("name"), "role": actor.get("role"),
-        "note": body.note, "at": _now()})
-    await SUBS.delete_many({"uid": uid})
-    await OVERLAY.delete_many({"uid": uid})
-    await NOTES.delete_many({"uid": uid})
-    if user:
-        await db.users.update_one({"uid": uid}, {"$set": {
-            "is_deleted": True, "deleted_by": actor.get("name"),
-            "deleted_reason": body.note, "deleted_at": _now()}})
-    await _audit(actor, "user.hard_delete", uid, {"note": body.note})
-    res = await profile_brain.announce(
+        "note": body.note, "request_id": body.request_id, "at": _now()})
+
+    # 2. identity FIRST — abort the whole delete if the registry cannot be erased
+    identity = {"do_registry": "skipped", "firebase": "skipped"}
+    if cid and DO_BASE and authorization:
+        try:
+            r = await asyncio.to_thread(requests.delete, f"{DO_BASE}/admin_v2/users/{cid}",
+                                        headers={"Authorization": authorization}, timeout=30)
+            identity["do_registry"] = "deleted" if r.ok else f"failed ({r.status_code})"
+        except Exception as exc:
+            identity["do_registry"] = f"failed ({type(exc).__name__})"
+    if identity["do_registry"].startswith("failed") and not body.force:
+        raise HTTPException(502, "The identity backend could not delete this user "
+                                 f"({identity['do_registry']}). Nothing was deleted — retry, or "
+                                 "use force to remove our records only.")
+    try:
+        import firebase_auth
+        firebase_auth.init_firebase()
+        from firebase_admin import auth as fb_auth
+        await asyncio.to_thread(fb_auth.delete_user, uid)
+        identity["firebase"] = "deleted"
+    except Exception as exc:
+        identity["firebase"] = f"failed ({type(exc).__name__})"
+
+    # 3. purge every store
+    purged = {}
+    for coll, key in WEBSITE_STORES:
+        try:
+            purged[coll] = (await db[coll].delete_many({key: uid})).deleted_count
+        except Exception as exc:
+            log.warning("purge %s failed: %s", coll, exc)
+    purged["uploaded_files"] = (await db.uploaded_files.delete_many({"owner": uid})).deleted_count
+    purged["profiles"] = (await db.profiles.delete_many({"uid": uid})).deleted_count
+    purged["users"] = (await db.users.delete_many({"uid": uid})).deleted_count
+    subs_purged = 0
+    for q in [{"owner": uid}, {"uid": uid}] + ([{"owner": cid}] if cid else []):
+        try:
+            subs_purged += (await SUBSCRIPTIONS.delete_many(q)).deleted_count
+        except Exception:
+            pass
+    purged["subscriptions"] = subs_purged
+
+    # 4. tell the user (we kept their address in memory for exactly this)
+    email_res = await profile_brain.announce(
         uid, "account_removed", email=c["email"], name=c["name"], actor=actor,
-        summary="Your Vametra AI verification records were removed",
+        summary="Your Vametra AI account and records were permanently removed",
         ctx={"note": body.note})
-    return {"ok": True, "archived": True, "email": res["email"]}
+    await db.profile_changes.delete_many({"uid": uid})
+    await db.notifications.delete_many({"uid": uid})
+
+    if body.request_id:
+        await DELETE_REQUESTS.update_one({"_id": body.request_id}, {"$set": {
+            "status": "approved", "approved_by": actor.get("name"), "approved_at": _now()}})
+    await _audit(actor, "user.hard_delete", uid,
+                 {"note": body.note, "customer_id": cid, "purged": purged, "identity": identity})
+    warnings = [f"{k.replace('_', ' ')}: {v}" for k, v in identity.items() if v != "deleted"]
+    return {"ok": True, "archived": True, "purged": purged, "identity": identity,
+            "warnings": warnings, "email": email_res["email"]}
+
+
+# ================= Test-account flagging + one-click export =================
+TEST_ACCOUNTS = db.test_accounts
+
+
+class TestFlagIn(BaseModel):
+    is_test: bool = True
+    reason: Optional[str] = None
+
+
+@router.post("/users/{uid}/test-flag")
+async def flag_test_account(uid: str, body: TestFlagIn,
+                            actor: dict = Depends(require_perm("users.edit"))):
+    """Mark/unmark a user as a TEST account so it is obvious in the User Section and
+    can be cleaned up. Any account created for testing MUST carry this flag."""
+    await _resolve(uid, actor)
+    if body.is_test:
+        await TEST_ACCOUNTS.update_one({"uid": uid}, {"$set": {
+            "uid": uid, "reason": body.reason or "Created for testing",
+            "flagged_by": actor.get("name"), "at": _now()}}, upsert=True)
+    else:
+        await TEST_ACCOUNTS.delete_many({"uid": uid})
+    await _audit(actor, "user.test_flag", uid, {"is_test": body.is_test, "reason": body.reason})
+    return {"ok": True, "is_test_account": body.is_test}
+
+
+@router.get("/users/{uid}/export")
+async def export_user(uid: str, actor: dict = Depends(require_staff),
+                      authorization: Optional[str] = Header(default=None)):
+    """One-click complete record for a single user — every detail we hold, in one file."""
+    import verify
+    user, sub, ov = await _resolve(uid, actor)
+    shared = await db.profiles.find_one({"uid": uid}) or {}
+    do_profile = {}
+    try:
+        do_profile = await asyncio.to_thread(verify._do_get_profile, uid, authorization) or {}
+    except Exception:
+        pass
+    files = await db.uploaded_files.find({"owner": uid}).to_list(200)
+    subscription = await SUBSCRIPTIONS.find_one({"$or": [{"owner": uid}, {"uid": uid}]}) or {}
+    return {
+        "exported_at": _now(), "exported_by": actor.get("name"),
+        "customer_id": _pick(user.get("customer_id"), shared.get("customer_id")),
+        "uid": uid,
+        "identity_registry": _clean(user),
+        "shared_profile": _clean(verify._merge_supplement(
+            {k: v for k, v in shared.items() if k != "_id"}, do_profile)),
+        "website_overlay": _clean(ov),
+        "verification_submissions": [_clean(s) for s in
+                                     await SUBS.find({"uid": uid}).to_list(50)],
+        "documents": [{"file_id": f.get("_id"), "filename": f.get("original_filename"),
+                       "kind": f.get("kind"), "size": f.get("size"),
+                       "uploaded_at": f.get("created_at"),
+                       "url": f"/api/storage/file/{f.get('_id')}"} for f in files],
+        "subscription": _clean(subscription),
+        "payments": [_clean(t) for t in
+                     await TX.find({"$or": [{"owner": uid}, {"uid": uid}]}).to_list(200)],
+        "contact_notes": [_clean(n) for n in await NOTES.find({"uid": uid}).to_list(200)],
+        "brain_events": await profile_brain.feed(uid, 200),
+        "admin_audit": [_clean(a) for a in await AUDIT.find({"uid": uid}).to_list(200)],
+        "is_test_account": bool(await TEST_ACCOUNTS.find_one({"uid": uid})),
+    }
 
 
 # ================= Activity trail =================

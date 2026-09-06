@@ -11,6 +11,12 @@ export const adminOps = {
   payments: (uid) => staffApi.get(`/admin/users/${uid}/payments`).then((r) => r.data),
   subscription: (uid, payload) => staffApi.post(`/admin/users/${uid}/subscription`, payload).then((r) => r.data),
   remove: (uid, payload) => staffApi.post(`/admin/users/${uid}/delete`, payload).then((r) => r.data),
+  hardDelete: (uid, payload) => staffApi.post(`/admin/users/${uid}/hard-delete`, payload).then((r) => r.data),
+  requestDelete: (uid, payload) => staffApi.post(`/admin/users/${uid}/delete-request`, payload).then((r) => r.data),
+  deleteRequests: () => staffApi.get("/admin/delete-requests").then((r) => r.data),
+  declineDeleteRequest: (id) => staffApi.post(`/admin/delete-requests/${id}/decline`).then((r) => r.data),
+  exportUser: (uid) => staffApi.get(`/admin/users/${uid}/export`).then((r) => r.data),
+  testFlag: (uid, payload) => staffApi.post(`/admin/users/${uid}/test-flag`, payload).then((r) => r.data),
   activity: (uid) => staffApi.get(`/admin/users/${uid}/activity`).then((r) => r.data),
   fullProfile: (uid) => staffApi.get(`/admin/users/${uid}/profile`).then((r) => r.data),
   uploadDocument: (uid, file, kind, label) => {

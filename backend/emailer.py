@@ -307,6 +307,21 @@ BUILDERS = {
             + "<p>Please re-check the submission and resubmit your recommendation.</p>",
             "Open my console", f"{SITE}/admin-cms")),
 
+    "admin_delete_request": lambda c: (
+        f"[Vametra AI] Hard-delete approval needed · {c.get('userName','user')}", _shell(
+            "A sub-admin has requested a hard delete 🗑️",
+            f"<p>{c.get('subadmin','A sub-admin')} has requested permanent deletion of a user and "
+            f"needs your approval:</p>"
+            + _detail_table([
+                ("User", c.get("userName", "—")), ("Email", c.get("userEmail", "—")),
+                ("Customer ID", c.get("customerId", "—")),
+                ("Business case", c.get("note") or "—"),
+            ])
+            + "<p>Nothing has been deleted yet. Approving in the admin console erases this user "
+              "from every system — identity registry, shared profile, sign-in account, verification "
+              "records, documents and payments — with an archived copy kept for audit.</p>",
+            "Review delete requests", f"{SITE}/admin-cms")),
+
     # ---- Events ----
     "submitted": lambda c: ("Your event submission was received", _shell(
         "We've received your event 🎉",

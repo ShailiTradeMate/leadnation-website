@@ -587,3 +587,20 @@ Tested: `/app/test_reports/iteration_55.json` — backend 16/16 PASS (`/app/back
 ### Backlog added
 - **P2** Warm `do_users_cache` on startup (today it is filled the first time a main admin loads the Users tab; sub-admins fall back to local rows + submissions, which still covers their allocated scope).
 - **P2** Paginate `/admin/users` once the platform passes ~2000 users.
+
+## Phase D — One record per user, two-tier HARD DELETE, no invisible test data (June 2026)
+Owner directive: "1 user = 1 storage across website and app. Under a single user id save all the user's data (GEID system) so admin/sub-admin can see, review, download, edit, delete and check payment status in one go. Rename Delete to Hard Delete. Sub-admin can only send a delete approval request with a business case; once the admin approves, that user's data is entirely deleted from everywhere. Test users are allowed but must be flagged in the Users tab. Deleting must also remove their login."
+Tested: `/app/test_reports/iteration_56.json` — backend 8/8 PASS (`test_iter56_hard_delete_flow.py`) + a real end-to-end purge of a throwaway account created through the normal signup flow (registry deleted, Firebase deleted → login returns EMAIL_NOT_FOUND, row gone, only `admin_audit` + `admin_deleted_archive` remain by design).
+
+**One record, one action bar.** Expanding a user row gives Personal + Company + Documents/Status + identity/account data + on-demand "Shared profile (full record)", with: Approve/Reject (or Review & recommend), Edit profile, Contact, Payment details, Documents, **Download record**, **Mark as test account**, **Hard delete / Request hard delete**.
+
+**New endpoints** (`backend/admin_ops.py`):
+- `GET /api/admin/users/{uid}/export` — the complete record in one file (identity registry, shared profile, overlay, all submissions, documents with URLs, subscription, payments, contact notes, Brain events, admin audit, test flag). UI downloads `vametra-user-<customer_id>.json`.
+- `POST /api/admin/users/{uid}/test-flag` — mark/unmark a TEST account; `subadmin._looks_like_test()` auto-flags automation emails (`@example.com`, `dsa-probe*`, `dsa-loop*`, `dsa-login*`, `dsa-diagnostic*`). Rows show a fuchsia **TEST** badge.
+- `POST /api/admin/users/{uid}/delete-request` — sub-admin only path; requires a ≥10 char business case; emails the main admin (`admin_delete_request` template). Sub-admin gets 403 on hard-delete and on the queue.
+- `GET /api/admin/delete-requests` + `POST /api/admin/delete-requests/{id}/decline` — main-admin approval queue rendered as `DeleteQueue` in the Users tab (approve disabled until DELETE is typed).
+- `POST /api/admin/users/{uid}/hard-delete` (replaces `/delete`) — archive → **identity first** (DO `DELETE /admin_v2/users/{customer_id}` then Firebase `delete_user`) → purge every store in `WEBSITE_STORES` + uploaded_files + profiles + users + subscriptions → notify the user. If the identity backend fails the call aborts with 502 and nothing is deleted (`force: true` overrides), so a user can never keep a login for an emptied account. Response carries `warnings[]`, surfaced in the UI.
+
+**Cleanup done (owner approved):** 5 automation probe accounts (Customer IDs 00004–00008) purged from every system via the new endpoint. 7 real users remain.
+
+**New standing rule:** `/app/memory/rules.md` — one uid → one Customer ID → one GEID; any user-keyed collection MUST be added to `WEBSITE_STORES`; test accounts must be created via normal signup, flagged, recorded in `test_credentials.md` and deleted after use. No shadow/seeded user records, ever.
