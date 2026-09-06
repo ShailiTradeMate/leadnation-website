@@ -10,6 +10,7 @@ an email + in-app notification for approve, reject, correction, profile edits,
 document changes, subscription grants and record removal.
 """
 import uuid
+import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -67,9 +68,18 @@ def _sub_rank(s: dict):
             str(s.get("created_at") or ""))
 
 
+async def _user_doc(uid: str) -> dict:
+    """User record: website-local row if present, else the cached DO identity registry row."""
+    u = await db.users.find_one({"uid": uid})
+    if u:
+        return u
+    c = await db.do_users_cache.find_one({"uid": uid})
+    return {k: v for k, v in (c or {}).items() if k not in ("_id", "synced_at")}
+
+
 async def _resolve(uid: str, actor: dict):
     """Load the user + their most relevant submission, enforcing sub-admin scope."""
-    user = await db.users.find_one({"uid": uid}) or {}
+    user = await _user_doc(uid)
     subs = await SUBS.find({"uid": uid}).to_list(50)
     if not user and not subs:
         raise HTTPException(404, "User not found.")
@@ -158,7 +168,7 @@ async def _finalise(uid: str, sid: str, decision: str, note: Optional[str],
     sub = await SUBS.find_one({"_id": sid})
     if not sub:
         raise HTTPException(404, "Submission not found.")
-    user = await db.users.find_one({"uid": uid}) or {}
+    user = await _user_doc(uid)
     ov = await OVERLAY.find_one({"uid": uid}) or {}
     c = _contact(user, sub, ov)
     profile = await verify._profile(uid, authorization)
@@ -202,7 +212,7 @@ async def _finalise(uid: str, sid: str, decision: str, note: Optional[str],
 async def signoff_queue(actor: dict = Depends(require_perm("signoff.view"))):
     rows = []
     async for s in SUBS.find({"review_stage": "awaiting_signoff"}):
-        u = await db.users.find_one({"uid": s.get("uid")}) or {}
+        u = await _user_doc(s.get("uid"))
         rec = s.get("recommendation") or {}
         rows.append({
             "submission_id": s["_id"], "uid": s.get("uid"),
@@ -454,7 +464,7 @@ async def hard_delete(uid: str, body: DeleteIn,
     The shared DO identity, Customer ID and GEID are NEVER silently destroyed."""
     if (body.confirm or "").strip().upper() != "DELETE":
         raise HTTPException(400, 'Type DELETE to confirm this permanent action.')
-    user = await db.users.find_one({"uid": uid}) or {}
+    user = await _user_doc(uid)
     subs = await SUBS.find({"uid": uid}).to_list(50)
     ov = await OVERLAY.find_one({"uid": uid}) or {}
     if not user and not subs:
@@ -482,6 +492,23 @@ async def hard_delete(uid: str, body: DeleteIn,
 
 
 # ================= Activity trail =================
+@router.get("/users/{uid}/profile")
+async def user_profile(uid: str, actor: dict = Depends(require_staff),
+                       authorization: Optional[str] = Header(default=None)):
+    """Everything we know about one user: canonical DO shared profile + website overlay
+    + identity-registry row (fetched on demand when a row is expanded)."""
+    import verify
+    user, sub, ov = await _resolve(uid, actor)
+    profile = {}
+    try:
+        profile = await asyncio.to_thread(verify._do_get_profile, uid, authorization) or {}
+    except Exception as exc:
+        log.warning("DO profile fetch failed for %s: %s", uid, exc)
+    merged = verify._merge_supplement({k: v for k, v in ov.items() if k not in ("_id", "uid")}, profile)
+    return {"profile": _clean(merged), "identity": _clean(user),
+            "submission": _clean(sub), "do_reachable": bool(profile)}
+
+
 @router.get("/users/{uid}/activity")
 async def user_activity(uid: str, actor: dict = Depends(require_staff)):
     await _resolve(uid, actor)

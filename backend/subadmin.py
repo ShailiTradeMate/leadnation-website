@@ -9,11 +9,14 @@ so future CMS sections can gate features per role without a rewrite.
 """
 import uuid
 import logging
+import os
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import bcrypt
 import jwt
+import requests
 from fastapi import APIRouter, Header, HTTPException, Depends
 from pydantic import BaseModel
 
@@ -25,7 +28,55 @@ log = logging.getLogger("subadmin")
 SUBADMINS = db.sub_admins
 SUBS = db.verification_submissions
 OVERLAY = db.profile_overlay
+DO_USERS_CACHE = db.do_users_cache      # READ-THROUGH CACHE of the DO registry (never an identity source)
+DO_BASE = os.environ.get("AUTH_API_BASE", "").rstrip("/")
 STAFF_TTL_HOURS = 12
+
+
+async def _fetch_do_users(authorization: Optional[str]) -> list:
+    """Pull the canonical user registry from the DO identity backend (owner of identity).
+    Requires the main admin's Firebase token; results are cached for sub-admin reads."""
+    if not DO_BASE or not authorization:
+        return []
+    try:
+        r = await asyncio.to_thread(
+            requests.get, f"{DO_BASE}/admin_v2/users",
+            headers={"Authorization": authorization}, timeout=30)
+        if not r.ok:
+            log.warning("DO admin_v2/users returned %s", r.status_code)
+            return []
+        data = r.json()
+    except Exception as exc:
+        log.warning("DO admin_v2/users failed: %s", exc)
+        return []
+    users = data.get("users") if isinstance(data, dict) else data
+    users = [u for u in (users or []) if isinstance(u, dict) and u.get("uid")]
+    for u in users:
+        doc = {k: v for k, v in u.items() if k != "_id"}
+        doc["synced_at"] = _now()
+        try:
+            await DO_USERS_CACHE.replace_one({"uid": u["uid"]}, {**doc, "_id": u["uid"]}, upsert=True)
+        except Exception:
+            pass
+    return users
+
+
+async def _all_platform_users(authorization: Optional[str]) -> list:
+    """Every registered user: canonical DO registry (live, else cached) merged with any
+    website-local `users` rows so nothing is ever missing from the admin User Section."""
+    do_users = await _fetch_do_users(authorization)
+    if not do_users:
+        do_users = [{k: v for k, v in d.items() if k not in ("_id", "synced_at")}
+                    async for d in DO_USERS_CACHE.find({})]
+    seen_uids = {u.get("uid") for u in do_users if u.get("uid")}
+    seen_emails = {str(u.get("email") or "").lower() for u in do_users if u.get("email")}
+    merged = list(do_users)
+    async for u in db.users.find({}):
+        uid, em = u.get("uid"), str(u.get("email") or "").lower()
+        if (uid and uid in seen_uids) or (em and em in seen_emails):
+            continue
+        merged.append({k: v for k, v in u.items() if k != "_id"})
+    return merged
 
 
 def _hash(pw: str) -> str:
@@ -236,11 +287,12 @@ def _file_url(fid):
 
 @router.get("/admin/users")
 async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
-                      staff: dict = Depends(require_staff)):
-    """Full visibility of everyone on the platform (shared Mongo `users`),
-    enriched with their latest Verified-Buyer submission + overlay + subscription.
-    Sub-admins only see users allocated to them."""
-    users = await db.users.find({}).to_list(8000)
+                      staff: dict = Depends(require_staff),
+                      authorization: Optional[str] = Header(default=None)):
+    """Full visibility of EVERY registered user — canonical DO identity registry merged
+    with the website-local rows, enriched with their latest Verified-Buyer submission +
+    overlay + subscription. Sub-admins only see users allocated to them."""
+    users = await _all_platform_users(authorization)
 
     def _sub_rank(s):
         st = s.get("status")
@@ -320,6 +372,18 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
                 "source": sc.get("source"),
             } if sc else {"status": None},
             "platform_role": u.get("role") or "user",
+            # ---- full identity-registry data (owned by the DO backend) ----
+            "user_role": _pick(u.get("user_role"), sub.get("role"), ov.get("role")),
+            "identity_verification_status": u.get("verification_status"),
+            "onboarding_status": u.get("onboarding_status"),
+            "email_verified": u.get("is_email_verified"),
+            "provider": _pick(u.get("provider"), ", ".join(u.get("auth_methods") or []) or None),
+            "account_state": ("deleted" if u.get("is_deleted") else
+                              "suspended" if u.get("is_suspended") else
+                              "active" if u.get("is_active") is not False else "inactive"),
+            "identity_subscription": {"status": u.get("subscription_status"),
+                                      "expiry": u.get("subscription_expiry")},
+            "last_activity_at": u.get("last_activity_at"),
         }
 
     for u in users:
@@ -351,7 +415,8 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
 
     if q:
         ql = q.strip().lower()
-        keys = ("email", "mobile", "customer_id", "company_name", "name", "country", "company_email", "state")
+        keys = ("email", "mobile", "customer_id", "company_name", "name", "country",
+                "company_email", "state", "uid", "user_role")
         rows = [r for r in rows if any(ql in str(r.get(k) or "").lower() for k in keys)]
 
     rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
@@ -463,11 +528,12 @@ def _missing_details(sub: dict, user: dict, ov: dict) -> list[str]:
 
 
 @router.get("/admin/allocate/categories")
-async def allocation_categories(admin: dict = Depends(require_main_admin)):
+async def allocation_categories(admin: dict = Depends(require_main_admin),
+                                authorization: Optional[str] = Header(default=None)):
     """Categorised allocation candidates. Only verification-SUBMITTED users that are
     still pending review are allocatable — approved/rejected/never-applied users are
     surfaced for visibility only and can never be allocated."""
-    users = await db.users.find({}).to_list(8000)
+    users = await _all_platform_users(authorization)
     overlays = {}
     async for o in OVERLAY.find({}):
         overlays[o.get("uid")] = o

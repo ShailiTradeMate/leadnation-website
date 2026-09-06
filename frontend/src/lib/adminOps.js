@@ -12,6 +12,7 @@ export const adminOps = {
   subscription: (uid, payload) => staffApi.post(`/admin/users/${uid}/subscription`, payload).then((r) => r.data),
   remove: (uid, payload) => staffApi.post(`/admin/users/${uid}/delete`, payload).then((r) => r.data),
   activity: (uid) => staffApi.get(`/admin/users/${uid}/activity`).then((r) => r.data),
+  fullProfile: (uid) => staffApi.get(`/admin/users/${uid}/profile`).then((r) => r.data),
   uploadDocument: (uid, file, kind, label) => {
     const fd = new FormData();
     fd.append("file", file);

@@ -35,6 +35,40 @@ function DetailRow({ label, value }) {
   );
 }
 
+const HIDE_KEYS = new Set(["uid", "_id", "customer_id", "name", "full_name", "email", "mobile",
+  "mobile_number", "country", "state", "city", "role", "user_role", "company_details",
+  "verification_status", "updated_at", "created_at", "geid", "is_deleted"]);
+
+function FullProfile({ uid }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  useEffect(() => {
+    adminOps.fullProfile(uid).then(setData).catch(() => setErr("Could not load the shared profile."));
+  }, [uid]);
+  if (err) return <div className="text-xs text-slate-500">{err}</div>;
+  if (!data) return <div className="text-xs text-slate-500">Loading full profile…</div>;
+  const p = data.profile || {};
+  const cd = p.company_details || {};
+  const extras = [
+    ["City", p.city], ["Address", p.address || p.location],
+    ["Products traded", Array.isArray(p.products) ? p.products.join(", ") : p.products],
+    ["HSN codes", Array.isArray(p.hsn_codes) ? p.hsn_codes.join(", ") : p.hsn_codes],
+    ["GST / Tax ID", cd.gst || cd.tax_id], ["Company address", cd.address],
+    ...Object.entries(p).filter(([k, v]) => !HIDE_KEYS.has(k) && v && typeof v !== "object"
+      && !["city", "address", "location"].includes(k)).map(([k, v]) => [k.replace(/_/g, " "), String(v)]),
+  ].filter(([, v]) => v);
+  if (extras.length === 0) return (
+    <div className="text-xs text-slate-500" data-testid={`full-profile-empty-${uid}`}>
+      No further details on the shared profile — this user has not completed onboarding.
+    </div>
+  );
+  return (
+    <div className="grid md:grid-cols-4 gap-4" data-testid={`full-profile-${uid}`}>
+      {extras.slice(0, 16).map(([l, v]) => <DetailRow key={l} label={l} value={v} />)}
+    </div>
+  );
+}
+
 function UserDetail({ u, perms, isMain, onRefresh }) {
   return (
     <div className="grid md:grid-cols-3 gap-4 p-5 bg-white/[0.03] border-t border-white/5" data-testid={`user-detail-${u.uid}`}>
@@ -45,7 +79,8 @@ function UserDetail({ u, perms, isMain, onRefresh }) {
         <DetailRow label="Mobile" value={u.mobile} />
         <DetailRow label="Country" value={u.country} />
         <DetailRow label="State / Province" value={u.state} />
-        <DetailRow label="User category" value={u.category} />
+        <DetailRow label="User category" value={u.category || u.user_role} />
+        <DetailRow label="User ID (uid)" value={u.uid} />
       </div>
       <div className="space-y-3">
         <div className="text-[11px] uppercase tracking-widest text-cyan-300 flex items-center gap-1.5"><Buildings size={13} /> Company</div>
@@ -83,6 +118,21 @@ function UserDetail({ u, perms, isMain, onRefresh }) {
           </div>
         )}
         {u.assigned_to_name && <DetailRow label="Assigned to" value={u.assigned_to_name} />}
+      </div>
+      <div className="md:col-span-3 border-t border-white/5 pt-4 grid md:grid-cols-4 gap-4" data-testid={`user-account-${u.uid}`}>
+        <DetailRow label="Account state" value={u.account_state} />
+        <DetailRow label="Email verified" value={u.email_verified === undefined ? null : (u.email_verified ? "Yes" : "No")} />
+        <DetailRow label="Onboarding" value={u.onboarding_status} />
+        <DetailRow label="Sign-in method" value={u.provider} />
+        <DetailRow label="Identity verification" value={u.identity_verification_status} />
+        <DetailRow label="Plan (identity)" value={u.identity_subscription?.status
+          ? `${u.identity_subscription.status}${u.identity_subscription.expiry ? " · till " + String(u.identity_subscription.expiry).slice(0, 10) : ""}` : null} />
+        <DetailRow label="Registered on" value={u.created_at ? String(u.created_at).slice(0, 16).replace("T", " ") : null} />
+        <DetailRow label="Last activity" value={u.last_activity_at ? String(u.last_activity_at).slice(0, 16).replace("T", " ") : null} />
+      </div>
+      <div className="md:col-span-3 border-t border-white/5 pt-4">
+        <div className="text-[11px] uppercase tracking-widest text-cyan-300 mb-3">Shared profile (full record)</div>
+        <FullProfile uid={u.uid} />
       </div>
       <div className="md:col-span-3 border-t border-white/5 pt-4">
         <ActionBar u={u} perms={perms} isMain={isMain} onRefresh={onRefresh} />
