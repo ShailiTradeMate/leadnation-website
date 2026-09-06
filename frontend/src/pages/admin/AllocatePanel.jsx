@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { staffApi } from "@/lib/staffAuth";
-import { X, UserPlus, Users, CheckCircle, Circle, ToggleLeft, ToggleRight, PaperPlaneTilt } from "@phosphor-icons/react";
+import { X, UserPlus, Users, CheckCircle, Circle, ToggleLeft, ToggleRight, PaperPlaneTilt, Prohibit, WarningCircle } from "@phosphor-icons/react";
 
 export default function AllocatePanel({ onClose, onAllocated }) {
   const [subs, setSubs] = useState([]);
-  const [pending, setPending] = useState({ pending: 0, unassigned: 0 });
-  const [selected, setSelected] = useState({});
+  const [cats, setCats] = useState([]);
+  const [catKey, setCatKey] = useState("pending_unassigned");
+  const [picked, setPicked] = useState({}); // submission_id -> bool
+  const [selected, setSelected] = useState({}); // subadmin id -> bool
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
@@ -15,30 +17,45 @@ export default function AllocatePanel({ onClose, onAllocated }) {
   const load = async () => {
     setLoading(true); setErr("");
     try {
-      const [s, p] = await Promise.all([
+      const [s, c] = await Promise.all([
         staffApi.get("/admin/subadmins"),
-        staffApi.get("/admin/allocate/pending"),
+        staffApi.get("/admin/allocate/categories"),
       ]);
       setSubs(s.data.subadmins || []);
-      setPending(p.data || { pending: 0, unassigned: 0 });
+      setCats(c.data.categories || []);
+      setPicked({});
     } catch (e) {
-      setErr(e?.response?.data?.detail || "Could not load sub-admins.");
+      setErr(e?.response?.data?.detail || "Could not load allocation data.");
     } finally { setLoading(false); }
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
   const activeSubs = subs.filter((s) => s.active);
+  const cat = useMemo(() => cats.find((c) => c.key === catKey) || null, [cats, catKey]);
+  const items = cat?.items || [];
+  const pickedIds = useMemo(() => Object.keys(picked).filter((k) => picked[k]), [picked]);
+
   const toggleSel = (id) => setSelected((p) => ({ ...p, [id]: !p[id] }));
+  const togglePick = (id) => setPicked((p) => ({ ...p, [id]: !p[id] }));
+  const pickAll = () => {
+    const all = {};
+    items.forEach((i) => { if (i.submission_id) all[i.submission_id] = true; });
+    setPicked(all);
+  };
 
   const allocate = async () => {
     const ids = Object.keys(selected).filter((k) => selected[k]);
+    if (!cat?.allocatable) { setErr("This category cannot be allocated for review."); return; }
     if (ids.length === 0) { setErr("Select at least one active sub-admin."); return; }
+    if (pickedIds.length === 0) { setErr("Select at least one user to allocate."); return; }
     setBusy("allocate"); setErr(""); setMsg("");
     try {
-      const { data } = await staffApi.post("/admin/allocate", { subadmin_ids: ids });
-      if (data.allocated === 0) { setMsg(data.message || "No pending requests to allocate."); }
+      const { data } = await staffApi.post("/admin/allocate", {
+        subadmin_ids: ids, submission_ids: pickedIds, category: catKey,
+      });
+      if (data.allocated === 0) setMsg(data.message || "No pending requests to allocate.");
       else {
-        const dist = Object.entries(data.distribution || {}).map(([n, c]) => `${n}: ${c}`).join(", ");
+        const dist = Object.entries(data.distribution || {}).map(([n, c2]) => `${n}: ${c2}`).join(", ");
         setMsg(`Allocated ${data.allocated} request(s) — ${dist}. Notification emails sent.`);
       }
       await load();
@@ -70,7 +87,7 @@ export default function AllocatePanel({ onClose, onAllocated }) {
 
   return (
     <div className="fixed inset-0 z-[200] grid place-items-center p-4 bg-black/70 backdrop-blur-sm" data-testid="allocate-panel">
-      <div className="glass-strong rounded-3xl w-full max-w-3xl max-h-[88vh] overflow-auto p-6 sm:p-8 relative">
+      <div className="glass-strong rounded-3xl w-full max-w-4xl max-h-[88vh] overflow-auto p-6 sm:p-8 relative">
         <button onClick={onClose} data-testid="allocate-close" className="absolute right-5 top-5 text-slate-400 hover:text-white"><X size={20} /></button>
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Main Admin</div>
         <h2 className="font-display font-extrabold text-2xl mt-1">Allocate & manage sub-admins</h2>
@@ -78,12 +95,76 @@ export default function AllocatePanel({ onClose, onAllocated }) {
         {err && <div data-testid="allocate-error" className="mt-3 text-sm text-rose-300 bg-rose-500/10 rounded-xl p-3">{err}</div>}
         {msg && <div data-testid="allocate-msg" className="mt-3 text-sm text-emerald-300 bg-emerald-500/10 rounded-xl p-3">{msg}</div>}
 
-        {/* Function 1 — Allocate */}
+        {/* Step 1 — Category */}
         <div className="mt-6">
-          <div className="flex items-center gap-2 text-sm font-semibold"><Users size={16} className="text-cyan-300" /> Allocate pending reviews</div>
-          <p className="text-xs text-slate-400 mt-1">
-            <b className="text-slate-200">{pending.unassigned}</b> unassigned of <b className="text-slate-200">{pending.pending}</b> pending. Select sub-admins to distribute them evenly.
-          </p>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Users size={16} className="text-cyan-300" /> 1. Choose a category
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2" data-testid="allocate-categories">
+            {cats.map((c) => (
+              <button key={c.key} type="button" data-testid={`allocate-cat-${c.key}`}
+                onClick={() => { setCatKey(c.key); setPicked({}); setErr(""); setMsg(""); }}
+                className={`px-3 py-2 rounded-xl border text-xs flex items-center gap-2 ${catKey === c.key ? "border-cyan-400/60 bg-cyan-400/10 text-white" : "border-white/10 bg-white/5 text-slate-300"}`}>
+                {!c.allocatable && <Prohibit size={13} className="text-rose-300" />}
+                {c.label}
+                <span className="font-mono-display text-cyan-300">{c.count}</span>
+              </button>
+            ))}
+          </div>
+          {cat && <p className="text-xs text-slate-400 mt-2" data-testid="allocate-hint">{cat.hint}</p>}
+        </div>
+
+        {/* Step 2 — Candidates */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold">2. Select users {cat?.allocatable ? "" : "(view only)"}</div>
+            {cat?.allocatable && items.length > 0 && (
+              <button type="button" data-testid="allocate-pick-all" onClick={pickAll} className="text-xs text-cyan-300 hover:underline">Select all {items.length}</button>
+            )}
+          </div>
+          {!cat?.allocatable && (
+            <div className="mt-2 text-xs text-rose-300 bg-rose-500/10 rounded-xl p-3" data-testid="allocate-blocked-note">
+              Users in this category cannot be allocated for verification review.
+            </div>
+          )}
+          <div className="mt-3 max-h-64 overflow-auto rounded-xl border border-white/10 divide-y divide-white/5" data-testid="allocate-candidates">
+            {loading && <div className="p-4 text-sm text-slate-400">Loading…</div>}
+            {!loading && items.length === 0 && <div className="p-4 text-sm text-slate-400" data-testid="allocate-empty">No users in this category.</div>}
+            {items.map((i) => {
+              const on = Boolean(picked[i.submission_id]);
+              const clickable = cat?.allocatable && i.submission_id;
+              return (
+                <button key={i.submission_id || i.uid} type="button" disabled={!clickable}
+                  data-testid={`allocate-user-${i.submission_id || i.uid}`}
+                  onClick={() => clickable && togglePick(i.submission_id)}
+                  className={`w-full text-left px-4 py-3 flex items-start justify-between gap-3 ${on ? "bg-cyan-400/10" : "bg-white/[0.02]"} ${clickable ? "hover:bg-white/[0.06]" : "opacity-70 cursor-not-allowed"}`}>
+                  <span className="flex items-start gap-3 min-w-0">
+                    {clickable && (on ? <CheckCircle size={17} weight="fill" className="text-cyan-300 mt-0.5" /> : <Circle size={17} className="text-slate-500 mt-0.5" />)}
+                    <span className="min-w-0">
+                      <span className="text-sm font-medium">{i.name || i.email || "—"}</span>
+                      <span className="text-xs text-slate-400 ml-2">{i.email || "—"}</span>
+                      <div className="text-[11px] text-slate-500 mt-0.5 truncate">
+                        {i.customer_id ? `ID ${i.customer_id} · ` : ""}{i.company_name || "No company"} · {i.mobile || "No contact number"}
+                      </div>
+                      {i.missing?.length > 0 && (
+                        <div className="text-[11px] text-amber-300 mt-1 flex items-center gap-1">
+                          <WarningCircle size={12} /> Missing: {i.missing.join(", ")}
+                        </div>
+                      )}
+                    </span>
+                  </span>
+                  <span className="text-[10px] uppercase text-slate-400 shrink-0">
+                    {i.assigned_to_name ? `→ ${i.assigned_to_name}` : (i.status || "").replace(/_/g, " ")}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Step 3 — Sub-admins */}
+        <div className="mt-6">
+          <div className="text-sm font-semibold">3. Distribute to sub-admins</div>
           <div className="mt-3 space-y-2">
             {activeSubs.length === 0 && !loading && <div className="text-sm text-slate-400">No active sub-admins. Create one below.</div>}
             {activeSubs.map((s) => (
@@ -100,15 +181,16 @@ export default function AllocatePanel({ onClose, onAllocated }) {
               </button>
             ))}
           </div>
-          <button data-testid="allocate-submit" onClick={allocate} disabled={busy === "allocate"}
+          <button data-testid="allocate-submit" onClick={allocate}
+            disabled={busy === "allocate" || !cat?.allocatable || pickedIds.length === 0}
             className="btn-primary mt-4 justify-center disabled:opacity-50">
-            <PaperPlaneTilt size={15} /> {busy === "allocate" ? "Allocating…" : "Allocate & notify"}
+            <PaperPlaneTilt size={15} /> {busy === "allocate" ? "Allocating…" : `Allocate ${pickedIds.length || ""} & notify`}
           </button>
         </div>
 
         <div className="h-px bg-white/10 my-7" />
 
-        {/* Function 2 — Manage access */}
+        {/* Manage access */}
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold"><UserPlus size={16} className="text-cyan-300" /> Create sub-admin</div>
           <form onSubmit={createSub} className="mt-3 grid sm:grid-cols-3 gap-3">

@@ -331,6 +331,7 @@ class AllocateReq(BaseModel):
     subadmin_ids: list[str]
     submission_ids: Optional[list[str]] = None
     include_assigned: bool = False
+    category: Optional[str] = None
 
 
 @router.get("/admin/allocate/pending")
@@ -343,6 +344,127 @@ async def allocation_pending(admin: dict = Depends(require_main_admin)):
     }
 
 
+# Only submissions in these states may ever be allocated to a sub-admin.
+ALLOCATABLE_STATUSES = ("needs_review",)
+
+
+def _missing_details(sub: dict, user: dict, ov: dict) -> list[str]:
+    miss = []
+    if not _pick(sub.get("mobile"), sub.get("mobile_number"), user.get("mobile"),
+                 user.get("mobile_number"), ov.get("mobile")):
+        miss.append("Contact number")
+    if not _pick(sub.get("company_name"), (ov.get("company_details") or {}).get("company_name")):
+        miss.append("Company name")
+    if not _pick(sub.get("company_phone"), (ov.get("company_details") or {}).get("company_phone")):
+        miss.append("Company contact")
+    if not _pick(sub.get("country"), user.get("country"), ov.get("country")):
+        miss.append("Country")
+    if not (sub.get("document_file_id") or sub.get("selfie_file_id")):
+        miss.append("Documents")
+    return miss
+
+
+@router.get("/admin/allocate/categories")
+async def allocation_categories(admin: dict = Depends(require_main_admin)):
+    """Categorised allocation candidates. Only verification-SUBMITTED users that are
+    still pending review are allocatable — approved/rejected/never-applied users are
+    surfaced for visibility only and can never be allocated."""
+    users = await db.users.find({}).to_list(8000)
+    overlays = {}
+    async for o in OVERLAY.find({}):
+        overlays[o.get("uid")] = o
+
+    users_by_uid = {u.get("uid"): u for u in users if u.get("uid")}
+    users_by_email = {str(u.get("email") or "").lower(): u for u in users if u.get("email")}
+
+    submitted_uids, submitted_emails = set(), set()
+    pending_unassigned, pending_assigned = [], []
+    missing_details, approved, rejected = [], [], []
+
+    async for s in SUBS.find({}):
+        uid = s.get("uid")
+        em = str(s.get("email") or "").lower()
+        if uid:
+            submitted_uids.add(uid)
+        if em:
+            submitted_emails.add(em)
+        u = users_by_uid.get(uid) or users_by_email.get(em) or {}
+        ov = overlays.get(uid) or {}
+        miss = _missing_details(s, u, ov)
+        item = {
+            "submission_id": s.get("_id") or s.get("id"),
+            "uid": uid,
+            "customer_id": _pick(s.get("customer_id"), u.get("customer_id")),
+            "name": _pick(s.get("name"), u.get("full_name"), u.get("name")),
+            "email": _pick(s.get("email"), u.get("email")),
+            "mobile": _pick(s.get("mobile"), u.get("mobile"), u.get("mobile_number"), ov.get("mobile")),
+            "company_name": s.get("company_name"),
+            "status": s.get("status"),
+            "assigned_to": s.get("assigned_to"),
+            "assigned_to_name": s.get("assigned_to_name"),
+            "missing": miss,
+            "created_at": s.get("created_at"),
+        }
+        st = s.get("status")
+        if st in ALLOCATABLE_STATUSES:
+            if s.get("assigned_to"):
+                pending_assigned.append(item)
+            else:
+                pending_unassigned.append(item)
+            if miss:
+                missing_details.append(item)
+        elif st == "verified":
+            approved.append(item)
+        else:
+            rejected.append(item)
+
+    no_verification = []
+    for u in users:
+        uid = u.get("uid")
+        em = str(u.get("email") or "").lower()
+        if (uid and uid in submitted_uids) or (em and em in submitted_emails):
+            continue
+        if u.get("is_deleted"):
+            continue
+        ov = overlays.get(uid) or {}
+        mob = _pick(u.get("mobile"), u.get("mobile_number"), ov.get("mobile"))
+        no_verification.append({
+            "submission_id": None, "uid": uid, "customer_id": u.get("customer_id"),
+            "name": _pick(u.get("full_name"), u.get("name")), "email": u.get("email"),
+            "mobile": mob, "company_name": None, "status": "not_applied",
+            "assigned_to": None, "assigned_to_name": None,
+            "missing": [] if mob else ["Contact number"],
+            "created_at": _pick(u.get("created_at"), u.get("createdAt")),
+        })
+
+    def _sorted(x):
+        return sorted(x, key=lambda i: str(i.get("created_at") or ""))
+
+    cats = [
+        {"key": "pending_unassigned", "label": "Pending review — unassigned",
+         "hint": "Verification submitted, awaiting review, not yet allocated.",
+         "allocatable": True, "items": _sorted(pending_unassigned)},
+        {"key": "pending_assigned", "label": "Pending review — already allocated",
+         "hint": "Already with a sub-admin. Allocating again reassigns them.",
+         "allocatable": True, "items": _sorted(pending_assigned)},
+        {"key": "missing_details", "label": "Submitted with missing details",
+         "hint": "Pending submissions missing contact number, company info or documents.",
+         "allocatable": True, "items": _sorted(missing_details)},
+        {"key": "no_verification", "label": "Users without verification",
+         "hint": "Registered but never applied — cannot be allocated for review.",
+         "allocatable": False, "items": _sorted(no_verification)},
+        {"key": "approved", "label": "Approved / verified buyers",
+         "hint": "Already approved — excluded from allocation.",
+         "allocatable": False, "items": _sorted(approved)},
+        {"key": "rejected", "label": "Rejected / closed",
+         "hint": "Review already completed — excluded from allocation.",
+         "allocatable": False, "items": _sorted(rejected)},
+    ]
+    for c in cats:
+        c["count"] = len(c["items"])
+    return {"categories": cats}
+
+
 @router.post("/admin/allocate")
 async def allocate(body: AllocateReq, admin: dict = Depends(require_main_admin)):
     sas = []
@@ -353,12 +475,27 @@ async def allocate(body: AllocateReq, admin: dict = Depends(require_main_admin))
     if not sas:
         raise HTTPException(400, "Select at least one active sub-admin.")
 
-    query = {"status": "needs_review"}
+    query = {"status": {"$in": list(ALLOCATABLE_STATUSES)}}
     if body.submission_ids:
         query["_id"] = {"$in": body.submission_ids}
+        requested = len(set(body.submission_ids))
+        eligible = await SUBS.count_documents(query)
+        if eligible < requested:
+            raise HTTPException(400, "Some selected users are not awaiting review "
+                                     "(approved, rejected or never applied) and cannot be allocated.")
+    elif body.category == "missing_details":
+        pass  # filtered in Python below
     elif not body.include_assigned:
         query["$or"] = [{"assigned_to": {"$in": [None, ""]}}, {"assigned_to": {"$exists": False}}]
     subs = await SUBS.find(query).sort("created_at", 1).to_list(2000)
+    if body.category == "missing_details" and not body.submission_ids:
+        keep = []
+        for s in subs:
+            u = await db.users.find_one({"uid": s.get("uid")}) or {}
+            ov = await OVERLAY.find_one({"uid": s.get("uid")}) or {}
+            if _missing_details(s, u, ov):
+                keep.append(s)
+        subs = keep
     if not subs:
         return {"ok": True, "allocated": 0, "message": "No pending requests to allocate.",
                 "distribution": {}}

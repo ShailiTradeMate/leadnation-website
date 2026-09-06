@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Cookie, X } from "@phosphor-icons/react";
 import { getConsent, setConsent } from "@/lib/analytics";
+import { isStaff } from "@/lib/staffAuth";
 
 const Toggle = ({ on, onChange, disabled, testid }) => (
   <button type="button" disabled={disabled} onClick={() => onChange(!on)} data-testid={testid}
@@ -11,9 +12,13 @@ const Toggle = ({ on, onChange, disabled, testid }) => (
 );
 
 export default function CookieConsent() {
+  const { pathname } = useLocation();
   const [show, setShow] = useState(false);
   const [manage, setManage] = useState(false);
   const [prefs, setPrefs] = useState({ analytics: true, marketing: true });
+
+  // Admin CMS: never overlay the consent banner on top of admin tables.
+  const isAdminArea = /^\/admin/.test(pathname) || isStaff();
 
   useEffect(() => {
     if (!getConsent()) setShow(true);
@@ -30,7 +35,7 @@ export default function CookieConsent() {
   const rejectNonEssential = () => { setConsent({ analytics: false, marketing: false }); setShow(false); setManage(false); };
   const savePrefs = () => { setConsent(prefs); setShow(false); setManage(false); };
 
-  if (!show) return null;
+  if (!show || isAdminArea) return null;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-5 pointer-events-none" data-testid="cookie-consent">

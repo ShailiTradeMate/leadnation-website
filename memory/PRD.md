@@ -500,3 +500,28 @@ New module `backend/vbie_engine.py` turns VBIE from one-time ingestion into a pe
 - **P1** Enable Companies House monthly BULK (`bulk_enabled=true`) in production to grow to full ~5M base corpus.
 - **P1** Verify `leadnation.app` in Resend so subscriber change-alert + weekly digest emails actually deliver.
 - **P2** Cross-backend GEID/entities single-writer enforcement (DO backend); subscriber-facing weekly digest email.
+
+---
+
+## Admin Phase B+ — Allocation categories & cookie banner (June 2026)
+Tested: `/app/test_reports/iteration_53.json` — backend 8/8 pytest PASS, frontend E2E PASS.
+
+**Allocation eligibility (strict):** `ALLOCATABLE_STATUSES = ("needs_review",)` in `backend/subadmin.py`. `POST /api/admin/allocate` is now all-or-nothing — if any `submission_ids` entry is verified/rejected/not-pending it returns 400 and writes nothing. Approved (verified) buyers can never be allocated.
+
+**New `GET /api/admin/allocate/categories`** (main-admin only) returns 6 buckets with `count`/`items`/`allocatable`/`hint`:
+- `pending_unassigned` (allocatable) — submitted, awaiting review, not yet allocated
+- `pending_assigned` (allocatable — reassigns)
+- `missing_details` (allocatable) — pending subs missing contact number / company name / company contact / country / documents (subset of the two pending buckets by design)
+- `no_verification` (NOT allocatable) — registered users who never applied
+- `approved` (NOT allocatable) — verified buyers
+- `rejected` (NOT allocatable)
+`POST /admin/allocate` also accepts `category="missing_details"` to bulk-allocate only that filtered set.
+
+**AllocatePanel.jsx** rebuilt as 3 steps: 1) category chips (`allocate-cat-<key>`, counts, prohibit icon on non-allocatable), 2) candidate list with per-user checkboxes, amber "Missing: …" hints, `allocate-pick-all`, disabled rows + `allocate-blocked-note` for non-allocatable categories, 3) sub-admin selection + `allocate-submit` (disabled unless an allocatable category and ≥1 user picked). Sub-admin create/activate/deactivate unchanged.
+
+**Cookie banner:** `CookieConsent.jsx` hides itself when `pathname` starts with `/admin` or a staff session exists (`isStaff()`), so it no longer covers the admin users table. Still shown on public pages.
+
+### Next / backlog
+- **P0** Admin Phase C: approve/reject actions, hard delete, contact popup, edit profile, payment details popup, manual free subscription grants, payment history/support links.
+- **P1** Re-verify PRODUCTION Resend secrets (sender `admin@vametra.com`, mobile row, vametra.com footer links) — still unverified after user updated deployment secrets.
+- **P2** Return offending submission_ids in the allocation 400 detail for better admin UX.
