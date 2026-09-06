@@ -1,0 +1,30 @@
+{
+  "summary": "Iter 54 — Admin Phase C (per-user actions + two-tier sign-off + Brain notifications) end-to-end verified. Backend pytest suite 23/23 PASS in 64s (/app/backend/tests/test_iter54_phase_c.py). Frontend Playwright: sub-admin (sakshi@vametra.com) sees only allocated Vaibhav row with Review/Edit/Contact/Payment details/Documents buttons — NO Delete, NO Allocate. Review modal shows the two-tier note, Approve+note returns 'Sent to the main admin for final sign-off. The buyer has not been notified yet.' Main admin (admin@vametra.com Firebase) then sees 'Ready for your final sign-off (1)' banner with Vaibhav row, APPROVE tag, 'by Sakshi', reviewer note, and Confirm / Override / Return buttons — all data-testids present.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter54_phase_c.py",
+    "/app/test_reports/pytest/iter54.xml"
+  ],
+  "action_items": [
+    "None blocking — Phase C ships. All 23 pytest checks green, sub-admin RBAC verified, sign-off queue rendering + buyer-no-email-at-recommendation semantics correct."
+  ],
+  "critical_code_review_comments": [
+    "admin_ops._resolve() picks the 'most relevant' submission via _sub_rank which prioritises needs_review + assigned; if a user has multiple historical submissions the older ones are ignored — fine for MVP, but ensure Delete-then-reapply flows don't leave orphan needs_review docs.",
+    "review_user() correction branch does NOT gate on sub-admin scope for main admin (main admin can request correction on any user regardless of allocation) — expected, matches spec.",
+    "manage_subscription() UPSERTs on {owner: uid} but earlier records may have owner=customer_id — user_payments() reads via keys [uid, customer_id] so a grant using uid can bypass a legacy customer_id-scoped active sub. Consider migrating subscriptions.owner to a single canonical key.",
+    "hard_delete() does NOT purge the buyer from the shared DO identity nor revoke Firebase — correct per docstring, but ensure the outgoing account_removed email tells the buyer their Firebase login still works.",
+    "profile_brain.observe() returns 'no change detected' only when diff() sees zero fields moved; empty-patch case is caught earlier in edit_profile() as 400 'Nothing to update.' Consistent.",
+    "signoff() decline branch emails the sub-admin (rec.email) via emailer.send('signoff_declined', ...) but wraps NO try/except — if Resend is down the sign-off decline endpoint would 500. Wrap this in try/except like allocate() does.",
+    "review_user() when sub-admin recommends, uses emailer.notify_admin('admin_signoff_request', ...) — also unwrapped. Same recommendation.",
+    "_finalise() calls verify._do_link_buyer and verify._do_put_profile synchronously — these are external HTTP calls that block the event loop; ideally use httpx.AsyncClient. Not blocking now."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter54_phase_c.py", "/app/test_reports/iteration_54.json"],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "100% (sub-admin scope + review modal + main-admin sign-off queue rendering all pass)"},
+  "test_credentials": "Unchanged — /app/memory/test_credentials.md. Main admin admin@vametra.com/Shiv@12345 (Firebase 00001); sub-admins sakshi@vametra.com and patnica@vametra.com / Shiv@12345.",
+  "seed_data_creation": "test_iter54_phase_c.py::TestHardDelete seeds a throwaway user TEST_iter54_<hex> directly in Mongo (users + verification_submissions), calls POST /admin/users/{uid}/delete, then verifies archive+is_deleted+cleans up (users doc and admin_deleted_archive row removed). No stray data. The seeded recommendation on SPKdrHke3NNjWTpYwxHUzwLnZbO2 from the smoke-test was picked up by the queue test; a later test issued a decline which cleared it, then another test flow re-created it and confirmed still queued. Left state: submission for Vaibhav ends in review_stage=correction_requested (from TestMainAdminDirectReview::test_correction_with_note_sets_stage) — main agent may want to reset if needed.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase C is stable. All endpoints under /api/admin/users/{uid}/* (review, signoff, profile PATCH, documents POST, notes GET/POST, payments GET, subscription POST, delete POST, activity GET) + /api/admin/signoff + /api/admin/permissions covered. RBAC is enforced at two layers: has_perm() gate + _resolve() sub-admin scope on (assigned_to == sid). Two-tier semantics verified: sub-admin recommendation writes review_stage=awaiting_signoff + recommendation{decision,note,by,sid,email,at} and NEVER emails the buyer; main-admin signoff.confirm calls _finalise which flips submission.status to verified/rejected AND announces via profile_brain (buyer email logged in response). Emailer.notify_admin and emailer.send('signoff_declined') calls inside admin_ops.py are NOT wrapped in try/except — if Resend quota exhausts these endpoints could 500. Recommend wrapping. Test SPKdrHke3NNjWTpYwxHUzwLnZbO2 is Sakshi's allocated user; use TEST_iter54_* for any destructive testing.",
+  "rca of the issue": "N/A — Phase C shipped clean."
+}

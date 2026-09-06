@@ -103,6 +103,44 @@ async def require_main_admin(authorization: Optional[str] = Header(default=None)
     return ident
 
 
+# ---------------- Reusable permission model (future CMS sections just add a key) ----
+PERMISSIONS = {
+    "main_admin": {
+        "users.view_all", "users.edit", "users.delete", "users.review_final",
+        "users.review_recommend", "users.correction", "users.contact", "users.documents",
+        "payments.view", "payments.grant", "allocate", "subadmins.manage", "signoff.view",
+    },
+    "sub_admin": {
+        "users.view_assigned", "users.edit", "users.review_recommend", "users.correction",
+        "users.contact", "users.documents", "payments.view",
+    },
+}
+
+
+def perms_for(ident: dict) -> set:
+    return PERMISSIONS["main_admin" if ident.get("is_main") else "sub_admin"]
+
+
+def has_perm(ident: dict, perm: str) -> bool:
+    return perm in perms_for(ident)
+
+
+def require_perm(perm: str):
+    """Dependency factory — gate any admin endpoint on a single permission key."""
+    async def _dep(ident: dict = Depends(require_staff)):
+        if not has_perm(ident, perm):
+            raise HTTPException(403, f"Your role does not allow this action ({perm}).")
+        return ident
+    return _dep
+
+
+@router.get("/admin/permissions")
+async def my_permissions(staff: dict = Depends(require_staff)):
+    return {"role": staff.get("role"), "is_main": staff.get("is_main"),
+            "name": staff.get("name"), "email": staff.get("email"),
+            "permissions": sorted(perms_for(staff))}
+
+
 # ---------------- auth endpoints ----------------
 class StaffLogin(BaseModel):
     identifier: str
@@ -212,6 +250,9 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
             "submission_id": sub.get("id") or sub.get("_id"),
             "assigned_to": sub.get("assigned_to"),
             "assigned_to_name": sub.get("assigned_to_name"),
+            "review_stage": sub.get("review_stage"),
+            "recommendation": sub.get("recommendation"),
+            "correction_requested": sub.get("correction_requested"),
             "reasons": sub.get("reasons") or [],
             "geid": sub.get("geid"),
             "created_at": _pick(u.get("created_at"), u.get("createdAt"), sub.get("created_at")),

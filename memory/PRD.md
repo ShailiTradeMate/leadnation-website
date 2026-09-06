@@ -525,3 +525,31 @@ Tested: `/app/test_reports/iteration_53.json` — backend 8/8 pytest PASS, front
 - **P0** Admin Phase C: approve/reject actions, hard delete, contact popup, edit profile, payment details popup, manual free subscription grants, payment history/support links.
 - **P1** Re-verify PRODUCTION Resend secrets (sender `admin@vametra.com`, mobile row, vametra.com footer links) — still unverified after user updated deployment secrets.
 - **P2** Return offending submission_ids in the allocation 400 detail for better admin UX.
+
+---
+
+## Admin Phase C — Per-user actions, two-tier sign-off, Brain notifications (June 2026)
+Tested: `/app/test_reports/iteration_54.json` — backend 23/23 pytest PASS (`/app/backend/tests/test_iter54_phase_c.py`), frontend E2E PASS.
+
+**Two-tier sign-off (user choice: option a).** A sub-admin's approve/reject is stored as a RECOMMENDATION (`review_stage=awaiting_signoff`, `recommendation{decision,note,by,sid,email,at}`) — the buyer is NOT emailed. Main admin sees a "Ready for your final sign-off" queue in the Users tab and can **Confirm / Override / Return to sub-admin**. Only the main admin's sign-off runs `_finalise()`, which does the DO identity write (GEID + `verification_status`) and triggers the buyer email. Request-correction is not a final decision, so either role may send it directly to the buyer.
+
+**Brain owns all user communication.** New `backend/brain/profile_brain.py`:
+- `sync_profile_memory()` keeps a live profile snapshot in `user_context.profile`, and `brain/context.py` injects it into every Brain answer → the Brain has read access to the user profile.
+- `diff()` watches 15 profile fields; `observe()` diffs before/after on any admin edit and emails the buyer exactly what changed (no email when nothing moved).
+- `announce()` logs to `profile_changes`, pushes an in-app notification (`notifications`, audience=user) and sends the branded email. No admin code emails users directly.
+
+**New email templates** (`emailer.py`): `verify_approved`, `verify_rejected`, `verify_correction`, `profile_changed` (diff table), `document_updated`, `account_removed`, `subscription_granted`, `subscription_revoked`, plus internal `admin_signoff_request` (to main admin) and `signoff_declined` (to sub-admin). All email sends inside `admin_ops.py` are try/except wrapped.
+
+**New endpoints** (`backend/admin_ops.py`, prefix `/api/admin`): `POST /users/{uid}/review`, `GET /signoff`, `POST /users/{uid}/signoff`, `PATCH /users/{uid}/profile`, `POST /users/{uid}/documents` (multipart), `GET|POST /users/{uid}/notes`, `GET /users/{uid}/payments`, `POST /users/{uid}/subscription` (grant/revoke), `POST /users/{uid}/delete` (typed DELETE confirm → archive to `admin_deleted_archive`, purge submission/overlay/notes, mark `users.is_deleted`; DO identity/Customer ID never destroyed), `GET /users/{uid}/activity` (Brain events + `admin_audit`).
+
+**Reusable permission model** (`subadmin.py PERMISSIONS` + `require_perm()` + `GET /admin/permissions`):
+- main_admin: view_all, edit, delete, review_final, correction, contact, documents, payments.view, payments.grant, allocate, subadmins.manage, signoff.view
+- sub_admin: view_assigned, edit, review_recommend, correction, contact, documents, payments.view (no delete, no grants, no allocation, no sign-off)
+Enforced twice: permission gate + `_resolve()` allocation scope (`assigned_to == sid`). Future CMS sections only add a key.
+
+**Frontend**: `pages/admin/user/` — `ActionBar` (permission-aware buttons in the expanded row), `ReviewModal`, `EditProfileModal`, `ContactModal` (click-to-call/mail + internal contact notes), `PaymentsModal` (plan/history/totals + main-admin-only grant/revoke), `DocumentsModal` (view + upload on behalf), `DeleteModal` (typed confirm), `SignoffQueue`; API client `lib/adminOps.js`.
+
+### Next / backlog
+- **P1** Re-verify PRODUCTION Resend secrets (sender `admin@vametra.com`, mobile row, vametra.com links) — still unverified.
+- **P2** Migrate `subscriptions.owner` to one canonical key (uid) — legacy rows may use customer_id.
+- **P2** Make DO calls in `_finalise()` async (httpx) instead of blocking `requests`.

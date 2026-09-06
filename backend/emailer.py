@@ -205,6 +205,108 @@ BUILDERS = {
         + "<p>Open the admin console to allocate the unassigned requests to your sub-admins.</p>",
         "Allocate now", f"{SITE}/admin-cms")),
 
+    # ---- Verified Buyer lifecycle (Brain-owned user notifications) ----
+    "verify_approved": lambda c: ("You're now a Vametra AI Verified Buyer 🎉", _shell(
+        "Verification approved ✅",
+        f"<p>Hi {c.get('name','there')},</p><p>Great news — your Verified Buyer application has been "
+        f"<b>approved</b>. Your verified badge is now live across the Vametra AI website and app.</p>"
+        + _detail_table([
+            ("Customer ID", c.get("customerId", "—")),
+            ("Buyer ID (GEID)", c.get("geid", "—")),
+            ("Status", "Verified ✅"),
+            ("Reviewed by", c.get("reviewer", "Vametra AI verification team")),
+        ])
+        + (f"<p><b>Note from our team:</b> {c.get('note')}</p>" if c.get("note") else "")
+        + "<p>Keep your company details current — the Brain watches your profile and will always "
+          "tell you when something changes.</p>",
+        "View my verified profile", f"{SITE}/account")),
+    "verify_rejected": lambda c: ("Update on your Vametra AI verification", _shell(
+        "Verification could not be approved",
+        f"<p>Hi {c.get('name','there')},</p><p>After review, your Verified Buyer application could not "
+        f"be approved at this time.</p>"
+        + _detail_table([("Reason", c.get("note") or c.get("reason") or "Submitted details could not be verified."),
+                         ("Reviewed by", c.get("reviewer", "Vametra AI verification team"))])
+        + "<p>You're welcome to correct the details and re-apply — our team is happy to help.</p>",
+        "Re-apply now", f"{SITE}/verify")),
+    "verify_correction": lambda c: ("Action needed on your Vametra AI verification", _shell(
+        "We need a small correction ✍️",
+        f"<p>Hi {c.get('name','there')},</p><p>Our verification team reviewed your application and needs "
+        f"a correction before it can be approved:</p>"
+        + (f"<ul>{''.join('<li>' + str(f) + '</li>' for f in (c.get('fields') or []))}</ul>"
+           if c.get("fields") else "")
+        + (f"<p><b>Note:</b> {c.get('note')}</p>" if c.get("note") else "")
+        + "<p>Update the highlighted details and resubmit — it usually takes less than 2 minutes.</p>",
+        "Fix my application", f"{SITE}/verify")),
+    "profile_changed": lambda c: ("Your Vametra AI profile was updated", _shell(
+        "Profile update on your account 🔔",
+        f"<p>Hi {c.get('name','there')},</p><p>The Vametra AI Brain detected the following change(s) on "
+        f"your profile{(' (made by ' + str(c.get('actor')) + ')') if c.get('actor') else ''}:</p>"
+        + _detail_table([(ch.get("label", "Field"), f"{ch.get('from','—')} → {ch.get('to','—')}")
+                         for ch in (c.get("changes") or [])])
+        + "<p>If you did not request this change, reply to this email or contact support right away.</p>",
+        "Review my profile", f"{SITE}/account")),
+    "document_updated": lambda c: ("A document on your Vametra AI account was updated", _shell(
+        "Document updated 📄",
+        f"<p>Hi {c.get('name','there')},</p><p>Our verification team updated a document on your account:</p>"
+        + _detail_table([("Document", c.get("docLabel", "Business document")),
+                         ("File", c.get("filename", "—")),
+                         ("Updated by", c.get("actor", "Vametra AI team"))])
+        + (f"<p><b>Note:</b> {c.get('note')}</p>" if c.get("note") else "")
+        + "<p>You can view every document on your account at any time.</p>",
+        "View my documents", f"{SITE}/account")),
+    "account_removed": lambda c: ("Your Vametra AI verification records were removed", _shell(
+        "Records removed",
+        f"<p>Hi {c.get('name','there')},</p><p>As requested / following review, your Verified Buyer "
+        f"application and related records have been removed from the Vametra AI platform.</p>"
+        + _detail_table([("Reason", c.get("note") or "Removed by the Vametra AI team"),
+                         ("Removed by", c.get("actor", "Vametra AI team"))])
+        + "<p>Your sign-in identity and Customer ID are unaffected. You can re-apply for verification "
+          "any time.</p>",
+        "Contact support", f"{SITE}/contact")),
+    "subscription_granted": lambda c: ("A Vametra AI subscription was added to your account 🎁", _shell(
+        "Subscription activated",
+        f"<p>Hi {c.get('name','there')},</p><p>The Vametra AI team has activated a subscription on your "
+        f"account — no payment required.</p>"
+        + _detail_table([("Plan", c.get("plan", "—")),
+                         ("Active until", str(c.get("until", ""))[:10] or "—"),
+                         ("Reason", c.get("note") or "Granted by the Vametra AI team")])
+        + "<p>You now have full access to gated buyer intelligence and unlimited report downloads.</p>",
+        "Start exploring", f"{SITE}/buyers")),
+    "subscription_revoked": lambda c: ("Your Vametra AI subscription was updated", _shell(
+        "Subscription removed",
+        f"<p>Hi {c.get('name','there')},</p><p>A subscription on your account has been deactivated.</p>"
+        + _detail_table([("Plan", c.get("plan", "—")),
+                         ("Reason", c.get("note") or "Updated by the Vametra AI team")])
+        + "<p>You can subscribe again at any time to restore full access.</p>",
+        "View plans", f"{SITE}/account?tab=billing")),
+
+    # ---- Two-tier sign-off (internal) ----
+    "admin_signoff_request": lambda c: (
+        f"[Vametra AI] Sign-off needed · {c.get('decision','review')} · {c.get('userName','buyer')}", _shell(
+            "A sub-admin needs your final sign-off ✍️",
+            f"<p>{c.get('subadmin','A sub-admin')} completed a review and recommends "
+            f"<b>{(c.get('decision') or '').upper()}</b>:</p>"
+            + _detail_table([
+                ("Buyer", c.get("userName", "—")),
+                ("Email", c.get("userEmail", "—")),
+                ("Company", c.get("company", "—")),
+                ("Customer ID", c.get("customerId", "—")),
+                ("Recommendation", (c.get("decision") or "").title()),
+                ("Reviewer note", c.get("note") or "—"),
+            ])
+            + "<p>Nothing has been communicated to the buyer yet — the decision only becomes final "
+              "after your sign-off in the admin console.</p>",
+            "Open sign-off queue", f"{SITE}/admin-cms")),
+    "signoff_declined": lambda c: (
+        f"[Vametra AI] Your recommendation was returned · {c.get('userName','buyer')}", _shell(
+            "Recommendation returned for another look",
+            f"<p>Hi {c.get('name','there')},</p><p>The main admin returned your "
+            f"<b>{(c.get('decision') or 'review').upper()}</b> recommendation for "
+            f"<b>{c.get('userName','the buyer')}</b>.</p>"
+            + _detail_table([("Main admin note", c.get("note") or "—")])
+            + "<p>Please re-check the submission and resubmit your recommendation.</p>",
+            "Open my console", f"{SITE}/admin-cms")),
+
     # ---- Events ----
     "submitted": lambda c: ("Your event submission was received", _shell(
         "We've received your event 🎉",

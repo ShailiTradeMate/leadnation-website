@@ -2,6 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { staffApi } from "@/lib/staffAuth";
 import { API } from "@/lib/api";
 import AllocatePanel from "@/pages/admin/AllocatePanel";
+import ActionBar from "@/pages/admin/user/ActionBar";
+import SignoffQueue from "@/pages/admin/user/SignoffQueue";
+import { adminOps } from "@/lib/adminOps";
 import { MagnifyingGlass, CaretDown, CaretUp, FileText, User, Buildings, UsersThree } from "@phosphor-icons/react";
 
 const STATUS_STYLE = {
@@ -32,7 +35,7 @@ function DetailRow({ label, value }) {
   );
 }
 
-function UserDetail({ u }) {
+function UserDetail({ u, perms, isMain, onRefresh }) {
   return (
     <div className="grid md:grid-cols-3 gap-4 p-5 bg-white/[0.03] border-t border-white/5" data-testid={`user-detail-${u.uid}`}>
       <div className="space-y-3">
@@ -81,6 +84,9 @@ function UserDetail({ u }) {
         )}
         {u.assigned_to_name && <DetailRow label="Assigned to" value={u.assigned_to_name} />}
       </div>
+      <div className="md:col-span-3 border-t border-white/5 pt-4">
+        <ActionBar u={u} perms={perms} isMain={isMain} onRefresh={onRefresh} />
+      </div>
     </div>
   );
 }
@@ -93,6 +99,8 @@ export default function UsersManager() {
   const [role, setRole] = useState("");
   const [isMain, setIsMain] = useState(false);
   const [showAllocate, setShowAllocate] = useState(false);
+  const [perms, setPerms] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [open, setOpen] = useState(null); // uid expanded
   const debounce = useRef(null);
 
@@ -109,6 +117,12 @@ export default function UsersManager() {
   };
 
   useEffect(() => { load(""); /* eslint-disable-next-line */ }, []);
+
+  useEffect(() => {
+    adminOps.permissions().then((d) => setPerms(d.permissions || [])).catch(() => setPerms([]));
+  }, []);
+
+  const refresh = () => { load(q); setRefreshKey((k) => k + 1); };
 
   // Real-time search (debounced server call).
   useEffect(() => {
@@ -147,6 +161,8 @@ export default function UsersManager() {
 
       {showAllocate && <AllocatePanel onClose={() => setShowAllocate(false)} onAllocated={() => load(q)} />}
 
+      {perms.includes("signoff.view") && <SignoffQueue key={refreshKey} onDone={refresh} />}
+
       {err && <div data-testid="admin-users-error" className="glass rounded-xl p-4 text-sm text-rose-300">{err}</div>}
 
       <div className="glass-strong rounded-3xl overflow-hidden">
@@ -179,7 +195,7 @@ export default function UsersManager() {
                     {open === u.uid ? <CaretUp size={14} /> : <CaretDown size={14} />}
                   </td>
                 </tr>
-                {open === u.uid && <tr><td colSpan={8} className="p-0"><UserDetail u={u} /></td></tr>}
+                {open === u.uid && <tr><td colSpan={8} className="p-0"><UserDetail u={u} perms={perms} isMain={isMain} onRefresh={refresh} /></td></tr>}
               </React.Fragment>
             ))}
             {!loading && rows.length === 0 && !err && (
@@ -193,7 +209,7 @@ export default function UsersManager() {
       </div>
       <p className="text-[11px] text-slate-500">
         {role === "sub_admin"
-          ? "You see only the users allocated to you. Action buttons (approve/reject, contact, edit, payments) arrive in the next phase."
+          ? "You see only the users allocated to you. Approve/reject recommendations go to the main admin for final sign-off."
           : "Full platform visibility — everyone who has registered, whether or not they've applied for verification."}
       </p>
     </div>

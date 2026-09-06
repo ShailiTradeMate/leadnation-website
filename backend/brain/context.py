@@ -21,4 +21,7 @@ async def build_context(entities: dict, session_id: str = None, user_id: str = N
         ctx["memory"] = {"recentMessages": conv.get("messages", [])}
     if user_id:
         ctx["user"] = await memory.get_user_context(user_id)
+        # Brain has read access to the user's live buyer profile (Profile Brain memory).
+        from brain import profile_brain
+        ctx["profile"] = await profile_brain.profile_snapshot(user_id)
     return ctx
