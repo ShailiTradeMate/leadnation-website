@@ -87,6 +87,9 @@ function UserDetail({ u, perms, isMain, onRefresh }) {
         <DetailRow label="Company name" value={u.company_name} />
         <DetailRow label="Company email" value={u.company_email} />
         <DetailRow label="Company contact" value={u.company_phone} />
+        <DetailRow label="City" value={u.city} />
+        <DetailRow label="Products / services" value={Array.isArray(u.products) ? u.products.join(", ") : u.products} />
+        <DetailRow label="About the company" value={u.company_description} />
         <DetailRow label="Customer ID" value={u.customer_id} />
         <DetailRow label="Buyer ID (GEID)" value={u.geid} />
         <DetailRow label="Subscription" value={u.subscription?.status ? `${u.subscription.status}${u.subscription.plan ? " · " + u.subscription.plan : ""}` : "None"} />
@@ -154,24 +157,26 @@ export default function UsersManager() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [open, setOpen] = useState(null); // uid expanded
   const debounce = useRef(null);
+  const seq = useRef(0);
 
   const load = async (search) => {
+    const my = ++seq.current;
     setLoading(true); setErr("");
     try {
       const { data } = await staffApi.get("/admin/users", { params: search ? { q: search } : {} });
+      if (my !== seq.current) return;   // a newer search already answered
       setRows(data.users || []);
       setRole(data.role || "");
       setIsMain(Boolean(data.is_main));
     } catch (e) {
+      if (my !== seq.current) return;
       setErr(e?.response?.data?.detail || "Could not load users.");
       try {
         const { data } = await staffApi.get("/admin/whoami");
         if (data?.reason) setDiag(data.reason);
       } catch (_) { /* diagnostics unavailable */ }
-    } finally { setLoading(false); }
+    } finally { if (my === seq.current) setLoading(false); }
   };
-
-  useEffect(() => { load(""); /* eslint-disable-next-line */ }, []);
 
   useEffect(() => {
     adminOps.permissions().then((d) => setPerms(d.permissions || [])).catch(() => setPerms([]));

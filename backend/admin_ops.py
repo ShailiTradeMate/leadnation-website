@@ -504,7 +504,10 @@ async def user_profile(uid: str, actor: dict = Depends(require_staff),
         profile = await asyncio.to_thread(verify._do_get_profile, uid, authorization) or {}
     except Exception as exc:
         log.warning("DO profile fetch failed for %s: %s", uid, exc)
-    merged = verify._merge_supplement({k: v for k, v in ov.items() if k not in ("_id", "uid")}, profile)
+    shared = await db.profiles.find_one({"uid": uid}) or {}
+    base = verify._merge_supplement({k: v for k, v in ov.items() if k not in ("_id", "uid")},
+                                    {k: v for k, v in shared.items() if k != "_id"})
+    merged = verify._merge_supplement(base, profile)
     return {"profile": _clean(merged), "identity": _clean(user),
             "submission": _clean(sub), "do_reachable": bool(profile)}
 

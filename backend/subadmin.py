@@ -29,15 +29,27 @@ SUBADMINS = db.sub_admins
 SUBS = db.verification_submissions
 OVERLAY = db.profile_overlay
 DO_USERS_CACHE = db.do_users_cache      # READ-THROUGH CACHE of the DO registry (never an identity source)
+PROFILES = db.profiles                  # shared DO-owned profile store (read-only for the website)
 DO_BASE = os.environ.get("AUTH_API_BASE", "").rstrip("/")
 STAFF_TTL_HOURS = 12
 
 
-async def _fetch_do_users(authorization: Optional[str]) -> list:
+async def _fetch_do_users(authorization: Optional[str], max_age: int = 60) -> list:
     """Pull the canonical user registry from the DO identity backend (owner of identity).
-    Requires the main admin's Firebase token; results are cached for sub-admin reads."""
+    Requires the main admin's Firebase token; cached for `max_age` seconds so search
+    stays instant, and re-used by sub-admins who have no Firebase session."""
     if not DO_BASE or not authorization:
         return []
+    fresh = await DO_USERS_CACHE.find_one({}, sort=[("synced_at", -1)])
+    if fresh and fresh.get("synced_at"):
+        try:
+            age = (datetime.now(timezone.utc)
+                   - datetime.fromisoformat(fresh["synced_at"])).total_seconds()
+            if age < max_age:
+                return [{k: v for k, v in d.items() if k not in ("_id", "synced_at")}
+                        async for d in DO_USERS_CACHE.find({})]
+        except Exception:
+            pass
     try:
         r = await asyncio.to_thread(
             requests.get, f"{DO_BASE}/admin_v2/users",
@@ -316,6 +328,11 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
     async for o in OVERLAY.find({}):
         overlays[o.get("uid")] = o
 
+    profiles = {}
+    async for p in PROFILES.find({}):
+        if p.get("uid"):
+            profiles[p["uid"]] = p
+
     subscriptions = {}
     try:
         async for sub in db.subscriptions.find({}):
@@ -330,8 +347,11 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
 
     def _row_from(u, sub, ov):
         cd_ov = (ov.get("company_details") or {})
-        cid = u.get("customer_id") or sub.get("customer_id")
-        uid = u.get("uid") or sub.get("uid")
+        uid0 = u.get("uid") or sub.get("uid")
+        pr = profiles.get(uid0) or {}
+        cd_pr = (pr.get("company_details") or {})
+        cid = u.get("customer_id") or sub.get("customer_id") or pr.get("customer_id")
+        uid = uid0
         sc = subscriptions.get(str(uid)) or subscriptions.get(str(cid)) or {}
         docs = []
         if sub.get("selfie_file_id"):
@@ -344,15 +364,23 @@ async def admin_users(q: Optional[str] = None, status: Optional[str] = None,
         return {
             "uid": uid,
             "customer_id": cid,
-            "name": _pick(u.get("full_name"), u.get("name"), sub.get("name")),
-            "email": _pick(u.get("email"), sub.get("email")),
-            "mobile": _pick(u.get("mobile"), u.get("mobile_number"), sub.get("mobile"), ov.get("mobile")),
-            "country": _pick(u.get("country"), sub.get("country"), ov.get("country")),
-            "state": _pick(sub.get("state"), ov.get("state"), u.get("state")),
-            "category": _pick(sub.get("role"), ov.get("role"), u.get("business_role")),
-            "company_name": _pick(sub.get("company_name"), cd_ov.get("company_name"), cd_ov.get("name")),
-            "company_email": _pick(sub.get("company_email"), cd_ov.get("company_email")),
-            "company_phone": _pick(sub.get("company_phone"), cd_ov.get("company_phone")),
+            "name": _pick(u.get("full_name"), u.get("name"), sub.get("name"), pr.get("name")),
+            "email": _pick(u.get("email"), sub.get("email"), pr.get("email")),
+            "mobile": _pick(u.get("mobile"), u.get("mobile_number"), sub.get("mobile"),
+                            ov.get("mobile"), pr.get("mobile")),
+            "country": _pick(u.get("country"), sub.get("country"), ov.get("country"), pr.get("country")),
+            "state": _pick(sub.get("state"), ov.get("state"), u.get("state"), pr.get("state")),
+            "city": _pick(sub.get("city"), ov.get("city"), u.get("city"), pr.get("city")),
+            "products": _pick(sub.get("products"), ov.get("products"), pr.get("products")) or [],
+            "category": _pick(sub.get("role"), ov.get("role"), u.get("business_role"),
+                              pr.get("role"), u.get("user_role")),
+            "company_name": _pick(sub.get("company_name"), cd_ov.get("company_name"),
+                                  cd_ov.get("name"), cd_pr.get("company_name")),
+            "company_email": _pick(sub.get("company_email"), cd_ov.get("company_email"),
+                                   cd_pr.get("company_email")),
+            "company_phone": _pick(sub.get("company_phone"), cd_ov.get("company_phone"),
+                                   cd_pr.get("company_phone")),
+            "company_description": _pick(cd_ov.get("description"), cd_pr.get("description")),
             "documents": docs,
             "status": sub.get("status") if applied else "not_applied",
             "applied": applied,
@@ -511,16 +539,18 @@ async def allocation_pending(admin: dict = Depends(require_main_admin)):
 ALLOCATABLE_STATUSES = ("needs_review",)
 
 
-def _missing_details(sub: dict, user: dict, ov: dict) -> list[str]:
+def _missing_details(sub: dict, user: dict, ov: dict, pr: dict = None) -> list[str]:
+    pr = pr or {}
+    cd_ov, cd_pr = (ov.get("company_details") or {}), (pr.get("company_details") or {})
     miss = []
     if not _pick(sub.get("mobile"), sub.get("mobile_number"), user.get("mobile"),
-                 user.get("mobile_number"), ov.get("mobile")):
+                 user.get("mobile_number"), ov.get("mobile"), pr.get("mobile")):
         miss.append("Contact number")
-    if not _pick(sub.get("company_name"), (ov.get("company_details") or {}).get("company_name")):
+    if not _pick(sub.get("company_name"), cd_ov.get("company_name"), cd_pr.get("company_name")):
         miss.append("Company name")
-    if not _pick(sub.get("company_phone"), (ov.get("company_details") or {}).get("company_phone")):
+    if not _pick(sub.get("company_phone"), cd_ov.get("company_phone"), cd_pr.get("company_phone")):
         miss.append("Company contact")
-    if not _pick(sub.get("country"), user.get("country"), ov.get("country")):
+    if not _pick(sub.get("country"), user.get("country"), ov.get("country"), pr.get("country")):
         miss.append("Country")
     if not (sub.get("document_file_id") or sub.get("selfie_file_id")):
         miss.append("Documents")
@@ -537,6 +567,10 @@ async def allocation_categories(admin: dict = Depends(require_main_admin),
     overlays = {}
     async for o in OVERLAY.find({}):
         overlays[o.get("uid")] = o
+    profiles = {}
+    async for p in PROFILES.find({}):
+        if p.get("uid"):
+            profiles[p["uid"]] = p
 
     users_by_uid = {u.get("uid"): u for u in users if u.get("uid")}
     users_by_email = {str(u.get("email") or "").lower(): u for u in users if u.get("email")}
@@ -554,15 +588,18 @@ async def allocation_categories(admin: dict = Depends(require_main_admin),
             submitted_emails.add(em)
         u = users_by_uid.get(uid) or users_by_email.get(em) or {}
         ov = overlays.get(uid) or {}
-        miss = _missing_details(s, u, ov)
+        pr = profiles.get(uid) or {}
+        miss = _missing_details(s, u, ov, pr)
         item = {
             "submission_id": s.get("_id") or s.get("id"),
             "uid": uid,
             "customer_id": _pick(s.get("customer_id"), u.get("customer_id")),
-            "name": _pick(s.get("name"), u.get("full_name"), u.get("name")),
-            "email": _pick(s.get("email"), u.get("email")),
-            "mobile": _pick(s.get("mobile"), u.get("mobile"), u.get("mobile_number"), ov.get("mobile")),
-            "company_name": s.get("company_name"),
+            "name": _pick(s.get("name"), u.get("full_name"), u.get("name"), pr.get("name")),
+            "email": _pick(s.get("email"), u.get("email"), pr.get("email")),
+            "mobile": _pick(s.get("mobile"), u.get("mobile"), u.get("mobile_number"),
+                            ov.get("mobile"), pr.get("mobile")),
+            "company_name": _pick(s.get("company_name"),
+                                  (pr.get("company_details") or {}).get("company_name")),
             "status": s.get("status"),
             "assigned_to": s.get("assigned_to"),
             "assigned_to_name": s.get("assigned_to_name"),
@@ -591,11 +628,12 @@ async def allocation_categories(admin: dict = Depends(require_main_admin),
         if u.get("is_deleted"):
             continue
         ov = overlays.get(uid) or {}
-        mob = _pick(u.get("mobile"), u.get("mobile_number"), ov.get("mobile"))
+        pr = profiles.get(uid) or {}
+        mob = _pick(u.get("mobile"), u.get("mobile_number"), ov.get("mobile"), pr.get("mobile"))
         no_verification.append({
-            "submission_id": None, "uid": uid, "customer_id": u.get("customer_id"),
-            "name": _pick(u.get("full_name"), u.get("name")), "email": u.get("email"),
-            "mobile": mob, "company_name": None, "status": "not_applied",
+            "submission_id": None, "uid": uid, "customer_id": _pick(u.get("customer_id"), pr.get("customer_id")),
+            "name": _pick(u.get("full_name"), u.get("name"), pr.get("name")), "email": _pick(u.get("email"), pr.get("email")),
+            "mobile": mob, "company_name": (pr.get("company_details") or {}).get("company_name"), "status": "not_applied",
             "assigned_to": None, "assigned_to_name": None,
             "missing": [] if mob else ["Contact number"],
             "created_at": _pick(u.get("created_at"), u.get("createdAt")),

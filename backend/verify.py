@@ -169,10 +169,14 @@ async def _save_overlay(uid: str, patch: dict):
 
 
 async def _profile(uid: str, authorization: Optional[str]) -> dict:
-    """Canonical DO profile supplemented with the website-local overlay."""
+    """Canonical DO profile, supplemented with the shared `profiles` store and the
+    website-local overlay. The DO API wins wherever it returns a filled value; the
+    shared store covers users whose profile the API hydrates as blank."""
     do = _do_get_profile(uid, authorization)
+    shared = await db.profiles.find_one({"uid": uid}) or {}
+    shared = {k: v for k, v in shared.items() if k != "_id"}
     ov = await _get_overlay(uid)
-    return _merge_supplement(ov, do)
+    return _merge_supplement(_merge_supplement(ov, shared), do)
 
 
 def _do_put_profile(uid: str, patch: dict, authorization: Optional[str]) -> dict:

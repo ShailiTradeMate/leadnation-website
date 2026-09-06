@@ -571,3 +571,19 @@ Enforced twice: permission gate + `_resolve()` allocation scope (`assigned_to ==
 - `admin_ops._user_doc()` falls back to the cache, so per-user actions work for DO-only users.
 **More user data exposed:** rows now include user_role, identity verification status, onboarding status, email-verified, sign-in provider, account state (active/suspended/deleted), identity subscription status + expiry, registered-on and last-activity. New `GET /api/admin/users/{uid}/profile` returns the canonical DO shared profile + overlay + identity row on demand; the expanded row renders it under "Shared profile (full record)" and states plainly when a user simply has not completed onboarding.
 **Verified in preview:** 12 users listed (11 DO + 1 local-only), `vaibhav.deshmane@vametra.com` present and searchable, `no_verification` category now 11, sub-admin still scoped to 1 allocated user and 403 on another user's profile. Needs a re-deploy for vametra.com.
+
+## Fix — Missing user DATA (name / mobile / country / role) in the Users tab (June 2026)
+Tested: `/app/test_reports/iteration_55.json` — backend 16/16 PASS (`/app/backend/tests/test_iter55_users_full.py`), frontend PASS.
+**Symptom:** `vaibhav.deshmane@vametra.com` showed blank name, mobile, country and company even though the user filled them at signup.
+**Root cause:** the details live in the shared DO-owned `profiles` collection, but DO's `GET /v1/profiles/{uid}` hydrates a BLANK profile for that user (`_source: legacy_hydrate`) and the identity registry row (`admin_v2/users`) has empty `full_name`/`mobile`. We only read those two sources, so real data (name "Vaibhav Deshmane", mobile 7020691832, city AhilyaNagar, company "Vametra.com", products SaaS/IT services) was never surfaced.
+**Fix:**
+- `subadmin.PROFILES = db.profiles` is now merged into every admin row (priority: submission > overlay > shared profile > registry) and into `_missing_details()` so allocation flags are accurate.
+- Rows now also carry city, products, company description.
+- `verify._profile()` merges overlay < shared `profiles` doc < DO API response, so the buyer's own form prefill benefits too.
+- `admin_ops.GET /users/{uid}/profile` merges overlay + shared profile + DO API.
+- `_fetch_do_users()` now caches the registry for 60s (search was doing a live DO round-trip per keystroke).
+- `UsersManager.load()` uses a sequence guard so a slower earlier response can no longer overwrite a newer search result (search showed 12 rows while the query was for 1).
+**Users with no data anywhere:** e.g. `krivajexim@gmail.com`, `shailienterprises21@gmail.com`, `dinanathdeshmane57@gmail.com` have no `profiles` doc at all — signup created the account but onboarding never completed. The row now shows their Onboarding status ("stuck"/"started") and the detail panel says so explicitly, instead of unexplained dashes.
+### Backlog added
+- **P2** Warm `do_users_cache` on startup (today it is filled the first time a main admin loads the Users tab; sub-admins fall back to local rows + submissions, which still covers their allocated scope).
+- **P2** Paginate `/admin/users` once the platform passes ~2000 users.

@@ -1,0 +1,30 @@
+{
+  "summary": "Iter 55 verified the fix for 'vaibhav.deshmane@vametra.com missing from Users tab' end-to-end. Backend pytest 16/16 PASS in 53s (/app/backend/tests/test_iter55_users_full.py). Admin Users list now returns 12 rows sourced from the canonical DO identity registry merged with the website-local users collection; target user surfaces with Customer ID 00002, name 'Vaibhav Deshmane', mobile 7020691832, country India, city AhilyaNagar, company 'Vametra.com'. Live search on 'vaibhav.deshmane' returns exactly 1 row (verified in UI screenshot — 12 -> 1 with the correct row rendered), and searches by mobile, company 'Vametra', and customer id 00002 all return the target. Full profile endpoint GET /api/admin/users/{uid}/profile returns 200 for the identity-only user (previously 404 before the _user_doc cache fallback). Sub-admin regression: sakshi@vametra.com sees only her allocated user (1 row) and gets 403 on /admin/signoff, /admin/users/{uid}/delete, /admin/users/{uid}/subscription, and /admin/users/{other-uid}/profile. Allocation categories: 'no_verification' bucket contains all registered non-applicants (allocatable=false); 'missing_details' does NOT flag the target (mobile lives on shared profile). User-side /api/verify/state returns 200 for a normal logged-in buyer (no regression from the shared-profiles merge in verify._profile).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter55_users_full.py",
+    "/app/test_reports/pytest/iter55.xml"
+  ],
+  "action_items": [
+    "None blocking. All targeted regressions green: canonical user source, on-demand full profile, search-race guard, allocation categories, user-side verify prefill, sub-admin RBAC."
+  ],
+  "critical_code_review_comments": [
+    "subadmin._fetch_do_users uses a 60s read-through cache keyed on DO_USERS_CACHE — good. Note: cache is populated only when the MAIN admin's Firebase token calls admin/users; sub-admins depend on the main admin having recently hit the endpoint. If a main admin has never logged in since deploy, sub-admins will see an empty registry. Consider warming the cache on startup via a scheduled job.",
+    "subadmin.admin_users() emits `counts` = {'total': len(rows)} but the frontend derives per-status counts client-side (verified/needs_review/not_applied); if platform grows past 2000 users the client-side aggregation will still work but the response gets large — consider paginating.",
+    "admin_ops._resolve() raises 404 only if BOTH user and subs are missing — good defence in depth. Correct fallback via _user_doc reading do_users_cache.",
+    "verify._profile now does 3 store lookups (DO API + shared profiles + overlay) per call; a couple of Verified Buyer endpoints call it repeatedly per request. Not a bug, but consider memoising within one request.",
+    "signoff() decline branch's emailer.send is still not wrapped in a try/except at the endpoint level — noted last iteration, still applies."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter55_users_full.py",
+    "/app/test_reports/iteration_55.json"
+  ],
+  "success_rate": {"backend": "100% (16/16)", "frontend": "100% (users list renders 12, search race fix confirmed 12->1)"},
+  "test_credentials": "Unchanged — /app/memory/test_credentials.md. Main admin admin@vametra.com/Shiv@12345, sub-admin sakshi@vametra.com/Shiv@12345, buyer vaibhav@leadnation.app/Shiv@12345.",
+  "seed_data_creation": "None. No destructive test on real users.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "The admin Users tab is now authoritative on the DO identity registry (via subadmin._fetch_do_users -> DO_USERS_CACHE). 12 canonical users present. Target uid for 'vaibhav.deshmane@vametra.com' is customer_id 00002. Sakshi is allocated to uid SPKdrHke3NNjWTpYwxHUzwLnZbO2 only. FullProfile UI expansion is triggered by clicking an admin-user-row — during Playwright automation the click sometimes does not visibly expand within a single wait cycle (React re-renders can race with the click event); the underlying endpoint /api/admin/users/{uid}/profile returns 200 with correct data — verified by backend test.",
+  "rca of the issue": "Root cause was that /api/admin/users was reading from db.users (website-local Mongo, 3 rows) instead of the DO identity registry. Fix: subadmin._all_platform_users() now pulls from {AUTH_API_BASE}/admin_v2/users (cached 60s in db.do_users_cache) and merges any local-only rows on top. Additionally: (a) admin_ops._user_doc() now falls back to do_users_cache so per-user admin endpoints don't 404 for identity-only users; (b) verify._profile() merges the shared db.profiles doc (which holds mobile/company/products even when the DO API hydrates blank); (c) UsersManager.jsx uses a seq counter to discard slower earlier admin/users responses so a fast search isn't overwritten. All verified in this iteration."
+}
