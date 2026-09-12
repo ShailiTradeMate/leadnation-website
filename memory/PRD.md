@@ -648,3 +648,11 @@ Tested: `/app/test_reports/iteration_56.json` — backend 8/8 PASS (`test_iter56
 **Cleanup done (owner approved):** 5 automation probe accounts (Customer IDs 00004–00008) purged from every system via the new endpoint. 7 real users remain.
 
 **New standing rule:** `/app/memory/rules.md` — one uid → one Customer ID → one GEID; any user-keyed collection MUST be added to `WEBSITE_STORES`; test accounts must be created via normal signup, flagged, recorded in `test_credentials.md` and deleted after use. No shadow/seeded user records, ever.
+
+---
+
+## BACKLOG POINTER (2026-06, deployment freeze)
+Owner deployed this build and moved to Marketing / SEO / GEO.
+ALL pending work — old + new — is consolidated in **`/app/memory/ROADMAP.md`** (single source of truth for the backlog).
+Per-section "Next / backlog" notes above are historical; do not plan from them directly.
+Active phase: ROADMAP §0 (Marketing/SEO/GEO). Engineering is parked behind ROADMAP §1 post-deploy validation.
