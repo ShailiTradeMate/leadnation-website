@@ -16,8 +16,8 @@ export default function DocumentsModal({ u, onClose, onDone }) {
     if (!file) { setErr("Choose a file to upload."); return; }
     setBusy(true); setErr(""); setOk("");
     try {
-      await adminOps.uploadDocument(u.uid, file, kind, label);
-      setOk("Document uploaded and attached. The buyer has been notified by email.");
+      const res = await adminOps.uploadDocument(u.uid, file, kind, label);
+      setOk(res.stage === "awaiting_signoff" ? res.message : "Document uploaded and attached. The buyer has been notified by email.");
       if (fileRef.current) fileRef.current.value = "";
       onDone && onDone();
     } catch (e) { setErr(errText(e, "Upload failed.")); }

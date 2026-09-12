@@ -1,3 +1,47 @@
+## Latest handoff — 2026-09-12 — stopped at user request
+
+**User requested immediate wrap-up due elapsed time and credit concerns. No more development/testing without a new instruction. This milestone is not fully end-to-end verified.**
+
+### Scope and implementation
+- Unified bulk main-admin approvals for sub-admin verification/reject recommendations, profile/demographic changes, document replacement, free-month grants, and hard-delete requests.
+- Added `backend/admin_approvals.py`, `buyer_membership.py`, `buyer_admin_actions.py`, `identity_delegate.py`; extended `admin_ops.py`, `verify.py`, buyer APIs and ingestion tombstones.
+- Added frontend ApprovalInbox, BuyerDirectory, RegistryMatchNotice, CommandBuyers. CMS contact columns and KYC/Add User/Hard Delete controls; shared GEID-based listings across public Buyers/Command Center/CMS.
+- Sub-admin edits/documents/grants are staged until sign-off. Grants extend existing expiry; duplicate decisions do not re-grant. Deleted applications cancel leftover requests rather than crashing the inbox.
+- Main Firebase bearer now wins over a stale staff token; main login clears staff session, staff login logs out Firebase first.
+- CMS batching fixed N+1 query timeout; duplicate list requests removed. Mobile tables and cookie-content reservation implemented.
+
+### Authoritative integration findings
+- Preview Mongo is a snapshot, not DO's live database. Confirm writes via DO APIs and mirror only the returned SAME uid/customer_id/GEID; no new competing identities.
+- `POST /entities` takes entity_type/legal_name/display_name/country, NOT type/name.
+- `POST /members/bind` takes ONLY {geid} and binds the Firebase TOKEN SUBJECT. Main approval uses short-lived server-only TARGET-user delegation. Never return/store the tokens.
+- `GET /members/company` DOES exist and returns linked/customer_id/geid/entity; reuse existing binding, validate canonical readback and cache same identifiers. `GET /entities/{geid}` also exists. Earlier troubleshooting claim that these routes did not exist was wrong.
+- `POST /admin_v2/users/{cid}/approve` persists native verification_status=approved and onboarding_status=completed; website calls this verified. Native approved and verified are accepted aliases in readback.
+- `PUT /admin_v2/users/{cid}` with verification_status=rejected was empirically verified. Sending verified silently failed to persist. V1 profile PUT does not support verification_status.
+- `DELETE /admin_v2/users/{cid}` is SOFT delete. Correct full removal route is `/admin_v2/users/{cid}/hard-delete`.
+- Storage has no documented physical DELETE API. Hard delete overwrites file bytes empty via supported PUT and removes local references; do NOT claim physical object keys are deleted.
+- New backend env config: FIREBASE_WEB_API_KEY copied from existing frontend Firebase project; FIREBASE_IDENTITY_TOOLKIT_URL. Protected config unchanged.
+
+### Testing evidence and limitations
+- Build and critical Python lint passed earlier. Latest admin UI passed iteration62 desktop/mobile: main inbox/bulk button, populated ~24k buyer directory, Add User/Hard Delete modal open/cancel, no mobile overflow.
+- Live disposable-user mutations exercised grant, extension/idempotency, deferred profile and document changes, including successful bulk decision records. Main-agent external API call confirmed a strict successful final approval with correct canonical GEID after fixes.
+- Main/staff mixed-header precedence passed. Granted disposable buyer contact unlock passed. A real cancelled subscriber correctly returned402 and was not restored.
+- Registry matching/banner/claim coverage is **MOCKED**; KYC checks used **SEEDED** document-analysis bytes, NOT live OCR or real government-registry onboarding. Application integrations themselves are not intentionally mocked.
+- Resend rejected disposable example.com recipient; final approval correctly reported email.sent=false. Real production recipient delivery remains unverified.
+- Reports57–62 mix genuine bugs with invalid fixture assumptions. Some test runs continued cleanup after failures, then tried to reuse deleted identities. Missing deleted test accounts and cancelled subscriptions are NOT auth/entitlement bugs.
+- Full uninterrupted latest-code end-to-end regression remains incomplete. Do NOT blindly rerun tests58–62: they reference deleted fixtures and contain destructive cleanup. They also contain hardcoded test credentials; move those to environment/credential fixtures during any future test maintenance.
+
+### Cleanup
+- Test customer IDs00014–00017 removal confirmed in iteration59.
+- Test00018 uid nhnlL3Jey3QHEuf9z3YyxgEtFL72 was removed upstream by test cleanup, leaving snapshot artifacts. Main agent explicitly retried website hard-delete: ok=true, DO deleted, Firebase deleted, warnings=[], removed submission, overlay/context/activity, three file references, subscription, bridge and company listing.
+- Only testing accounts were authorized for deletion. Real users were not intentionally changed/deleted. TEST Iter57 Project artifact was removed by testing agent.
+
+### Remaining priorities — only after a new user instruction
+- P0: One controlled uninterrupted latest-version regression on a fresh visible TEST account; no concurrent tests; cleanup only after all assertions. Review/reject, mixed bulk changes/grants/docs, canonical readback, all buyer surfaces and final deletion.
+- P1: Real registry-match KYC/Add User acceptance, production email/scheduled delivery, failure recovery and cross-environment cache consistency.
+- P2: Optional approval filters/workload views and notification-delivery retry visibility. Do not begin now.
+
+---
+
 # LeadNation — Global Trade Intelligence Portal
 
 > 2026-06 UPDATE — ADMIN PANEL **PHASE B** — BUILT & TESTED (iteration_52, backend 17/17, frontend 100%). **Allocation:** main-admin-only "Allocate" button in the User Section opens `AllocatePanel` — (1) select active sub-admins (checkboxes) → round-robin distribute all unassigned `needs_review` submissions (sets `assigned_to`/`assigned_to_name`) + best-effort `subadmin_allocation` notification email per sub-admin; (2) create sub-admin (name/email/password) + activate/deactivate toggle (inactive → excluded from allocation list + login blocked). **Nightly digest:** `send_pending_digest()` emails admin@vametra.com the pending-approval COUNT, cron 19:30 UTC = 01:00 IST (`start_pending_digest`), no per-user/sub-admin emails. Fixed `admin_users()` to rank submissions per uid (assigned/needs_review win over rejected) + surface applicant submissions with no registered user, so sub-admin allocation scope shows correctly. Endpoints (main-admin only, 403 for sub-admins): `GET/POST /api/admin/subadmins`, `PATCH /api/admin/subadmins/{id}`, `GET /api/admin/allocate/pending`, `POST /api/admin/allocate`. ⏳ Phase C (per-user Approve/Reject/Hard Delete/Contact/Edit/Payments+free-sub grants) pending review-gate. Known cosmetic: cookie banner overlaps table bottom until dismissed.

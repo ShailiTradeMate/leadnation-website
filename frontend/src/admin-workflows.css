@@ -1,0 +1,24 @@
+[data-testid="admin-users-panel"], [data-testid="admin-buyers"] { min-width: 0; overflow-wrap: anywhere; }
+.admin-responsive-table { table-layout: fixed; }
+.admin-responsive-table td { overflow-wrap: anywhere; }
+[data-testid="approval-inbox"] button { white-space: normal; }
+@media (max-width: 767px) {
+  .admin-responsive-table, .admin-responsive-table tbody, .admin-responsive-table tr, .admin-responsive-table td { display: block; width: 100%; }
+  .admin-responsive-table thead { display: none; }
+  .admin-responsive-table tr { padding: 10px 0; }
+  .admin-responsive-table td { padding: 5px 12px; text-align: left; }
+  .admin-responsive-table td[colspan] { padding: 0; }
+  .admin-responsive-table td:not([colspan])::before { display: block; color: #94a3b8; font-size: 10px; text-transform: uppercase; }
+  [data-testid="buyer-directory-table"] td:nth-child(1)::before { content: "Name / Company"; }
+  [data-testid="buyer-directory-table"] td:nth-child(2)::before { content: "Mobile"; }
+  [data-testid="buyer-directory-table"] td:nth-child(3)::before { content: "Email"; }
+  [data-testid="buyer-directory-table"] td:nth-child(4)::before { content: "Address"; }
+  [data-testid="buyer-directory-table"] td:nth-child(5)::before { content: "Country"; }
+  [data-testid="admin-users-panel"] td:nth-child(1):not([colspan])::before { content: "User ID"; }
+  [data-testid="admin-users-panel"] td:nth-child(2)::before { content: "Name"; }
+  [data-testid="admin-users-panel"] td:nth-child(3)::before { content: "Email"; }
+  [data-testid="admin-users-panel"] td:nth-child(4)::before { content: "Mobile"; }
+  [data-testid="admin-users-panel"] td:nth-child(5)::before { content: "Company"; }
+  [data-testid="admin-users-panel"] td:nth-child(6)::before { content: "Country"; }
+  [data-testid="admin-users-panel"] td:nth-child(7)::before { content: "Status"; }
+}

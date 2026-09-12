@@ -1,0 +1,69 @@
+{
+  "summary": "Focused iteration-59 critical verification executed (live + MOCKED). Disposable account cleanup and hard-delete confirmations succeeded; strict approve-path validation could not be completed because the pending review target had no Firebase identity and later disposable accounts were cleaned. Subscriber contact-unlock entitlement check failed (402 locked:plan).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/admin/approvals/decide",
+        "issue": "Review request sign-off returned failed result instead of approved: {'error':'Target Firebase user no longer exists.'} for disposable uid fGALnKTwZoPEwnHsYlSu9zreRKB3 (request id review:ITER58_SUB_fGAL...)",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/buyers/{geid}/contact",
+        "issue": "Subscriber credential vaibhav@leadnation.app returned 402 locked:plan; entitlement expected unlocked by seeded active subscription account.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Admin Users approval inbox header",
+        "issue": "After main-admin login, UI shows 'My approval requests' (is_main=false view) instead of main-admin approval inbox wording.",
+        "selector": "[data-testid='approval-inbox-count']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Admin CMS Buyers directory modal checks",
+        "issue": "Directory rendered 0 buyers post-cleanup; Add User and Hard Delete modal interactions could not be validated live due no rows.",
+        "affected_selectors": [
+          "[data-testid='buyer-directory-count']",
+          "[data-testid^='admin-buyer-row-']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter59_final_critical_verification.py",
+    "/app/backend/tests/test_iter59_registry_claim_mocked.py",
+    "/app/test_reports/pytest/iter59.xml"
+  ],
+  "action_items": [
+    "Fix approval execution path for legacy/pending review rows where uid no longer exists in Firebase; ensure strict approve path can complete on valid disposable target.",
+    "Restore/seed subscriber entitlement for vaibhav@leadnation.app so /buyers/{geid}/contact unlocks as documented.",
+    "Investigate main-admin browser session role mapping for approval inbox (is_main false rendering despite main-admin login).",
+    "After fixing above, retest strict APPROVED-only review workflow + reject recommendation workflow with a live disposable test account before cleanup."
+  ],
+  "critical_code_review_comments": [
+    "Approval flow remains sensitive to stale identity linkage: request can stay pending while target Firebase account is already deleted, causing approve to fail hard at execution time.",
+    "End-to-end entitlement assumptions in test credentials are drifting from runtime subscription state (subscriber unlock regression).",
+    "Current UI role signal in ApprovalInbox does not match expected main-admin behavior in preview run and masks bulk-approve controls during final verification."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter59_final_critical_verification.py",
+    "/app/backend/tests/test_iter59_registry_claim_mocked.py",
+    "/app/test_reports/iteration_59.json"
+  ],
+  "success_rate": {
+    "backend": "~70% (live cleanup and post-clean checks passed; strict approve + entitlement checks failed/blocked)",
+    "frontend": "~60% (pages load on desktop/mobile; critical role/integration gaps remain)"
+  },
+  "seed_data_creation": "No new live user accounts created. MOCKED test fixtures added only in unit tests.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Disposable iter58 accounts (00014/00015/00016/00017) were hard-deleted and local artifacts cleaned; TEST Iter57 Project removed; no leftover disposable pending approval/delete requests. For strict review-approve verification, use a fresh disposable fixture (if owner permits) because current disposable set has been cleaned and earlier pending review failed with missing Firebase target.",
+  "rca of the issue": "Reproduction 1: approve review request from /api/admin/approvals -> /decide returns result.status='failed' with 'Target Firebase user no longer exists.' Root cause: pending review row references a user whose Firebase identity was already removed, so finalization cannot delegate target token. Reproduction 2: login as seeded subscriber and POST /api/buyers/{geid}/contact -> 402 locked:plan. Root cause likely inactive/missing subscription state for documented entitlement account. Reproduction 3 (UI): admin login then Users tab shows 'My approval requests' indicating non-main inbox path rendered; probable role/session mapping mismatch in browser context."
+}

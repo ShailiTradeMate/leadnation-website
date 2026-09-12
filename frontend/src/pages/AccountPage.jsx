@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { trackEvent, EVENTS } from "@/lib/analytics";
 import CommandCenterReport from "@/components/CommandCenterReport";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { RegistryMatchNotice } from "@/components/RegistryMatchNotice";
 import { getVerifyState } from "@/lib/verifyApi";
 import {
   User, IdentificationCard, Envelope, Phone, MapPin, Briefcase, DownloadSimple,
@@ -145,6 +146,7 @@ export default function AccountPage() {
       {payMsg && <div className="glass rounded-2xl px-4 py-3 mt-4 text-sm text-cyan-200 flex items-center gap-2" data-testid="account-pay-msg"><Lightning size={15} className="text-cyan-300" /> {payMsg}</div>}
 
       {/* Verified Buyer CTA */}
+      <RegistryMatchNotice />
       {vstate && vstate.verification_status !== "verified" && (
         <Link to="/verify" data-testid="account-verify-cta"
           className="mt-4 flex items-center gap-4 glass-strong rounded-2xl p-4 sm:p-5 border border-emerald-400/20 hover:border-emerald-400/40 transition-colors group">

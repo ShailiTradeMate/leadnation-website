@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="10" time="60.965" timestamp="2026-09-12T20:25:18.141509+00:00" hostname="agent-env-f31bcbf9-e051-44cf-a4cd-4225e91f3de3"><testcase classname="backend.tests.test_iter58_identity_workflow_mutations" name="test_subscription_request_main_approval_idempotent" time="31.276"><failure message="AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">backend/tests/test_iter58_identity_workflow_mutations.py:256: in test_subscription_request_main_approval_idempotent
+    assert _find_pending_request(session, main_headers, rid)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+backend/tests/test_iter58_identity_workflow_mutations.py:234: in _find_pending_request
+    assert ib.status_code == 200, ib.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_iter58_identity_workflow_mutations" name="test_second_subscription_request_extends_expiry" time="1.965"><failure message="assert None">backend/tests/test_iter58_identity_workflow_mutations.py:290: in test_second_subscription_request_extends_expiry
+    assert old_until
+E   assert None</failure></testcase><testcase classname="backend.tests.test_iter58_identity_workflow_mutations" name="test_profile_change_deferred_until_approval" time="19.622" /><testcase classname="backend.tests.test_iter58_identity_workflow_mutations" name="test_role_escalation_rejected" time="0.295" /><testcase classname="backend.tests.test_iter58_identity_workflow_mutations" name="test_review_recommendation_paths_and_bridge_guard" time="3.527"><failure message="AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">backend/tests/test_iter58_identity_workflow_mutations.py:378: in test_review_recommendation_paths_and_bridge_guard
+    assert inbox.status_code == 200, inbox.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_iter58_identity_workflow_mutations" name="test_hard_delete_full_request_cycle" time="3.761"><failure message="AssertionError: Internal Server Error&#10;assert 500 == 200&#10; +  where 500 = &lt;Response [500]&gt;.status_code">backend/tests/test_iter58_identity_workflow_mutations.py:436: in test_hard_delete_full_request_cycle
+    assert pending.status_code == 200, pending.text
+E   AssertionError: Internal Server Error
+E   assert 500 == 200
+E    +  where 500 = &lt;Response [500]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_iter58_registry_matching_mocked" name="test_mocked_registry_candidate_missing_fields_returns_none" time="0.014" /><testcase classname="backend.tests.test_iter58_registry_matching_mocked" name="test_mocked_registry_candidate_ambiguous_returns_none" time="0.001" /><testcase classname="backend.tests.test_iter58_registry_matching_mocked" name="test_mocked_registry_candidate_unicode_name_and_phone_normalization" time="0.001" /><testcase classname="backend.tests.test_iter58_registry_matching_mocked" name="test_mocked_accept_match_requires_unique_candidate" time="0.000" /></testsuite></testsuites>

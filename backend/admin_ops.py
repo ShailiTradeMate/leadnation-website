@@ -18,7 +18,8 @@ from typing import Optional
 
 import requests
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, File, Form
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Literal
 
 from core import db
 from subadmin import require_staff, require_perm, has_perm
@@ -142,6 +143,10 @@ async def review_user(uid: str, body: ReviewIn,
 
     # --- Sub-admin: store a recommendation and ask the main admin to sign off ---
     if not actor.get("is_main"):
+        if len((body.note or "").strip()) < 10:
+            raise HTTPException(400, "Provide a business case (at least 10 characters).")
+        if sub.get("review_stage") == "awaiting_signoff":
+            raise HTTPException(409, "A review recommendation is already awaiting sign-off.")
         await SUBS.update_one({"_id": sid}, {"$set": {
             "review_stage": "awaiting_signoff",
             "recommendation": {"decision": decision, "note": body.note,
@@ -168,25 +173,33 @@ async def _finalise(uid: str, sid: str, decision: str, note: Optional[str],
                     actor: dict, authorization: Optional[str]):
     """Execute the final approve/reject — DO identity write + Brain notification."""
     import verify
+    admin_authorization = authorization
     sub = await SUBS.find_one({"_id": sid})
     if not sub:
         raise HTTPException(404, "Submission not found.")
     user = await _user_doc(uid)
     ov = await OVERLAY.find_one({"uid": uid}) or {}
     c = _contact(user, sub, ov)
+    from identity_delegate import for_approved_action
+    authorization = await for_approved_action(uid, actor)
     profile = await verify._profile(uid, authorization)
+    profile["customer_id"] = profile.get("customer_id") or user.get("customer_id") or sub.get("customer_id")
+    profile["email"] = profile.get("email") or c["email"]
     reviewer = actor.get("name") or actor.get("email") or "Main admin"
+    final_status = "verified" if decision == "approve" else "rejected"
+    if sub.get("status") == final_status and sub.get("review_stage") == "completed":
+        return {"ok": True, "status": final_status, "geid": sub.get("geid"), "already_applied": True}
 
     if decision == "approve":
-        link = verify._do_link_buyer(uid, profile.get("customer_id"), profile,
-                                     sub.get("entity_type") or "prospect", authorization)
-        verify._do_put_profile(uid, {"verification_status": "verified"}, authorization)
+        from buyer_membership import approve_membership
+        link = await approve_membership(uid, sub, profile, authorization, admin_authorization)
         await SUBS.update_one({"_id": sid}, {"$set": {
             "status": "verified", "geid": link.get("geid"), "linked": link.get("linked"),
             "reviewer": reviewer, "review_note": note, "review_stage": "completed",
             "decided_at": _now(), "updated_at": _now()},
             "$unset": {"recommendation": ""}})
         await _audit(actor, "review.approve", uid, {"note": note, "geid": link.get("geid")})
+        await complete_other_review_requests(uid, sid)
         res = await profile_brain.announce(
             uid, "verify_approved", email=c["email"], name=c["name"], actor=actor,
             summary="Your Verified Buyer application was approved",
@@ -197,17 +210,27 @@ async def _finalise(uid: str, sid: str, decision: str, note: Optional[str],
                                                      "geid": link.get("geid")})
         return {"ok": True, "status": "verified", "geid": link.get("geid"), "email": res["email"]}
 
-    verify._do_put_profile(uid, {"verification_status": "rejected"}, authorization)
+    from buyer_membership import set_shared_verification
+    await set_shared_verification(profile["customer_id"], "rejected", admin_authorization)
+    from buyer_membership import remove_member_listing
+    await remove_member_listing(uid)
     await SUBS.update_one({"_id": sid}, {"$set": {
         "status": "rejected", "reviewer": reviewer, "review_note": note,
         "review_stage": "completed", "decided_at": _now(), "updated_at": _now()},
         "$unset": {"recommendation": ""}})
     await _audit(actor, "review.reject", uid, {"note": note})
+    await complete_other_review_requests(uid, sid)
     res = await profile_brain.announce(
         uid, "verify_rejected", email=c["email"], name=c["name"], actor=actor,
         summary="Your Verified Buyer application could not be approved",
         ctx={"note": note, "reviewer": reviewer})
     return {"ok": True, "status": "rejected", "email": res["email"]}
+
+
+async def complete_other_review_requests(uid, sid):
+    await db.admin_approval_requests.update_many({"uid": uid, "payload.submission_id": sid,
+        "kind": {"$in": ["review", "registry_claim"]}, "status": {"$in": ["pending", "failed"]}},
+        {"$set": {"status": "approved", "decided_at": _now()}, "$unset": {"pending_key": ""}})
 
 
 # ---- Sign-off queue (main admin) ----
@@ -247,6 +270,8 @@ async def signoff(uid: str, body: SignoffIn,
         raise HTTPException(404, "Submission not found.")
     rec = sub.get("recommendation") or {}
     action = (body.action or "").lower()
+    if action not in ("confirm", "decline", "override") or sub.get("review_stage") != "awaiting_signoff":
+        raise HTTPException(409, "No pending recommendation to decide.")
 
     if action == "decline":
         await SUBS.update_one({"_id": sub["_id"]}, {"$set": {
@@ -277,6 +302,7 @@ async def signoff(uid: str, body: SignoffIn,
 # ================= C2 — Edit profile / documents / contact =================
 class ProfileEdit(BaseModel):
     patch: dict
+    note: Optional[str] = None
 
 
 @router.patch("/users/{uid}/profile")
@@ -287,13 +313,26 @@ async def edit_profile(uid: str, body: ProfileEdit,
     form uses (DO canonical + website overlay), then Brain informs the buyer."""
     import verify
     patch = {k: v for k, v in (body.patch or {}).items() if v is not None}
+    from buyer_membership import validate_profile_patch
+    patch = validate_profile_patch(patch)
     if not patch:
         raise HTTPException(400, "Nothing to update.")
     user, sub, ov = await _resolve(uid, actor)
     c = _contact(user, sub, ov)
     before = await verify._profile(uid, authorization)
 
-    verify._do_put_profile(uid, patch, authorization)
+    if not actor.get("is_main"):
+        from admin_approvals import enqueue
+        paths = [f"{k}.{j}" for k, v in patch.items() if isinstance(v, dict) for j in v]
+        paths += [k for k, v in patch.items() if not isinstance(v, dict)]
+        return await enqueue(uid, "profile_edit", {"patch": patch,
+            "before": {p: verify._get_nested(before, p) for p in paths}}, actor, body.note)
+
+    from identity_delegate import for_approved_action
+    authorization = await for_approved_action(uid, actor)
+    written = await asyncio.to_thread(verify._do_put_profile, uid, patch, authorization)
+    if not written.get("ok"):
+        raise HTTPException(502, "Shared profile update was not confirmed. Request remains pending.")
     await verify._save_overlay(uid, patch)
 
     # keep the admin table + the review record consistent with the correction
@@ -313,6 +352,8 @@ async def edit_profile(uid: str, body: ProfileEdit,
         await SUBS.update_one({"_id": sub["_id"]}, {"$set": {**sub_set, "updated_at": _now()}})
 
     after = await verify._profile(uid, authorization)
+    from buyer_membership import sync_approved_member
+    await sync_approved_member(uid, verify._apply_patch(after, patch))
     await _audit(actor, "profile.edit", uid, {"patch": patch})
     res = await profile_brain.observe(uid, before, after, actor=actor, source="admin_edit",
                                       email=c["email"], name=c["name"])
@@ -346,18 +387,31 @@ async def upload_document(uid: str, file: UploadFile = File(...), kind: str = Fo
         "uploaded_by_admin": actor.get("email") or actor.get("name"),
         "provider": storage.get_provider().name, "is_deleted": False, "created_at": _now()})
 
+    payload = {"file_id": fid, "kind": kind, "label": label or file.filename,
+               "filename": file.filename, "note": note, "submission_id": str(sub["_id"])}
+    if not actor.get("is_main"):
+        from admin_approvals import enqueue
+        return await enqueue(uid, "document", payload, actor, note)
+    return await apply_document(uid, payload, actor)
+
+
+async def apply_document(uid: str, payload: dict, actor: dict):
+    user, sub, ov = await _resolve(uid, actor)
+    fid, kind, label, note = (payload.get(k) for k in ("file_id", "kind", "label", "note"))
+    if str(sub.get("_id")) != payload["submission_id"]:
+        raise HTTPException(409, "The verification application has changed.")
     field = "selfie_file_id" if kind == "selfie" else "document_file_id"
     await SUBS.update_one({"_id": sub["_id"]}, {
         "$set": {field: fid, "updated_at": _now()},
         "$push": {"admin_documents": {"file_id": fid, "kind": kind,
-                                      "label": label or file.filename,
+                                      "label": label,
                                       "by": actor.get("name"), "at": _now()}}})
     c = _contact(user, sub, ov)
     await _audit(actor, "document.upload", uid, {"file_id": fid, "kind": kind, "note": note})
     res = await profile_brain.announce(
         uid, "document_updated", email=c["email"], name=c["name"], actor=actor,
         summary=f"{label or kind.title()} document updated on your account",
-        ctx={"docLabel": label or kind.title(), "filename": file.filename, "note": note})
+        ctx={"docLabel": label or kind.title(), "filename": payload.get("filename"), "note": note})
     return {"ok": True, "file_id": fid, "url": f"/api/storage/file/{fid}", "email": res["email"]}
 
 
@@ -412,21 +466,33 @@ async def user_payments(uid: str, actor: dict = Depends(require_perm("payments.v
         "totals": {"downloads": len(dls),
                    "spend": round(sum(d.get("amount") or 0 for d in dls if d.get("paid")), 2)},
         "can_grant": has_perm(actor, "payments.grant"),
+        "can_request_grant": not actor.get("is_main"),
     }
 
 
 class GrantIn(BaseModel):
-    action: str = "grant"           # grant | revoke
-    plan: str = "monthly"           # monthly | quarterly | annual
-    days: Optional[int] = None
-    note: Optional[str] = None
+    action: Literal["grant", "revoke"] = "grant"
+    plan: Literal["monthly", "quarterly", "annual"] = "monthly"
+    days: Optional[int] = Field(default=None, ge=1, le=1095)
+    note: Optional[str] = Field(default=None, max_length=2000)
 
 
 @router.post("/users/{uid}/subscription")
 async def manage_subscription(uid: str, body: GrantIn,
-                              actor: dict = Depends(require_perm("payments.grant"))):
+                              actor: dict = Depends(require_perm("payments.view")),
+                              request_id: Optional[str] = None):
     user, sub, ov = await _resolve(uid, actor)
     c = _contact(user, sub, ov)
+    if not actor.get("is_main"):
+        if body.action != "grant":
+            raise HTTPException(403, "Only the main admin can revoke access.")
+        if len((body.note or "").strip()) < 10:
+            raise HTTPException(400, "Add a business case (at least 10 characters).")
+        from admin_approvals import enqueue
+        return await enqueue(uid, "subscription", body.model_dump(), actor, body.note)
+    existing = await SUBSCRIPTIONS.find_one({"owner": uid}, {"_id": 0}) or {}
+    if request_id and request_id in existing.get("grant_request_ids", []):
+        return {"ok": True, "status": existing.get("status"), "until": existing.get("until"), "already_applied": True}
     if (body.action or "").lower() == "revoke":
         await SUBSCRIPTIONS.update_one({"owner": uid}, {"$set": {
             "status": "cancelled", "revoked_by": actor.get("name"),
@@ -439,10 +505,20 @@ async def manage_subscription(uid: str, body: GrantIn,
         return {"ok": True, "status": "cancelled", "email": res["email"]}
 
     days = int(body.days or PLAN_DAYS.get(body.plan, 30))
-    until = (datetime.now(timezone.utc) + timedelta(days=days)).isoformat()
+    base = datetime.now(timezone.utc)
+    if existing.get("status") == "active" and existing.get("until"):
+        try:
+            expiry = datetime.fromisoformat(existing["until"].replace("Z", "+00:00"))
+            base = max(base, expiry.replace(tzinfo=expiry.tzinfo or timezone.utc))
+        except (TypeError, ValueError):
+            pass
+    until = (base + timedelta(days=days)).isoformat()
+    grant_ids = list(existing.get("grant_request_ids", []))
+    if request_id:
+        grant_ids.append(request_id)
     await SUBSCRIPTIONS.update_one({"owner": uid}, {"$set": {
         "owner": uid, "status": "active", "plan": body.plan, "until": until,
-        "source": "admin_grant", "granted_by": actor.get("name"),
+        "source": "admin_grant", "granted_by": actor.get("name"), "grant_request_ids": grant_ids,
         "reason": body.note, "gateway": "admin", "updatedAt": _now()}}, upsert=True)
     await _audit(actor, "subscription.grant", uid,
                  {"plan": body.plan, "days": days, "note": body.note})
@@ -464,6 +540,8 @@ WEBSITE_STORES = [
     ("notifications", "uid"), ("user_context", "user_id"),
     ("do_users_cache", "uid"), ("delete_requests", "uid"),
     ("test_accounts", "uid"),
+    ("verification_face_index", "uid"), ("registry_matches", "uid"),
+    ("buyer_watchlist", "uid"), ("buyer_contact_reveals", "uid"),
 ]
 
 
@@ -545,33 +623,40 @@ async def hard_delete(uid: str, body: DeleteIn,
     c = _contact(user, subs[0] if subs else {}, ov)
     cid = _pick(user.get("customer_id"), shared.get("customer_id"),
                 (subs[0] if subs else {}).get("customer_id"))
+    from core import MAIN_ADMIN_CUSTOMER_ID
+    if uid == actor.get("uid") or str(cid) == MAIN_ADMIN_CUSTOMER_ID or user.get("role") == "admin":
+        raise HTTPException(403, "The main admin and your own account are protected.")
+    if not cid or not authorization or not DO_BASE:
+        raise HTTPException(409, "Canonical Customer ID and identity-service access are required for hard delete.")
+    bridges = await db.members_bridge.find({"uid": uid}, {"_id": 0}).to_list(200)
+    geids = set([b["geid"] for b in bridges if b.get("geid")] + [s["geid"] for s in subs if s.get("geid")])
+    async for e in db.entities.find({"verified_member_uids": uid}, {"_id": 0, "geid": 1}):
+        geids.add(e["geid"])
     files = await db.uploaded_files.find({"owner": uid}).to_list(200)
 
-    # 1. archive everything first
-    await db.admin_deleted_archive.insert_one({
-        "_id": uuid.uuid4().hex, "uid": uid, "customer_id": cid,
-        "user": _clean(user), "shared_profile": _clean(shared),
-        "submissions": [_clean(s) for s in subs], "overlay": _clean(ov),
-        "files": [_clean(f) for f in files],
-        "notes": [_clean(n) for n in await NOTES.find({"uid": uid}).to_list(200)],
-        "brain_events": await profile_brain.feed(uid, 200),
-        "audit": [_clean(a) for a in await AUDIT.find({"uid": uid}).to_list(200)],
-        "deleted_by": actor.get("name"), "role": actor.get("role"),
-        "note": body.note, "request_id": body.request_id, "at": _now()})
+    # Keep only deletion accountability, not a recoverable copy of personal/KYC data.
 
     # 2. identity FIRST — abort the whole delete if the registry cannot be erased
     identity = {"do_registry": "skipped", "firebase": "skipped"}
     if cid and DO_BASE and authorization:
         try:
-            r = await asyncio.to_thread(requests.delete, f"{DO_BASE}/admin_v2/users/{cid}",
+            r = await asyncio.to_thread(requests.delete, f"{DO_BASE}/admin_v2/users/{cid}/hard-delete",
                                         headers={"Authorization": authorization}, timeout=30)
             identity["do_registry"] = "deleted" if r.ok else f"failed ({r.status_code})"
+            if r.status_code == 404:
+                check = await asyncio.to_thread(requests.get, f"{DO_BASE}/admin_v2/users",
+                    headers={"Authorization": authorization}, timeout=30)
+                if check.ok:
+                    payload = check.json()
+                    registry = payload.get("users", []) if isinstance(payload, dict) else payload
+                    if not any(u.get("uid") == uid or u.get("customer_id") == cid for u in registry):
+                        identity["do_registry"] = "deleted"
         except Exception as exc:
             identity["do_registry"] = f"failed ({type(exc).__name__})"
-    if identity["do_registry"].startswith("failed") and not body.force:
+    if identity["do_registry"].startswith("failed"):
         raise HTTPException(502, "The identity backend could not delete this user "
                                  f"({identity['do_registry']}). Nothing was deleted — retry, or "
-                                 "use force to remove our records only.")
+                                 "contact the identity-service administrator.")
     try:
         import firebase_auth
         firebase_auth.init_firebase()
@@ -579,7 +664,18 @@ async def hard_delete(uid: str, body: DeleteIn,
         await asyncio.to_thread(fb_auth.delete_user, uid)
         identity["firebase"] = "deleted"
     except Exception as exc:
-        identity["firebase"] = f"failed ({type(exc).__name__})"
+        if type(exc).__name__ == "UserNotFoundError":
+            identity["firebase"] = "deleted"
+        else:
+            raise HTTPException(502, "Firebase deletion could not be confirmed. Cleanup is incomplete; retry.")
+
+    # Storage supports overwrite, not physical DELETE. Erase file bytes before unlinking.
+    for f in files:
+        if f.get("storage_path"):
+            try:
+                await asyncio.to_thread(storage.get_provider().put, f["storage_path"], b"", "application/octet-stream")
+            except Exception:
+                raise HTTPException(502, "Identity removed, but file-content erasure is incomplete. Retry hard delete.")
 
     # 3. purge every store
     purged = {}
@@ -598,6 +694,26 @@ async def hard_delete(uid: str, body: DeleteIn,
         except Exception:
             pass
     purged["subscriptions"] = subs_purged
+    keys = [uid, cid]
+    for coll in ("payment_transactions", "downloads", "saved_buyers", "user_prefs", "trade_projects",
+                 "trade_project_scenarios", "trade_project_events", "trade_project_brain_history", "user_intent_signals"):
+        purged[coll] = (await db[coll].delete_many({"$or": [{"uid": uid}, {"owner": {"$in": keys}}, {"user_id": uid}]})).deleted_count
+    await db.members_bridge.delete_many({"uid": uid})
+    from buyer_membership import remove_member_listing
+    from buyer_admin_actions import purge_buyer
+    await remove_member_listing(uid)
+    for geid in geids:
+        if not await db.members_bridge.find_one({"geid": geid}):
+            await purge_buyer(geid)
+    await db.admin_deleted_archive.delete_many({"uid": uid})
+    await AUDIT.delete_many({"uid": uid})
+    await db.delete_requests.update_many({"uid": uid}, {"$set": {
+        "user_name": "Deleted user", "user_email": None, "business_case": None}})
+    await db.admin_approval_requests.update_many({"uid": uid}, {
+        "$set": {"name": "Deleted user", "email": None, "payload": {}, "note": None},
+        "$unset": {"pending_key": "", "result": ""}})
+    await db.admin_approval_requests.update_many({"uid": uid, "status": {"$in": ["pending", "failed"]}},
+        {"$set": {"status": "cancelled", "decided_at": _now(), "error": "User was hard-deleted."}})
 
     # 4. tell the user (we kept their address in memory for exactly this)
     email_res = await profile_brain.announce(
@@ -613,7 +729,7 @@ async def hard_delete(uid: str, body: DeleteIn,
     await _audit(actor, "user.hard_delete", uid,
                  {"note": body.note, "customer_id": cid, "purged": purged, "identity": identity})
     warnings = [f"{k.replace('_', ' ')}: {v}" for k, v in identity.items() if v != "deleted"]
-    return {"ok": True, "archived": True, "purged": purged, "identity": identity,
+    return {"ok": True, "archived": False, "purged": purged, "identity": identity,
             "warnings": warnings, "email": email_res["email"]}
 
 

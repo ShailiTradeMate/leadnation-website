@@ -7,6 +7,7 @@ import { useProject } from "@/lib/ProjectContext";
 import { useAuth } from "@/lib/AuthContext";
 import { trackEvent, EVENTS } from "@/lib/analytics";
 import CommandCenterReport from "@/components/CommandCenterReport";
+import { CommandBuyers } from "@/components/CommandBuyers";
 import {
   Lightning, Gauge, Stack, ChartBar, ShieldCheck, FileText, Truck, Warning,
   UsersThree, Brain, Gear, Plus, PushPin, Copy, Trash, ArrowRight,
@@ -32,7 +33,7 @@ const MODULES = [
   ["market", "Market Research", ChartBar], ["compliance", "Compliance", ShieldCheck],
   ["simulation", "Simulation", Graph],
   ["documents", "Documents", FileText], ["routes", "Routes", Truck],
-  ["risk", "Risk", Warning], ["buyers", "Buyers & Suppliers", UsersThree],
+  ["risk", "Risk", Warning], ["buyers", "Verified Buyers", UsersThree],
   ["reports", "Reports", FileText], ["brain", "Brain", Brain], ["settings", "Settings", Gear],
 ];
 const CUR = ["USD", "EUR", "GBP", "INR", "AED", "CNY", "JPY", "AUD", "SGD", "SAR", "CAD", "CHF"];
@@ -635,17 +636,7 @@ function Risk({ cur }) {
   );
 }
 
-function Buyers({ cur }) {
-  return (
-    <Card title="Buyers & Suppliers" icon={UsersThree} testid="cc-buyers" action={<SourceBadge kind="brain" />}>
-      <p className="text-sm text-slate-300">Verified buyer & supplier contacts for <span className="text-cyan-300">{cur.product || `HS ${cur.hs}`}</span> in <span className="text-cyan-300">{cur.summary?.destination}</span> are available in the Vametra AI app, with live contact details and verification.</p>
-      <div className="flex flex-wrap gap-2 mt-4">
-        <a href="#download" className="btn-primary">Find buyers in the app <ArrowRight size={15} weight="bold" /></a>
-        <Link to={`/brain?q=${encodeURIComponent(`Who are the top importers/buyers of ${cur.product || `HS ${cur.hs}`} in ${cur.summary?.destination}?`)}`} className="btn-ghost">Ask the Brain</Link>
-      </div>
-    </Card>
-  );
-}
+function Buyers() { return <CommandBuyers />; }
 
 function Reports({ P, cur, compliance }) {
   const q = cur.lastQuote;

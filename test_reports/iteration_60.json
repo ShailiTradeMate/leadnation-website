@@ -1,0 +1,58 @@
+{
+  "summary": "Iteration-60 final fresh-fixture verification executed until first blocking workflow cause. Mixed-header auth precedence fix is working (main+staff header resolves main, pure staff remains non-main). New disposable TEST fixture (customer_id 00018) created with SEEDED KYC fixture (document-analysis bytes, not live OCR). Blocking failure occurs on strict main approval of sub-admin review request.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/admin/approvals/decide",
+        "issue": "Review approval for new fixture failed with status=failed and error='The shared member binding could not be verified. Approval has not completed.' (request review:ITER60_SUB_nhnlL3Jey3QHEuf9z3YyxgEtFL72:2026-09-12T20:57:09.285698+00:00).",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/admin/users/{uid}/payments",
+        "issue": "Rerun contamination: fixture already had active subscription from prior grant, so strict 'no active subscription BEFORE step-1' precondition no longer holds on rerun."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "UI phase (main inbox bulk approve + buyers directory/add-user/hard-delete modal checks)",
+        "issue": "Not executed due backend blocking approval failure per stop-after-blocker instruction.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter60_fresh_fixture_final.py",
+    "/app/test_reports/pytest/iter60.xml"
+  ],
+  "action_items": [
+    "Fix shared identity bind confirmation path used by review approval (buyer_membership.approve_membership -> members_bridge verification).",
+    "After fix, rerun strict sequence from a fresh disposable fixture (or reset current fixture state) before UI and final hard-delete.",
+    "Do not delete fixture customer_id 00018 until root cause is diagnosed and approval flow passes.",
+    "Note: /app/auth_testing.md is missing in workspace; auth playbook file should be present if expected."
+  ],
+  "critical_code_review_comments": [
+    "Approval flow currently marks request failed when post-link bridge verification misses; this blocks final sign-off even with valid main-admin bearer and delegated target token path.",
+    "Hard-stop workflow should surface deeper diagnostics for failed review approvals (current warning log only shows generic HTTPException)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter60_fresh_fixture_final.py",
+    "/app/test_reports/iteration_60.json",
+    "/app/test_reports/iter60_fixture_state.json",
+    "/app/memory/test_credentials.md"
+  ],
+  "success_rate": {
+    "backend": "50% (3/6 tests passed in executed run; blocker in strict review approval path)",
+    "frontend": "10% (homepage smoke only; full admin UI phase blocked)"
+  },
+  "seed_data_creation": "Created ONE disposable fixture: test_iter60_1789246522_d5f4d@example.com / Iter60@Test123 / uid nhnlL3Jey3QHEuf9z3YyxgEtFL72 / customer_id 00018. Added SEEDED KYC submission fixture (selfie+document bytes, checks metadata) in Mongo; this is SEEDED document-analysis data, not live OCR.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Fixture 00018 is intentionally preserved for RCA. Current state includes active subscription and pending/failed review history from this run. Blocking failure reproduced at /api/admin/approvals/decide with request id review:ITER60_SUB_nhnlL3Jey3QHEuf9z3YyxgEtFL72:2026-09-12T20:57:09.285698+00:00. Do not touch old real users and do not delete this fixture until approval-path fix is validated.",
+  "rca of the issue": "Reproduction: (1) Create new TEST fixture + seeded submission + allocate to Sakshi. (2) Subadmin submits review approve recommendation. (3) Main calls /api/admin/approvals/decide approve. Observed: result.status=failed with error 'The shared member binding could not be verified. Approval has not completed.' Root cause likely in approve_membership post-link verification where expected members_bridge row (uid+customer_id+geid) is not found/confirmed immediately, causing transaction failure. Mitigation: instrument verify._do_link_buyer response + persisted bridge readback (customer_id string normalization/eventual consistency retry) before failing request."
+}

@@ -15,7 +15,7 @@ export default function DeleteModal({ u, isMain, onClose, onDone }) {
     try {
       if (isMain) {
         const res = await adminOps.hardDelete(u.uid, { confirm, note: note || null });
-        setOk(`Erased everywhere — identity registry: ${res.identity?.do_registry}, sign-in account: ${res.identity?.firebase}. Archived copy kept for audit. The user has been notified.`);
+        setOk(`Identity registry: ${res.identity?.do_registry}; sign-in account: ${res.identity?.firebase}. User records and file contents removed. Only a deletion audit remains.`);
         if (res.warnings?.length) setErr(`Partial removal — ${res.warnings.join("; ")}. Please retry or escalate.`);
       } else {
         const res = await adminOps.requestDelete(u.uid, { business_case: note });
@@ -42,7 +42,7 @@ export default function DeleteModal({ u, isMain, onClose, onDone }) {
             This erases the user from <b>every system in one action</b>: identity registry
             (Customer ID {u.customer_id || "—"}), shared profile, sign-in account, verification
             records, documents, contact notes, activity and subscriptions. They would have to
-            register again from scratch. A full copy is archived for audit only.
+            register again from scratch. Only a minimal deletion audit is retained, not a copy of their personal data.
           </div>
         </div>
       ) : (

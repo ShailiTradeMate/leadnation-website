@@ -1,0 +1,92 @@
+{
+  "summary": "Executed iteration-58 mutation-focused testing (live + MOCKED unit/UI fixtures). Live flows covered disposable Firebase signup, onboarding register, sub-admin request mutations, main admin decision paths, profile gating, and hard-delete confirmation validation. Critical blocker found: /api/admin/approvals returns 500 due payload assumption, breaking approval inbox-dependent workflows.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/admin/approvals",
+        "issue": "Returns 500 Internal Server Error when any approval request row lacks payload.submission_id. Stack trace: admin_approvals.py inbox() line 80 KeyError: 'submission_id'.",
+        "priority": "CRITICAL"
+      },
+      {
+        "endpoint": "/api/admin/approvals/decide",
+        "issue": "Approval-dependent mutation cycle (subscription/review/hard-delete) is partially blocked because inbox fetch fails at 500 before selecting actionable request IDs.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/admin/users?q=&page=1&limit=25",
+        "issue": "Endpoint responds 200 and ~2.06s (batched path appears improved in this run)."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "ApprovalInbox (admin users tab)",
+        "issue": "Shows \"Request failed with status code 500\" on mobile/desktop when inbox API loads.",
+        "selector": "[data-testid='approval-inbox-count']",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Admin bulk approvals cycle",
+        "issue": "UI cannot reliably drive approve/reject/profile/document/free-month/hard-delete signoff because /api/admin/approvals 500 aborts request list rendering.",
+        "affected_selectors": [
+          "[data-testid='admin-users-panel']",
+          "[data-testid='approval-inbox-count']"
+        ]
+      },
+      {
+        "flow": "Registry match notice candidate/accept path",
+        "issue": "Verified only via MOCKED Playwright network fixture; not counted as full live integration.",
+        "affected_selectors": [
+          "[data-testid='registry-match-notice']",
+          "[data-testid='registry-accept-match']",
+          "[data-testid='registry-complete-kyc']"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Admin users/buyers mobile (390x844)",
+        "issues": [
+          "Dense tab chips + table content are cramped but still accessible; no blocking overlap detected.",
+          "Cookie banner spacer works on public pages (content not hidden behind consent banner)."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter58_identity_workflow_mutations.py",
+    "/app/backend/tests/test_iter58_registry_matching_mocked.py",
+    "/app/test_reports/pytest/iter58.xml"
+  ],
+  "action_items": [
+    "Fix admin_approvals.inbox defensive handling for rows without payload.submission_id (skip/enrich conditionally instead of KeyError).",
+    "Backfill/sanitize malformed admin_approval_requests rows (especially review/registry_claim kinds) so inbox can render all pending requests.",
+    "After inbox fix, rerun full live mutation cycle: sub-admin free-month request -> main approve idempotency/extension, review approve+reject, and hard-delete through approval inbox.",
+    "Retest identity_delegate binding assertions post-fix: target bridge/customer_id correctness and immutable main-admin bridge baseline."
+  ],
+  "critical_code_review_comments": [
+    "admin_approvals.py inbox() assumes payload.submission_id for every review/registry row; one malformed row crashes entire endpoint (single-record poisoning).",
+    "Approval inbox should be fault-tolerant: per-row enrichment failures must not break whole list response.",
+    "Some legacy/imported request records are structurally inconsistent with current enrichment expectations; add schema guard/migration."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter58_identity_workflow_mutations.py",
+    "/app/backend/tests/test_iter58_registry_matching_mocked.py",
+    "/app/memory/test_credentials.md",
+    "/app/test_reports/iteration_58.json"
+  ],
+  "success_rate": {
+    "backend": "60%",
+    "frontend": "75%"
+  },
+  "seed_data_creation": "Created disposable Iter58 Firebase users and seeded TEST verification submission fixtures (selfie/document upload bytes) for those disposable accounts only.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend mutation pytest already added for iteration58. Current blocker is /api/admin/approvals 500 (KeyError submission_id). Fix that first, then rerun /app/backend/tests/test_iter58_identity_workflow_mutations.py and retest admin UI ApprovalInbox. CommandCenter buyers module is reachable only after creating a trade project. Registry banner was UI-verified with MOCKED network fixture only.",
+  "rca of the issue": "Reproduction: create/trigger approval requests, then GET /api/admin/approvals as staff/admin. Outcome: 500 Internal Server Error. Backend log shows KeyError in admin_approvals.py line 80 when reading r['payload']['submission_id']. Root cause: endpoint-level enrichment assumes field exists for all review/registry_claim records; malformed legacy/current request docs violate assumption. Mitigation: guard missing payload keys + skip verification enrichment for invalid rows, plus data migration/cleanup for broken request documents."
+}

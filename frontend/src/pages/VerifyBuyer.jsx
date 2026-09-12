@@ -9,6 +9,7 @@ import {
   analyzeSelfie, analyzeDocument, submitVerification, getVerifyDocuments,
 } from "@/lib/verifyApi";
 import CameraCapture from "@/components/CameraCapture";
+import { RegistryMatchNotice } from "@/components/RegistryMatchNotice";
 import VerifyWait from "@/components/VerifyWait";
 import {
   SealCheck, IdentificationCard, Camera, FileText, CircleNotch,
@@ -238,6 +239,7 @@ export default function VerifyBuyer() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
       <SEO title="Get Verified · Vametra AI" description="Complete your profile and become a Verified Buyer on Vametra AI." path="/verify" />
+      <RegistryMatchNotice refreshKey={JSON.stringify(state?.profile?.company_details)} />
 
       <div className="text-center mb-6">
         <div className="w-12 h-12 mx-auto rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 grid place-items-center mb-3">

@@ -119,6 +119,23 @@ def _staff_token(sa: dict) -> str:
 # ---------------- identity resolver ----------------
 async def staff_identity(authorization: Optional[str], x_staff_token: Optional[str]) -> dict:
     """Resolve EITHER a sub-admin JWT OR a Firebase main-admin token."""
+    # A verified main-admin bearer must not be downgraded by a stale staff cookie/header.
+    if authorization and authorization.lower().startswith("bearer "):
+        from firebase_auth import verify_token
+        from core import resolve_admin_identity
+        candidate = authorization.split(" ", 1)[1].strip()
+        try:
+            firebase_candidate = jwt.get_unverified_header(candidate).get("alg") == "RS256"
+        except jwt.InvalidTokenError:
+            firebase_candidate = False
+        if firebase_candidate:
+            claims = verify_token(candidate)
+            if claims:
+                ident = await resolve_admin_identity(claims, authorization)
+                if ident:
+                    return {"role": "main_admin", "is_main": True, "uid": ident["uid"],
+                            "name": ident.get("name") or "Admin", "email": ident.get("email"),
+                            "customer_id": ident.get("customer_id")}
     tok = x_staff_token
     if not tok and authorization and authorization.lower().startswith("bearer "):
         cand = authorization.split(" ", 1)[1].strip()
@@ -141,17 +158,6 @@ async def staff_identity(authorization: Optional[str], x_staff_token: Optional[s
             raise
         except Exception:
             pass
-    # Firebase main admin (canonical role owned by the DO shared profile)
-    if authorization and authorization.lower().startswith("bearer "):
-        from firebase_auth import verify_token
-        from core import resolve_admin_identity
-        claims = verify_token(authorization.split(" ", 1)[1].strip())
-        if claims:
-            ident = await resolve_admin_identity(claims, authorization)
-            if ident:
-                return {"role": "main_admin", "is_main": True, "uid": ident["uid"],
-                        "name": ident.get("name") or "Admin", "email": ident.get("email"),
-                        "customer_id": ident.get("customer_id")}
     raise HTTPException(401, "Admin or sub-admin access required")
 
 
@@ -169,7 +175,7 @@ async def require_main_admin(authorization: Optional[str] = Header(default=None)
 
 
 TEST_EMAIL_HINTS = ("@example.com", "@test.com", "dsa-probe", "dsa-loop", "dsa-login",
-                    "dsa-diagnostic", "test-probe", "+test@")
+                    "dsa-diagnostic", "test-probe", "+test@", "@leadnation.test")
 
 
 def _looks_like_test(u: dict) -> bool:

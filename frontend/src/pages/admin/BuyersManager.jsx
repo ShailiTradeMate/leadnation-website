@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { adminApi } from "@/lib/admin";
 import { toast } from "sonner";
+import BuyerDirectory from "./BuyerDirectory";
 import {
   ShieldCheck, MagnifyingGlass, Trash, PencilSimple, DownloadSimple,
   ArrowsClockwise, BellRinging, CheckCircle, XCircle, FloppyDisk,
@@ -23,10 +24,10 @@ export default function BuyersManager() {
   const [history, setHistory] = useState([]);
   const [checkpoints, setCheckpoints] = useState([]);
   const [phases, setPhases] = useState(null);
+  const [directoryVersion, setDirectoryVersion] = useState(0);
 
   const loadList = async () => {
-    const { data } = await adminApi.get(`/buyers/admin/list`, { params: { q, page, limit: 25 } });
-    setRows(data.buyers); setTotal(data.total);
+    setDirectoryVersion(v => v + 1);
   };
   const loadMeta = async () => {
     adminApi.get(`/buyers/admin/qa`).then((r) => setQa(r.data)).catch(() => {});
@@ -48,8 +49,6 @@ export default function BuyersManager() {
       loadMeta(); loadList();
     } finally { setBusy(false); }
   };
-  useEffect(() => { loadMeta(); }, []);
-  useEffect(() => { loadList(); }, [page]);
 
   const runIngest = async () => {
     setBusy(true);
@@ -76,7 +75,7 @@ export default function BuyersManager() {
       sector: editing.sector, city: editing.city, status: editing.status,
     });
     toast.success("Buyer updated (admin edits persist across daily ingestion)");
-    setEditing(null); loadList();
+    setEditing(null); loadList(); setDirectoryVersion(v => v + 1);
   };
   const del = async (geid) => {
     if (!window.confirm("Delete this buyer? It will not return on daily ingestion.")) return;
@@ -131,6 +130,7 @@ export default function BuyersManager() {
           <ShieldCheck size={20} weight="fill" className="text-cyan-300" /> Verified Buyers — {total.toLocaleString()} records
         </h2>
         <div className="flex items-center gap-2 flex-wrap">
+          <button data-testid="buyers-load-operations" onClick={loadMeta} className="btn-ghost !py-2 text-xs">Operations & reports</button>
           <button data-testid="admin-buyers-audit" onClick={runAudit} disabled={busy} className="btn-ghost !py-2 text-xs">
             <ShieldCheck size={14} weight="bold" /> Production audit
           </button>
@@ -149,6 +149,7 @@ export default function BuyersManager() {
         </div>
       </div>
 
+      <BuyerDirectory onEdit={setEditing} onTotal={setTotal} refreshKey={directoryVersion} />
       {/* Recurring Intelligence Engine */}
       {engine && (
         <div data-testid="admin-intel-engine" className="glass-strong rounded-3xl p-5 sm:p-6">
@@ -390,52 +391,6 @@ export default function BuyersManager() {
           ))}
         </div>
       )}
-
-      {/* Search */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 glass rounded-xl px-3 flex items-center gap-2">
-          <MagnifyingGlass size={16} className="text-slate-400" />
-          <input data-testid="admin-buyers-search" value={q} onChange={(e) => setQ(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (setPage(1), loadList())}
-            placeholder="Search buyer name, product, city…" className="bg-transparent outline-none text-sm py-2.5 w-full" />
-        </div>
-        <button onClick={() => { setPage(1); loadList(); }} className="btn-ghost !py-2 text-xs">Search</button>
-      </div>
-
-      {/* Table */}
-      <div className="glass rounded-2xl overflow-auto">
-        <table className="w-full text-sm">
-          <thead className="text-[11px] uppercase tracking-wider text-slate-500 border-b border-white/10">
-            <tr>
-              <th className="text-left p-3">Buyer</th><th className="text-left p-3">Country</th>
-              <th className="text-left p-3">Sector</th><th className="text-left p-3">Trust</th>
-              <th className="text-left p-3">Source</th><th className="text-right p-3">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((b) => (
-              <tr key={b.geid} data-testid={`admin-buyer-row-${b.geid}`} className="border-b border-white/5 hover:bg-white/5">
-                <td className="p-3">{b.display_name}{b.admin_edited && <span className="ml-2 text-[10px] text-amber-300">edited</span>}</td>
-                <td className="p-3 text-slate-400">{b.country_name}</td>
-                <td className="p-3 text-slate-400">{b.sector}</td>
-                <td className="p-3">{b.trust?.score} <span className="text-[10px] text-slate-500">{b.trust?.band}</span></td>
-                <td className="p-3 text-[11px] text-slate-500">{(b.created_by || "").replace("vbie-connector:", "")}</td>
-                <td className="p-3 text-right whitespace-nowrap">
-                  <button data-testid={`admin-buyer-edit-${b.geid}`} onClick={() => setEditing(b)} className="p-1.5 hover:text-cyan-300"><PencilSimple size={15} /></button>
-                  <button data-testid={`admin-buyer-delete-${b.geid}`} onClick={() => del(b.geid)} className="p-1.5 hover:text-rose-300"><Trash size={15} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex items-center justify-between text-xs text-slate-400">
-        <span>Page {page} of {pages}</span>
-        <div className="flex gap-2">
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn-ghost !py-1.5 disabled:opacity-40">Prev</button>
-          <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)} className="btn-ghost !py-1.5 disabled:opacity-40">Next</button>
-        </div>
-      </div>
 
       {/* Edit modal */}
       {editing && (

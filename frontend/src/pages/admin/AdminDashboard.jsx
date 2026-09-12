@@ -13,6 +13,7 @@ import BuyersManager from "@/pages/admin/BuyersManager";
 import PaymentsManager from "@/pages/admin/PaymentsManager";
 import VerificationReview from "@/pages/admin/VerificationReview";
 import UsersManager from "@/pages/admin/UsersManager";
+import "@/admin-workflows.css";
 import { staffLogin, staffLogout, getStaffInfo, isStaff } from "@/lib/staffAuth";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
@@ -27,14 +28,15 @@ export function AdminLogin() {
   const { login, loginWithCustomerId, isAuthed, isAdmin, refreshAccount, logout } = useAuth();
 
   useEffect(() => {
-    if (isAuthed && isAdmin) navigate("/admin-cms");
-  }, [isAuthed, isAdmin, navigate]);
+    if (isAuthed && isAdmin && !loading) { staffLogout(); navigate("/admin-cms"); }
+  }, [isAuthed, isAdmin, navigate, loading]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setErr(""); setLoading(true);
     try {
       if (mode === "sub") {
+        await logout();
         await staffLogin(ident.trim(), password);
         navigate("/admin-cms");
         return;
@@ -44,6 +46,7 @@ export function AdminLogin() {
       else await login(id, password);
       const acc = await refreshAccount();
       if (acc?.user?.role !== "admin") { setErr("This account is not an admin."); await logout(); return; }
+      staffLogout();
       navigate("/admin-cms");
     } catch (err2) {
       if (mode === "sub") setErr(err2?.response?.data?.detail || "Invalid sub-admin credentials.");
@@ -140,7 +143,7 @@ export default function AdminDashboard() {
         <button data-testid="admin-logout" onClick={logout} className="btn-ghost !py-2 text-xs"><SignOut size={14} weight="bold" /> Logout</button>
       </div>
 
-      <div className="mt-8 glass-strong rounded-2xl p-2 flex gap-1 overflow-auto">
+      <div className="mt-8 glass-strong rounded-2xl p-2 flex flex-wrap gap-1">
         {tabs.map((t) => (
           <button key={t.k} data-testid={`admin-tab-${t.k}`} onClick={() => setTab(t.k)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap ${tab === t.k ? "tab-active text-white" : "text-slate-300 hover:bg-white/5"}`}>

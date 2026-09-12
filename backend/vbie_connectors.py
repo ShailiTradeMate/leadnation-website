@@ -627,7 +627,7 @@ async def upsert_candidates(rows: list, source_label: str = "bulk") -> int:
             skipped_no_contact += 1
             continue
         geid = _stable_geid(c["natural_key"])
-        if geid in admin_managed:
+        if geid in admin_managed or await db.buyer_deletion_tombstones.find_one({"geid": geid}, {"_id": 1}):
             continue
         provenance = [_prov(sid, field, note, url) for (sid, field, note, url) in c["prov"]]
         doc = {
@@ -948,7 +948,7 @@ async def run_ingestion(trigger: str = "manual") -> dict:
             no_contact += 1
             continue  # owner rule: only store buyers that have email/phone
         geid = _stable_geid(c["natural_key"])
-        if geid in admin_managed:
+        if geid in admin_managed or await db.buyer_deletion_tombstones.find_one({"geid": geid}, {"_id": 1}):
             skipped_admin += 1
             continue
         provenance = [_prov(sid, field, note, url) for (sid, field, note, url) in c["prov"]]

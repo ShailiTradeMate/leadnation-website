@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 admin_router = APIRouter(prefix="/buyers/admin")
 notif_router = APIRouter(prefix="/notifications")
 
-BUYER_Q = {"entity_type": "buyer"}
+from buyer_membership import BUYER_Q, entity_query
 VALID_SECTORS = None  # computed lazily from live data
 
 
@@ -365,7 +365,7 @@ async def analytics_xlsx(_: dict = Depends(require_admin)):
 async def admin_list(q: Optional[str] = None, country: Optional[str] = None,
                      sector: Optional[str] = None, page: int = 1, limit: int = 50,
                      _: dict = Depends(require_admin)):
-    query = dict(BUYER_Q)
+    query = {"$and": [BUYER_Q]}
     if country:
         query["country_name"] = country
     if sector:
@@ -373,13 +373,41 @@ async def admin_list(q: Optional[str] = None, country: Optional[str] = None,
     if q:
         import re
         rx = {"$regex": re.escape(q.strip()), "$options": "i"}
-        query["$or"] = [{"legal_name": rx}, {"products": rx}, {"city": rx}, {"_id": rx}, {"geid": rx}]
+        query["$or"] = [{"legal_name": rx}, {"products": rx}, {"city": rx}, {"geid": rx},
+                         {"contact.email": rx}, {"contact.phone": rx}]
     page = max(1, page); limit = max(1, min(limit, 200))
     total = await db.entities.count_documents(query)
     rows = await db.entities.find(query).sort("updated_at", -1).skip((page - 1) * limit).limit(limit).to_list(limit)
+    geids = [e.get("geid") for e in rows if e.get("geid")]
+    members_by_geid, matches_by_geid = defaultdict(list), defaultdict(list)
+    async for m in db.members_bridge.find({"geid": {"$in": geids}}, {"_id": 0, "geid": 1, "uid": 1}):
+        members_by_geid[m["geid"]].append(m)
+    async for m in db.registry_matches.find({"geid": {"$in": geids}, "status": {"$in": ["candidate", "accepted", "needs_review"]}}, {"_id": 0}):
+        matches_by_geid[m["geid"]].append(m)
+    all_uids = set()
+    for e in rows:
+        all_uids.update(e.get("verified_member_uids", []))
+        all_uids.update(m["uid"] for m in members_by_geid[e.get("geid")] + matches_by_geid[e.get("geid")] if m.get("uid"))
+    people_by_uid = {}
+    if all_uids:
+        for collection in (db.profiles, db.do_users_cache, db.users):
+            async for p in collection.find({"uid": {"$in": list(all_uids)}}, {"_id": 0, "uid": 1, "name": 1, "full_name": 1, "email": 1, "mobile": 1, "customer_id": 1}):
+                existing = people_by_uid.setdefault(p["uid"], {})
+                existing.update({k: v for k, v in p.items() if v})
     out = []
     for e in rows:
+        members = members_by_geid[e.get("geid")]
+        matches = matches_by_geid[e.get("geid")]
+        uids = list(set(e.get("verified_member_uids", []) + [m["uid"] for m in members if m.get("uid")]))
+        people = []
+        for uid in set(uids + [m["uid"] for m in matches]):
+            u = people_by_uid.get(uid, {})
+            people.append({"uid": uid, "name": u.get("name") or u.get("full_name"),
+                           "email": u.get("email"), "mobile": u.get("mobile"),
+                           "customer_id": u.get("customer_id")})
         out.append({**_card(e), "website": e.get("website", ""),
+                    "contact": e.get("contact") or {}, "members": people, "registry_matches": matches,
+                    "member_verified": bool(e.get("verified_member_uids")),
                     "created_by": e.get("created_by"), "admin_edited": bool(e.get("admin_edited")),
                     "admin_deleted": bool(e.get("admin_deleted")), "status": e.get("status"),
                     "provenance_count": len(e.get("provenance", []))})
@@ -399,13 +427,30 @@ class BuyerPatch(BaseModel):
 
 
 @admin_router.patch("/{geid}")
-async def admin_edit(geid: str, body: BuyerPatch, _: dict = Depends(require_admin)):
+async def admin_edit(geid: str, body: BuyerPatch, admin: dict = Depends(require_admin),
+                     authorization: Optional[str] = Header(default=None)):
     patch = {k: v for k, v in body.model_dump().items() if v is not None}
     if not patch:
         raise HTTPException(400, "No fields to update")
+    e = await db.entities.find_one(entity_query(geid), {"_id": 0})
+    if not e:
+        raise HTTPException(404, "Buyer not found")
+    member_patch = {}
+    if "legal_name" in patch:
+        member_patch["company_details"] = {"company_name": patch["legal_name"]}
+    if "city" in patch:
+        member_patch["city"] = patch["city"]
+    if "country_name" in patch:
+        member_patch["country"] = patch["country_name"]
+    if member_patch:
+        from admin_ops import edit_profile, ProfileEdit
+        for uid in e.get("verified_member_uids", []):
+            await edit_profile(uid, ProfileEdit(patch=member_patch), {**admin, "is_main": True, "role": "main_admin"}, authorization)
     patch["admin_edited"] = True
     patch["updated_at"] = _now()
-    res = await db.entities.update_one({"_id": geid, "entity_type": "buyer"}, {"$set": patch})
+    if "legal_name" in patch and "display_name" not in patch:
+        patch["display_name"] = patch["legal_name"]
+    res = await db.entities.update_one(entity_query(geid), {"$set": patch})
     if not res.matched_count:
         raise HTTPException(404, "Buyer not found")
     return {"ok": True, "geid": geid, "updated": list(patch.keys())}

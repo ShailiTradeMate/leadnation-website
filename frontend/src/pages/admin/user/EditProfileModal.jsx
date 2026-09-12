@@ -30,7 +30,7 @@ export default function EditProfileModal({ u, onClose, onDone }) {
         },
       };
       const res = await adminOps.editProfile(u.uid, patch);
-      setOk(res.changes?.length
+      setOk(res.stage === "awaiting_signoff" ? res.message : res.changes?.length
         ? `Saved ${res.changes.length} change(s). The buyer has been emailed by the Brain.`
         : "No changes detected — nothing was sent to the buyer.");
       onDone && onDone();
@@ -44,8 +44,7 @@ export default function EditProfileModal({ u, onClose, onDone }) {
       <Banner testid="edit-error">{err}</Banner>
       <Banner kind="ok" testid="edit-ok">{ok}</Banner>
       <p className="text-xs text-slate-400 mb-4">
-        Writes to the shared profile (same path the buyer's own form uses). The Brain detects the
-        diff and emails the buyer exactly what changed.
+        Sub-admin changes require main-admin approval before they take effect.
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
         <Field label="Full name"><input data-testid="edit-name" className={input} value={f.name} onChange={(e) => set("name", e.target.value)} /></Field>
@@ -75,7 +74,7 @@ export default function EditProfileModal({ u, onClose, onDone }) {
       </div>
       <button data-testid="edit-save" onClick={save} disabled={busy}
         className="btn-primary mt-5 w-full justify-center disabled:opacity-50">
-        {busy ? "Saving…" : "Save & notify buyer"}
+        {busy ? "Submitting…" : "Submit changes"}
       </button>
     </Modal>
   );

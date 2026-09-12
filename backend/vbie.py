@@ -42,6 +42,7 @@ from vbie_core import (SOURCES_SEED, _SOURCE_BY_ID, _now, _iso, _stable_geid,
                        evidence_source_labels, public_source_labels, public_evidence)
 
 router = APIRouter(prefix="/buyers")
+from buyer_membership import BUYER_Q, PUBLIC_Q, entity_query
 logger = logging.getLogger(__name__)
 
 
@@ -76,6 +77,8 @@ SOURCE_WARNING = ("Buyer records are aggregated from public, official government
 
 def _primary_source(e: dict) -> str:
     """GENERIC provenance category only — never the exact registry / source site."""
+    if e.get("listing_origin") == "member_kyc":
+        return "Vametra member KYC review"
     labels = public_source_labels(e.get("provenance") or [], has_brain=False)
     return labels[0] if labels else "official government sources"
 
@@ -122,7 +125,7 @@ async def buyers_meta():
     # Owner rule: only surface buyers that HAVE contact (email/phone). This is the
     # definitive user-facing guarantee — a no-contact buyer is never shown, no matter
     # how it entered the DB.
-    q = {"entity_type": "buyer", "status": "active", "merged_into": None, "has_contact": True}
+    q = dict(PUBLIC_Q)
     total = await db.entities.count_documents(q)
     countries = await db.entities.distinct("country_name", q)
     sectors = await db.entities.distinct("sector", q)
@@ -203,7 +206,7 @@ async def search_buyers(
     page: int = 1,
     limit: int = 24,
 ):
-    query: dict = {"entity_type": "buyer", "status": "active", "merged_into": None, "has_contact": True}
+    query: dict = {**PUBLIC_Q, "$and": list(PUBLIC_Q["$and"])}
     if country:
         query["$or"] = [{"country": country}, {"country_name": country}]
     if sector:
@@ -216,8 +219,8 @@ async def search_buyers(
         query["trust.score"] = {"$gte": int(trust_min)}
     if q:
         rx = {"$regex": re.escape(q.strip()), "$options": "i"}
-        query["$and"] = [{"$or": [{"legal_name": rx}, {"display_name": rx},
-                                  {"products": rx}, {"sector": rx}, {"city": rx}, {"country_name": rx}]}]
+        query["$and"].append({"$or": [{"legal_name": rx}, {"display_name": rx},
+                                  {"products": rx}, {"sector": rx}, {"city": rx}, {"country_name": rx}]})
 
     page = max(1, int(page)); limit = max(1, min(int(limit), 60))
     total = await db.entities.count_documents(query)
@@ -267,8 +270,8 @@ async def match_company(name: str = Query(""), country: str = Query(""),
 
 @router.get("/{geid}")
 async def get_buyer(geid: str, authorization: Optional[str] = Header(default=None)):
-    e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
-    if not e or e.get("admin_deleted") or e.get("status") == "deleted":
+    e = await db.entities.find_one(entity_query(geid))
+    if not e or e.get("admin_deleted") or e.get("status") != "active":
         raise HTTPException(status_code=404, detail="Buyer not found")
     # follow merges
     hops = 0
@@ -301,8 +304,8 @@ async def reveal_buyer_contact(geid: str, authorization: Optional[str] = Header(
     """Reveal the buyer's official contact point (email / phone / address) to an
     ACTIVE SUBSCRIBER only. Resolves + caches contact server-side and returns ONLY
     the contact fields — the source URL is never exposed."""
-    e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
-    if not e or e.get("admin_deleted") or e.get("status") == "deleted":
+    e = await db.entities.find_one(entity_query(geid))
+    if not e or e.get("admin_deleted") or e.get("status") != "active":
         raise HTTPException(status_code=404, detail="Buyer not found")
     hops = 0
     while e.get("merged_into") and hops < 10:
@@ -331,12 +334,12 @@ async def reveal_buyer_contact(geid: str, authorization: Optional[str] = Header(
             "contact": {"email": contact.get("email", ""), "phone": contact.get("phone", ""),
                         "website": contact.get("website", ""), "address": contact.get("address", ""),
                         "city": contact.get("city", ""), "contact_name": contact.get("contact_name", "")},
-            "source_note": "Sourced and verified by Vametra AI from official government records."}
+            "source_note": "Company contact supplied during member verification." if e.get("listing_origin") == "member_kyc" else "Sourced and verified by Vametra AI from official government records."}
 
 
 @router.get("/{geid}/evidence")
 async def get_buyer_evidence(geid: str, authorization: Optional[str] = Header(default=None)):
-    e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
+    e = await db.entities.find_one({**entity_query(geid), "status": "active", "admin_deleted": {"$ne": True}})
     if not e:
         raise HTTPException(status_code=404, detail="Buyer not found")
     ent = await _entitlement(authorization)
@@ -357,7 +360,7 @@ class BuyerClaim(BaseModel):
 @router.post("/{geid}/claim")
 async def claim_buyer(geid: str, body: BuyerClaim, request: Request):
     """Claim-this-company / request introduction. Captured as a lead."""
-    e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"})
+    e = await db.entities.find_one({**entity_query(geid), "status": "active", "admin_deleted": {"$ne": True}})
     if not e:
         raise HTTPException(status_code=404, detail="Buyer not found")
     doc = {
@@ -386,7 +389,7 @@ async def watch_buyer(geid: str, authorization: Optional[str] = Header(default=N
     claims = verify_token(_bearer(authorization)) if authorization else None
     if not claims:
         raise HTTPException(status_code=401, detail="Authentication required")
-    e = await db.entities.find_one({"_id": geid, "entity_type": "buyer"}, {"_id": 1})
+    e = await db.entities.find_one({**entity_query(geid), "status": "active"}, {"_id": 1})
     if not e:
         raise HTTPException(status_code=404, detail="Buyer not found")
     email = claims.get("email", "")

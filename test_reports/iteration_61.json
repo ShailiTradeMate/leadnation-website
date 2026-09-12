@@ -1,0 +1,50 @@
+{
+  "summary": "Resumed fixture00018 exactly (no new user, no setup replay). Step-1 strict retry of existing review approval still fails: /api/admin/approvals/decide returns result.status=failed with error 'Shared identity service did not persist the verification status.' Per instruction, testing stopped after this blocker; no further mutation steps executed.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "/api/admin/approvals/decide",
+        "issue": "Retrying existing failed review request for uid nhnlL3Jey3QHEuf9z3YyxgEtFL72 (cid 00018) returns results[0].status='failed' and error='Shared identity service did not persist the verification status.' Expected strict APPROVED.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Main approval inbox bulk-approval/CMS/modal validations",
+        "issue": "Not executed because step-1 backend blocker requires immediate stop as directed.",
+        "affected_selectors": []
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter61_resume_fixture00018.py",
+    "/app/test_reports/pytest/iter61_step1.xml"
+  ],
+  "action_items": [
+    "Fix review-approval finalize path so /api/admin/approvals/decide returns APPROVED for existing pending/failed review on fixture 00018.",
+    "RCA target: buyer_membership.set_shared_verification() readback mismatch after DO PUT /admin_v2/users/{cid} verification update.",
+    "After fix, rerun iter61 step sequence from preserved fixture state without creating new users."
+  ],
+  "critical_code_review_comments": [
+    "Current failure maps to buyer_membership.py line ~176 (set_shared_verification): strict post-PUT GET check rejects approval when verification_status readback is not equal to expected status.",
+    "admin_approvals logs only generic 'HTTPException' at warning level; include cid/uid + DO readback payload diff in error path to speed production RCA."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter61_resume_fixture00018.py",
+    "/app/test_reports/iteration_61.json"
+  ],
+  "success_rate": {
+    "backend": "0% (0/1 strict resume gate passed)",
+    "frontend": "20% (homepage smoke only)"
+  },
+  "seed_data_creation": "No new seed data. Existing fixture00018 reused. KYC fixture remains SEEDED (not live OCR).",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Do not create new users. Fixture uid nhnlL3Jey3QHEuf9z3YyxgEtFL72 / cid 00018 preserved. Blocking request id: review:ITER60_SUB_nhnlL3Jey3QHEuf9z3YyxgEtFL72:2026-09-12T20:57:09.285698+00:00 still fails on main decide approve. Stop point respected; steps 2-5 not executed in this run.",
+  "rca of the issue": "Reproduction: run only iter61 step-1 retry on existing review request. POST /api/admin/approvals/decide returns HTTP 200 but result.status=failed with error 'Shared identity service did not persist the verification status.' Code-path mapping: buyer_membership.approve_membership -> set_shared_verification -> DO PUT /admin_v2/users/{cid} then immediate GET readback strict equality check at buyer_membership.py line ~176. Mitigation direction: capture and compare exact DO GET payload fields returned after PUT (possible schema/field projection mismatch or eventual consistency timing), then adjust persistence confirmation strategy."
+}

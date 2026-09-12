@@ -3,8 +3,7 @@ import { staffApi } from "@/lib/staffAuth";
 import { API } from "@/lib/api";
 import AllocatePanel from "@/pages/admin/AllocatePanel";
 import ActionBar from "@/pages/admin/user/ActionBar";
-import SignoffQueue from "@/pages/admin/user/SignoffQueue";
-import DeleteQueue from "@/pages/admin/user/DeleteQueue";
+import ApprovalInbox from "@/pages/admin/user/ApprovalInbox";
 import { adminOps } from "@/lib/adminOps";
 import { MagnifyingGlass, CaretDown, CaretUp, FileText, User, Buildings, UsersThree } from "@phosphor-icons/react";
 
@@ -202,7 +201,7 @@ export default function UsersManager() {
   return (
     <div className="space-y-4" data-testid="admin-users-panel">
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[280px] max-w-xl">
+        <div className="relative flex-1 min-w-0 w-full max-w-xl">
           <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input data-testid="admin-users-search" value={q} onChange={(e) => setQ(e.target.value)}
             placeholder="Search by email, mobile, User ID, company name…"
@@ -222,8 +221,7 @@ export default function UsersManager() {
 
       {showAllocate && <AllocatePanel onClose={() => setShowAllocate(false)} onAllocated={() => load(q)} />}
 
-      {perms.includes("signoff.view") && <SignoffQueue key={`s${refreshKey}`} onDone={refresh} />}
-      {perms.includes("users.delete") && <DeleteQueue key={`d${refreshKey}`} onDone={refresh} />}
+      <ApprovalInbox key={`s${refreshKey}`} onDone={() => load(q)} />
 
       {err && (
         <div data-testid="admin-users-error" className="glass rounded-xl p-4 text-sm text-rose-300">
@@ -233,7 +231,7 @@ export default function UsersManager() {
       )}
 
       <div className="glass-strong rounded-3xl overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm admin-responsive-table">
           <thead className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400">
             <tr>
               <th className="text-left px-4 py-3">User ID</th>
@@ -249,7 +247,7 @@ export default function UsersManager() {
           <tbody>
             {rows.map((u) => (
               <React.Fragment key={u.uid || u.email}>
-                <tr data-testid="admin-user-row" className="border-t border-white/5 hover:bg-white/[0.02] cursor-pointer"
+                <tr data-testid={`admin-user-row-${u.uid}`} className="border-t border-white/5 hover:bg-white/[0.02] cursor-pointer"
                   onClick={() => setOpen(open === u.uid ? null : u.uid)}>
                   <td className="px-4 py-3 font-mono-display text-cyan-300">{u.customer_id || "—"}</td>
                   <td className="px-4 py-3">{u.name || "—"}

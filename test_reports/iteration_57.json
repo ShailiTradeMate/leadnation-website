@@ -1,0 +1,65 @@
+{
+  "summary": "Executed backend+frontend regression for admin approvals, RBAC, unified buyer surfaces, and key UI workflows. Backend critical paths passed; frontend exposed a reproducible CMS buyer-directory timeout/integration issue.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "BuyerDirectory (Admin CMS)",
+        "issue": "Directory table remains empty and eventually shows timeout banner ('timeout of 30000ms exceeded') while parent header already shows large total records.",
+        "selector": "[data-testid=buyer-directory], [data-testid=buyer-directory-loading], [data-testid=buyer-directory-error]",
+        "priority": "HIGH"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Admin CMS Verified Buyers list",
+        "issue": "Public and admin APIs return buyer data, but BuyerDirectory request times out in-browser; table shows 0 buyers and Add User/Hard Delete row actions are unreachable.",
+        "affected_selectors": [
+          "[data-testid=admin-tab-buyers]",
+          "[data-testid=buyer-directory-count]",
+          "[data-testid^=admin-buyer-row-]"
+        ]
+      }
+    ],
+    "design_issues": [
+      {
+        "screen": "Mobile /account",
+        "issues": [
+          "Cookie consent banner overlaps lower account content, reducing immediate viewport usability."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter57_admin_approvals_unified.py",
+    "/app/test_reports/pytest/iter57.xml"
+  ],
+  "action_items": [
+    "Fix BuyerDirectory timeout path so list rows load reliably (same data source as parent BuyersManager count).",
+    "Optimize /api/buyers/admin/list for pagination requests (current implementation has per-row enrichment loop likely causing latency spikes).",
+    "After fix, retest Add User modal and Hard Delete confirmation flow against populated rows.",
+    "Run targeted retest for RegistryMatchNotice with a user that has an active registry candidate/accepted match (current tested account did not render this notice)."
+  ],
+  "critical_code_review_comments": [
+    "vbie_admin.admin_list performs N+1 queries per buyer row (members_bridge + registry_matches + _user_doc + profiles per uid), which is a likely root cause for intermittent 30s UI timeouts under browser load.",
+    "Buyer list data is fetched in both BuyersManager and BuyerDirectory, increasing duplicate load and amplifying timeout probability.",
+    "Runtime warning seen in backend logs: JWT HMAC secret length is 31 bytes (below recommended 32 for HS256)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter57_admin_approvals_unified.py",
+    "/app/test_reports/iteration_57.json"
+  ],
+  "success_rate": {
+    "backend": "100% (9/9 pytest)",
+    "frontend": "70%"
+  },
+  "test_credentials": "Used credentials from /app/memory/test_credentials.md (admin@vametra.com, sakshi@vametra.com, vaibhav@leadnation.app).",
+  "seed_data_creation": "Created one test Command Center project ('TEST Iter57 Project') under existing subscriber test account for UI module validation.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend approval/RBAC smoke passed and public/admin buyer APIs are healthy via pytest and curl. Main unresolved issue is frontend BuyerDirectory timeout despite API availability; verify in-browser network timings for /api/buyers/admin/list and compare parent vs child consumers.",
+  "rca of the issue": "Repro: login main admin -> Admin CMS -> Verified Buyers tab -> wait ~30s. Observed: header shows ~24k records, but directory count stays 0 then error banner 'timeout of 30000ms exceeded'. Backend endpoint works via curl (200 with rows, ~13s using X-Admin-Token), so issue is likely compounded by frontend duplicate list calls + expensive backend row enrichment (N+1) causing sporadic >30s in browser context."
+}

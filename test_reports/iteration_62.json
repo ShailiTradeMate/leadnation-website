@@ -1,0 +1,59 @@
+{
+  "summary": "Executed iteration-62 resume verification on preserved fixture 00018 plus required admin UI checks. Backend gate A failed immediately: shared identity GET /admin_v2/users/00018 returns 404 (User not found), so strict A/B/C flow could not proceed and hard-delete was intentionally skipped. UI checks succeeded: main admin login works, Users approval inbox + bulk button render, Verified Buyers directory is populated (~24,558 records), Add User and Hard Delete modals open/cancel correctly on real records, and mobile overflow check passed.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET https://leadnation-lfrhs.ondigitalocean.app/api/admin_v2/users/00018",
+        "issue": "Returns 404 {\"detail\":\"User not found\"} while local fixture artifacts still exist (buyer directory row present for TEST Workflow60, verification_submission still present). This breaks canonical state assertion and blocks remaining strict resume flow.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "/api/admin/approvals",
+        "issue": "Approval inbox currently has 0 pending rows for main admin, so no queued request is available for replay-based resume path."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Fixture lifecycle consistency (shared identity ↔ local registry)",
+        "issue": "UI still displays fixture-linked buyer row while DO identity endpoint for same fixture customer_id is 404, indicating cross-system drift.",
+        "affected_selectors": [
+          "[data-testid='buyer-directory-table']",
+          "[data-testid^='admin-buyer-row-']"
+        ]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter62_resume_fixture00018_final.py",
+    "/app/test_reports/pytest/iter62_backend.xml"
+  ],
+  "action_items": [
+    "Restore or reconcile fixture customer_id 00018 in shared identity service before rerunning A/B/C (or provide a new preserved fixture state intentionally not deleted).",
+    "Investigate partial-delete drift: DO identity removed but local verification/buyer artifacts remain; ensure hard-delete path is atomic or includes compensating cleanup.",
+    "After identity consistency is restored, rerun test_iter62_resume_fixture00018_final.py and only execute hard-delete when A/B/C pass.",
+    "Keep DO canonical verification assertion as approved OR verified (do not require exact verified)."
+  ],
+  "critical_code_review_comments": [
+    "Prior resume test (iter61) ran hard-delete even after upstream assertion failures, which can mutate fixture state and invalidate resume assumptions. Iter62 test now gates cleanup behind A/B/C success.",
+    "Shared identity/deletion workflow appears non-atomic across DO/Firebase/local stores; current state suggests dangling local entities after identity removal."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter62_resume_fixture00018_final.py",
+    "/app/test_reports/iteration_62.json"
+  ],
+  "success_rate": {
+    "backend": "25% (1 skipped cleanup gate, 3 failed due step-A blocker)",
+    "frontend": "90% (requested admin UI checks passed)"
+  },
+  "seed_data_creation": "No new user/seed data created. Existing iter60 fixture state reused only.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Do NOT create new account. Fixture metadata still points to uid nhnlL3Jey3QHEuf9z3YyxgEtFL72 / cid 00018, but DO endpoint is currently 404. UI verification for inbox/bulk/buyer-directory/modals already completed in iter62 with screenshots under /app/test_reports/browser_iter62/. Resolve shared identity drift first, then rerun backend resume flow.",
+  "rca of the issue": "Probable sequence: fixture progressed through approval actions (logs show verify_approved event) and later a delete-like operation removed shared identity record in DO/Firebase scope, while local Mongo buyer/submission artifacts remained. Reproduction in current state: run test_01_state_assertions_after_canonical_fix -> immediate 404 on DO GET /admin_v2/users/00018; local buyer directory still shows TEST Workflow60 row. Mitigation: enforce atomic hard-delete orchestration or post-delete compensating cleanup across members_bridge/entities/verification_submissions, and add an integrity check job for orphaned local rows when DO user is missing. Live integrations tested: Firebase admin login + local API + shared identity GET. KYC bytes remain SEEDED and registry matching scope remains previously MOCKED (not live government registry reconciliation)."
+}

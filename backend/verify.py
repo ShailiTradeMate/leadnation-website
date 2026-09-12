@@ -208,8 +208,9 @@ def _do_link_buyer(uid: str, customer_id, profile: dict, entity_type: str,
     cd = profile.get("company_details") or {}
     name = cd.get("company_name") or cd.get("name") or profile.get("name") or "Member"
     payload = {
-        "type": entity_type,
-        "name": name,
+        "entity_type": entity_type,
+        "legal_name": name,
+        "display_name": name,
         "country": profile.get("country") or profile.get("country_code"),
         "city": profile.get("city"),
         "customer_id": customer_id,
@@ -217,23 +218,46 @@ def _do_link_buyer(uid: str, customer_id, profile: dict, entity_type: str,
         "products": profile.get("products") or [],
         "hsn_codes": profile.get("hsn_codes") or [],
     }
-    geid = None
+    geid = profile.get("_existing_geid")
+    headers = _do_headers(authorization, uid)
     try:
-        r = requests.post(f"{DO_BASE}/entities", json=payload,
-                          headers=_do_headers(authorization, uid), timeout=25)
-        if r.ok and r.content:
+        current = requests.get(f"{DO_BASE}/members/company", headers=headers, timeout=25)
+        if not current.ok:
+            return {"linked": False, "error": "Shared membership readback unavailable"}
+        existing = current.json() or {}
+        if existing.get("linked"):
+            if str(existing.get("customer_id")) != str(customer_id) or (geid and existing.get("geid") != geid):
+                return {"linked": False, "error": "Existing company binding conflicts with this application"}
+            geid = existing.get("geid")
+        r = None if geid else requests.post(f"{DO_BASE}/entities", json=payload,
+                          headers=headers, timeout=25)
+        if r is not None and r.ok and r.content:
             d = r.json() or {}
             geid = d.get("geid") or (d.get("entity") or {}).get("geid") or d.get("id") or d.get("_id")
     except Exception as exc:
         log.warning("DO create entity failed: %s", exc)
     if geid:
         try:
-            requests.post(f"{DO_BASE}/members/bind",
-                          json={"uid": uid, "customer_id": customer_id, "geid": geid},
-                          headers=_do_headers(authorization, uid), timeout=25)
+            r = requests.post(f"{DO_BASE}/members/bind",
+                          json={"geid": geid},
+                          headers=headers, timeout=25)
+            if not r.ok:
+                return {"linked": False, "geid": geid}
+            binding = r.json() if r.content else {}
+            binding = binding.get("bridge") or binding.get("binding") or binding
+            if any(binding.get(k) and binding[k] != v for k, v in {"uid": uid, "geid": geid, "customer_id": customer_id}.items()):
+                return {"linked": False, "geid": geid}
+            check = requests.get(f"{DO_BASE}/members/company", headers=headers, timeout=25)
+            confirmed = check.json() if check.ok else {}
+            entity = confirmed.get("entity") or {}
+            if not confirmed.get("linked") or confirmed.get("geid") != geid or str(confirmed.get("customer_id")) != str(customer_id) or entity.get("geid") != geid:
+                return {"linked": False, "geid": geid, "error": "Shared membership readback did not match"}
+            return {"linked": True, "geid": geid, "entity": {k: v for k, v in entity.items() if k != "_id"},
+                    "bridge": {"uid": uid, "customer_id": customer_id, "geid": geid}}
         except Exception as exc:
             log.warning("DO members/bind failed: %s", exc)
-    return {"linked": bool(geid), "geid": geid}
+            return {"linked": False, "geid": geid}
+    return {"linked": False, "geid": geid}
 
 
 # ---------------- image helpers ----------------
@@ -261,7 +285,7 @@ def _hamming(a: str, b: str) -> int:
 
 async def _load_image_b64(file_id: str, owner: str):
     rec = await db.uploaded_files.find_one({"_id": file_id, "is_deleted": False})
-    if not rec:
+    if not rec or rec.get("owner") != owner:
         raise HTTPException(404, "Uploaded file not found")
     data, ctype = storage.get_provider().get(rec["storage_path"])
     return base64.b64encode(data).decode("ascii"), data, ctype
@@ -292,7 +316,7 @@ async def verify_state(user: dict = Depends(require_user),
                        authorization: Optional[str] = Header(default=None)):
     uid = user["uid"]
     profile = await _profile(uid, authorization)
-    sub = await SUBS.find_one({"uid": uid}, sort=[("created_at", -1)])
+    sub = await SUBS.find_one({"uid": uid}, sort=[("updated_at", -1), ("created_at", -1)])
     return {
         "uid": uid,
         "profile": profile,
@@ -331,6 +355,8 @@ async def update_profile(body: ProfilePatch, user: dict = Depends(require_user),
     """Fill in missing shared-profile fields (proxied to DO — DO owns the write).
     Business/verification extras are also mirrored to the website-local overlay."""
     uid = user["uid"]
+    from buyer_membership import validate_profile_patch
+    validate_profile_patch(body.patch)
     res = _do_put_profile(uid, body.patch, authorization)
     await _save_overlay(uid, body.patch)  # local supplement (never a competing identity)
     if not res.get("ok"):
@@ -473,12 +499,19 @@ async def submit_verification(body: SubmitReq, user: dict = Depends(require_user
     # 1) Persist any missing profile fields + role to the SHARED profile (DO owns it).
     profile0 = await _profile(uid, authorization)
     patch = dict(body.profile_patch or {})
+    from buyer_membership import validate_profile_patch
+    validate_profile_patch(patch)
     if (profile0.get("role") or "") != "admin":  # never demote a platform admin
         patch["role"] = body.role
     patch["contact_visibility_flag"] = True
     _do_put_profile(uid, patch, authorization)
     await _save_overlay(uid, patch)  # mirror to website-local supplement
     profile = await _profile(uid, authorization)
+
+    profile["email"] = user.get("email") or profile.get("email")
+    pending = await db.admin_approval_requests.find_one({"uid": uid, "kind": "registry_claim", "status": {"$in": ["pending", "processing", "failed"]}}, {"_id": 0})
+    if pending:
+        raise HTTPException(409, "Your registry KYC is already awaiting approval.")
 
     # 2) Re-run the automated checks server-side (never trust the client's verdict).
     selfie_b64, selfie_raw, _ = await _load_image_b64(body.selfie_file_id, uid)
@@ -504,16 +537,28 @@ async def submit_verification(body: SubmitReq, user: dict = Depends(require_user
             doc["name_mismatch"] = True
 
     status, overall, reasons = _decide(selfie, doc)
+    if status == "verified":
+        status = "needs_review"
+        reasons.append("Identity checks passed. Awaiting admin KYC approval.")
+    registry = await db.registry_matches.find_one({"uid": uid, "status": "accepted"}, {"_id": 0})
+    if registry and status != "rejected":
+        if not body.document_file_id:
+            raise HTTPException(400, "Company KYC document and selfie are required for registry onboarding.")
+        status = "needs_review"
+        reasons = ["Registry match found. Awaiting admin KYC approval."]
 
     # 3) On auto-approval, LINK the Verified Buyer via DO (GEID + members_bridge).
     link = {"linked": False}
     if status == "verified":
-        link = _do_link_buyer(uid, profile.get("customer_id"), profile,
-                              _entity_type_for(body.role), authorization)
-        _do_put_profile(uid, {"verification_status": "verified"}, authorization)
-        if ah:
-            await FACE_INDEX.update_one(
-                {"uid": uid}, {"$set": {"uid": uid, "hash": ah, "updated_at": _now()}}, upsert=True)
+        from buyer_membership import approve_membership
+        try:
+            link = await approve_membership(uid, {"consent": True, "entity_type": _entity_type_for(body.role),
+                "selfie_file_id": body.selfie_file_id, "document_file_id": body.document_file_id}, profile, authorization)
+        except HTTPException:
+            status = "needs_review"
+            reasons.append("Shared identity confirmation is pending; sent for admin review.")
+        if ah and status == "verified":
+            await FACE_INDEX.update_one({"uid": uid}, {"$set": {"uid": uid, "hash": ah, "updated_at": _now()}}, upsert=True)
 
     cd0 = profile.get("company_details") or {}
     sid = uuid.uuid4().hex
@@ -537,6 +582,21 @@ async def submit_verification(body: SubmitReq, user: dict = Depends(require_user
         "created_at": _now(), "updated_at": _now(),
     }
     await SUBS.insert_one(submission)
+    if status == "verified":
+        from buyer_membership import sync_approved_member
+        if not link.get("linked"):
+            status = "needs_review"
+            submission["status"] = status
+            reasons.append("Shared identity binding requires review.")
+            await SUBS.update_one({"_id": sid}, {"$set": {"status": status, "reasons": reasons}})
+        else:
+            await sync_approved_member(uid, profile, submission)
+    if registry and status == "needs_review":
+        from admin_approvals import enqueue
+        await db.registry_matches.update_one({"uid": uid}, {"$set": {"status": "needs_review", "submission_id": sid}})
+        await enqueue(uid, "registry_claim", {"submission_id": sid, "decision": "approve", "geid": registry["geid"]},
+                      {"is_main": True, "name": "Registry onboarding", "email": user.get("email")},
+                      "Company, email and mobile matched. Review selfie and company KYC before adding user.")
 
     # Welcome / submission-received email (best-effort, non-blocking).
     try:
@@ -584,26 +644,11 @@ async def admin_decide(sid: str, body: DecideReq, admin: dict = Depends(require_
     if not sub:
         raise HTTPException(404, "Submission not found")
     uid = sub["uid"]
-    profile = await _profile(uid, authorization)
-    if body.decision == "approve":
-        link = _do_link_buyer(uid, profile.get("customer_id"), profile,
-                              sub.get("entity_type") or "prospect", authorization)
-        _do_put_profile(uid, {"verification_status": "verified"}, authorization)
-        fh = (sub.get("checks") or {}).get("selfie", {}).get("face_hash")
-        if fh:
-            await FACE_INDEX.update_one({"uid": uid},
-                {"$set": {"uid": uid, "hash": fh, "updated_at": _now()}}, upsert=True)
-        await SUBS.update_one({"_id": sid}, {"$set": {
-            "status": "verified", "geid": link.get("geid"), "linked": link.get("linked"),
-            "reviewer": admin.get("email") or admin.get("uid"), "review_note": body.note,
-            "updated_at": _now()}})
-        return {"ok": True, "status": "verified", "geid": link.get("geid")}
-    else:
-        _do_put_profile(uid, {"verification_status": "rejected"}, authorization)
-        await SUBS.update_one({"_id": sid}, {"$set": {
-            "status": "rejected", "reviewer": admin.get("email") or admin.get("uid"),
-            "review_note": body.note, "updated_at": _now()}})
-        return {"ok": True, "status": "rejected"}
+    if body.decision not in ("approve", "reject"):
+        raise HTTPException(400, "Choose approve or reject.")
+    from admin_ops import _finalise
+    return await _finalise(uid, sid, body.decision, body.note,
+                           {**admin, "is_main": True, "role": "main_admin"}, authorization)
 
 
 # ---------------- Weekly verified-buyer digest ----------------

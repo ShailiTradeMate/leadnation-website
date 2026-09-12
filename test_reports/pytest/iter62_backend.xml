@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="1" tests="4" time="17.914" timestamp="2026-09-12T21:11:20.274176+00:00" hostname="agent-env-f31bcbf9-e051-44cf-a4cd-4225e91f3de3"><testcase classname="backend.tests.test_iter62_resume_fixture00018_final" name="test_01_state_assertions_after_canonical_fix" time="0.653"><failure message="AssertionError: {&quot;detail&quot;:&quot;User not found&quot;}&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404]&gt;.status_code">backend/tests/test_iter62_resume_fixture00018_final.py:163: in test_01_state_assertions_after_canonical_fix
+    assert do_user.status_code == 200, do_user.text
+E   AssertionError: {"detail":"User not found"}
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404]&gt;.status_code</failure></testcase><testcase classname="backend.tests.test_iter62_resume_fixture00018_final" name="test_02_bulk_approve_profile_subscription_document" time="17.005"><failure message="AssertionError: Step A must pass before Step B&#10;assert False">backend/tests/test_iter62_resume_fixture00018_final.py:200: in test_02_bulk_approve_profile_subscription_document
+    assert progress["a_passed"], "Step A must pass before Step B"
+E   AssertionError: Step A must pass before Step B
+E   assert False</failure></testcase><testcase classname="backend.tests.test_iter62_resume_fixture00018_final" name="test_03_reject_recommendation_and_verify_removal" time="0.000"><failure message="AssertionError: Step B must pass before Step C&#10;assert False">backend/tests/test_iter62_resume_fixture00018_final.py:312: in test_03_reject_recommendation_and_verify_removal
+    assert progress["b_passed"], "Step B must pass before Step C"
+E   AssertionError: Step B must pass before Step C
+E   assert False</failure></testcase><testcase classname="backend.tests.test_iter62_resume_fixture00018_final" name="test_04_hard_delete_only_after_a_b_c_pass" time="0.001"><skipped type="pytest.skip" message="Skipping hard-delete because A/B/C did not all pass">/app/backend/tests/test_iter62_resume_fixture00018_final.py:365: Skipping hard-delete because A/B/C did not all pass</skipped></testcase></testsuite></testsuites>

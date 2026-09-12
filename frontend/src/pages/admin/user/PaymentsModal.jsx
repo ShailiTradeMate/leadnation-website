@@ -23,7 +23,7 @@ export default function PaymentsModal({ u, onClose }) {
       const res = await adminOps.subscription(u.uid, {
         action, plan, days: days ? Number(days) : null, note: note || null,
       });
-      setOk(action === "grant"
+      setOk(res.stage === "awaiting_signoff" ? res.message : action === "grant"
         ? `${plan} subscription active until ${String(res.until).slice(0, 10)} — buyer notified.`
         : "Subscription removed — buyer notified.");
       await load();
@@ -68,9 +68,9 @@ export default function PaymentsModal({ u, onClose }) {
             </div>
           </div>
 
-          {data.can_grant && (
+          {(data.can_grant || data.can_request_grant) && (
             <div className="mt-6 glass rounded-2xl p-4" data-testid="payments-grant-panel">
-              <div className="text-sm font-semibold">Grant a free subscription</div>
+              <div className="text-sm font-semibold">{data.can_grant ? "Grant free access" : "Request free months"}</div>
               <div className="grid sm:grid-cols-3 gap-2 mt-3">
                 <select data-testid="grant-plan" className={input} value={plan} onChange={(e) => setPlan(e.target.value)}>
                   <option value="monthly">Monthly (30 days)</option>
@@ -85,12 +85,12 @@ export default function PaymentsModal({ u, onClose }) {
               <div className="flex gap-2 mt-3">
                 <button data-testid="grant-submit" onClick={() => act("grant")} disabled={busy === "grant"}
                   className="btn-primary !py-2 text-xs disabled:opacity-50">
-                  {busy === "grant" ? "Granting…" : "Grant & notify"}
+                  {busy === "grant" ? "Submitting…" : data.can_grant ? "Grant & notify" : "Send approval request"}
                 </button>
-                <button data-testid="revoke-submit" onClick={() => act("revoke")} disabled={busy === "revoke"}
+                {data.can_grant && <button data-testid="revoke-submit" onClick={() => act("revoke")} disabled={busy === "revoke"}
                   className="btn-ghost !py-2 text-xs disabled:opacity-50">
                   {busy === "revoke" ? "Removing…" : "Revoke subscription"}
-                </button>
+                </button>}
               </div>
             </div>
           )}

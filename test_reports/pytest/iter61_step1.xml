@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="1" time="24.427" timestamp="2026-09-12T21:05:12.627722+00:00" hostname="agent-env-f31bcbf9-e051-44cf-a4cd-4225e91f3de3"><testcase classname="backend.tests.test_iter61_resume_fixture00018" name="test_01_retry_existing_review_then_verify_canonical_reads" time="24.198"><failure message="AssertionError: Expected APPROVED, got: {'id': 'review:ITER60_SUB_nhnlL3Jey3QHEuf9z3YyxgEtFL72:2026-09-12T20:57:09.285698+00:00', 'status': 'failed', 'error': 'Shared identity service did not persist the verification status.'}&#10;assert 'failed' == 'approved'&#10;  &#10;  - approved&#10;  + failed">backend/tests/test_iter61_resume_fixture00018.py:146: in test_01_retry_existing_review_then_verify_canonical_reads
+    assert out.get("status") == "approved", f"Expected APPROVED, got: {out}"
+E   AssertionError: Expected APPROVED, got: {'id': 'review:ITER60_SUB_nhnlL3Jey3QHEuf9z3YyxgEtFL72:2026-09-12T20:57:09.285698+00:00', 'status': 'failed', 'error': 'Shared identity service did not persist the verification status.'}
+E   assert 'failed' == 'approved'
+E     
+E     - approved
+E     + failed</failure></testcase></testsuite></testsuites>

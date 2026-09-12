@@ -16,6 +16,9 @@ import storage, news_engine, event_listings, vbie
 import vbie_connectors, vbie_admin, seo, verify
 import subadmin
 import admin_ops
+import admin_approvals
+import buyer_membership
+import buyer_admin_actions
 from admin import CMS_COLLECTIONS, _seed_collection
 from auth import seed_settings
 from firebase_auth import init_firebase
@@ -31,6 +34,9 @@ api_router = APIRouter(prefix="/api")
 for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo, verify, subadmin, admin_ops):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
+api_router.include_router(admin_approvals.router)
+api_router.include_router(buyer_membership.router)
+api_router.include_router(buyer_admin_actions.router)
 api_router.include_router(brain_admin_router)
 for r in (pay_router, dl_router, acc_router, hook_router, pricing_router):
     api_router.include_router(r)

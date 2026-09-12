@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Cookie, X } from "@phosphor-icons/react";
 import { getConsent, setConsent } from "@/lib/analytics";
@@ -16,9 +16,17 @@ export default function CookieConsent() {
   const [show, setShow] = useState(false);
   const [manage, setManage] = useState(false);
   const [prefs, setPrefs] = useState({ analytics: true, marketing: true });
+  const bannerRef = useRef(null);
+  const [bannerHeight, setBannerHeight] = useState(0);
 
   // Admin CMS: never overlay the consent banner on top of admin tables.
   const isAdminArea = /^\/admin/.test(pathname) || isStaff();
+  useEffect(() => {
+    if (!show || isAdminArea || !bannerRef.current) { setBannerHeight(0); return; }
+    const observer = new ResizeObserver(entries => setBannerHeight(entries[0].contentRect.height + 24));
+    observer.observe(bannerRef.current);
+    return () => observer.disconnect();
+  }, [show, isAdminArea, manage]);
 
   useEffect(() => {
     if (!getConsent()) setShow(true);
@@ -38,7 +46,8 @@ export default function CookieConsent() {
   if (!show || isAdminArea) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-5 pointer-events-none" data-testid="cookie-consent">
+    <><div aria-hidden="true" style={{height: bannerHeight}} data-testid="cookie-content-spacer" />
+    <div ref={bannerRef} className="fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-5 pointer-events-none max-h-[75vh] overflow-y-auto" data-testid="cookie-consent">
       <div className="pointer-events-auto max-w-4xl mx-auto glass-strong rounded-2xl border border-white/10 shadow-2xl p-5 sm:p-6">
         {!manage ? (
           <div className="flex flex-col sm:flex-row items-start gap-4">
@@ -80,6 +89,6 @@ export default function CookieConsent() {
           </div>
         )}
       </div>
-    </div>
+    </div></>
   );
 }

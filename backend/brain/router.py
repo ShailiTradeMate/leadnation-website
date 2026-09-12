@@ -169,7 +169,8 @@ async def _brain_subscribed(auth_uid):
 
 async def _buyer_intel(entities, subscribed):
     from core import db
-    base = {"entity_type": "buyer", "status": "active", "merged_into": None, "admin_deleted": {"$ne": True}}
+    from buyer_membership import PUBLIC_Q
+    base = dict(PUBLIC_Q)
     q = dict(base)
     ors = []
     if entities.get("countries"):
