@@ -69,6 +69,15 @@ async def _startup():
         await event_listings.seed_events()
     except Exception as exc:
         logging.warning("Event seed failed: %s", exc)
+    try:
+        import expo_live
+        expo_live.start_expo_engine()
+    except Exception as exc:
+        logging.warning("Expo engine init failed: %s", exc)
+    try:
+        news_engine.start_news_refresh()
+    except Exception as exc:
+        logging.warning("Trade News scheduler init failed: %s", exc)
     for name, source in CMS_COLLECTIONS.items():
         try:
             await _seed_collection(name, source)
@@ -131,6 +140,9 @@ async def _ensure_indexes():
     await db.event_payments.create_index("eventId")
     await db.uploaded_files.create_index("owner")
     await db.trade_news_admin.create_index([("featured", -1), ("createdAt", -1)])
+    await db.news_items.create_index([("publishedAt", -1)])
+    await db.expo_listings.create_index([("status", 1), ("endDate", 1)])
+    await db.expo_listings.create_index([("source", 1), ("status", 1)])
     # VBIE buyer graph (additive; entity graph shared with identity spine)
     await db.entities.create_index([("entity_type", 1), ("status", 1), ("merged_into", 1)])
     await db.entities.create_index([("trust.score", -1)])

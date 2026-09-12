@@ -3,8 +3,8 @@ import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
-import { fetchEvents, fetchEventFilters } from "@/lib/api";
-import { MapPin, CalendarBlank, Users, Buildings, Plus, Star, CircleNotch } from "@phosphor-icons/react";
+import { fetchEvents, fetchEventFilters, fetchExpoEngineStatus } from "@/lib/api";
+import { MapPin, CalendarBlank, Users, Buildings, Plus, Star, CircleNotch, Broadcast, Clock, Globe } from "@phosphor-icons/react";
 
 const fmtDate = (s) => {
   if (!s) return "TBA";
@@ -20,8 +20,10 @@ export default function Expo() {
   const [filters, setFilters] = useState({ categories: [], industries: [], countries: [], audiences: [] });
   const [sel, setSel] = useState({ category: "", country: "", industry: "", q: "" });
   const [loading, setLoading] = useState(true);
+  const [engine, setEngine] = useState({ lastUpdated: null, upcoming: 0 });
 
   useEffect(() => { fetchEventFilters().then(setFilters).catch(() => {}); }, []);
+  useEffect(() => { fetchExpoEngineStatus().then(setEngine).catch(() => {}); }, []);
   useEffect(() => {
     setLoading(true);
     const params = Object.fromEntries(Object.entries(sel).filter(([, v]) => v));
@@ -43,8 +45,20 @@ export default function Expo() {
         testIdPrefix="expo"
         label="Expo & Events Engine"
         title="Every trade event on earth — on one calendar."
-        sub="Track global expos, import/export fairs, business, agriculture and industry events by sector, country and date. Have an event? List it and reach thousands of exporters, importers and buyers."
+        sub="Track global expos, import/export fairs, business, agriculture and industry events by sector, country and date — only live and upcoming editions, refreshed daily. Have an event? List it and reach thousands of exporters, importers and buyers."
       />
+
+      <section className="max-w-7xl mx-auto px-6 sm:px-10">
+        <div className="flex flex-wrap items-center gap-3 mb-5 text-xs" data-testid="expo-engine-bar">
+          <span className="glass rounded-full px-3 py-1.5 text-emerald-300 flex items-center gap-2" data-testid="expo-live-badge">
+            <Broadcast size={12} weight="fill" /> Live engine · {engine.upcoming || items.length} upcoming events
+          </span>
+          <span className="glass rounded-full px-3 py-1.5 text-slate-400 flex items-center gap-2" data-testid="expo-last-updated">
+            <Clock size={12} /> Updated {engine.lastUpdated ? new Date(engine.lastUpdated).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "today"}
+          </span>
+          <span className="text-slate-500">Dates for recurring fairs are indicative — always confirm with the organiser.</span>
+        </div>
+      </section>
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         {/* Filter bar + List CTA */}
@@ -125,6 +139,7 @@ function EventCard({ e, i, featured }) {
         <div className="flex items-center gap-2 text-slate-300"><MapPin size={14} className="text-cyan-300" weight="duotone" />{[e.city, e.country].filter(Boolean).join(", ")}</div>
         {e.industry && <div className="flex items-center gap-2 text-slate-300"><Buildings size={14} className="text-cyan-300" weight="duotone" />{e.industry}</div>}
         {e.audience && <div className="flex items-center gap-2 text-slate-400 text-xs"><Users size={13} className="text-cyan-300" weight="duotone" />{e.audience}</div>}
+        {e.organizer && <div className="flex items-center gap-2 text-slate-500 text-xs"><Globe size={13} className="text-cyan-300" weight="duotone" />{e.organizer}</div>}
       </div>
     </Link>
   );

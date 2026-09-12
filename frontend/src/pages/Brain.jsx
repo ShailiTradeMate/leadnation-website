@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Brain, PaperPlaneTilt, Sparkle, Cpu, Lightning, ArrowUpRight, CircleNotch } from "@phosphor-icons/react";
+import { Brain, PaperPlaneTilt, Sparkle, Cpu, Lightning, ArrowUpRight, CircleNotch, Package, MagnifyingGlass } from "@phosphor-icons/react";
 import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
@@ -57,6 +57,7 @@ export default function BrainPage() {
   const bottomRef = useRef(null);
   const sid = useRef(sessionId());
   const [searchParams] = useSearchParams();
+  const [pf, setPf] = useState({ direction: "Export", product: "", origin: "India", destination: "", hsn: "" });
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [thread, loading]);
 
@@ -66,21 +67,34 @@ export default function BrainPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const ask = async (question) => {
+  const ask = async (question, mode) => {
     if (!question.trim() || loading) return;
     setThread((t) => [...t, { role: "user", answer: question }]);
     setQ("");
     setLoading(true);
     try {
-      const { data } = await api.post("/brain/ask", { question, session_id: sid.current });
+      const { data } = await api.post("/brain/ask", { question, session_id: sid.current, mode });
       setThread((t) => [...t, {
         role: "assistant", answer: data.answer, isMock: data.isMock,
         engines: data.enginesUsed || [], sources: data.sources || [],
+        ctas: data.ctas || [], buyerAccess: data.buyerAccess || null,
+        recommendations: data.recommendations || [],
         entities: data.entities,
       }]);
     } catch (e) {
       setThread((t) => [...t, { role: "assistant", answer: "Something went wrong reaching the Brain. Please try again.", error: true }]);
     } finally { setLoading(false); }
+  };
+
+  const askProduct = () => {
+    if (!pf.product.trim() || loading) return;
+    const isExp = pf.direction === "Export";
+    const q = `${pf.direction} ${pf.product}${pf.origin ? ` from ${pf.origin}` : ""}`
+      + (pf.destination ? ` ${isExp ? "to" : "from"} ${pf.destination}` : "")
+      + (pf.hsn ? ` (HSN ${pf.hsn})` : "")
+      + `: give me the HSN code, import duty and taxes, required documents and licences, certifications,`
+      + ` market demand, top importing countries, logistics options, export incentives and verified buyers.`;
+    ask(q, "product");
   };
 
   return (
@@ -113,6 +127,43 @@ export default function BrainPage() {
       <section className="max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-6 pb-16">
         {/* Suggestions + status */}
         <aside className="lg:col-span-4 space-y-6">
+          {/* PRODUCT INTELLIGENCE — replaces the old standalone Product Info Engine */}
+          <div className="glass-strong rounded-3xl p-6" data-testid="brain-product-panel">
+            <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300 flex items-center gap-2">
+              <Package size={14} weight="duotone" /> Product intelligence
+            </div>
+            <p className="mt-2 text-xs text-slate-400 leading-relaxed">
+              Any product, any border — HSN, duty, documents, certifications, demand, top markets and verified buyers in one answer.
+            </p>
+            <div className="mt-4 space-y-2.5">
+              <div className="flex gap-1.5">
+                {["Export", "Import"].map((d) => (
+                  <button key={d} data-testid={`brain-pi-dir-${d.toLowerCase()}`} onClick={() => setPf({ ...pf, direction: d })}
+                    className={`flex-1 py-2 rounded-xl text-xs ${pf.direction === d ? "tab-active text-white" : "bg-white/5 text-slate-300"}`}>{d}</button>
+                ))}
+              </div>
+              <input data-testid="brain-pi-product" value={pf.product} onChange={(e) => setPf({ ...pf, product: e.target.value })}
+                onKeyDown={(e) => e.key === "Enter" && askProduct()}
+                placeholder="Product — e.g. Agarbatti, Basmati rice"
+                className="w-full glass rounded-xl px-3 py-2.5 text-sm outline-none text-white placeholder:text-slate-500 focus:border-cyan-400/40" />
+              <div className="grid grid-cols-2 gap-2">
+                <input data-testid="brain-pi-origin" value={pf.origin} onChange={(e) => setPf({ ...pf, origin: e.target.value })}
+                  onKeyDown={(e) => e.key === "Enter" && askProduct()} placeholder="Origin"
+                  className="w-full glass rounded-xl px-3 py-2.5 text-sm outline-none text-white placeholder:text-slate-500 focus:border-cyan-400/40" />
+                <input data-testid="brain-pi-destination" value={pf.destination} onChange={(e) => setPf({ ...pf, destination: e.target.value })}
+                  onKeyDown={(e) => e.key === "Enter" && askProduct()} placeholder="Destination"
+                  className="w-full glass rounded-xl px-3 py-2.5 text-sm outline-none text-white placeholder:text-slate-500 focus:border-cyan-400/40" />
+              </div>
+              <input data-testid="brain-pi-hsn" value={pf.hsn} onChange={(e) => setPf({ ...pf, hsn: e.target.value })}
+                onKeyDown={(e) => e.key === "Enter" && askProduct()} placeholder="HSN / HS code (optional)"
+                className="w-full glass rounded-xl px-3 py-2.5 text-sm outline-none text-white placeholder:text-slate-500 focus:border-cyan-400/40" />
+              <button data-testid="brain-pi-submit" onClick={askProduct} disabled={loading || !pf.product.trim()}
+                className="btn-primary w-full justify-center text-xs disabled:opacity-50">
+                {loading ? <CircleNotch size={14} className="animate-spin" /> : <><MagnifyingGlass size={14} weight="bold" /> Analyse product</>}
+              </button>
+            </div>
+          </div>
+
           <div className="glass-strong rounded-3xl p-6 h-fit">
             <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300 flex items-center gap-2">
               <Sparkle size={14} weight="duotone" /> Ask the Brain
@@ -162,6 +213,22 @@ export default function BrainPage() {
                           <span className="truncate">{s.title}</span>
                           <ArrowUpRight size={13} className="text-cyan-300 shrink-0" />
                         </Link>
+                      ))}
+                    </div>
+                  )}
+                  {m.buyerAccess && (
+                    <div className="mt-3 glass rounded-xl px-3 py-2 text-xs flex flex-wrap items-center gap-2" data-testid={`brain-buyer-access-${i}`}>
+                      <span className="text-cyan-300 font-mono-display uppercase tracking-widest text-[9px]">Verified buyers</span>
+                      <span className="text-slate-300">{m.buyerAccess.count} matching</span>
+                      {m.buyerAccess.locked
+                        ? <Link to="/pricing" className="text-amber-300 hover:underline">Subscribe to unlock names →</Link>
+                        : <Link to="/buyers" className="text-emerald-300 hover:underline">Open buyer list →</Link>}
+                    </div>
+                  )}
+                  {m.ctas?.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2" data-testid={`brain-ctas-${i}`}>
+                      {m.ctas.map((c, k) => (
+                        <Link key={k} to={c.to} className="text-[11px] px-3 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/30">{c.label}</Link>
                       ))}
                     </div>
                   )}

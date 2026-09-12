@@ -34,6 +34,7 @@ class AskRequest(BaseModel):
     user_id: Optional[str] = None
     page_context: Optional[dict] = None
     language: Optional[str] = "en"
+    mode: Optional[str] = None  # "product" = full product-intelligence sweep
 
 
 @router.post("/ask")
@@ -51,7 +52,7 @@ async def brain_ask(payload: AskRequest, request: Request):
         auth_uid = None
     return await orchestrate(payload.question, payload.session_id, payload.user_id,
                              page_context=payload.page_context, language=payload.language or "en",
-                             auth_uid=auth_uid)
+                             auth_uid=auth_uid, mode=payload.mode)
 
 
 @router.get("/search")

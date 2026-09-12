@@ -19,6 +19,7 @@ import {
   Receipt,
   Sparkle,
   Buildings,
+  Brain,
 } from "@phosphor-icons/react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -106,7 +107,7 @@ export default function Home() {
                     <button
                       key={i}
                       data-testid={`home-search-result-${i}`}
-                      onMouseDown={() => navigate(r.type === "product" ? "/product-info" : "/customs-compliance")}
+                      onMouseDown={() => navigate(r.type === "product" ? `/brain?q=${encodeURIComponent(`${r.label}: HSN code, duty, documents, certifications, top markets and buyers`)}` : "/customs-compliance")}
                       className="w-full text-left flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-white/5"
                     >
                       <span className="flex items-center gap-2">
@@ -184,9 +185,9 @@ export default function Home() {
           <FeatureCard className="md:col-span-3 md:row-span-2" Icon={GlobeHemisphereEast} title="Customs & Compliance Engine"
             desc="Live HS codes, duty rates, FTA benefits and document checklists for 186+ markets — synced with DGFT, CBAM and customs authorities worldwide."
             link="/customs-compliance" testId="feat-customs" big />
-          <FeatureCard className="md:col-span-3" Icon={Package} title="Product Info Engine"
-            desc="Pick a country, business type and product. Get market size, top buyers, tariffs and certifications in seconds."
-            link="/product-info" testId="feat-product" />
+          <FeatureCard className="md:col-span-3" Icon={Brain} title="Vametra AI Brain"
+            desc="Ask any product, any border: HSN codes, duty, documents, certifications, demand and verified buyers — one answer, with links straight into the Command Center."
+            link="/brain" testId="feat-brain" />
           <FeatureCard className="md:col-span-3" Icon={CalendarBlank} title="Expo & Events Engine"
             desc="Every major trade expo on earth — filtered by sector, country and date." link="/expo" testId="feat-expo" />
           <FeatureCard className="md:col-span-3" Icon={Newspaper} title="Trade News Engine"
@@ -337,7 +338,7 @@ export default function Home() {
               Vametra AI app shows you every step, in motion.
             </p>
             <div className="mt-7 flex gap-3">
-              <Link to="/product-info" data-testid="story-cta-explore" className="btn-primary">Explore products <ArrowRight size={16} weight="bold" /></Link>
+              <Link to="/products" data-testid="story-cta-explore" className="btn-primary">Explore products <ArrowRight size={16} weight="bold" /></Link>
               <Link to="/expo" data-testid="story-cta-expos" className="btn-ghost">See expos</Link>
             </div>
           </div>

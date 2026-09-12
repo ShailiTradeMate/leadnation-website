@@ -1,5 +1,5 @@
 {
-  "base": "https://vbie-verify.preview.emergentagent.com/api",
+  "base": "https://leadnation-build.preview.emergentagent.com/api",
   "checks": [
     {
       "name": "GET /buyers/search returns buyers",

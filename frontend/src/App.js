@@ -18,7 +18,6 @@ const TradeNewsDetail = lazy(() => import("@/pages/TradeNewsDetail"));
 const Expo = lazy(() => import("@/pages/Expo"));
 const EventSubmit = lazy(() => import("@/pages/EventSubmit"));
 const EventDetail = lazy(() => import("@/pages/EventDetail"));
-const ProductInfo = lazy(() => import("@/pages/ProductInfo"));
 const Contact = lazy(() => import("@/pages/Contact"));
 const GlobalSearch = lazy(() => import("@/pages/GlobalSearch"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
@@ -107,7 +106,6 @@ function App() {
                   <Route path="/expo" element={<Expo />} />
                   <Route path="/expo/submit" element={<EventSubmit />} />
                   <Route path="/expo/:id" element={<EventDetail />} />
-                  <Route path="/product-info" element={<ProductInfo />} />
                   <Route path="/contact" element={<Contact />} />
                   <Route path="/search" element={<GlobalSearch />} />
 

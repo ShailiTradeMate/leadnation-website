@@ -81,7 +81,9 @@ def _is_expired(doc) -> bool:
 # ---------------- Filters / config ----------------
 @router.get("/filters")
 async def event_filters():
-    countries = await EVENTS.distinct("country", {"status": {"$in": list(PUBLIC_STATUSES)}})
+    today = _now().date().isoformat()
+    scope = {"status": {"$in": list(PUBLIC_STATUSES)}, "endDate": {"$gte": today}}
+    countries = await EVENTS.distinct("country", scope)
     return {"categories": CATEGORIES, "industries": INDUSTRIES, "audiences": AUDIENCES,
             "countries": sorted([c for c in countries if c]) or ["India", "UAE", "USA", "Germany", "Singapore"]}
 
@@ -99,12 +101,29 @@ async def event_pricing(region: str = Query("INTL"), country: str = Query("")):
             "symbol": "\u20b9" if currency == "inr" else "$"}
 
 
+# ---------------- Live engine (catalogue roll-forward + AI discovery) ----------------
+@router.get("/engine/status")
+async def engine_status():
+    import expo_live
+    return await expo_live.engine_status()
+
+
+@router.post("/engine/refresh")
+async def engine_refresh(_: dict = Depends(require_admin)):
+    import expo_live
+    return await expo_live.run_engine(trigger="admin")
+
+
 # ---------------- Public list + detail ----------------
 @router.get("/list")
 async def list_events(category: str = Query(""), country: str = Query(""),
                       industry: str = Query(""), audience: str = Query(""),
-                      q: str = Query(""), limit: int = Query(60)):
+                      q: str = Query(""), limit: int = Query(60),
+                      when: str = Query("upcoming")):
     query: Dict[str, Any] = {"status": {"$in": list(PUBLIC_STATUSES)}}
+    if when != "all":
+        # only live (ongoing) + upcoming editions
+        query["endDate"] = {"$gte": _now().date().isoformat()}
     if category:
         query["category"] = category
     if country:
@@ -119,7 +138,8 @@ async def list_events(category: str = Query(""), country: str = Query(""),
                         {"city": {"$regex": q, "$options": "i"}}]
     docs = await EVENTS.find(query).sort([("featured", -1), ("startDate", 1)]).to_list(min(limit, 100))
     items = [_clean(d) for d in docs if not _is_expired(d)]
-    return {"items": items, "count": len(items)}
+    meta = await db.expo_engine_meta.find_one({"_id": "heartbeat"}) or {}
+    return {"items": items, "count": len(items), "lastUpdated": meta.get("finishedAt")}
 
 
 @router.get("/mine")

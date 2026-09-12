@@ -257,12 +257,27 @@ async def _resolve_page_entity(page_context, entities):
     return entities
 
 
-def _ctas(question, entities, intent):
+# Engines swept for the Brain's Product Intelligence mode (replaces the old
+# standalone Product Info Engine page).
+PRODUCT_MODE_ENGINES = ["product_intelligence", "trade_statistics", "duty_benefits",
+                        "compliance", "logistics", "policy", "trade_news"]
+
+TOOL_CTAS = [
+    {"label": "Open Trade Command Center", "to": "/command-center", "action": "command_center"},
+    {"label": "Landed Cost Calculator", "to": "/tools/landed-cost-calculator", "action": "landed_cost"},
+]
+
+
+def _ctas(question, entities, intent, mode=None):
     ql = question.lower()
     out = []
     def add(key):
         if CTA_LIBRARY[key] not in out:
             out.append(CTA_LIBRARY[key])
+    if mode == "product" or entities.get("products") or entities.get("hsn"):
+        for c in TOOL_CTAS:
+            if c not in out:
+                out.append(c)
     if any(k in ql for k in ["iec", "import export code"]):
         add("apply_iec")
     if any(k in ql for k in ["register", "registration", "gst", "rcmc", "compliance", "consult", "help me", "service"]):
@@ -273,7 +288,7 @@ def _ctas(question, entities, intent):
         add("book_consultation")
     add("create_account")
     add("download_app")
-    return out[:3]
+    return out[:5]
 
 
 async def _recommendations(entities):
@@ -299,13 +314,16 @@ async def _recommendations(entities):
 
 
 async def orchestrate(question: str, session_id: str = None, user_id: str = None,
-                      page_context: dict = None, language: str = "en", auth_uid: str = None):
+                      page_context: dict = None, language: str = "en", auth_uid: str = None,
+                      mode: str = None):
     import hashlib
     from datetime import datetime as _dt
 
     entities = extract_entities(question)
     entities = await _resolve_page_entity(page_context, entities)
     engine_keys = select_engines(question, entities)
+    if mode == "product":
+        engine_keys = PRODUCT_MODE_ENGINES + [k for k in engine_keys if k not in PRODUCT_MODE_ENGINES]
 
     # personalization by role from user memory
     role = None
@@ -325,7 +343,7 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
             engine_outputs[key] = out
 
     # Verified Buyers — subscription-gated intelligence injected into the answer grounding.
-    buyer_intent = _is_buyer_intent(question)
+    buyer_intent = _is_buyer_intent(question) or mode == "product"
     buyer_access = None
     if buyer_intent:
         subscribed = await _brain_subscribed(auth_uid)
@@ -344,7 +362,7 @@ async def orchestrate(question: str, session_id: str = None, user_id: str = None
         suggestions.append({"label": s["title"], "to": s["to"]})
 
     recommendations = await _recommendations(entities)
-    ctas = _ctas(question, entities, intent)
+    ctas = _ctas(question, entities, intent, mode=mode)
     if buyer_access and buyer_access.get("locked"):
         ctas.insert(0, {"label": "Unlock Verified Buyers", "to": "/pricing", "action": "subscribe"})
     elif buyer_intent:

@@ -24,7 +24,6 @@ def _static_routes():
     return [
         ("/", "daily", "1.0"),
         ("/customs-compliance", "weekly", "0.9"),
-        ("/product-info", "weekly", "0.9"),
         ("/expo", "daily", "0.8"),
         ("/trade-news", "daily", "0.8"),
         ("/contact", "monthly", "0.6"),
