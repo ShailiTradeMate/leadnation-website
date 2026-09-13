@@ -3,6 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { TrustBadge } from "@/components/BuyerCard";
 import { fetchBuyer, claimBuyer, watchBuyer, unwatchBuyer, revealBuyerContact, TRUST_COLORS } from "@/lib/vbieApi";
+import { mapSourceName } from "@/lib/sourceCategories";
+import BuyerDataNotice from "@/components/BuyerDataNotice";
 import { useAuth } from "@/lib/AuthContext";
 import { toast } from "sonner";
 import {
@@ -30,6 +32,7 @@ export default function BuyerProfile() {
 
   return (
     <>
+      <BuyerDataNotice />
       <SEO
         title={`${b.display_name} · Verified Buyer Intelligence`}
         description={`Verified buyer profile for ${b.display_name} (${b.country_name}) — sector ${b.sector}, trust score ${trust.score}. Cited source evidence and trade intelligence by Vametra AI.`}
@@ -71,7 +74,7 @@ export default function BuyerProfile() {
         {b.source_warning && (
           <div data-testid="buyer-source-warning" className="mt-5 flex items-start gap-2.5 rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-4 text-xs text-amber-200/90">
             <Warning size={16} weight="fill" className="text-amber-300 shrink-0 mt-0.5" />
-            <span><b>Source: {b.primary_source || "official public sources"}.</b> {b.source_warning}</span>
+            <span><b>Source: {mapSourceName(b.primary_source) || "official public sources"}.</b> {b.source_warning}</span>
           </div>
         )}
 
@@ -290,10 +293,13 @@ function IntelligencePanel({ intel, sources }) {
             <Stack size={13} weight="fill" className="text-violet-300" /> Evidence
           </div>
           <div className="flex flex-wrap gap-2">
-            {sources.map((s) => (
-              <span key={s} data-testid={`evidence-source-${s.replace(/\s+/g, "-").toLowerCase()}`}
-                className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-200">{s}</span>
-            ))}
+            {sources.map((s) => {
+              const label = mapSourceName(s);
+              return (
+                <span key={s} data-testid={`evidence-source-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+                  className="text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-slate-200">{label}</span>
+              );
+            })}
           </div>
         </div>
       )}

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/lib/api";
 import { ArrowRight } from "@phosphor-icons/react";
+import BuyerDataNotice from "@/components/BuyerDataNotice";
 
 export const CommandBuyers = () => {
   const [q, setQ] = useState(""), [rows, setRows] = useState([]), [total, setTotal] = useState(0), [err, setErr] = useState("");
@@ -13,6 +14,7 @@ export const CommandBuyers = () => {
     return () => {live = false; clearTimeout(timer);};
   }, [q]);
   return <section data-testid="cc-buyers" className="space-y-5 min-w-0">
+    <BuyerDataNotice />
     <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="font-semibold text-lg">Verified Buyers</h2><Link data-testid="cc-buyers-view-all" to="/buyers" className="btn-ghost !py-2 text-xs">All buyers <ArrowRight size={15} /></Link></div>
     <input data-testid="cc-buyers-search" aria-label="Search verified buyers" className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 outline-none" placeholder="Company, product, city, country…" value={q} onChange={e => setQ(e.target.value)} />
     <p data-testid="cc-buyers-total" className="text-xs text-slate-400">{total.toLocaleString()} verified buyers</p>

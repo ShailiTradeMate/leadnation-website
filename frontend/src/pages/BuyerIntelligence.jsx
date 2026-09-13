@@ -3,6 +3,8 @@ import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
 import BuyerCard from "@/components/BuyerCard";
 import { fetchBuyerMeta, searchBuyers, fetchBuyerSources } from "@/lib/vbieApi";
+import { SOURCE_CATEGORIES, USAGE_NOTE } from "@/lib/sourceCategories";
+import BuyerDataNotice from "@/components/BuyerDataNotice";
 import { MagnifyingGlass, ShieldCheck, Sparkle, Info } from "@phosphor-icons/react";
 
 const TRUST_MINS = [
@@ -30,6 +32,7 @@ export default function BuyerIntelligence() {
 
   return (
     <>
+      <BuyerDataNotice />
       <SEO
         title="Verified Buyer Intelligence · Find Global Importers with Evidence"
         description="Discover verified global buyers by market, sector and HS code — each with an explainable trust score and cited source evidence. Powered by the Vametra AI Verified Buyer Intelligence Engine."
@@ -128,40 +131,41 @@ export default function BuyerIntelligence() {
 function SourcesSection() {
   const [src, setSrc] = useState(null);
   useEffect(() => { fetchBuyerSources().then(setSrc).catch(() => {}); }, []);
-  if (!src) return null;
   return (
     <section data-testid="buyer-sources-section" className="max-w-7xl mx-auto px-6 sm:px-10 pb-16">
       <div className="glass-strong rounded-3xl p-7 sm:p-9">
         <div className="flex items-center gap-2 text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
           <ShieldCheck size={14} weight="fill" /> Source Transparency
         </div>
-        <h2 className="font-display font-extrabold text-2xl sm:text-3xl mt-3">Where our buyer intelligence comes from</h2>
-        <p className="mt-2 text-sm text-slate-400 max-w-2xl">
-          Every buyer is aggregated from official, public government sources, independently verified by
-          Vametra AI and screened against denied-party lists before it appears. Vametra AI is your single,
-          verified point of contact.
+        <h2 className="font-display font-extrabold text-2xl sm:text-3xl mt-3">How Vametra builds Buyer Intelligence</h2>
+        <p className="mt-2 text-sm text-slate-400 max-w-3xl">
+          Vametra AI combines information from government records, international trade data, public
+          procurement records, business registries, industry sources and company-published information.
+          We aggregate, process and screen these signals to help you discover relevant buyers directly
+          on Vametra.
         </p>
         <div className="mt-5 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {src.sources.slice(0, 12).map((s, i) => (
-            <div key={i} className="glass rounded-2xl px-4 py-3">
-              <div className="text-sm font-semibold flex items-center gap-2">{s.name}
-                <span className="text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-white/5 text-slate-400">{s.tier}</span>
-              </div>
+          {SOURCE_CATEGORIES.map((s, i) => (
+            <div key={i} data-testid={`buyer-source-category-${i}`} className="glass rounded-2xl px-4 py-3">
+              <div className="text-sm font-semibold">{s.name}</div>
             </div>
           ))}
         </div>
         <div className="mt-5 flex flex-wrap gap-4 text-xs text-slate-400">
-          {src.sanctions_screening?.denied_parties != null && (
+          {src?.sanctions_screening?.denied_parties != null && (
             <span className="flex items-center gap-1.5"><ShieldCheck size={13} weight="fill" className="text-emerald-300" />
               Sanctions-screened against {src.sanctions_screening.denied_parties.toLocaleString()} denied parties ({src.sanctions_screening.provider})</span>
           )}
-          {src.last_ingestion?.finished_at && (
+          {src?.last_ingestion?.finished_at && (
             <span>Last updated: {new Date(src.last_ingestion.finished_at).toLocaleDateString()}</span>
           )}
         </div>
-        <p className="mt-4 text-[11px] text-amber-200/70 leading-relaxed">
+        <p className="mt-4 text-[11px] text-amber-200/70 leading-relaxed max-w-3xl">
           Note: Vametra AI has no contact arrangement with these organisations. Always verify buyer details
           directly and treat any business you conduct with them as at your own risk.
+        </p>
+        <p data-testid="buyer-usage-note-section" className="mt-2 text-[11px] text-amber-200/70 leading-relaxed max-w-3xl">
+          Note: {USAGE_NOTE}
         </p>
       </div>
     </section>

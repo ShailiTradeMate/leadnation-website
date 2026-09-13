@@ -1,3 +1,15 @@
+## 2026-09-13 — VERIFIED BUYERS: SOURCE TRANSPARENCY REWRITE + DATA-USAGE GATE (iteration_64, frontend 100%)
+
+Owner instruction: frontend display only — no buyer data, backend logic, API, schema or verification change (backend `/api/buyers/sources` still returns the raw organisation names; the mapping is purely presentational).
+
+- **Source Transparency section rewritten** (`pages/BuyerIntelligence.jsx` → `SourcesSection`): eyebrow "SOURCE TRANSPARENCY", heading "How Vametra builds Buyer Intelligence", new aggregation-focused description, and the 12 individual organisation tiles replaced by **7 category tiles** — Government & Official Records, International Trade Data, Business Registries, Public Procurement Records, Trade & Industry Records, Company-Published Information, Compliance & Sanctions Data. Sanctions-screening line, "Last updated" line and the existing risk note are unchanged.
+- **No organisation names anywhere on buyer surfaces.** New `lib/sourceCategories.js` holds `SOURCE_CATEGORIES`, the owner-supplied `NAME_MAP` (e.g. UN Trade Statistics → International Trade Data, UK Company Registry → Government Business Registries, Canadian Import Records → Government Trade Records, GLEIF-style identity → Global Business Identity Data), a `category` fallback map and heuristics. `mapSourceName()` is applied to the buyer-profile evidence chips and the `primary_source` warning in `pages/BuyerProfile.jsx`. Testing agent confirmed all 15 forbidden strings are absent from `/buyers` and buyer profiles.
+- **Blocking data-usage acknowledgement gate** (`components/BuyerDataNotice.jsx`): shown on every Verified Buyer entry point — `/buyers`, `/buyers/:geid` and the Command Center "Verified Buyers" module. Users must tick the checkbox before "I understand & agree" enables; "Go back" returns Home. Acknowledgement is stored in `sessionStorage` (`vametra_buyer_data_ack`) so it reappears in a new session. The legal note ("Users cannot sell/expose this data, nor can they use this data for monetary benefits by creating a website/app that sells buyers' data from our database. It will attract legal issues to the user.") appears both in the modal and as a second Note line in the Source Transparency section (`buyer-usage-note-section`).
+- Regression verified: buyer search, filters, counts (22,515), trust badges, meta disclaimer, Home, /brain, /trade-news, /expo all unaffected; no horizontal overflow at 1920x800 or 390x844.
+
+---
+
+
 ## 2026-09-13 — WEBSITE CLEANUP BEFORE MARKETING (iteration_63, 28/28 backend + frontend PASS)
 
 Owner directive: clean up the website first, then move to marketing/SEO/GEO. Three changes, all shipped and tested.
