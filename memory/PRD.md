@@ -1,3 +1,20 @@
+## 2026-09-13 — WEBSITE CLEANUP BEFORE MARKETING (iteration_63, 28/28 backend + frontend PASS)
+
+Owner directive: clean up the website first, then move to marketing/SEO/GEO. Three changes, all shipped and tested.
+
+1. **Product Info Engine removed; product intelligence now lives in the Brain.** Deleted `frontend/src/pages/ProductInfo.jsx`, the `/product-info` route, the Home feature card (replaced by a **Vametra AI Brain** card, `data-testid="feat-brain"`) and the sitemap entry. `/brain` gained a **Product Intelligence panel** (`brain-product-panel`) — direction / product / origin / destination / HSN → `POST /api/brain/ask {mode:"product"}`. New in `brain/router.py`: `PRODUCT_MODE_ENGINES` (product_intelligence, trade_statistics, duty_benefits, compliance, logistics, policy, trade_news), `TOOL_CTAS` (Command Center + Landed Cost Calculator) and buyer intelligence forced on for product mode, so every product answer carries verified-buyer counts (names for active subscribers, teaser + `/pricing` CTA otherwise). Backend `POST /api/product-info` left intact for the mobile app.
+
+2. **Trade News Engine rewritten (`news_engine.py`) — live, global, filterable.** Keyless adapters: **Google News RSS** (true per-country editions, `GN_EN_EDITIONS`) + **GDELT 2.0 DOC** (supplies article images); NewsData.io auto-enables if `NEWSDATA_API_KEY` is ever set (it is currently empty). 12 topics, all 249 countries (`pycountry`), free-text search, real `publishedAt` per article + relative dates, `lastUpdated` stamp, 20-minute cache with `?refresh=1` bypass, **daily 00:20 UTC** pre-warm of every topic (`refresh_news` / `start_news_refresh`), 30-day pruning of cached articles. New endpoints: `/api/news/topics`, `/api/news/countries`, `/api/news/status`, `/api/news/admin/refresh`. Legacy `?category=` is mapped to the new topics so older clients keep working; admin editorial CRUD unchanged.
+   - **Owner-reported bug FIXED**: selecting a country (Armenia) returned the Global set. Root cause — Google News silently serves the en-US edition for unsupported `ceid` values, so the country never constrained the result. Fix: the country name is bound into the upstream query whenever a country is selected, the edition falls back to US only for display, and the feed now returns a **country-scoped block first, then global** (`item.scope`). Verified distinct for am / in / br.
+
+3. **Expo & Events Engine made live (`expo_live.py`).** A 64-entry catalogue of the world's major recurring trade fairs (name, city, venue, organiser, website, month, recurrence annual/biennial) is rolled forward to its next edition by a **daily 01:30 UTC** job → 66 upcoming events today; public lists now show **only ongoing + upcoming** events (`/api/events/list` filters `endDate >= today`, `?when=all` for history). A daily AI discovery pass proposes NEW events into the **admin approval queue** (`status="pending"`, `source="ai-discovery"`) and never auto-publishes. New endpoints `/api/events/engine/status` + `/engine/refresh`; catalogue dates are flagged `datesIndicative` and the UI says "confirm with the organiser".
+   - **Event approval loop verified live**: `POST /api/events/submit` emails `admin@vametra.com` via Resend (`adminEmail=true`, sender `Vametra AI <admin@vametra.com>`) **and** writes an admin notification (`db.notifications`, `audience:"admin"`, `kind:"event_submission"`). The CMS Events tab now has an **Event approvals inbox** (`event-inbox`) with an unread badge, awaiting-payment / under-review / **AI-discovered** counters and a `pending` status filter.
+
+**Regression:** Home, Brain normal chat, /buyers, /command-center, admin Trade News manager and the notification bell all verified unaffected. Next phase per the owner: the OLD leadnation.app marketing/SEO plan is to be retired and rewritten for vametra.com (see `/app/memory/ROADMAP.md` §0.0b and §0.2 for the open SEO decisions).
+
+---
+
+
 ## Latest handoff — 2026-09-12 — stopped at user request
 
 **User requested immediate wrap-up due elapsed time and credit concerns. No more development/testing without a new instruction. This milestone is not fully end-to-end verified.**

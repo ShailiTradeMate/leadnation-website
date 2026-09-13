@@ -1,0 +1,28 @@
+{
+  "summary": "Iteration 63 — Tested Vametra AI news/expo/brain-product/product-info-removal scope end-to-end. 28/28 backend pytest cases pass (after fixing test payload field contactEmail). All frontend flows verified: Home shows feat-brain card and no Product Info Engine text; /product-info route is removed (React warns 'No routes matched' — SPA falls back gracefully, no crash/blank); Trade News shows 12 topic tabs, country dropdown, search, refresh, real last-updated stamp; the user-reported Armenia-vs-Global duplicate-news bug is FIXED — Armenia headlines are clearly Armenia-specific and title sets are >50% distinct from Global (confirmed for am, in, br); Expo engine bar shows live badge + 66 upcoming events + lastUpdated; Brain product panel renders; event submission creates admin notification with unread>=1 and adminEmail=true; POST notifications/read clears the counter.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "All pages (signed out)", "issues": ["Console shows repeating 401 for /api/notifications on every page for anonymous users — expected but noisy; consider gating the call to authed sessions"]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter63_news_expo_brain.py",
+    "/app/test_reports/pytest/iter63_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Notifications call (/api/notifications) fires for unauthenticated users and returns 401 on every page load — should skip when no token to reduce console noise and load.",
+    "/product-info uses React SPA fallback rather than a proper 404; consider adding a redirect to /brain so old bookmarks land somewhere meaningful."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter63_news_expo_brain.py"],
+  "success_rate": {"backend": "100% (28/28)", "frontend": "100% of tested selectors present + Armenia bug fix verified"},
+  "test_credentials": "admin@vametra.com / Shiv@12345 (customer_id 00001) from /app/memory/test_credentials.md",
+  "seed_data_creation": "Created 1 QA TEST event via POST /api/events/submit; attempted cleanup via DELETE /api/events/admin/{id} in test teardown.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 4 requested scopes (news country scoping, expo live engine, brain product mode, product-info removal, event approval workflow) verified as working. The critical Armenia news bug is fixed — country-scoped items appear before global block with scope='country' tag and titles are Armenia-specific (Pashinyan, Turkey normalisation, etc.), not the same as Global (US-Canada trade war, Mexico deal). No regressions detected in Home, /brain, /expo, /trade-news. Admin CMS Events tab was NOT tested via UI (would need admin login flow) — but backend admin notification endpoint verified via Firebase-minted admin token.",
+  "rca of the issue": "N/A — user-reported Armenia bug already fixed by main agent in this iteration. Test suite `test_iter63_news_expo_brain.py::TestNewsAPI::test_country_scoping_bug_am_vs_global` guards against regression by asserting scope='country' presence, country-block-first ordering, and <50% title overlap with global."
+}

@@ -181,6 +181,17 @@ def _normalise_curated(topic: str) -> List[Dict[str, Any]]:
 GOOGLE_NEWS_RSS = "https://news.google.com/rss/search"
 GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
 
+# Countries with an English Google News edition. For everything else the edition falls
+# back to en-US and the country is enforced through the search query instead.
+GN_EN_EDITIONS = {
+    "us", "gb", "in", "ca", "au", "nz", "ie", "za", "ng", "ke", "gh", "ug", "tz", "zw",
+    "bw", "na", "et", "pk", "bd", "lk", "np", "ph", "sg", "my", "id", "th", "vn", "hk",
+    "tw", "jp", "kr", "cn", "ae", "sa", "eg", "il", "jo", "lb", "qa", "kw", "bh", "om",
+    "tr", "ru", "ua", "de", "fr", "it", "es", "nl", "be", "ch", "at", "se", "no", "dk",
+    "fi", "pl", "pt", "gr", "cz", "hu", "ro", "br", "mx", "ar", "cl", "co", "pe", "ve",
+    "ec", "ma", "gh", "mm", "kh", "kz",
+}
+
 
 def _parse_pub(raw: str) -> Optional[str]:
     raw = (raw or "").strip()
@@ -236,9 +247,13 @@ def _query_for(topic: str, search: str, country_name: str, include_country: bool
 async def _fetch_google_news(topic: str, country_code: str, country_name: str,
                              search: str, limit: int) -> List[Dict[str, Any]]:
     import xml.etree.ElementTree as ET
-    q = _query_for(topic, search, country_name, include_country=not country_code)
-    cc = (country_code or "us").upper()
-    params = {"q": f"{q} when:7d", "hl": "en", "gl": cc, "ceid": f"{cc}:en"}
+    scoped = bool(country_name and country_name != "Global")
+    # Always bind the country into the QUERY when one is selected — many Google News
+    # editions silently fall back to en-US, which used to return global stories.
+    q = _query_for(topic, search, country_name, include_country=scoped)
+    cc = (country_code or "").lower()
+    edition = cc.upper() if cc in GN_EN_EDITIONS else "US"
+    params = {"q": f"{q} when:7d", "hl": "en", "gl": edition, "ceid": f"{edition}:en"}
     try:
         async with httpx.AsyncClient(timeout=15, follow_redirects=True) as c:
             r = await c.get(GOOGLE_NEWS_RSS, params=params,
@@ -379,26 +394,57 @@ def _norm_title(t: str) -> str:
 
 async def _fetch_live(topic: str, country_code: str, country_name: str,
                       search: str, limit: int) -> List[Dict[str, Any]]:
+    """Country-scoped stories first, then global stories, newest-first within each block."""
     import asyncio
-    gn, gd, nd = await asyncio.gather(
-        _fetch_google_news(topic, country_code, country_name, search, limit),
-        _fetch_gdelt(topic, country_name, search, limit),
-        _fetch_newsdata(topic, country_code, country_name, search, limit),
-        return_exceptions=True)
-    pools = [p if isinstance(p, list) else [] for p in (nd, gn, gd)]
-    # image enrichment: GDELT carries real article images, Google News does not
-    img_by_title = {_norm_title(i["title"]): i["image"] for i in pools[2] if i.get("image")}
-    merged, seen = [], set()
-    for pool in pools:
-        for it in pool:
-            key = _norm_title(it["title"])
-            if not key or key in seen:
-                continue
-            seen.add(key)
-            if img_by_title.get(key):
-                it["image"] = img_by_title[key]
-            merged.append(it)
-    merged.sort(key=lambda x: x.get("publishedAt") or "", reverse=True)
+    scoped = bool(country_name and country_name != "Global")
+
+    async def _scope(code, name):
+        gn, gd, nd = await asyncio.gather(
+            _fetch_google_news(topic, code, name, search, limit),
+            _fetch_gdelt(topic, name, search, limit),
+            _fetch_newsdata(topic, code, name, search, limit),
+            return_exceptions=True)
+        pools = [p if isinstance(p, list) else [] for p in (nd, gn, gd)]
+        img_by_title = {_norm_title(i["title"]): i["image"] for i in pools[2] if i.get("image")}
+        out, seen = [], set()
+        for pool in pools:
+            for it in pool:
+                key = _norm_title(it["title"])
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                if img_by_title.get(key):
+                    it["image"] = img_by_title[key]
+                out.append(it)
+        out.sort(key=lambda x: x.get("publishedAt") or "", reverse=True)
+        return out
+
+    if not scoped:
+        items = await _scope("", "Global")
+        for it in items:
+            it["scope"] = "global"
+        return items[: max(limit, 24)]
+
+    local, world = await asyncio.gather(_scope(country_code, country_name), _scope("", "Global"))
+    seen = set()
+    merged = []
+    for it in local:
+        key = _norm_title(it["title"])
+        if key in seen:
+            continue
+        seen.add(key)
+        it["scope"] = "country"
+        it["country"] = country_name
+        merged.append(it)
+    local_cut = max(1, int(max(limit, 24) * 0.7))
+    merged = merged[:local_cut]
+    for it in world:
+        key = _norm_title(it["title"])
+        if key in seen:
+            continue
+        seen.add(key)
+        it["scope"] = "global"
+        merged.append(it)
     return merged[: max(limit, 24)]
 
 
@@ -461,7 +507,10 @@ async def build_feed(topic: str, country: str, search: str, limit: int,
     fallback = _normalise_curated(topic) if len(live) + len(admin) < 3 else []
 
     featured = [a for a in admin if a.get("featured")]
-    merged = featured + live + [a for a in admin if not a.get("featured")] + fallback
+    others = sorted([a for a in admin if not a.get("featured")],
+                    key=lambda x: x.get("publishedAt") or "", reverse=True)
+    # live items keep their engine ordering (country-scoped block first, then global)
+    merged = featured + live + others + fallback
 
     seen, items = set(), []
     for m in merged:
@@ -469,18 +518,15 @@ async def build_feed(topic: str, country: str, search: str, limit: int,
             continue
         seen.add(m["id"])
         items.append(m)
-
-    # newest first (featured editorial stays pinned at the top)
-    pinned = [i for i in items if i.get("featured")]
-    rest = sorted([i for i in items if not i.get("featured")],
-                  key=lambda x: x.get("publishedAt") or "", reverse=True)
-    items = (pinned + rest)[: max(1, min(limit, 40))]
+    items = items[: max(1, min(limit, 40))]
 
     await _persist(items)
     payload = {"items": items, "topic": topic, "topics": TOPICS, "categories": CATEGORIES,
                "country": {"code": c["code"], "name": c["name"]},
                "search": search, "live": bool(live),
-               "liveConfigured": True, "sources": {"live": len(live), "editorial": len(admin)},
+               "liveConfigured": True,
+               "sources": {"live": len(live), "editorial": len(admin),
+                           "countryScoped": sum(1 for i in items if i.get("scope") == "country")},
                "lastUpdated": _iso(), "count": len(items), "cached": False}
     await NEWS_CACHE.replace_one({"_id": key}, {"_id": key, "at": _iso(), "payload": payload},
                                  upsert=True)

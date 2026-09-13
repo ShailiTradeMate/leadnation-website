@@ -17,6 +17,16 @@ Vaibhav Deshmane · Vametra AI Technologies Pvt Ltd
 # 0. ACTIVE PHASE (owner decision) — MARKETING / SEO / GEO
 Build is being deployed as-is. All engineering items below are parked until marketing is underway.
 
+## 0.0 WEBSITE CLEANUP BEFORE MARKETING — DONE (2026-09-13, iteration_63 100%)
+- [x] **Product Info Engine retired.** Page + `/product-info` route + Home card deleted (owner: the old URL belonged to the retired leadnation.app plan, no redirect wanted). Product intelligence now lives inside the Brain: `/brain` has a **Product Intelligence panel** (direction/product/origin/destination/HSN) that calls `POST /api/brain/ask` with `mode:"product"`, forcing a 7-engine sweep (product_intelligence, trade_statistics, duty_benefits, compliance, logistics, policy, trade_news) and returning action chips to **Command Center**, **Landed Cost Calculator** and **Verified Buyers** (names for active subscribers; teaser + Subscribe CTA otherwise). Backend endpoint `POST /api/product-info` kept for the mobile app.
+- [x] **Trade News Engine is live and global.** Keyless real sources (Google News RSS + GDELT 2.0; NewsData.io auto-activates if a key is ever added). 12 topic tabs (Top Stories, Trade & Tariffs, Business & Economy, Currency & Markets, Geopolitics, Conflict & War, Energy & Commodities, Shipping & Logistics, Policy & Regulation, Technology, Business Events, Sports), **all 249 countries** in the dropdown, free-text search, real per-article timestamps + "Updated <time>" stamp, manual Refresh, 20-min cache and a **daily 00:20 UTC** pre-warm of every topic. Signed-in users get their profile country pre-selected.
+- [x] **FIXED (owner-reported):** selecting a country returned the same articles as Global. The country is now bound into the upstream query (Google News silently falls back to the en-US edition for unsupported countries) and the feed returns **country stories first, then global** (`item.scope`).
+- [x] **Expo & Events Engine is live.** `expo_live.py` holds a 64-entry catalogue of the world's major recurring fairs that a **daily 01:30 UTC** job rolls forward to the next edition (66 upcoming today); only ongoing + upcoming events are public; a daily AI discovery pass proposes NEW events into the **admin approval queue** (`status=pending`, `source=ai-discovery`) — never auto-published.
+- [x] **Event approval loop.** A user submission now emails `admin@vametra.com` (verified live, `adminEmail=true`) **and** raises an admin-portal notification; the CMS Events tab has an **Event approvals inbox** (unread badge + awaiting-payment / under-review / AI-discovered counts).
+
+## 0.0b MARKETING PLAN — RESET REQUIRED (owner instruction)
+- [ ] **Retire the old leadnation.app marketing/SEO plan entirely** and write a fresh plan for **vametra.com** (new keyword map, content calendar, backlink targets, GEO/AI-answer strategy). Do not reuse the old URL list or the old brand keywords.
+
 ## 0.1 P0 — OWNER ACTIONS (cannot be done by agent)
 - [ ] Create + verify **Google Search Console** and **Bing Webmaster Tools** (agent can host the verification file if given the token) — biggest single cause of zero visibility today.
 - [ ] Submit `sitemap.xml` (77 URLs) in both; "Request indexing" on top 10 pages.
@@ -25,10 +35,18 @@ Build is being deployed as-is. All engineering items below are parked until mark
 - [ ] PR / outreach for domain authority (new domain, zero backlinks today).
 
 ## 0.2 P0 — AGENT CODE WORK (SEO/GEO)
-- [ ] **IndexNow**: key file + auto-ping on content change.
+> Owner parked these until the website cleanup was done (cleanup is now complete, §0.0).
+> Open decisions to confirm when marketing starts:
+>   1. Scope order — (a) ALL P0 agent work [IndexNow ping, FAQ + Breadcrumb schema, sitemap lastmod/auto-regen, verify GA4/GTM/Clarity in the deploy env] · (b) IndexNow + schema only · (c) start with react-snap prerender of the 77 URLs · (d) owner-specified
+>   2. GSC / Bing verification token — owner to paste the HTML file or meta tag; agent hosts it
+>   3. IndexNow key — generate a fresh one, or owner supplies an existing key (a key already exists in `seo.py`; confirm it matches the file served at `/{key}.txt`)
+>   4. FAQ schema pages — (a) Home, /buyers, /pricing, /customs-compliance · (b) also every programmatic country/product page · (c) owner picks
+>   5. Confirm engineering stays frozen (SEO/marketing only) vs. also resuming the §1 post-deploy validation
+- [ ] **IndexNow**: key file + auto-ping on content change (endpoint exists: `POST /api/seo/indexnow`; the `/{key}.txt` file + auto-ping on publish are NOT done).
 - [ ] **FAQPage + BreadcrumbList schema** on key pages.
-- [ ] **sitemap `lastmod`** + auto-regenerate sitemap from data.
+- [ ] **sitemap `lastmod`** per-URL (currently every URL gets today's date) + auto-regenerate from data.
 - [ ] Confirm GA4/GTM/Clarity env vars are present in the **deployment** env (already wired in code, `REACT_APP_GA4_ID` / `REACT_APP_GTM_ID` / `REACT_APP_CLARITY_ID`, consent-gated). If Realtime shows no data after deploy → the 3 vars are missing in deploy settings.
+- [ ] Re-audit the sitemap after the Product Info removal (route dropped from `seo.py`; count is now 76 URLs).
 
 ## 0.3 P1 — SEO/GEO depth
 - [ ] **react-snap full-body prerender** of the 77 URLs — biggest Bing + AI-crawler win (body is currently client-rendered; meta is already served without JS).
@@ -80,6 +98,8 @@ building anything new on top of it.
 - [ ] Wire Razorpay checkout + webhook once keys arrive (gateway toggle + pricing already in the Pricing Engine).
 
 # 5. P1/P2 — VERIFIED BUYER & CMS PRODUCT BACKLOG
+- [ ] **Trade News depth** — per-article Brain impact caching, country+topic email digests, "save this story", and a NewsData.io key if richer images/metadata are wanted (optional; Google News + GDELT already carry the feed).
+- [ ] **Expo engine depth** — grow the catalogue past 64 fairs, add organiser-website verification for AI-discovered candidates, and let owners claim/edit a catalogue entry.
 - [ ] **Reviewer Console** — CMS screen for the human-review queue (`/api/verify/admin/queue` + `/decide`) with selfie + document side by side.
 - [ ] **Verified Buyer Boost** — "Verified Member" badge + priority ranking across `/buyers` listings.
 - [ ] **Reveal Limits** — per-plan monthly cap (`buyer_contact_reveals` logging already ready).

@@ -210,10 +210,24 @@ async def submit_event(body: EventIn, authorization: Optional[str] = Header(defa
                            "action": "submitted", "at": _iso()})
     await send_event_email("submitted", body.contactEmail,
                            {"name": body.contactName, "eventName": body.name, "eventId": eid})
-    await notify_admin("admin_new_submission", {
+    email = await notify_admin("admin_new_submission", {
         "eventName": body.name, "country": body.country, "category": body.category,
         "contactName": body.contactName, "contactEmail": body.contactEmail})
-    return {"ok": True, "eventId": eid, "region": r, "status": doc["status"]}
+    await _admin_notify(eid, body.name, body.country, body.contactEmail)
+    return {"ok": True, "eventId": eid, "region": r, "status": doc["status"],
+            "adminEmail": bool((email or {}).get("sent"))}
+
+
+async def _admin_notify(eid: str, name: str, country: str, contact: str):
+    """Admin-portal bell notification for a new event submission."""
+    try:
+        await db.notifications.insert_one({
+            "audience": "admin", "scope": "admin", "kind": "event_submission",
+            "title": "New event submission",
+            "message": f"{name} ({country}) submitted by {contact} — awaiting review.",
+            "eventId": eid, "link": "/admin-cms", "created_at": _iso()})
+    except Exception as exc:
+        logging.warning("Admin event notification failed: %s", exc)
 
 
 # ---------------- Payments ----------------
@@ -336,6 +350,31 @@ async def pay_razorpay_verify(body: RazorpayVerifyIn):
 
 
 # ---------------- Admin ----------------
+@router.get("/admin/notifications")
+async def admin_notifications(_: dict = Depends(require_admin)):
+    """Event-engine inbox: new submissions, AI-discovered candidates and review counts."""
+    rows = await db.notifications.find({"audience": "admin", "kind": "event_submission"}) \
+        .sort("created_at", -1).limit(30).to_list(30)
+    mk = await db.notification_reads.find_one({"uid": "__admin_events__"})
+    last_read = (mk or {}).get("last_read")
+    unread = sum(1 for r in rows if not last_read or r.get("created_at", "") > last_read)
+    counts = {
+        "payment_pending": await EVENTS.count_documents({"status": "payment_pending"}),
+        "under_review": await EVENTS.count_documents({"status": "under_review"}),
+        "ai_discovered": await EVENTS.count_documents({"status": "pending", "source": "ai-discovery"}),
+    }
+    return {"notifications": [{k: v for k, v in r.items() if k != "_id"} for r in rows],
+            "unread": unread, "counts": counts}
+
+
+@router.post("/admin/notifications/read")
+async def admin_notifications_read(_: dict = Depends(require_admin)):
+    await db.notification_reads.update_one({"uid": "__admin_events__"},
+                                           {"$set": {"uid": "__admin_events__", "last_read": _iso()}},
+                                           upsert=True)
+    return {"ok": True}
+
+
 @router.get("/admin/all")
 async def admin_all(status: str = Query(""), _: dict = Depends(require_admin)):
     q = {"status": status} if status else {}

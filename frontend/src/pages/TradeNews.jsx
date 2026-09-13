@@ -189,7 +189,10 @@ export default function TradeNews() {
                     <p className="mt-2 text-sm text-slate-400 leading-relaxed line-clamp-2">{n.excerpt}</p>
                     <div className="mt-4 flex items-center justify-between text-[11px] text-slate-500 font-mono-display tracking-widest uppercase">
                       <span className="flex items-center gap-1"><Clock size={11} />{n.date}</span>
-                      <ArrowUpRight size={14} className="text-cyan-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      <span className="flex items-center gap-2">
+                        {n.scope === "global" && meta.country?.code && <span className="text-slate-400">Global</span>}
+                        <ArrowUpRight size={14} className="text-cyan-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                      </span>
                     </div>
                   </div>
                 </Link>

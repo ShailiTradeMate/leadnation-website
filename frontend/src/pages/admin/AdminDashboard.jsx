@@ -4,7 +4,7 @@ import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
 import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck, Bell,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
 import { authApi } from "@/lib/authApi";
@@ -632,7 +632,7 @@ const STATUS_COLORS = {
   published: "text-emerald-300", approved: "text-emerald-300", under_review: "text-amber-300",
   payment_pending: "text-slate-400", rejected: "text-rose-300", expired: "text-slate-500", draft: "text-slate-400",
 };
-const EVENT_STATUSES = ["", "payment_pending", "under_review", "published", "rejected", "expired"];
+const EVENT_STATUSES = ["", "pending", "payment_pending", "under_review", "published", "rejected", "expired"];
 
 function EventListingsManager() {
   const [items, setItems] = useState([]);
@@ -640,6 +640,12 @@ function EventListingsManager() {
   const [pricing, setPricing] = useState(null);
   const [pmsg, setPmsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inbox, setInbox] = useState({ notifications: [], unread: 0, counts: {} });
+
+  const loadInbox = () => adminApi.get("/events/admin/notifications")
+    .then((r) => setInbox(r.data)).catch(() => {});
+  useEffect(() => { loadInbox(); }, []);
+  const markRead = async () => { await adminApi.post("/events/admin/notifications/read").catch(() => {}); loadInbox(); };
 
   const reload = async () => {
     setLoading(true);
@@ -673,6 +679,31 @@ function EventListingsManager() {
 
   return (
     <div className="space-y-5" data-testid="admin-event-listings">
+      {/* Event engine inbox — new submissions + AI-discovered candidates */}
+      <div className="glass-strong rounded-3xl p-6" data-testid="event-inbox">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="font-display font-bold text-lg flex items-center gap-2">
+            <Bell size={18} weight="duotone" className="text-cyan-300" /> Event approvals inbox
+            {inbox.unread > 0 && <span data-testid="event-inbox-unread" className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-400/40 text-rose-200">{inbox.unread} new</span>}
+          </div>
+          <div className="flex flex-wrap gap-2 text-[11px] ml-auto">
+            <button onClick={() => setStatus("payment_pending")} className="glass rounded-full px-3 py-1.5 text-amber-200">Awaiting payment: {inbox.counts?.payment_pending ?? 0}</button>
+            <button onClick={() => setStatus("under_review")} className="glass rounded-full px-3 py-1.5 text-cyan-200">Under review: {inbox.counts?.under_review ?? 0}</button>
+            <button onClick={() => setStatus("pending")} data-testid="event-inbox-ai" className="glass rounded-full px-3 py-1.5 text-violet-200">AI-discovered: {inbox.counts?.ai_discovered ?? 0}</button>
+            <button onClick={markRead} className="btn-ghost !py-1.5 text-[11px]">Mark read</button>
+          </div>
+        </div>
+        <div className="mt-4 space-y-2">
+          {(inbox.notifications || []).slice(0, 5).map((n, i) => (
+            <div key={i} data-testid={`event-inbox-item-${i}`} className="glass rounded-xl px-3 py-2 text-xs text-slate-300">
+              <span className="text-cyan-300 font-medium">{n.title}</span> — {n.message}
+              <span className="text-slate-500 ml-2">{(n.created_at || "").slice(0, 16).replace("T", " ")}</span>
+            </div>
+          ))}
+          {(inbox.notifications || []).length === 0 && <div className="text-xs text-slate-500">No new event submissions.</div>}
+        </div>
+      </div>
+
       {pricing && (
         <div className="glass-strong rounded-3xl p-6">
           <div className="font-display font-bold text-lg flex items-center gap-2 mb-4"><CurrencyCircleDollar size={18} weight="duotone" className="text-cyan-300" /> Event Listing Pricing</div>
