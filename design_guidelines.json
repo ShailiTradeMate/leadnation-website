@@ -1,139 +1,233 @@
 {
-  "project_name": "LeadNation - Global Trade Intelligence Portal",
+  "project_name": "Vametra AI - Homepage Redesign & Scroll-Driven Motion System",
+  "version": "2.0.0",
   "theme": "dark",
-  "archetype": "5 (Luxury)",
-  "color_palette": {
-    "primary": "#0A2540",
-    "secondary": "#00C2FF",
-    "accent": "#7C3AED",
-    "background": "#050816",
-    "surface": "#0a0f24",
-    "surface_glass": "rgba(10, 37, 64, 0.6)",
-    "text_primary": "#FFFFFF",
-    "text_secondary": "#8B9BB4",
-    "border": "rgba(0, 194, 255, 0.15)"
-  },
-  "typography": {
-    "headings_font": "Cabinet Grotesk",
-    "body_font": "IBM Plex Sans",
-    "mono_font": "JetBrains Mono",
-    "scale": {
-      "h1": "text-5xl sm:text-6xl md:text-7xl tracking-tighter font-black",
-      "h2": "text-3xl sm:text-4xl lg:text-5xl tracking-tight font-bold",
-      "h3": "text-xl sm:text-2xl font-semibold",
-      "body": "text-base leading-relaxed text-slate-300",
-      "labels": "text-xs tracking-[0.2em] uppercase font-mono text-cyan-400"
+  "status": "ready_for_implementation",
+  "design_archetype": "Archetype 2: The Performance Pro + Old Money Tech (Obsidian Navy #050816, Electric Cyan #00C2FF, Imperial Violet #7C3AED)",
+  "instructions_to_main_agent": [
+    "Strictly follow the user directive: Just change the design, layout, styling, and animation; DO NOT alter any backend API, routing, search logic, query handlers, or existing data-testid attributes.",
+    "File targets: Update /app/frontend/src/pages/Home.jsx, /app/frontend/src/components/TradeGlobe.jsx, and /app/frontend/src/index.css.",
+    "Ensure all existing data-testid tags remain present and attached to their corresponding elements: home-eyebrow, home-hero-title, home-search-input, home-search-submit, home-search-result-N, home-features-label, feat-customs, feat-brain, feat-expo, feat-news, home-command-center, home-command-center-cta, home-verified-buyers, home-buyers-cta, home-services-highlight, home-services-cta, india-label, india-feature-N, story-label, story-cta-explore, story-cta-expos, download.",
+    "Use framer-motion (already in package.json at v11.18.0) using useScroll and useTransform for smooth GPU-accelerated scroll-driven animations (transform, opacity, scale, filter).",
+    "Add prefers-reduced-motion hooks / CSS fallbacks to guarantee zero layout breakage or vestibular issues for motion-sensitive users.",
+    "Ensure total mobile responsiveness (390px viewport check): the 3D globe must NOT eat the mobile viewport, search input must be accessible, typography must obey max scale (text-4xl on mobile, text-6xl on desktop)."
+  ],
+  "candidate_headlines": [
+    {
+      "id": "headline_1_recommended",
+      "status": "RECOMMENDED",
+      "eyebrow": "GLOBAL TRADE INTELLIGENCE · 195 COUNTRIES",
+      "h1_jsx": "Rule Global Trade.<br /><span className=\"gradient-text\">Before Cargo Moves.</span>",
+      "sub_copy": "Instant landed-cost waterfalls, real-time customs duty, sanctions-screened verified buyers, and AI regulatory clearance across 195+ sovereign markets — from your command console.",
+      "rationale": "High-velocity, authoritative, and outcome-oriented. Instead of passive infrastructure ('desk re-engineered'), it positions the exporter/importer as the master of international trade with immediate predictive edge before container dispatch."
+    },
+    {
+      "id": "headline_2",
+      "status": "CANDIDATE",
+      "eyebrow": "NEXT-GEN BORDER PROTOCOL",
+      "h1_jsx": "Every Border Cleared.<br /><span className=\"gradient-text\">Every Buyer Verified.</span>",
+      "sub_copy": "Decode HS codes, unlock bilateral FTA margins, screen international counterparties against live sanctions registers, and simulate total FOB-to-CIF landed cost in seconds.",
+      "rationale": "Directly tackles the two greatest pain points in cross-border trade: regulatory clearance and counterparty fraud risk."
+    },
+    {
+      "id": "headline_3",
+      "status": "CANDIDATE",
+      "eyebrow": "INTELLIGENCE BEYOND BORDERS",
+      "h1_jsx": "The Operating System for<br /><span className=\"gradient-text\">Cross-Border Commerce.</span>",
+      "sub_copy": "Search any commodity, route, or customs regime. Vametra AI synthesizes official government registers, live tariff books, and international procurement tenders into executable trade decisions.",
+      "rationale": "Enterprise-grade SaaS positioning that mirrors Stripe or Palantir for international physical supply chains."
+    },
+    {
+      "id": "headline_4",
+      "status": "CANDIDATE",
+      "eyebrow": "AUTONOMOUS TRADE COMMAND",
+      "h1_jsx": "Navigate Global Tariffs.<br /><span className=\"gradient-text\">Command Every Corridor.</span>",
+      "sub_copy": "From Mundra to Rotterdam, eliminate duty surprises, claim RoDTEP & CEPA duty-free corridors, and negotiate with verified enterprise buyers backed by cited legal provenance.",
+      "rationale": "Geographically vivid and action-heavy, resonating strongly with both Indian exporters and global logistics desks."
     }
-  },
-  "layout_and_spacing": {
-    "container": "max-w-7xl mx-auto px-6 sm:px-12",
-    "section_padding": "py-24 sm:py-32",
-    "card_padding": "p-8",
-    "grid_system": "Bento Grid Protocol - Mode B for dashboards, Mode A for marketing sections"
-  },
-  "components": {
-    "header": {
-      "style": "Crystal Glassmorphism",
-      "classes": "fixed top-0 w-full z-50 backdrop-blur-2xl bg-[#050816]/70 border-b border-white/5",
-      "elements": ["Logo", "Navigation Links", "Download App CTA (Primary Button)"]
-    },
-    "hero": {
-      "style": "Immersive 3D Space",
-      "elements": ["React Three Fiber Globe with connection arcs", "Oversized H1 Typography", "Search Bar", "Floating Glass App Mockups"]
-    },
-    "buttons": {
-      "primary": "bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold tracking-wide rounded-full px-8 py-3 transition-all duration-300 shadow-[0_0_20px_rgba(0,194,255,0.3)] hover:shadow-[0_0_30px_rgba(0,194,255,0.5)]",
-      "secondary": "bg-transparent border border-white/20 hover:border-white/50 text-white rounded-full px-8 py-3 transition-colors",
-      "whatsapp_floating": "fixed bottom-8 right-8 bg-[#25D366] text-white p-4 rounded-full shadow-[0_8px_32px_rgba(37,211,102,0.4)] hover:scale-110 transition-transform z-50 flex items-center justify-center cursor-pointer"
-    },
-    "cards": {
-      "style": "Neumorphic Dark + Glass",
-      "classes": "bg-white/[0.02] border border-white/5 rounded-2xl backdrop-blur-md hover:-translate-y-1 hover:border-cyan-500/30 transition-all duration-300 relative overflow-hidden",
-      "effects": "Add subtle radial gradient on hover representing tracing beam"
-    }
-  },
-  "motion": {
-    "scroll": "Lenis for smooth momentum scrolling",
-    "animations": "Framer Motion for stagger text reveals, card entrances, and parallax backgrounds"
-  },
-  "pages": {
-    "Home": {
-      "sections": [
-        "Hero (3D Globe + Global Trade Intelligence heading)",
-        "App Features Showcase (Bento Grid)",
-        "Moving Pictures/Videos of Trade (Marquee / Parallax)",
-        "Search bar for products/countries"
+  ],
+  "hero_composition_arrangement": {
+    "anti_pattern_fixed": "Eliminates the split 50/50 generic 'text left, globe right' box. The globe is elevated into an atmospheric centerpiece that nests dynamically with the search and typography.",
+    "desktop_layout": {
+      "container": "relative min-h-[92vh] flex flex-col justify-between pt-16 pb-12 overflow-hidden",
+      "architecture": "Layered cinematic command cockpit with 3 primary depth strata (Z-0 Backdrop Atmosphere & Orbital Rings, Z-1 Interactive 3D Globe with dynamic focal offset, Z-2 Floating Glass Command Interface, Headings, and Search Bar).",
+      "positioning_detail": "The 3D Globe sits slightly offset to the upper-center/right with an expanded height (640px) enveloped in a radial atmospheric mask, while the dramatic H1 and floating Glass Search Command Bar overlap its lower hemisphere with crystal glassmorphism (`backdrop-blur-2xl bg-[#0a0f24]/75 border border-cyan-400/20 shadow-[0_20px_50px_rgba(0,194,255,0.15)]`).",
+      "depth_treatments": [
+        "Vignette: radial gradient vignette (#050816 0% center alpha 0, blending to 85% solid #050816 at screen perimeter)",
+        "Aurora Bleed: Dual pulsing focal lights (cyan at 15% opacity at (25%, 20%) and violet at 20% opacity at (80%, 40%))",
+        "Orbital Tech Rings: 2 concentric subtle SVG orbital lines with dashed stroke animations framing the rotating globe",
+        "Floating Telemetry Badges: 2 floating telemetry status chips ('Real-time · Live trade lanes' and 'Compliance · DGFT · CBAM · FTA') locked in orbital 3D parallax"
       ]
     },
-    "Customs & Compliance": {
-      "layout": "Dashboard-style split view",
-      "features": ["Country Selector", "Import/Export Toggle", "Results Data Cards"]
-    },
-    "Trade News": {
-      "layout": "Editorial Masonry Grid",
-      "features": ["Premium news feed", "Glassmorphic article cards"]
-    },
-    "Contact Us": {
-      "layout": "Split Screen (Details + Map)",
-      "features": [
-        "Contact Cards (Address, Phone, Email)",
-        "Instagram + Social Icons",
-        "Embedded Map (Lat: 19.126793986535226, Lng: 74.7452378072622)"
-      ]
-    },
-    "Expo": {
-      "layout": "Event Cards Grid",
-      "features": ["Worldwide expos", "Date/Location Filters"]
-    },
-    "Product Info": {
-      "layout": "Multi-step Form / Funnel",
-      "features": ["Country Selector", "Business Type", "Import/Export/Supplier", "Product Results Data"]
-    },
-    "India Features": {
-      "layout": "Highlight Section",
-      "features": ["GST, MSME, FIEO, DGFT compliance tools highlights"]
+    "mobile_layout": {
+      "viewport": "390px (iPhone / Android flagship)",
+      "globe_treatment": "On mobile screens (< 768px), the globe is rendered in a compact dedicated container (`height={320}`) positioned as an ambient illuminated globe underneath the hero search bar with `pointer-events-none` so it doesn't hijack vertical scrolling or swipe gestures.",
+      "typography": "H1 scales strictly to `text-4xl font-extrabold leading-[1.08] tracking-tight` (ceiling respected, no overflow).",
+      "search_bar": "Search bar goes full-width with 44px min tap targets, clear ask button, suggestion pills in horizontal flex-nowrap with smooth snap scroll (`overflow-x-auto no-scrollbar pb-1`), ensuring zero visual collision."
     }
   },
-  "media": {
-    "images": [
+  "scroll_driven_motion_system": {
+    "engine": "framer-motion (useScroll, useTransform, useSpring) + hardware-accelerated CSS transforms",
+    "performance_rules": [
+      "Strictly animate GPU properties: transform (translateY, scale, rotate) and opacity.",
+      "Zero layout-thrashing: no per-frame DOM clientWidth/clientHeight reads during scroll.",
+      "Use will-change: transform on heavily animated hero globe and card containers."
+    ],
+    "section_effects": {
+      "global_scroll_progress": {
+        "component": "Top horizontal laser progress beam (1.5px cyan/violet line with blur glow pinned to z-50)",
+        "transform": "scaleX(scrollYProgress) origin-left"
+      },
+      "hero_section": {
+        "globe_parallax": "useTransform(scrollYProgress, [0, 0.25], [0, 90]) - globe gently descends on scroll down, giving three-dimensional depth",
+        "content_fade_up": "useTransform(scrollYProgress, [0, 0.2], [1, 0.88]) and translateY 0 to 40px",
+        "floating_chips": "Opposing parallax shifts: Top chip moves -35px on scroll, Bottom chip moves +30px"
+      },
+      "marquee_strip": {
+        "velocity_effect": "Dynamic CSS/transform acceleration: base marquee runs at 35s, with continuous scroll tracking."
+      },
+      "features_bento": {
+        "entrance": "Staggered scroll-reveal using framer-motion whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 40 }} viewport={{ once: true, margin: '-80px' }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}",
+        "card_hover": "Subtle 3D tilt + cyan border shimmer with -translate-y-1.5"
+      },
+      "command_center_flagship": {
+        "pinned_reveal": "Large spotlight scale transition: from scale(0.96) to scale(1.0) with deep obsidian glow as the card hits viewport center",
+        "floating_glow": "Radial cyan emitter expanding from opacity 0.15 to 0.35 on scroll entry"
+      },
+      "verified_buyers_block": {
+        "entrance": "Slide-in split parallax: Left copy drifts gently from left (-20px to 0) while right metrics grid drifts from right (+20px to 0) with crisp opacity transition."
+      },
+      "india_features_grid": {
+        "stagger_reveal": "Sequential stagger (0.08s per card) on scroll into view with glowing gold/cyan gradient border highlights."
+      },
+      "photo_story_scrollytelling": {
+        "parallax_tiles": "Left tall image pans with useTransform(scrollYProgress, [0.65, 0.95], [-25, 25]), right dual images shift inversely, simulating drone cinematography over port terminals."
+      }
+    },
+    "prefers_reduced_motion": {
+      "strategy": "CSS @media (prefers-reduced-motion: reduce) and motion/react hook `useReducedMotion()`. When active, all parallax transforms collapse to 0, transitions become instant opacity crossfades, and marquee continues at a tranquil static display."
+    }
+  },
+  "mobile_blueprint_390px": {
+    "viewport_width": "390px",
+    "safe_areas": "px-4 pt-12 pb-16",
+    "navigation_space": "pt-20 to clear fixed glass header without overlap",
+    "globe_adaptation": {
+      "height": 300,
+      "touch_isolation": "pointer-events-none touch-none so users can swipe page vertically without globe canvas intercepting touch gestures",
+      "position": "Centered under search input with atmospheric radial mask cutting harsh bottom borders"
+    },
+    "typography_scale": {
+      "h1": "text-4xl leading-[1.1] tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-extrabold leading-tight",
+      "body": "text-sm text-slate-300 leading-relaxed",
+      "stats": "text-lg font-bold with text-[9px] uppercase tracking-wider labels"
+    },
+    "touch_targets": {
+      "buttons": "min-h-[44px] px-5 py-3",
+      "suggestion_chips": "min-h-[38px] px-3.5 py-1.5 shrink-0 text-xs",
+      "inputs": "min-h-[48px] text-[15px]"
+    },
+    "grid_collapses": {
+      "features_bento": "grid-cols-1 gap-4",
+      "command_center": "p-5 sm:p-8 rounded-2xl flex-col",
+      "verified_buyers": "grid-cols-1 gap-6",
+      "services_grid": "grid-cols-1 gap-3",
+      "india_grid": "grid-cols-1 gap-4",
+      "photo_story": "flex flex-col gap-4"
+    }
+  },
+  "css_system_additions": {
+    "keep": [
+      ".font-display",
+      ".font-mono-display",
+      ".glass",
+      ".glass-strong",
+      ".gradient-text",
+      ".cyan-glow",
+      ".btn-primary",
+      ".btn-ghost",
+      ".aurora",
+      ".marquee-track",
+      ".floaty",
+      ".reveal-up",
+      ".globe-wrap canvas"
+    ],
+    "replace_or_upgrade": [
       {
-        "category": "hero_background",
-        "url": "https://images.pexels.com/photos/8640331/pexels-photo-8640331.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "description": "Abstract neon data network for deep tech vibe"
+        "target": ".glass-strong",
+        "upgrade": "Higher optical clarity with backdrop-saturate(180%) and backdrop-blur(24px) for Apple crystal clarity."
       },
       {
-        "category": "trade_shipping",
-        "url": "https://images.unsplash.com/photo-1699588999949-e25959a59550?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTB8MHwxfHNlYXJjaHwzfHxjYXJnbyUyMHNoaXAlMjBvY2VhbiUyMGRyb25lfGVufDB8fHx8MTc4MTk4NjcyN3ww&ixlib=rb-4.1.0&q=85",
-        "description": "Cargo ship from above, perfect for logistics context"
-      },
-      {
-        "category": "expo_events",
-        "url": "https://images.unsplash.com/photo-1760001551764-14eddf965019?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGV4aGliaXRpb24lMjBoYWxsJTIwY3Jvd2RlZHxlbnwwfHx8fDE3ODE5ODY3Mjd8MA&ixlib=rb-4.1.0&q=85",
-        "description": "Exhibition hall crowd"
-      },
-      {
-        "category": "india_market",
-        "url": "https://images.pexels.com/photos/38107479/pexels-photo-38107479.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
-        "description": "Indian market business shipping context"
+        "target": ".aurora",
+        "upgrade": "Add layered multi-point mesh gradients with subtle slow breathing animation for cinematic visual interest."
       }
     ],
-    "icons": {
-      "library": "@phosphor-icons/react",
-      "style": "Duotone or Light"
+    "new_css_classes": [
+      {
+        "class_name": ".cosmic-vignette",
+        "css": "background: radial-gradient(ellipse 90% 70% at 50% 30%, transparent 40%, #050816 95%);"
+      },
+      {
+        "class_name": ".globe-glow-disc",
+        "css": "background: radial-gradient(circle at 50% 50%, rgba(0, 194, 255, 0.18) 0%, rgba(124, 58, 237, 0.08) 45%, transparent 70%); filter: blur(35px);"
+      },
+      {
+        "class_name": ".tech-ring",
+        "css": "border: 1px dashed rgba(0, 194, 255, 0.2); border-radius: 9999px; pointer-events: none; animation: spin-slow 90s linear infinite;"
+      },
+      {
+        "class_name": ".beam-border",
+        "css": "position: relative; border-radius: 1.5rem; background: linear-gradient(135deg, rgba(0,194,255,0.4), rgba(124,58,237,0.2) 50%, rgba(255,255,255,0.05) 100%); padding: 1px;"
+      },
+      {
+        "class_name": ".scroll-progress-bar",
+        "css": "position: fixed; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #00C2FF, #7C3AED); z-index: 9999; transform-origin: 0%;"
+      },
+      {
+        "class_name": ".no-scrollbar",
+        "css": "-ms-overflow-style: none; scrollbar-width: none;"
+      }
+    ]
+  },
+  "image_urls": [
+    {
+      "category": "port_and_shipping",
+      "description": "Aerial view of container cargo ship navigating ocean corridor",
+      "url": "https://images.unsplash.com/photo-1613690399151-65ea69478674?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHwzfHxjYXJnbyUyMHBvcnQlMjBjb250YWluZXIlMjBzaGlwfGVufDB8fHx8MTc4OTMzNDg0MXww&ixlib=rb-4.1.0&q=85",
+      "component_placement": "Home.jsx -> Apple-style Photo Story -> MotionTile Tall"
+    },
+    {
+      "category": "container_terminal_cranes",
+      "description": "Container ship docked under massive blue port gantry cranes",
+      "url": "https://images.unsplash.com/photo-1670121180530-cfcba4438038?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODF8MHwxfHNlYXJjaHw0fHxjYXJnbyUyMHBvcnQlMjBjb250YWluZXIlMjBzaGlwfGVufDB8fHx8MTc4OTMzNDg0MXww&ixlib=rb-4.1.0&q=85",
+      "component_placement": "Home.jsx -> Apple-style Photo Story -> MotionTile Top Right"
+    },
+    {
+      "category": "air_cargo_logistics",
+      "description": "International air freight cargo airliner on runway apron with ground handling",
+      "url": "https://images.unsplash.com/photo-1571086291540-b137111fa1c7?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwzfHxsb2dpc3RpY3MlMjB3YXJlaG91c2UlMjBhaXIlMjBjYXJnb3xlbnwwfHx8fDE3ODkzMzQ4NDV8MA&ixlib=rb-4.1.0&q=85",
+      "component_placement": "Home.jsx -> Apple-style Photo Story -> MotionTile Bottom Right"
     }
+  ],
+  "typography": {
+    "headings": "Manrope (font-display), font-extrabold / font-bold, tracking-tight",
+    "body": "IBM Plex Sans, font-normal / font-medium, leading-relaxed",
+    "telemetry_and_data": "JetBrains Mono (font-mono-display), uppercase, tracking-[0.2em]"
   },
-  "testing": {
-    "data_testid_requirement": "All interactive elements, forms, cards, and buttons MUST have a descriptive 'data-testid' attribute (e.g., 'download-app-cta-header', 'country-selector-dropdown')."
+  "colors": {
+    "background_primary": "#050816",
+    "surface_glass": "rgba(10, 15, 36, 0.72)",
+    "surface_glass_strong": "rgba(10, 15, 36, 0.88)",
+    "accent_cyan": "#00C2FF",
+    "accent_violet": "#7C3AED",
+    "text_primary": "#FFFFFF",
+    "text_secondary": "#94A3B8",
+    "border_cyan_tint": "rgba(0, 194, 255, 0.18)"
   },
-  "instructions_to_main_agent": [
-    "Ensure background is strictly #050816 globally.",
-    "Use react-globe.gl or three.js for the interactive 3D globe on the Home page. Ensure canvas background is transparent.",
-    "Typography MUST use 'Cabinet Grotesk' or similar premium alternative for headings, and 'IBM Plex Sans' for body. Do not use Inter or Roboto.",
-    "Implement routing for tabs: Home, Customs & Compliance, Trade News, Contact Us, Expo, Product Info.",
-    "Include floating WhatsApp button globally across all views.",
-    "Contact page must render a Map component targeting coordinates (19.126793986535226, 74.7452378072622).",
-    "Data view mockups must look premium, using dark glassmorphic styling (border-white/5, backdrop-blur).",
-    "Every page must prominently feature 'Download App' and 'Create Account' CTAs.",
-    "Follow 'data-testid' testing rules meticulously."
-  ]
+  "accessibility": {
+    "wcag_compliance": "AA standard contrast maintained across all dark glass surfaces (>4.5:1 ratio).",
+    "touch_safeguards": "Globe has pointer-events: none on mobile viewports (<768px) to prevent vertical scroll locking.",
+    "aria_and_testids": "All original data-testid attributes preserved verbatim for automated test suites."
+  }
 }

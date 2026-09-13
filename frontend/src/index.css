@@ -267,3 +267,51 @@ body {
   .report-page { page-break-inside: avoid; }
   .report-break { page-break-before: always; }
 }
+
+/* ================= Homepage v2 — cinematic hero + scroll motion ================= */
+.cosmic-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 70% at 50% 30%, transparent 38%, #050816 95%);
+}
+
+.globe-glow-disc {
+  background: radial-gradient(circle at 50% 50%, rgba(0, 194, 255, 0.18) 0%, rgba(124, 58, 237, 0.09) 45%, transparent 70%);
+  filter: blur(35px);
+  pointer-events: none;
+}
+
+.tech-ring {
+  border: 1px dashed rgba(0, 194, 255, 0.18);
+  border-radius: 9999px;
+  pointer-events: none;
+  animation: spin-slow 90s linear infinite;
+}
+.tech-ring-rev { animation: spin-slow 140s linear infinite reverse; }
+
+.scroll-progress-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #00C2FF, #7C3AED);
+  box-shadow: 0 0 12px rgba(0, 194, 255, 0.6);
+  z-index: 60;
+  transform-origin: 0%;
+  pointer-events: none;
+}
+
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* breathing aurora */
+@keyframes aurora-breathe {
+  0%, 100% { opacity: .75; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+.aurora-breathe { animation: aurora-breathe 14s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-breathe, .tech-ring, .tech-ring-rev, .floaty, .marquee-track, .spin-slow { animation: none !important; }
+  .reveal-up { animation: none !important; }
+}

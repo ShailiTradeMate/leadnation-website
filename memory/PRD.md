@@ -1,3 +1,18 @@
+## 2026-09-14 — HOMEPAGE REDESIGN + SCROLL MOTION SYSTEM (iteration_65, frontend 100%)
+
+Owner instruction: "rearrange the entire headline, Earth (rotating globe)… add video/animation when the user scrolls… huge animation for the entire homepage… headline should be changed to something much better… website should be adoptable in mobile view too. Just change the design, not the logic, coding, API, or anything else." Design blueprint produced by the design agent → `/app/design_guidelines.json` (v2.0.0).
+
+- **New headline**: eyebrow "Global Trade Intelligence · 195 Countries", H1 **"Rule global trade. / Before cargo moves."** (replaces "The world's trade desk, re-engineered."), new sub-copy focused on landed cost, live duty, verified buyers and AI clearance.
+- **Hero re-staged** (`pages/Home.jsx`): the rotating `TradeGlobe` is now an atmospheric centrepiece on the right/behind the copy (620px, glow disc + two counter-rotating dashed orbital rings + cosmic vignette) instead of a 50/50 "text left, globe right" split; the search bar became a glass "command bar" with a cyan shadow. On mobile the globe drops **below** the search as a compact 300px ambient globe with `interactive={false}` (`pointer-events:none`, OrbitControls disabled) so it can never hijack touch scrolling.
+- **Page-wide scroll motion** (framer-motion 11, already installed): fixed scroll-progress laser beam, hero parallax (globe descends + scales, copy drifts and fades, floating telemetry chips move in opposition), staggered `Reveal` entrances for the features bento, scale-in spotlight for the Trade Command Center card, opposing slide-ins for the Verified Buyers block, sequential stagger for the India grid, and drone-pan parallax on the photo-story tiles. Everything animates only `transform`/`opacity` with `will-change`, and `useReducedMotion()` + a `prefers-reduced-motion` CSS block disable all of it.
+- **Mobile pass (390px)**: type scale capped at `text-4xl`, 44–48px tap targets, full-width mobile "Ask the Brain" button, horizontally scrollable suggestion chips (`no-scrollbar`), tighter section padding, single-column collapses.
+- **CSS additions** (`index.css`): `.cosmic-vignette`, `.globe-glow-disc`, `.tech-ring`/`.tech-ring-rev`, `.scroll-progress-bar`, `.no-scrollbar`, `.aurora-breathe`, reduced-motion overrides. `TradeGlobe` gained only two presentational props (`heightMobile`, `interactive`).
+- **Zero logic change**: every handler, route, API call and data-testid is unchanged; testing agent re-verified the search dropdown, Enter-to-Brain, Ask-the-Brain button, all 20+ testids, India API cards and the /brain, /trade-news, /expo, /buyers regressions.
+- Backlog added (not implemented, owner said "currently not required"): **international expo listing fee** — the Expo listing block only shows the India ₹10,000/30-day Razorpay tier (ROADMAP §0.0c).
+
+---
+
+
 ## 2026-09-13 — VERIFIED BUYERS: SOURCE TRANSPARENCY REWRITE + DATA-USAGE GATE (iteration_64, frontend 100%)
 
 Owner instruction: frontend display only — no buyer data, backend logic, API, schema or verification change (backend `/api/buyers/sources` still returns the raw organisation names; the mapping is purely presentational).

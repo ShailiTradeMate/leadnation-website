@@ -35,7 +35,7 @@ const POINTS = [
   { lat: 55.75, lng: 37.61, label: "Moscow", size: 0.4 },
 ];
 
-export default function TradeGlobe({ height = 540 }) {
+export default function TradeGlobe({ height = 540, heightMobile, interactive = true }) {
   const globeRef = useRef();
   const wrapRef = useRef();
   const [size, setSize] = useState({ w: 600, h: height });
@@ -78,13 +78,14 @@ export default function TradeGlobe({ height = 540 }) {
     const update = () => {
       if (wrapRef.current) {
         const w = wrapRef.current.offsetWidth;
-        setSize({ w, h: height });
+        const isMobile = window.innerWidth < 768;
+        setSize({ w, h: isMobile && heightMobile ? heightMobile : height });
       }
     };
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, [height]);
+  }, [height, heightMobile]);
 
   useEffect(() => {
     if (globeRef.current) {
@@ -92,12 +93,14 @@ export default function TradeGlobe({ height = 540 }) {
       c.autoRotate = true;
       c.autoRotateSpeed = 0.55;
       c.enableZoom = false;
+      c.enabled = interactive;
       globeRef.current.pointOfView({ lat: 20, lng: 75, altitude: 2.4 }, 0);
     }
-  }, []);
+  }, [interactive]);
 
   return (
-    <div ref={wrapRef} className="globe-wrap relative w-full" style={{ height }}>
+    <div ref={wrapRef} className="globe-wrap relative w-full"
+      style={{ height: size.h, pointerEvents: interactive ? "auto" : "none" }}>
       <Globe
         ref={globeRef}
         width={size.w}

@@ -1,0 +1,24 @@
+{
+  "summary": "Design-only homepage redesign verified. New headline, eyebrow, rotating globe (desktop centrepiece / mobile non-interactive ambient), scroll progress beam, framer-motion scroll animations, search flows, suggestion chips, all data-testids, photo tiles, and mobile/tablet responsive layout all pass. Regression: /brain, /trade-news, /expo, /buyers still load. No new console errors (only pre-existing 401 on /api/notifications and a benign framer-motion 'non-static position' warning).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile 390x844 top nav", "issues": ["Hamburger button + top-nav SVG bounding right ~416px on 390px viewport (individual element extends past viewport but is clipped by an ancestor overflow-hidden — page-level scrollWidth==clientWidth==390, so no horizontal scroll). Cosmetic only, pre-existing."]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "framer-motion emits a console warning: 'Please ensure that the container has a non-static position...' — indicates useScroll target ref has default static positioning. Not functional but should have position: relative on the wrapping element to silence the warning.",
+    "The wrap-up-tree opacity check returned 0 for home-features-label even though is_visible=True; a decorative ancestor (likely .aurora-breathe or a Reveal wrapper) sits at opacity:0 while its child text renders normally. Consider ensuring decorative overlays use visibility/pointer-events instead of opacity:0 so a11y tree stays accurate."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped)", "frontend": "100% of acceptance criteria"},
+  "seed_data_creation": "",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Homepage design-only redesign (iter 65) verified. Key verified data-testids on Home: home-hero-title ('Rule global trade.' + 'Before cargo moves.'), home-eyebrow ('GLOBAL TRADE INTELLIGENCE · 195 COUNTRIES'), home-search-input, home-search-result-0, home-search-submit, feat-customs/brain/expo/news, home-command-center(+cta), home-verified-buyers(+cta), home-services-highlight(+cta), india-label, india-feature-0..N, story-label, story-cta-explore, story-cta-expos. Desktop globe canvas renders inside .globe-wrap (~760x620 at 1920w). Mobile globe canvas is placed BELOW the search (y≈730 on 390w) with pointer-events:none in the ancestor chain — scrolling gestures over it pass through to the page. Scroll progress bar (.scroll-progress-bar) scales from 0 to ~1 correctly. Search: typing 'basmati' shows result within ~3s, click navigates to /brain?q=Basmati%20Rice%3A...; Enter navigates to /brain?q=<term>; Ask the Brain button navigates to /brain. 4 suggestion chips (Basmati Rice, India, Pharma, Singapore) populate the input correctly. Regression pages /brain, /trade-news, /expo, /buyers all load.",
+  "rca of the issue": "No blocking issues. Minor: framer-motion useScroll container warning is due to missing non-static position on the scroll target ref."
+}

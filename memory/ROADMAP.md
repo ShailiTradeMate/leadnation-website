@@ -27,6 +27,10 @@ Build is being deployed as-is. All engineering items below are parked until mark
 ## 0.0b MARKETING PLAN — RESET REQUIRED (owner instruction)
 - [ ] **Retire the old leadnation.app marketing/SEO plan entirely** and write a fresh plan for **vametra.com** (new keyword map, content calendar, backlink targets, GEO/AI-answer strategy). Do not reuse the old URL list or the old brand keywords.
 
+## 0.0c WEBSITE / UX BACKLOG (owner-raised 2026-09-14, "currently not required")
+- [ ] **International expo listing fee is missing.** The Expo "List your event to the world" block only surfaces `LISTING FEE (INDIA) ₹10,000 / 30 days` (Razorpay). Add the international price tier(s), wire the matching payment path, and make the displayed fee follow the event's country instead of defaulting to India.
+
+
 ## 0.1 P0 — OWNER ACTIONS (cannot be done by agent)
 - [ ] Create + verify **Google Search Console** and **Bing Webmaster Tools** (agent can host the verification file if given the token) — biggest single cause of zero visibility today.
 - [ ] Submit `sitemap.xml` (77 URLs) in both; "Request indexing" on top 10 pages.
