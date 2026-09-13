@@ -4,27 +4,19 @@ import TradeGlobe from "@/components/TradeGlobe";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO, { faqSchema } from "@/components/SEO";
 import { SectionLabel } from "@/components/PageHero";
-import { searchAll, fetchIndiaFeatures } from "@/lib/api";
+import { searchAll } from "@/lib/api";
 import {
   MagnifyingGlass,
   ArrowRight,
   Lightning,
   ShieldCheck,
-  Compass,
-  Package,
   CalendarBlank,
   Newspaper,
   GlobeHemisphereEast,
-  Translate,
-  CurrencyInr,
-  Receipt,
-  Sparkle,
-  Buildings,
   Brain,
 } from "@phosphor-icons/react";
 import { Link, useNavigate } from "react-router-dom";
 
-const ICONS = { compass: Compass, receipt: Receipt, sparkle: Sparkle, buildings: Buildings, package: Package, translate: Translate };
 const EASE = [0.16, 1, 0.3, 1];
 
 /** Scroll-triggered entrance. Collapses to a plain div when reduced motion is on. */
@@ -49,7 +41,6 @@ export default function Home() {
   const [q, setQ] = useState("");
   const [results, setResults] = useState([]);
   const [focused, setFocused] = useState(false);
-  const [india, setIndia] = useState([]);
   const navigate = useNavigate();
   const reduce = useReducedMotion();
 
@@ -73,10 +64,6 @@ export default function Home() {
   const { scrollYProgress: storyP } = useScroll({ target: storyRef, offset: ["start end", "end start"] });
   const tileA = useTransform(storyP, [0, 1], [-30, 30]);
   const tileB = useTransform(storyP, [0, 1], [26, -26]);
-
-  useEffect(() => {
-    fetchIndiaFeatures().then(setIndia).catch(() => {});
-  }, []);
 
   useEffect(() => {
     if (!q) {
@@ -429,62 +416,45 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* INDIA FEATURES */}
-      <section className="relative max-w-7xl mx-auto px-5 sm:px-10 py-16">
-        <Reveal y={24}>
-          <div className="flex items-center gap-3 mb-4">
-            <CurrencyInr size={24} className="text-cyan-300" />
-            <SectionLabel testId="india-label">Engineered for India</SectionLabel>
-          </div>
-          <h2 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl lg:text-5xl max-w-3xl leading-[1.06]">
-            From <span className="gradient-text">Ahmedabad to Antarctica</span> — Indian exporters first.
-          </h2>
-        </Reveal>
-        <div className="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-          {india.map((f, i) => {
-            const Icon = ICONS[f.icon] || Sparkle;
-            return (
-              <Reveal key={i} delay={0.08 * (i % 3)} y={34} className="h-full">
-                <div
-                  data-testid={`india-feature-${i}`}
-                  className="glass rounded-2xl p-6 h-full hover:border-cyan-400/30 transition-all hover:-translate-y-1"
-                >
-                  <div className="w-11 h-11 rounded-xl grid place-items-center bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-white/10">
-                    <Icon size={22} weight="duotone" className="text-cyan-300" />
-                  </div>
-                  <div className="mt-4 font-display font-bold text-lg">{f.title}</div>
-                  <p className="mt-2 text-sm text-slate-400 leading-relaxed">{f.description}</p>
-                </div>
-              </Reveal>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* SCROLLYTELLING STORY */}
+      {/* VAMETRA AI · TRADE ACADEMY */}
       <section ref={storyRef} className="relative max-w-7xl mx-auto px-5 sm:px-10 py-20 sm:py-24">
         <div className="grid lg:grid-cols-2 gap-10 items-center">
           <Reveal className="order-2 lg:order-1" y={30}>
-            <SectionLabel testId="story-label">Moving pictures, moving cargo</SectionLabel>
+            <SectionLabel testId="story-label">Learn · Free trade education</SectionLabel>
             <h2 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl lg:text-5xl mt-4 leading-[1.05]">
-              See trade <span className="gradient-text">happen.</span>
+              Vametra AI — <span className="gradient-text">Trade Academy.</span>
             </h2>
-            <p className="mt-5 text-slate-300 max-w-lg text-sm sm:text-base">
-              From port cranes in Mundra to bonded warehouses in Jebel Ali — the
-              Vametra AI app shows you every step, in motion.
+            <p className="mt-5 text-slate-300 max-w-lg text-sm sm:text-base leading-relaxed">
+              Brand new to exporting? Start here — <span className="text-white font-semibold">completely free</span>.
+              The Trade Academy walks first-time exporters and importers through every step in plain
+              language: how to read an HS code, what duties and FTAs really cost you, which documents
+              customs asks for, how Incoterms shift risk, how to price an offer, and how to spot a
+              genuine buyer. Short guides, real examples and India-specific walkthroughs — no fee, no
+              subscription, no catch.
+            </p>
+            <p className="mt-4 text-slate-400 max-w-lg text-sm leading-relaxed">
+              And when you're ready to trade for real, you don't have to chase government portals
+              yourself — get your <span className="text-cyan-300">IEC, GST, RCMC, APEDA/FIEO registrations and
+              company setup</span> done end-to-end by our team in{" "}
+              <Link to="/services" className="text-cyan-300 underline decoration-cyan-400/40 hover:decoration-cyan-300">Business Services</Link>.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
-              <Link to="/products" data-testid="story-cta-explore" className="btn-primary">Explore products <ArrowRight size={16} weight="bold" /></Link>
-              <Link to="/expo" data-testid="story-cta-expos" className="btn-ghost">See expos</Link>
+              <Link to="/academy" data-testid="story-cta-explore" className="btn-primary">Start learning free <ArrowRight size={16} weight="bold" /></Link>
+              <Link to="/services" data-testid="story-cta-expos" className="btn-ghost">Get your documents</Link>
+            </div>
+            <div className="mt-6 flex flex-wrap gap-2 text-[11px] text-slate-400">
+              {["Beginner to first shipment", "HS codes & duty basics", "Documents & compliance", "Incoterms & pricing", "Hindi + regional languages"].map((t) => (
+                <span key={t} className="glass rounded-full px-3 py-1.5">{t}</span>
+              ))}
             </div>
           </Reveal>
           <div className="order-1 lg:order-2 grid grid-cols-2 gap-4">
             <motion.div style={reduce ? undefined : { y: tileA }} className="will-change-transform">
-              <MotionTile src="https://images.unsplash.com/photo-1613690399151-65ea69478674?crop=entropy&cs=srgb&fm=jpg&q=85&w=900" tall />
+              <MotionTile src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?crop=entropy&cs=srgb&fm=jpg&q=85&w=900" tall />
             </motion.div>
             <motion.div style={reduce ? undefined : { y: tileB }} className="grid grid-rows-2 gap-4 will-change-transform">
-              <MotionTile src="https://images.unsplash.com/photo-1670121180530-cfcba4438038?crop=entropy&cs=srgb&fm=jpg&q=85&w=900" />
-              <MotionTile src="https://images.unsplash.com/photo-1571086291540-b137111fa1c7?crop=entropy&cs=srgb&fm=jpg&q=85&w=900" />
+              <MotionTile src="https://images.unsplash.com/photo-1552664730-d307ca884978?crop=entropy&cs=srgb&fm=jpg&q=85&w=900" />
+              <MotionTile src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?crop=entropy&cs=srgb&fm=jpg&q=85&w=900" />
             </motion.div>
           </div>
         </div>

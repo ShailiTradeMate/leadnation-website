@@ -1,3 +1,12 @@
+## 2026-09-14 — HOMEPAGE: INDIA SECTION REMOVED, ACADEMY SECTION ADDED (design-only)
+
+- **Removed** the entire "Engineered for India / From Ahmedabad to Antarctica" section from the homepage (section + its 6 feature cards; the now-unused `fetchIndiaFeatures` call and icon map were dropped from `Home.jsx`. The `/api/india-features` endpoint itself is untouched).
+- **Replaced** the "See trade happen." photo-story block with **"Vametra AI — Trade Academy."** (eyebrow "Learn · Free trade education"): copy explaining that training for new exporters/importers is completely free (HS codes, duty & FTAs, documents, Incoterms, pricing, spotting genuine buyers, India-specific walkthroughs), plus a second paragraph pointing users to **Business Services** for IEC, GST, RCMC, APEDA/FIEO registrations and company setup. CTAs: "Start learning free" → `/academy` (testid `story-cta-explore`, kept) and "Get your documents" → `/services` (testid `story-cta-expos`, kept). Images swapped to classroom/learning visuals; the scroll parallax on the tiles is retained.
+- Verified by screenshot at 1920x800 and 390x844: India copy fully gone, "See trade happen" gone, Academy section renders with no horizontal overflow (scrollWidth == clientWidth == 390).
+
+---
+
+
 ## 2026-09-14 — HOMEPAGE REDESIGN + SCROLL MOTION SYSTEM (iteration_65, frontend 100%)
 
 Owner instruction: "rearrange the entire headline, Earth (rotating globe)… add video/animation when the user scrolls… huge animation for the entire homepage… headline should be changed to something much better… website should be adoptable in mobile view too. Just change the design, not the logic, coding, API, or anything else." Design blueprint produced by the design agent → `/app/design_guidelines.json` (v2.0.0).
