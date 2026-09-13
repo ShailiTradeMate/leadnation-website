@@ -403,7 +403,7 @@ export default function Home() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {[["IEC Registration", "/services/iec-registration"], ["GST Registration", "/services/gst-registration"], ["RCMC", "/services/rcmc-registration"], ["Company Setup", "/services"]].map(([t, to], i) => (
+              {[["IEC Registration", "/services/iec-registration"], ["GST Registration", "/services/gst-registration"], ["RCMC", "/services/rcmc-registration"], ["Business Website", "/services/business-website"]].map(([t, to], i) => (
                 <Reveal key={t} delay={0.06 * i} y={18} className="h-full">
                   <Link to={to} className="block glass rounded-2xl px-4 py-5 h-full hover:border-cyan-400/40 hover:-translate-y-0.5 transition-all">
                     <div className="font-display font-bold">{t}</div>

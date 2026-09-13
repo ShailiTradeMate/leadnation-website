@@ -71,6 +71,42 @@ SERVICES_DB = {
         ],
         "priceFrom": "INR 2,499",
     },
+    "business-website": {
+        "slug": "business-website", "category": "Govt Documentation", "name": "Business Website (Import–Export)",
+        "tagline": "Complete website for your import-export business · Built, hosted and supported for a year.",
+        "image": "https://images.unsplash.com/photo-1467232004584-a241de8bcf5d?auto=format&fit=crop&w=1200&q=80",
+        "overview": "A done-for-you website package built specifically for import-export businesses. We handle everything from the brand name and domain to hosting, coding, payment integration, quality testing and a full year of support — so buyers can find, trust and contact you online.",
+        "benefits": [
+            "Business name suggestions (brand + domain availability)",
+            "Domain selection and purchase guidance",
+            "Business email creation on your own domain",
+            "Hosting service setup and management",
+            "Website design and development (fully coded, no templates locked to us)",
+            "Product / catalogue pages built for exporters and importers",
+            "Payment gateway integration",
+            "Quality testing across mobile, tablet and desktop",
+            "Basic SEO setup so buyers can find you on Google",
+            "Annual support included",
+            "Up to 15 content/design changes every month after go-live",
+        ],
+        "documents": ["Business name / brand preferences", "Company details & address", "Product catalogue or price list",
+                      "Logo and images (we can design if you don't have any)", "IEC / GST (optional, for trust badges)"],
+        "process": [
+            "Discovery call — goals, products, target markets",
+            "Name suggestions, domain selection and business email setup",
+            "Design approval, then development + payment integration",
+            "Quality testing and go-live on your hosting",
+            "Annual support + up to 15 changes per month",
+        ],
+        "faqs": [
+            {"q": "What does the annual fee cover?", "a": "Design and development, hosting setup, business email, payment integration, quality testing, annual support and up to 15 change requests per month after the site is live."},
+            {"q": "Who owns the website and domain?", "a": "You do. The domain, hosting account and code are yours."},
+            {"q": "How long does it take?", "a": "Most import-export websites go live in 2–4 weeks, depending on how quickly content and approvals come through."},
+            {"q": "Is the price different outside India?", "a": "Yes — ₹35,000 per year for Indian businesses and USD 2,500 per year for international businesses."},
+        ],
+        "priceFrom": "INR 35,000 / year",
+        "priceFromIntl": "USD 2,500 / year",
+    },
     "export-consulting": {
         "slug": "export-consulting", "category": "Consulting", "name": "Export Consulting",
         "tagline": "Strategy + execution for first-time exporters.",
@@ -144,13 +180,73 @@ SERVICES_DB = {
 async def services_list():
     overrides = await _rate_overrides()
     return [{"slug": s["slug"], "name": s["name"], "category": s["category"], "tagline": s["tagline"],
-             "image": s["image"], "priceFrom": overrides.get(s["slug"], s["priceFrom"])}
+             "image": s["image"], **_prices(s, overrides)}
             for s in SERVICES_DB.values()]
+
+
+def _prices(s: dict, overrides: dict) -> dict:
+    """Resolve the live IN + INTL display prices for a service (admin overrides win)."""
+    o = overrides.get(s["slug"])
+    price_in = s.get("priceFrom", "")
+    price_intl = s.get("priceFromIntl", "")
+    if isinstance(o, str) and o.strip():
+        price_in = o.strip()
+    elif isinstance(o, dict):
+        if (o.get("IN") or "").strip():
+            price_in = o["IN"].strip()
+        if (o.get("INTL") or "").strip():
+            price_intl = o["INTL"].strip()
+    return {"priceFrom": price_in, "priceFromIntl": price_intl}
 
 
 async def _rate_overrides():
     doc = await db.site_settings.find_one({"_id": "site"}, {"serviceRates": 1})
     return (doc or {}).get("serviceRates", {}) or {}
+
+
+@router.get("/services/admin/rates")
+async def service_rates_admin(_: dict = Depends(require_admin)):
+    """Editable Business Services pricing for the Admin CMS (Pricing → Business Services)."""
+    overrides = await _rate_overrides()
+    items = []
+    for s in SERVICES_DB.values():
+        live = _prices(s, overrides)
+        items.append({
+            "slug": s["slug"], "name": s["name"], "category": s["category"],
+            "defaultPriceFrom": s.get("priceFrom", ""),
+            "defaultPriceFromIntl": s.get("priceFromIntl", ""),
+            "priceFrom": live["priceFrom"], "priceFromIntl": live["priceFromIntl"],
+            "overridden": s["slug"] in overrides,
+        })
+    return {"items": items, "count": len(items)}
+
+
+class ServiceRatesIn(BaseModel):
+    rates: dict   # { slug: {"IN": "INR 35,000 / year", "INTL": "USD 2,500 / year"} }
+
+
+@router.put("/services/admin/rates")
+async def service_rates_save(body: ServiceRatesIn, admin: dict = Depends(require_admin)):
+    clean = {}
+    for slug, val in (body.rates or {}).items():
+        if slug not in SERVICES_DB:
+            continue
+        if isinstance(val, str):
+            val = {"IN": val}
+        row = {}
+        for r in ("IN", "INTL"):
+            v = str((val or {}).get(r, "") or "").strip()
+            if v:
+                row[r] = v
+        if row:
+            clean[slug] = row
+    await db.site_settings.update_one(
+        {"_id": "site"},
+        {"$set": {"serviceRates": clean,
+                  "serviceRatesUpdatedAt": datetime.now(timezone.utc).isoformat(),
+                  "serviceRatesUpdatedBy": admin.get("email") or admin.get("sub") or "admin"}},
+        upsert=True)
+    return await service_rates_admin(_=admin)
 
 
 @router.get("/service/{slug}")
@@ -159,9 +255,7 @@ async def service_detail(slug: str):
     if not s:
         return JSONResponse(status_code=404, content={"error": "Service not found"})
     overrides = await _rate_overrides()
-    if slug in overrides:
-        s = {**s, "priceFrom": overrides[slug]}
-    return s
+    return {**s, **_prices(s, overrides)}
 
 
 class ServiceRequest(BaseModel):

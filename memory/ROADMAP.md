@@ -30,6 +30,9 @@ Build is being deployed as-is. All engineering items below are parked until mark
 ## 0.0c WEBSITE / UX BACKLOG (owner-raised 2026-09-14, "currently not required")
 - [ ] **International expo listing fee is missing.** The Expo "List your event to the world" block only surfaces `LISTING FEE (INDIA) ₹10,000 / 30 days` (Razorpay). Add the international price tier(s), wire the matching payment path, and make the displayed fee follow the event's country instead of defaulting to India.
 
+- [ ] **Academy ↔ Brain coordination** (owner-raised 2026-09-14). The free Trade Academy and the Vametra AI Brain must work as one: Brain answers should cite/deep-link the matching Academy lesson; each Academy lesson should have an "Ask the Brain about this" action that opens the Brain pre-loaded with that lesson's context; track a learner's progress so the Brain can adapt its depth (beginner vs experienced); surface Academy suggestions when a user's question shows a knowledge gap; and let the Brain recommend the relevant Business Service (IEC/GST/RCMC/Business Website) when a lesson ends in a real-world action.
+
+
 
 ## 0.1 P0 — OWNER ACTIONS (cannot be done by agent)
 - [ ] Create + verify **Google Search Console** and **Bing Webmaster Tools** (agent can host the verification file if given the token) — biggest single cause of zero visibility today.

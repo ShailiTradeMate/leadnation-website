@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { adminApi } from "@/lib/admin";
-import { CurrencyCircleDollar, FloppyDisk, ChartLineUp, CreditCard, Star, EnvelopeSimple } from "@phosphor-icons/react";
+import { CurrencyCircleDollar, FloppyDisk, ChartLineUp, CreditCard, Star, EnvelopeSimple, Briefcase } from "@phosphor-icons/react";
 
 const PLAN_ORDER = ["download", "monthly", "annual"];
 const REGIONS = [
@@ -141,6 +141,8 @@ export default function PricingManager() {
         </div>
       </div>
 
+      <ServiceRatesCard />
+
       <div className="flex items-center gap-4 flex-wrap">
         <button data-testid="pricing-save" onClick={save} disabled={saving} className="btn-primary disabled:opacity-50"><FloppyDisk size={16} weight="bold" /> {saving ? "Saving…" : "Save pricing"}</button>
         {msg && <span data-testid="pricing-save-msg" className="text-sm text-emerald-300">{msg}</span>}
@@ -177,6 +179,90 @@ export default function PricingManager() {
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+/** Business Services pricing — editable by the main admin, live on the website on save. */
+function ServiceRatesCard() {
+  const [items, setItems] = useState(null);
+  const [draft, setDraft] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const load = () => adminApi.get("/services/admin/rates").then((r) => {
+    setItems(r.data.items || []);
+    const d = {};
+    (r.data.items || []).forEach((s) => { d[s.slug] = { IN: s.priceFrom || "", INTL: s.priceFromIntl || "" }; });
+    setDraft(d);
+  }).catch(() => setItems([]));
+  useEffect(() => { load(); }, []);
+
+  const set = (slug, region, val) => setDraft((d) => ({ ...d, [slug]: { ...d[slug], [region]: val } }));
+
+  const save = async () => {
+    setSaving(true); setMsg("");
+    try {
+      await adminApi.put("/services/admin/rates", { rates: draft });
+      setMsg("Saved — Business Services prices are live on the website now.");
+      load();
+    } catch (e) {
+      setMsg(e?.response?.data?.detail || "Save failed");
+    } finally { setSaving(false); }
+  };
+
+  if (!items) return null;
+  const groups = items.reduce((acc, s) => { (acc[s.category] = acc[s.category] || []).push(s); return acc; }, {});
+
+  return (
+    <div className="glass-strong rounded-3xl p-6" data-testid="pricing-services">
+      <div className="font-display font-bold text-lg flex items-center gap-2 mb-1">
+        <Briefcase size={18} weight="duotone" className="text-cyan-300" /> Business Services
+      </div>
+      <p className="text-xs text-slate-400 mb-5">
+        Edit the "FROM" price shown on every Business Services card and detail page. India and International
+        prices are separate — leave International blank to show only the India price. Saving publishes instantly.
+      </p>
+
+      <div className="space-y-6">
+        {Object.entries(groups).map(([cat, rows]) => (
+          <div key={cat}>
+            <div className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400 mb-2">{cat}</div>
+            <div className="space-y-2">
+              {rows.map((s) => (
+                <div key={s.slug} data-testid={`service-rate-${s.slug}`} className="glass rounded-2xl p-3 grid sm:grid-cols-12 gap-2 items-center">
+                  <div className="sm:col-span-5">
+                    <div className="text-sm font-semibold">{s.name}</div>
+                    <div className="text-[10px] text-slate-500 font-mono-display">{s.slug}</div>
+                  </div>
+                  <div className="sm:col-span-3">
+                    <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">India (Rs)</div>
+                    <input data-testid={`service-rate-${s.slug}-in`} value={draft[s.slug]?.IN || ""}
+                      onChange={(e) => set(s.slug, "IN", e.target.value)} placeholder={s.defaultPriceFrom}
+                      className="glass rounded-xl px-3 py-2 w-full text-xs font-mono-display" />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <div className="text-[10px] uppercase tracking-widest text-slate-500 mb-1">International ($)</div>
+                    <input data-testid={`service-rate-${s.slug}-intl`} value={draft[s.slug]?.INTL || ""}
+                      onChange={(e) => set(s.slug, "INTL", e.target.value)} placeholder={s.defaultPriceFromIntl || "optional"}
+                      className="glass rounded-xl px-3 py-2 w-full text-xs font-mono-display" />
+                  </div>
+                  <div className="sm:col-span-1 text-right">
+                    {s.overridden && <span className="text-[9px] font-mono-display uppercase tracking-widest text-cyan-300">edited</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-5 flex items-center gap-4 flex-wrap">
+        <button data-testid="service-rates-save" onClick={save} disabled={saving} className="btn-primary disabled:opacity-50">
+          <FloppyDisk size={16} weight="bold" /> {saving ? "Saving…" : "Save service prices"}
+        </button>
+        {msg && <span data-testid="service-rates-msg" className="text-sm text-emerald-300">{msg}</span>}
+      </div>
     </div>
   );
 }

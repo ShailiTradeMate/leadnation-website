@@ -1,3 +1,13 @@
+## 2026-09-14 — BUSINESS SERVICES: ADMIN-EDITABLE PRICING + NEW "BUSINESS WEBSITE" SERVICE (iteration_66, backend 9/9 + frontend 100%)
+
+- **Fixed (owner-reported)**: main admin could not revise Business Services prices — they were hardcoded in `SERVICES_DB` with no editor. Added **Admin → Pricing → Business Services** (`ServiceRatesCard` in `PricingManager.jsx`, testid `pricing-services`): all 11 services grouped by category with separate **India** and **International** price fields (`service-rate-<slug>-in` / `-intl`) and one Save button (`service-rates-save`). Saving writes `db.site_settings.serviceRates` — the exact override map the public `/api/services` and `/api/service/{slug}` endpoints already read, so the new price is live on the website instantly (verified: GST → "INR 1,777" appeared immediately on `/services` and `/services/gst-registration`, then restored to "INR 1,499").
+- Backend: new `_prices()` resolver in `services.py` (admin override wins, accepts both the legacy string override and the new `{IN, INTL}` shape), `priceFromIntl` added to the public payloads, and new admin endpoints `GET /api/services/admin/rates` + `PUT /api/services/admin/rates` (both `require_admin`). Note: PUT replaces the whole override map — the UI always posts the full draft, so partial callers must do the same.
+- **New service — "Business Website (Import–Export)"** under **Govt Documentation** (`/services/business-website`): name suggestions, domain selection, business email on your own domain, hosting setup, full website development, exporter/importer catalogue pages, payment gateway integration, quality testing, basic SEO, annual support and **up to 15 changes per month** after go-live. Priced **₹35,000/year (India)** and **USD 2,500/year (international)** — both editable from the new admin card. Public pages now show both prices (card "Intl:" line + `service-price-intl` pill), and the homepage Business Services block links to it (replacing the old "Company Setup" tile).
+- Backlog added (not built): **Academy ↔ Brain coordination** (ROADMAP §0.0c) — Brain answers deep-linking Academy lessons, "Ask the Brain about this" per lesson, learner-progress-aware answer depth, and Brain → Business Service hand-offs.
+
+---
+
+
 ## 2026-09-14 — HOMEPAGE: INDIA SECTION REMOVED, ACADEMY SECTION ADDED (design-only)
 
 - **Removed** the entire "Engineered for India / From Ahmedabad to Antarctica" section from the homepage (section + its 6 feature cards; the now-unused `fetchIndiaFeatures` call and icon map were dropped from `Home.jsx`. The `/api/india-features` endpoint itself is untouched).

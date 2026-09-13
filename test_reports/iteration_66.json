@@ -1,0 +1,19 @@
+{
+  "summary": "Iteration 66 — Business Services admin pricing editor + new Business Website service. Backend: 9/9 pytest passed (services list = 11, business-website in Govt Documentation with INR 35,000 / year + USD 2,500 / year and 11 benefits/5 process/4 FAQs; GET/PUT /api/services/admin/rates enforce require_admin (401 without token), list has all required fields, PUT persists, ignores unknown slugs, immediately live on /api/services and /api/service/<slug>; INTL edit and clear works; service-request submit works). Frontend: /services shows Business Website tile under Govt Documentation with both India + Intl prices; /services/business-website renders title, both price pills, all benefits/docs/process/FAQ; homepage home-services-highlight now has Business Website tile linking to /services/business-website (old Company Setup tile removed); Admin login (Main Admin 00001) → Pricing tab → pricing-services card lists all 11 rows with -in/-intl inputs and service-rates-save/-msg; changed gst IN → INR 1,777, success msg 'Saved — Business Services prices are live on the website now.' appeared, and the change was immediately visible on /services and /services/gst-registration; export-consulting INTL → USD 299 showed on card + as 'International: USD 299' pill (service-price-intl) on detail page; both edits restored to INR 1,499 / blank and confirmed live.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_iter66_pricing.py", "/app/test_reports/pytest/iter66.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "PUT /api/services/admin/rates writes a full replacement map ({slug: {IN,INTL}}); any slug omitted from the payload loses its override. This is by design in the current UI (which always sends the full draft) but is worth flagging — a partial-update caller would silently wipe unrelated overrides.",
+    "services.py imports notify_admin lazily inside submit_service_request; fine but keep aware of circular-import cost per request."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "Main admin 00001 / Shiv@12345 (as documented). X-Admin-Token: leadnation-admin-2026 used for backend admin tests.",
+  "seed_data_creation": "One TEST_ service-request (business-website, test_iter66@example.com) written to db.service_requests + db.leads during test_service_request_business_website. No pricing overrides remain — all restored to originals and verified live.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Iter66 admin pricing editor + business-website tests live in /app/backend/tests/test_iter66_pricing.py. Restore step (test_zzz_*) always resets db.site_settings.serviceRates to the documented originals; run before other pricing-mutation tests to leave the DB clean.",
+  "rca of the issue": "N/A — feature implementation verified functional end-to-end; no bug found this iteration."
+}

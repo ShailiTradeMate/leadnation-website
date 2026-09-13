@@ -42,7 +42,10 @@ export function ServicesHub() {
                     <h3 className="font-display font-bold text-lg">{s.name}</h3>
                     <p className="text-xs text-slate-400 mt-1">{s.tagline}</p>
                     <div className="mt-3 flex items-center justify-between text-xs">
-                      <span className="text-cyan-300 font-mono-display tracking-widest">FROM {s.priceFrom}</span>
+                      <span className="text-cyan-300 font-mono-display tracking-widest">
+                        FROM {s.priceFrom}
+                        {s.priceFromIntl && <span className="block text-slate-400 mt-0.5 normal-case">Intl: {s.priceFromIntl}</span>}
+                      </span>
                       <ArrowRight size={14} className="text-cyan-300 group-hover:translate-x-1 transition-transform" />
                     </div>
                   </div>
@@ -102,8 +105,15 @@ export default function ServiceDetail() {
             <SectionLabel>{s.category}</SectionLabel>
             <h1 data-testid="service-title" className="font-display font-extrabold tracking-tight text-5xl sm:text-6xl mt-4">{s.name}</h1>
             <p className="mt-4 text-slate-300 text-lg">{s.tagline}</p>
-            <div className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 text-sm">
-              Starts at {s.priceFrom}
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span data-testid="service-price-in" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 text-sm">
+                Starts at {s.priceFrom}
+              </span>
+              {s.priceFromIntl && (
+                <span data-testid="service-price-intl" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-slate-300 text-sm">
+                  International: {s.priceFromIntl}
+                </span>
+              )}
             </div>
           </div>
           <div className="lg:col-span-5">
