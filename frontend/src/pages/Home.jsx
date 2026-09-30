@@ -135,6 +135,23 @@ export default function Home() {
           className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-10 pt-24 pb-14 lg:pt-24 lg:pb-20"
         >
           <div className="max-w-2xl">
+            <Reveal y={14}>
+              <div className="mb-7 sm:mb-9">
+                <h2
+                  data-testid="home-brand-wordmark"
+                  className="font-brand brand-wordmark text-[32px] sm:text-5xl lg:text-[60px] leading-[1.02] whitespace-nowrap tracking-[0.07em]"
+                >
+                  Vametra <span className="brand-wordmark-ai">AI</span>
+                </h2>
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="h-px w-10 sm:w-16 bg-gradient-to-r from-cyan-400 to-transparent" />
+                  <span className="text-[10px] sm:text-[11px] font-mono-display tracking-[0.3em] uppercase text-cyan-300/80">
+                    Intelligence Beyond Borders
+                  </span>
+                </div>
+              </div>
+            </Reveal>
+
             <Reveal y={16}>
               <SectionLabel testId="home-eyebrow">Global Trade Intelligence · 195 Countries</SectionLabel>
             </Reveal>
@@ -142,7 +159,7 @@ export default function Home() {
             <Reveal delay={0.06} y={26}>
               <h1
                 data-testid="home-hero-title"
-                className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-6xl leading-[1.06] mt-5"
+                className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-[56px] leading-[1.06] mt-5"
               >
                 Rule global trade.<br />
                 <span className="gradient-text">Before cargo moves.</span>

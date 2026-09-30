@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -126,6 +126,27 @@ body {
 /* --- Premium utility classes --- */
 .font-display { font-family: 'Manrope', 'IBM Plex Sans', sans-serif; letter-spacing: -0.02em; }
 .font-mono-display { font-family: 'JetBrains Mono', monospace; }
+
+/* Brand wordmark — matches the Vametra AI logo lettering */
+.font-brand {
+  font-family: 'Orbitron', 'Manrope', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.brand-wordmark {
+  background: linear-gradient(180deg, #ffffff 0%, #d6ecff 42%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 22px rgba(0, 194, 255, 0.35));
+}
+.brand-wordmark-ai {
+  background: linear-gradient(180deg, #7dd3fc 0%, #00c2ff 55%, #2563eb 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
 
 .glass {
   background: rgba(10, 15, 36, 0.6);

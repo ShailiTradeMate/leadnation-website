@@ -106,11 +106,13 @@ export default function Nav({ active = "/" }) {
     <header className="fixed top-0 inset-x-0 z-50">
       <div className="glass-strong">
         <div className="max-w-7xl mx-auto px-3 sm:px-8 h-[68px] flex items-center justify-between gap-2">
-          <Link to="/" className="flex items-center gap-2.5 group" data-testid="nav-logo-link">
+          <Link to="/" className="flex items-center gap-2.5 group shrink-0 lg:pr-5 xl:pr-8" data-testid="nav-logo-link">
             <LogoMark />
             <div className="leading-none">
-              <div className="text-[15px] font-display font-extrabold tracking-tight">Vametra AI</div>
-              <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase mt-0.5">Trade Intelligence</div>
+              <div data-testid="nav-brand-wordmark" className="font-brand brand-wordmark text-[13px] sm:text-[15px] leading-none">
+                Vametra <span className="brand-wordmark-ai">AI</span>
+              </div>
+              <div className="text-[9px] font-mono-display tracking-[0.22em] text-cyan-300/70 uppercase mt-1.5">Trade Intelligence</div>
             </div>
           </Link>
 
@@ -121,7 +123,7 @@ export default function Nav({ active = "/" }) {
               return (
                 <Link key={l.to} to={l.to}
                   data-testid={`nav-link-${l.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-full text-[13px] font-medium transition-all ${
+                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap transition-all ${
                     isActive ? "tab-active text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}>
                   <Icon size={14} weight="duotone" />{l.label}
@@ -138,7 +140,7 @@ export default function Nav({ active = "/" }) {
                   onClick={() => setOpenMenu(openMenu === m.label ? null : m.label)}
                   aria-expanded={openMenu === m.label}
                   onKeyDown={e => { if (e.key === 'Escape') setOpenMenu(null); }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium text-slate-300 hover:text-white hover:bg-white/5">
+                  className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap text-slate-300 hover:text-white hover:bg-white/5">
                   {m.label}
                   <CaretDown size={11} className={`transition-transform ${openMenu === m.label ? "rotate-180" : ""}`} />
                 </button>
@@ -169,7 +171,7 @@ export default function Nav({ active = "/" }) {
 
             <Link to="/contact"
               data-testid="nav-link-contact"
-              className={`flex items-center gap-2 px-3 py-2 rounded-full text-[13px] font-medium transition-all ${
+              className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap transition-all ${
                 active === "/contact" ? "tab-active text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
               }`}>
               <Phone size={14} weight="duotone" />Contact
@@ -232,7 +234,7 @@ export default function Nav({ active = "/" }) {
 export function LogoMark({ size = 36 }) {
   return (
     <img
-      src="/brand/vametra-mark.png"
+      src="/brand/vametra-mark.png?v=2"
       alt="Vametra AI logo — Intelligence Beyond Borders"
       height={size}
       style={{ height: size, width: "auto" }}

@@ -14,8 +14,8 @@ export default function Footer() {
           <div className="flex items-center gap-3">
             <LogoMark size={42} />
             <div>
-              <div className="font-display font-extrabold text-lg">Vametra AI</div>
-              <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase">
+              <div className="font-brand brand-wordmark text-lg leading-none" data-testid="footer-brand-wordmark">Vametra <span className="brand-wordmark-ai">AI</span></div>
+              <div className="text-[10px] font-mono-display tracking-[0.25em] text-cyan-300/80 uppercase mt-1.5">
                 {TAGLINE}
               </div>
             </div>

@@ -15,7 +15,11 @@ const BUSINESS_ROLES = [
 const Shell = ({ title, sub, children }) => (
   <section className="min-h-[80vh] grid place-items-center px-6 py-20">
     <div className="glass-strong rounded-3xl p-5 sm:p-8 w-full min-w-0 max-w-md">
-      <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Vametra AI Account</div>
+      <div className="flex items-center gap-3">
+        <img src="/brand/vametra-mark.png?v=2" alt="Vametra AI" className="w-10 h-10 shrink-0" data-testid="auth-brand-logo" />
+        <div className="font-brand brand-wordmark text-lg leading-none">Vametra <span className="brand-wordmark-ai">AI</span></div>
+      </div>
+      <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300 mt-4">Account</div>
       <h1 className="font-display font-extrabold text-3xl mt-2">{title}</h1>
       {sub && <p className="text-slate-400 text-sm mt-2">{sub}</p>}
       {children}

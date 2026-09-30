@@ -127,7 +127,7 @@ export default function BrainWidget() {
               <Brain size={16} weight="duotone" className="text-cyan-300" />
             </div>
             <div className="leading-tight">
-              <div className="text-sm font-display font-bold">Vametra AI Brain</div>
+              <div className="text-sm font-brand text-white">Vametra AI Brain</div>
               <div className="text-[10px] text-cyan-300/80 uppercase tracking-widest font-mono-display">Ask anything · {page.type}</div>
             </div>
             <Link to="/brain" onClick={() => setOpen(false)} className="ml-auto text-[11px] text-slate-400 hover:text-cyan-300">Open full ↗</Link>

@@ -76,7 +76,7 @@ function PhoneMock() {
         <div className="absolute inset-3 rounded-[32px] overflow-hidden border border-white/5">
           <div className="absolute inset-0 bg-gradient-to-b from-[#0A2540] via-[#0a0f24] to-[#050816]" />
           <div className="absolute inset-0 p-3">
-            <div className="text-[8px] text-cyan-300 font-mono-display tracking-[0.3em] uppercase">Vametra AI</div>
+            <div className="text-[8px] text-cyan-300 font-brand tracking-[0.3em]">Vametra AI</div>
             <div className="mt-1 text-xs font-display font-bold leading-tight">Find your next<br/>global buyer</div>
             <div className="mt-3 space-y-1.5">
               {[1,2,3,4].map((i)=>(

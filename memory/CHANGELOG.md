@@ -126,3 +126,15 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
 
 ### Not yet done (owner action required) — Production deployment Tasks 1–8
 - Emergent deploy, GoDaddy DNS for leadnation.app, Firebase authorized domains, prod CORS_ORIGINS, live Stripe/Razorpay/Resend/NewsData keys, SEO canonical/sitemap to leadnation.app, final deployment report.
+
+## 2026-06 — Brand refresh: new Vametra AI logo + Orbitron wordmark
+- New circular "VAMETRA AI" logo applied site-wide: /brand/vametra-mark.png (nav + footer LogoMark),
+  /brand/vametra-logo.png, app_icon, splash_screen, favicon.ico/16/32, apple-touch-icon,
+  icon-192, icon-512, og-default.png (all regenerated from the supplied artwork).
+- Brand font: Orbitron added to the Google Fonts import; new `.font-brand`, `.brand-wordmark`,
+  `.brand-wordmark-ai` utilities in index.css. Applied to Nav, Footer, Auth shell, BrainWidget,
+  DownloadCTA phone mock, TradeIntelReport and CommandCenterReport (PDF header).
+- Home hero: big "VAMETRA AI" wordmark + "Intelligence Beyond Borders" rule placed in the blank
+  area above the eyebrow (user-highlighted spot); h1 trimmed to lg:text-[56px] for hierarchy.
+- Nav de-crowded: brand block gets lg:pr-5 xl:pr-8, links use px-2.5/xl:px-3 + whitespace-nowrap
+  so the wordmark no longer touches the Home tab. Verified desktop 1920 and mobile 390.

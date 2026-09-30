@@ -56,9 +56,11 @@ function ReportDoc({ data, preparedFor }) {
         <div className="report-page flex items-start justify-between border-b-4 border-cyan-500 pb-5">
           <div>
             <div className="flex items-center gap-2">
-              <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-600" />
+              <div className="h-9 w-9 rounded-full overflow-hidden shrink-0">
+                <img src="/brand/vametra-mark.png?v=2" alt="Vametra AI" className="w-full h-full object-cover" />
+              </div>
               <div>
-                <div className="font-extrabold text-xl text-slate-900 leading-none">Vametra AI</div>
+                <div className="font-brand text-xl text-slate-900 leading-none">Vametra AI</div>
                 <div className="text-[10px] tracking-[0.25em] text-slate-500 uppercase">Trade Intelligence</div>
               </div>
             </div>

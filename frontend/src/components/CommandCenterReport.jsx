@@ -63,7 +63,7 @@ export default function CommandCenterReport({ project, compliance, session }) {
         {/* Header */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", borderBottom: "3px solid #00C2FF", paddingBottom: 8 }}>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>Vametra AI Trade Command Center™</div>
+            <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "Orbitron, Arial, sans-serif", textTransform: "uppercase", letterSpacing: "0.06em" }}>Vametra AI Trade Command Center™</div>
             <div style={{ fontSize: 12, color: "#64748b" }}>Trade Intelligence Report</div>
           </div>
           <div style={{ textAlign: "right", fontSize: 11, color: "#64748b", display: "flex", gap: 10, alignItems: "flex-end" }}>
