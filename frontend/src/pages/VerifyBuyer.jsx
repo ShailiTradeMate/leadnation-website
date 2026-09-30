@@ -1,9 +1,10 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import SEO from "@/components/SEO";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { useAuth } from "@/lib/AuthContext";
-import { COUNTRIES, statesFor } from "@/data/geo";
+import { CountrySelect, LocalitySelect } from '@/components/LocationSelect';
 import {
   getVerifyState, updateVerifyProfile, verifyUpload,
   analyzeSelfie, analyzeDocument, submitVerification, getVerifyDocuments,
@@ -24,6 +25,12 @@ const IS_MOBILE = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|
 const buildPatch = (form, profile) => {
   const patch = {};
   for (const [k, v] of Object.entries(form)) {
+    // Explicitly clear a locality reset by its parent selector; skipping it would
+    // silently retain a city/state belonging to the previous country on save.
+    if ((k === 'state' || k === 'city') && v === '' && profile?.[k]) {
+      patch[k] = '';
+      continue;
+    }
     if (v === "" || v == null) continue;
     if (k.startsWith("company_details.")) {
       patch.company_details = patch.company_details || { ...(profile?.company_details || {}) };
@@ -145,11 +152,9 @@ export default function VerifyBuyer() {
   const missing = state?.completion?.missing || [];
   const status = state?.verification_status || "unverified";
   const onField = (path, val) => setForm((f) => ({ ...f, [path]: val }));
-  const stateOptions = useMemo(() => statesFor(form.country), [form.country]);
   const onCountry = (e) => {
     const c = e.target.value;
-    // Reset the dependent state when the country changes.
-    setForm((f) => ({ ...f, country: c, state: "" }));
+    setForm((f) => ({ ...f, country: c, state: "", city: "" }));
   };
 
   const docOptions = useMemo(() => {
@@ -299,11 +304,11 @@ export default function VerifyBuyer() {
               {/* Trade role / user category */}
               <label className="block">
                 <span className="text-[11px] uppercase tracking-widest text-slate-400">Trade role / category{role ? "" : <span className="text-amber-300"> · required</span>}</span>
-                <select data-testid="verify-field-role" value={role} onChange={(e) => setRole(e.target.value)}
+                <ResponsiveSelect data-testid="verify-field-role" value={role} onChange={(e) => setRole(e.target.value)}
                   className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40">
                   <option value="">Select role…</option>
                   {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
-                </select>
+                </ResponsiveSelect>
               </label>
 
               {/* Full name */}
@@ -317,11 +322,8 @@ export default function VerifyBuyer() {
                 <span className="text-[11px] uppercase tracking-widest text-slate-400">
                   Country{form.country ? "" : <span className="text-amber-300"> · required</span>}
                 </span>
-                <select data-testid="verify-field-country" value={form.country || ""} onChange={onCountry}
-                  className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40">
-                  <option value="">Select country…</option>
-                  {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <CountrySelect data-testid="verify-field-country" value={form.country || ""} onChange={onCountry}
+                  className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40" />
               </label>
 
               {/* State — dependent dropdown, free-text fallback */}
@@ -329,21 +331,17 @@ export default function VerifyBuyer() {
                 <span className="text-[11px] uppercase tracking-widest text-slate-400">
                   State / Province{form.state ? "" : <span className="text-amber-300"> · required</span>}
                 </span>
-                {stateOptions.length > 0 ? (
-                  <select data-testid="verify-field-state" value={form.state || ""} onChange={(e) => onField("state", e.target.value)}
-                    className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40">
-                    <option value="">Select state / province…</option>
-                    {stateOptions.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                ) : (
-                  <input data-testid="verify-field-state" value={form.state || ""} onChange={(e) => onField("state", e.target.value)}
-                    placeholder={form.country ? "Enter state / province" : "Select a country first"}
-                    className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40" />
-                )}
+                <LocalitySelect kind="state" country={form.country} value={form.state} data-testid="verify-field-state"
+                  onChange={e => setForm(f => ({ ...f, state: e.target.value, city: '' }))}
+                  className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40" />
               </label>
 
               {/* City */}
-              <PField path="city" label="City" value={form.city} onChange={onField} provided={provided.city} />
+              <label className="block"><span className="text-[11px] uppercase tracking-widest text-slate-400">City</span>
+                <LocalitySelect kind="city" country={form.country} state={form.state} value={form.city}
+                  data-testid="verify-field-city" onChange={e => onField('city', e.target.value)}
+                  className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40" />
+              </label>
 
               {/* Products */}
               <PField path="products" label="Products you trade" value={form.products} onChange={onField} provided={provided.products} list />
@@ -413,12 +411,12 @@ export default function VerifyBuyer() {
 
             <label className="block mb-3">
               <span className="text-[11px] uppercase tracking-widest text-slate-400">Document type</span>
-              <select data-testid="verify-doc-type" value={docType} onChange={(e) => setDocType(e.target.value)}
+              <ResponsiveSelect data-testid="verify-doc-type" value={docType} onChange={(e) => setDocType(e.target.value)}
                 className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-cyan-400/40">
                 <option value="">Select document…</option>
                 {docOptions.map((o) => <option key={o} value={o}>{o}</option>)}
                 <option value="Other business document">Other business document</option>
-              </select>
+              </ResponsiveSelect>
             </label>
 
             {doc?.url && <div className="text-xs text-slate-400 mb-2 flex items-center gap-2" data-testid="verify-doc-name"><FileText size={14} /> {doc.filename}</div>}

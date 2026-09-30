@@ -28,11 +28,11 @@ function NotifBell() {
         {data.unread > 0 && <span data-testid="nav-notif-badge" className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-amber-400 text-[9px] font-bold text-black grid place-items-center">{data.unread}</span>}
       </button>
       {open && (
-        <div className="absolute top-full right-0 pt-2 w-[320px] z-50" onMouseLeave={() => setOpen(false)}>
+        <div className="fixed top-[68px] inset-x-4 sm:absolute sm:top-full sm:left-auto sm:right-0 pt-2 sm:w-[320px] z-50" onMouseLeave={() => setOpen(false)}>
           <div data-testid="nav-notif-panel" className="glass-strong rounded-2xl p-2 border border-white/10 shadow-2xl max-h-96 overflow-auto">
             {(data.notifications || []).length === 0 && <div className="p-4 text-xs text-slate-400">No notifications yet.</div>}
             {(data.notifications || []).map((n, i) => (
-              <Link key={i} to="/buyers" onClick={() => setOpen(false)} className="block px-3 py-2.5 rounded-xl hover:bg-white/5">
+              <Link key={i} data-testid={`nav-notification-${i}`} to="/buyers" onClick={() => setOpen(false)} className="block px-3 py-2.5 rounded-xl hover:bg-white/5">
                 <div className="text-sm font-semibold flex items-center gap-2"><ShieldCheck size={13} weight="fill" className="text-cyan-300" />{n.title}</div>
                 <div className="text-[11px] text-slate-400 mt-0.5">{(n.body || "").slice(0, 120)}</div>
               </Link>
@@ -83,6 +83,7 @@ const MENUS = [
 export default function Nav({ active = "/" }) {
   const [open, setOpen] = React.useState(false);
   const [openMenu, setOpenMenu] = React.useState(null);
+  useEffect(() => { setOpen(false); setOpenMenu(null); }, [active]);
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { isAuthed } = useAuth();
@@ -95,12 +96,16 @@ export default function Nav({ active = "/" }) {
   const menus = MENUS
     .map((m) => ({ ...m, items: m.items.filter((t) => allowed(t.to)) }))
     .filter((m) => m.items.length > 0);
-  const mobileLinks = [...primary, ...menus.flatMap((m) => m.items), { to: "/contact", label: "Contact", icon: Phone }];
+  const mobileLinks = [
+    { to: isAuthed ? '/account' : '/login', label: isAuthed ? 'My account' : 'Sign in', icon: UserCircle },
+    ...(isAuthed ? [{ to: '/verify', label: 'Get Verified', icon: ShieldCheck }] : []),
+    ...primary, { to: "/contact", label: "Contact", icon: Phone },
+  ];
 
   return (
     <header className="fixed top-0 inset-x-0 z-50">
       <div className="glass-strong">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 h-[68px] flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-3 sm:px-8 h-[68px] flex items-center justify-between gap-2">
           <Link to="/" className="flex items-center gap-2.5 group" data-testid="nav-logo-link">
             <LogoMark />
             <div className="leading-none">
@@ -126,9 +131,13 @@ export default function Nav({ active = "/" }) {
 
             {menus.map((m) => (
               <div key={m.label} className="relative"
-                onMouseEnter={() => setOpenMenu(m.label)} onMouseLeave={() => setOpenMenu(null)}>
+                onPointerEnter={e => { if (e.pointerType === 'mouse') setOpenMenu(m.label); }}
+                onPointerLeave={e => { if (e.pointerType === 'mouse') setOpenMenu(null); }}>
                 <button
                   data-testid={`nav-menu-${m.label.toLowerCase()}`}
+                  onClick={() => setOpenMenu(openMenu === m.label ? null : m.label)}
+                  aria-expanded={openMenu === m.label}
+                  onKeyDown={e => { if (e.key === 'Escape') setOpenMenu(null); }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-full text-[13px] font-medium text-slate-300 hover:text-white hover:bg-white/5">
                   {m.label}
                   <CaretDown size={11} className={`transition-transform ${openMenu === m.label ? "rotate-180" : ""}`} />
@@ -167,35 +176,51 @@ export default function Nav({ active = "/" }) {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <NotifBell />
             <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
               <MagnifyingGlass size={16} weight="bold" />
             </Link>
             {isAuthed && <Link to="/verify" data-testid="nav-get-verified"
-              className="hidden md:inline-flex items-center gap-1.5 btn-ghost !py-2 !px-4 text-[12px] !border-emerald-400/30 !text-emerald-200 hover:!bg-emerald-500/10"><ShieldCheck size={15} weight="fill" /> Get Verified</Link>}
+              className="!hidden md:!inline-flex items-center gap-1.5 btn-ghost !py-2 !px-4 text-[12px] !border-emerald-400/30 !text-emerald-200 hover:!bg-emerald-500/10"><ShieldCheck size={15} weight="fill" /> Get Verified</Link>}
             <button data-testid="nav-cta-account" aria-label={isAuthed ? "My account" : "Sign in"} onClick={() => { navigate(isAuthed ? "/account" : "/login"); }}
-              className="hidden sm:inline-flex btn-ghost !py-2 !px-4 text-[12px] gap-1.5"><UserCircle size={15} weight="duotone" />{isAuthed ? "Account" : "Sign in"}</button>
+              className="!hidden sm:!inline-flex btn-ghost !py-2 !px-4 text-[12px] gap-1.5"><UserCircle size={15} weight="duotone" />{isAuthed ? "Account" : "Sign in"}</button>
             <button data-testid="nav-cta-download" onClick={() => { trackEvent("download_app_click", { location: "nav" }); navigate("/#download"); }}
-              className="btn-primary !py-2 !px-4 text-[12px]">Download App</button>
-            <button data-testid="nav-mobile-toggle" className="lg:hidden text-white p-2" onClick={() => setOpen(!open)}>
+              className="btn-primary !hidden sm:!inline-flex !py-2 !px-4 text-[12px]">Download App</button>
+            <button data-testid="nav-mobile-toggle" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} className="lg:hidden text-white p-3" onClick={() => setOpen(!open)}>
               {open ? <X size={22} /> : <List size={22} />}
             </button>
           </div>
         </div>
 
         {open && (
-          <div className="lg:hidden border-t border-white/5 max-h-[70vh] overflow-y-auto">
+          <div data-testid="nav-mobile-menu" className="lg:hidden border-t border-white/5 max-h-[calc(100dvh-68px)] overflow-y-auto overscroll-contain">
             <div className="px-5 py-4 grid gap-1">
               {mobileLinks.map((l) => {
                 const Icon = l.icon;
                 return (
                   <Link key={l.to + l.label} to={l.to} onClick={() => setOpen(false)}
+                    data-testid={`nav-mobile-${l.label.toLowerCase().replace(/\s+/g, '-')}`}
                     className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-200 hover:bg-white/5">
                     <Icon size={16} weight="duotone" />{l.label}
                   </Link>
                 );
               })}
+              {menus.map(m => <div key={m.label} className="border-t border-white/10 mt-2 pt-2">
+                <button type="button" data-testid={`nav-mobile-group-${m.label.toLowerCase()}`}
+                  aria-expanded={openMenu === m.label} aria-controls={`nav-mobile-${m.label.toLowerCase()}-links`}
+                  onClick={() => setOpenMenu(openMenu === m.label ? null : m.label)}
+                  className="w-full min-h-12 px-3 flex items-center justify-between text-slate-200 rounded-xl hover:bg-white/5">
+                  {m.label}<CaretDown size={16} className={openMenu === m.label ? 'rotate-180' : ''} />
+                </button>
+                {openMenu === m.label && <div id={`nav-mobile-${m.label.toLowerCase()}-links`} data-testid={`nav-mobile-group-${m.label.toLowerCase()}-links`}>
+                  {m.items.map(t => <Link key={t.to} to={t.to} onClick={() => setOpen(false)}
+                    data-testid={`nav-mobile-${t.label.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="flex items-center gap-3 pl-6 pr-3 py-3 rounded-xl text-slate-200 hover:bg-white/5">
+                    <t.icon size={16} weight="duotone" />{t.label}
+                  </Link>)}
+                </div>}
+              </div>)}
             </div>
           </div>
         )}

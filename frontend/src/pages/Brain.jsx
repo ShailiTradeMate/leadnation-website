@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { CountrySelect } from '@/components/LocationSelect';
 import { Link, useSearchParams } from "react-router-dom";
 import { Brain, PaperPlaneTilt, Sparkle, Cpu, Lightning, ArrowUpRight, CircleNotch, Package, MagnifyingGlass } from "@phosphor-icons/react";
 import SEO from "@/components/SEO";
@@ -147,11 +148,11 @@ export default function BrainPage() {
                 placeholder="Product — e.g. Agarbatti, Basmati rice"
                 className="w-full glass rounded-xl px-3 py-2.5 text-sm outline-none text-white placeholder:text-slate-500 focus:border-cyan-400/40" />
               <div className="grid grid-cols-2 gap-2">
-                <input data-testid="brain-pi-origin" value={pf.origin} onChange={(e) => setPf({ ...pf, origin: e.target.value })}
-                  onKeyDown={(e) => e.key === "Enter" && askProduct()} placeholder="Origin"
+                <CountrySelect data-testid="brain-pi-origin" value={pf.origin} onChange={(e) => setPf({ ...pf, origin: e.target.value })}
+                  aria-label="Origin country" placeholder="Origin"
                   className="w-full glass rounded-xl px-3 py-2.5 text-sm outline-none text-white placeholder:text-slate-500 focus:border-cyan-400/40" />
-                <input data-testid="brain-pi-destination" value={pf.destination} onChange={(e) => setPf({ ...pf, destination: e.target.value })}
-                  onKeyDown={(e) => e.key === "Enter" && askProduct()} placeholder="Destination"
+                <CountrySelect data-testid="brain-pi-destination" value={pf.destination} onChange={(e) => setPf({ ...pf, destination: e.target.value })}
+                  aria-label="Destination country" placeholder="Destination"
                   className="w-full glass rounded-xl px-3 py-2.5 text-sm outline-none text-white placeholder:text-slate-500 focus:border-cyan-400/40" />
               </div>
               <input data-testid="brain-pi-hsn" value={pf.hsn} onChange={(e) => setPf({ ...pf, hsn: e.target.value })}

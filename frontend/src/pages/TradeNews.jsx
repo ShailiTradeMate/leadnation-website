@@ -1,8 +1,10 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { COUNTRY_OPTIONS } from '@/data/geo';
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
-import { fetchNewsFeed, fetchNewsTopics, fetchNewsCountries } from "@/lib/api";
+import { fetchNewsFeed, fetchNewsTopics } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { Link } from "react-router-dom";
 import { Clock, ArrowUpRight, Broadcast, Sparkle, PencilSimple, CircleNotch, UserFocus, MagnifyingGlass, ArrowsClockwise, GlobeHemisphereWest } from "@phosphor-icons/react";
@@ -28,7 +30,7 @@ export default function TradeNews() {
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({ personalized: false, context: {}, live: false, lastUpdated: null });
   const [topics, setTopics] = useState([{ key: "all", label: "Top Stories" }]);
-  const [countries, setCountries] = useState([]);
+  const [countries] = useState(COUNTRY_OPTIONS.map(c => ({ ...c, code: c.code.toLowerCase() })));
   const [topic, setTopic] = useState("all");
   const [country, setCountry] = useState("");
   const [countryTouched, setCountryTouched] = useState(false);
@@ -40,7 +42,6 @@ export default function TradeNews() {
 
   useEffect(() => {
     fetchNewsTopics().then((d) => setTopics(d.topics || [])).catch(() => {});
-    fetchNewsCountries().then((d) => setCountries(d.countries || [])).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -112,12 +113,12 @@ export default function TradeNews() {
           </div>
           <div className="min-w-[200px]">
             <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400 mb-1">Country</div>
-            <select data-testid="news-country" value={country}
+            <ResponsiveSelect data-testid="news-country" value={country}
               onChange={(e) => { setCountryTouched(true); setCountry(e.target.value); }}
               className="glass rounded-xl px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-400/40 bg-[#0a1024] w-full">
               <option value="" className="bg-[#0a1024]">🌐 Global</option>
               {countries.map((c) => <option key={c.code} value={c.code} className="bg-[#0a1024]">{c.name}</option>)}
-            </select>
+            </ResponsiveSelect>
           </div>
           <button data-testid="news-refresh" onClick={refresh} disabled={refreshing}
             className="btn-ghost !py-2.5 text-xs disabled:opacity-50">

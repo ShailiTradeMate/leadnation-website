@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { CountrySelect } from '@/components/LocationSelect';
 import React, { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
@@ -431,9 +433,9 @@ function ServiceRequests() {
               <td className="px-4 py-3">{it.name}</td>
               <td className="px-4 py-3 text-xs"><div>{it.email}</div><div className="text-slate-500">{it.phone}</div></td>
               <td className="px-4 py-3">
-                <select data-testid={`admin-sr-status-${it.id}`} value={it.status || "new"} onChange={(e) => updateStatus(it.id, e.target.value)} className="glass rounded-lg px-2 py-1 text-xs">
+                <ResponsiveSelect data-testid={`admin-sr-status-${it.id}`} value={it.status || "new"} onChange={(e) => updateStatus(it.id, e.target.value)} className="glass rounded-lg px-2 py-1 text-xs">
                   {["new", "assigned", "in-progress", "completed", "cancelled"].map((s) => <option key={s} value={s} className="bg-[#0a0f24]">{s}</option>)}
-                </select>
+                </ResponsiveSelect>
               </td>
               <td className="px-4 py-3">
                 <input data-testid={`admin-sr-ca-${it.id}`} defaultValue={it.assignedCa || ""} onBlur={(e) => e.target.value !== (it.assignedCa || "") && assign(it.id, e.target.value)} placeholder="CA name" className="glass rounded-lg px-2 py-1 text-xs w-40" />
@@ -826,7 +828,7 @@ function TradeNewsManager() {
               <textarea className="w-full glass rounded-xl px-4 py-2.5 text-sm" rows={4} placeholder="Body (optional)" value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} />
               <div className="grid sm:grid-cols-2 gap-3">
                 <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Category" value={editing.category} onChange={(e) => setEditing({ ...editing, category: e.target.value })} />
-                <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Country" value={editing.country} onChange={(e) => setEditing({ ...editing, country: e.target.value })} />
+                <CountrySelect data-testid="news-field-country" className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Global" value={editing.country} onChange={(e) => setEditing({ ...editing, country: e.target.value })} />
                 <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Source" value={editing.source} onChange={(e) => setEditing({ ...editing, source: e.target.value })} />
                 <input className="glass rounded-xl px-4 py-2.5 text-sm" placeholder="Image URL" value={editing.image} onChange={(e) => setEditing({ ...editing, image: e.target.value })} />
                 <input className="glass rounded-xl px-4 py-2.5 text-sm sm:col-span-2" placeholder="Source URL (optional)" value={editing.url} onChange={(e) => setEditing({ ...editing, url: e.target.value })} />

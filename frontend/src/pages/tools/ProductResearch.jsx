@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useEffect, useState } from "react";
 import { ToolShell, CTARow, Card } from "@/components/ToolShell";
 import SEO from "@/components/SEO";
@@ -27,10 +28,10 @@ export default function ProductResearch() {
         <div className="grid lg:grid-cols-12 gap-8">
           <form className="lg:col-span-4 glass-strong rounded-3xl p-6 sm:p-7 space-y-4">
             <Field label="Product">
-              <select data-testid="pr-product" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })}
+              <ResponsiveSelect data-testid="pr-product" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })}
                 className="w-full glass rounded-xl px-4 py-3 outline-none">
                 {products.map((p) => <option key={p} className="bg-[#0a0f24]">{p}</option>)}
-              </select>
+              </ResponsiveSelect>
             </Field>
             <Field label="HSN code (optional)">
               <input data-testid="pr-hsn" value={form.hsnCode} onChange={(e) => setForm({ ...form, hsnCode: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none" />

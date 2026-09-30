@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { CountrySelect, LocalitySelect } from '@/components/LocationSelect';
 import React, { useEffect, useState } from "react";
 import { adminApi } from "@/lib/admin";
 import { toast } from "sonner";
@@ -397,19 +399,25 @@ export default function BuyersManager() {
         <div className="fixed inset-0 z-[90] grid place-items-center bg-black/70 p-4" onClick={() => setEditing(null)}>
           <div data-testid="admin-buyer-edit-modal" className="glass-strong rounded-2xl p-6 w-full max-w-md space-y-3" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-display font-bold text-lg">Edit buyer</h3>
-            {["legal_name", "country_name", "sector", "city"].map((f) => (
+            {["legal_name", "sector"].map((f) => (
               <label key={f} className="block">
                 <span className="text-[11px] uppercase tracking-wider text-slate-500">{f.replace("_", " ")}</span>
                 <input value={editing[f] || ""} onChange={(e) => setEditing({ ...editing, [f]: e.target.value })}
                   className="w-full glass rounded-xl px-3 py-2 outline-none text-sm mt-1" data-testid={`admin-edit-${f}`} />
               </label>
             ))}
+            <label className="block"><span className="text-xs text-slate-400">Country</span>
+              <CountrySelect data-testid="admin-edit-country_name" value={editing.country_name} onChange={e => setEditing({ ...editing, country_name: e.target.value, city: '' })} className="w-full glass rounded-xl px-3 py-2 mt-1" />
+            </label>
+            <label className="block"><span className="text-xs text-slate-400">City</span>
+              <LocalitySelect kind="city" country={editing.country_name} data-testid="admin-edit-city" value={editing.city} onChange={e => setEditing({ ...editing, city: e.target.value })} className="w-full glass rounded-xl px-3 py-2 mt-1" />
+            </label>
             <label className="block">
               <span className="text-[11px] uppercase tracking-wider text-slate-500">status</span>
-              <select value={editing.status || "active"} onChange={(e) => setEditing({ ...editing, status: e.target.value })}
+              <ResponsiveSelect data-testid="admin-edit-status" value={editing.status || "active"} onChange={(e) => setEditing({ ...editing, status: e.target.value })}
                 className="w-full glass rounded-xl px-3 py-2 outline-none text-sm mt-1">
                 <option value="active">active</option><option value="deleted">deleted</option>
-              </select>
+              </ResponsiveSelect>
             </label>
             <div className="flex gap-2 pt-2">
               <button data-testid="admin-edit-save" onClick={saveEdit} className="btn-primary flex-1 justify-center"><FloppyDisk size={15} weight="bold" /> Save</button>

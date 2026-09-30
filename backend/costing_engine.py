@@ -20,6 +20,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from core import db
+from geography import COUNTRIES as ALL_COUNTRIES
 import trade_intel
 import duty_engine
 from customs import _fx_rates
@@ -240,7 +241,7 @@ async def quote(req: QuoteRequest):
 
 @router.get("/markets")
 async def markets():
-    return {"countries": [{"code": c, "name": n} for c, n in sorted(duty_engine.COUNTRIES, key=lambda x: x[1])]}
+    return {"countries": [{"code": c['code'], "name": c['name']} for c in ALL_COUNTRIES]}
 
 
 class InsightRequest(BaseModel):

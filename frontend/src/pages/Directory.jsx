@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { CountrySelect } from '@/components/LocationSelect';
 import { Link, useParams } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
@@ -69,7 +70,7 @@ export default function DirectoryDetail() {
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         <div className="glass-strong rounded-3xl p-5 flex flex-wrap gap-3">
           <input data-testid="dir-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or category…" className="flex-1 min-w-[180px] glass rounded-xl px-4 py-3 outline-none" />
-          <input data-testid="dir-country" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country code (IN, US…)" className="w-44 glass rounded-xl px-4 py-3 outline-none" />
+          <CountrySelect data-testid="dir-country" valueType="code" value={country} onChange={(e) => setCountry(e.target.value)} placeholder="All countries" className="w-full sm:w-52 glass rounded-xl px-4 py-3 outline-none" />
         </div>
 
         {data && (

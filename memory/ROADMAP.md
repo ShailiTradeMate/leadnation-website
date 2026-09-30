@@ -1,4 +1,14 @@
 # Vametra AI / LeadNation — MASTER BACKLOG & ROADMAP
+
+## Latest authorized priority — 2026-09-30 mobile usability
+- [x] Site-wide shared touch/search picker, native-select replacement, mobile header/signup fixes and non-obstructing mobile controls.
+- [x] All 195 countries plus territories (250 total), dependent states/cities with custom fallback; aligned reference APIs and legacy event-country aliases.
+- [x] Mobile/desktop and real onboarding selector verification; 15/15 final API tests. No saved identity/profile/pricing mutations.
+- [ ] P0 owner acceptance on actual iPhone/Safari and Android (WebKit binary unavailable in test environment).
+- [ ] P2 optional remembered recent countries/localized location labels and dataset-refresh maintenance.
+
+The previous marketing and Academy/Brain backlog below is unchanged; unrelated admin/buyer engineering remains parked.
+
 _Last consolidated: 2026-06 (pre-deployment freeze, owner moving to Marketing / SEO / GEO)_
 
 > Rule: Volume 1 is COMPLETE and must NOT be redesigned. Everything below EXTENDS the

@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useEffect, useState } from "react";
 import { adminApi } from "@/lib/admin";
 import { CurrencyCircleDollar, FloppyDisk, ChartLineUp, CreditCard, Star, EnvelopeSimple, Briefcase } from "@phosphor-icons/react";
@@ -133,10 +134,10 @@ export default function PricingManager() {
           </label>
           <div className="flex items-center gap-3 flex-wrap">
             <span className="text-sm text-slate-300">"Most Popular" plan:</span>
-            <select data-testid="pricing-most-popular" value={cfg.settings?.mostPopular || "annual"} onChange={(e) => setSetting("mostPopular", e.target.value)}
+            <ResponsiveSelect data-testid="pricing-most-popular" value={cfg.settings?.mostPopular || "annual"} onChange={(e) => setSetting("mostPopular", e.target.value)}
               className="glass rounded-xl px-3 py-2 text-sm bg-[#0a1024] text-white">
               {PLAN_ORDER.map((p) => <option key={p} value={p} className="bg-[#0a1024]">{cfg.plans[p]?.label || p}</option>)}
-            </select>
+            </ResponsiveSelect>
           </div>
         </div>
       </div>

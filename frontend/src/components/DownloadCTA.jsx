@@ -9,7 +9,7 @@ export default function DownloadCTA({ compact = false, id }) {
   return (
     <section id={id} className="relative">
       <div className={`relative overflow-hidden rounded-3xl glass-strong ${compact ? "p-8 sm:p-10" : "p-10 sm:p-14"}`}>
-        <div className="absolute -top-32 -right-32 w-[420px] h-[420px] rounded-full bg-cyan-500/20 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute top-0 right-0 w-[min(420px,100%)] h-full bg-cyan-500/10 blur-3xl" />
         <div className="absolute -bottom-32 -left-32 w-[420px] h-[420px] rounded-full bg-violet-500/20 blur-3xl" />
         <div className="relative grid lg:grid-cols-2 gap-10 items-center">
           <div>

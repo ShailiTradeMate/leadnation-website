@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { countryFilterOptions } from '@/data/geo';
 import React, { useEffect, useState, useCallback } from "react";
 import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
@@ -78,7 +80,7 @@ export default function BuyerIntelligence() {
             </div>
             <Select testid="buyer-filter-country" label="Market" value={filters.country}
               onChange={(v) => setFilters({ ...filters, country: v })}
-              options={[{ label: "All markets", value: "" }, ...(meta?.countries || []).map((c) => ({ label: c, value: c }))]} />
+              options={[{ label: "All markets", value: "" }, ...countryFilterOptions(meta?.countries)]} />
             <Select testid="buyer-filter-sector" label="Sector" value={filters.sector}
               onChange={(v) => setFilters({ ...filters, sector: v })}
               options={[{ label: "All sectors", value: "" }, ...(meta?.sectors || []).map((c) => ({ label: c, value: c }))]} />
@@ -185,10 +187,10 @@ function Select({ label, value, onChange, options, testid }) {
   return (
     <label className="block">
       <div className="text-[10px] font-mono-display tracking-[0.25em] uppercase text-slate-400 mb-2">{label}</div>
-      <select data-testid={testid} value={value} onChange={(e) => onChange(e.target.value)}
+      <ResponsiveSelect data-testid={testid} value={value} onChange={(e) => onChange(e.target.value)}
         className="w-full glass rounded-xl px-3 py-2.5 outline-none text-sm">
         {options.map((o) => <option key={String(o.value)} value={o.value} className="bg-[#0a0f24]">{o.label}</option>)}
-      </select>
+      </ResponsiveSelect>
     </label>
   );
 }

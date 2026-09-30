@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useRef, useState } from "react";
 import { Modal, Banner, Field, input } from "./Modal";
 import { adminOps, errText } from "@/lib/adminOps";
@@ -43,10 +44,10 @@ export default function DocumentsModal({ u, onClose, onDone }) {
         <div className="text-sm font-semibold flex items-center gap-2"><UploadSimple size={15} className="text-cyan-300" /> Upload on the buyer's behalf</div>
         <div className="grid sm:grid-cols-2 gap-3 mt-3">
           <Field label="Type">
-            <select data-testid="doc-kind" className={input} value={kind} onChange={(e) => setKind(e.target.value)}>
+            <ResponsiveSelect data-testid="doc-kind" className={input} value={kind} onChange={(e) => setKind(e.target.value)}>
               <option value="document">Business document</option>
               <option value="selfie">Selfie / photo ID</option>
-            </select>
+            </ResponsiveSelect>
           </Field>
           <Field label="Label (optional)">
             <input data-testid="doc-label" className={input} value={label} onChange={(e) => setLabel(e.target.value)} placeholder="GST certificate" />

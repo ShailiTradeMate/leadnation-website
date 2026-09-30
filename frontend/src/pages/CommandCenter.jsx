@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { COUNTRY_OPTIONS } from '@/data/geo';
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
@@ -288,12 +290,11 @@ function TopBar({ P, cur, openPalette }) {
 /* ---------------- Start screen (no project) ---------------- */
 function StartScreen({ P }) {
   const [f, setF] = useState({ title: "", product: "", hs: "", exporter: "356", importer: "842" });
-  const [countries, setCountries] = useState([]);
+  const [countries] = useState(COUNTRY_OPTIONS);
   const [busy, setBusy] = useState(false);
   const [sugg, setSugg] = useState([]);
   const [openSugg, setOpenSugg] = useState(false);
   const lastPick = useRef("");
-  useEffect(() => { api.get("/command-center/markets").then(({ data }) => setCountries(data.countries || [])); }, []);
   useEffect(() => {
     const text = (f.product || "").trim();
     if (text === lastPick.current) return;
@@ -338,9 +339,9 @@ function StartScreen({ P }) {
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">HS code (auto-filled)</span>
             <input data-testid="cc-new-hs" className={`${inputCls} mt-1`} value={f.hs} onChange={(e) => setF({ ...f, hs: e.target.value })} placeholder="Select a product above →" /></label>
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Export from</span>
-            <select data-testid="cc-new-exporter" className={`${inputCls} mt-1`} value={f.exporter} onChange={(e) => setF({ ...f, exporter: e.target.value })}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></label>
+            <ResponsiveSelect data-testid="cc-new-exporter" className={`${inputCls} mt-1`} value={f.exporter} onChange={(e) => setF({ ...f, exporter: e.target.value })}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</ResponsiveSelect></label>
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Import to</span>
-            <select data-testid="cc-new-importer" className={`${inputCls} mt-1`} value={f.importer} onChange={(e) => setF({ ...f, importer: e.target.value })}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</select></label>
+            <ResponsiveSelect data-testid="cc-new-importer" className={`${inputCls} mt-1`} value={f.importer} onChange={(e) => setF({ ...f, importer: e.target.value })}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</ResponsiveSelect></label>
         </div>
         <button data-testid="cc-create-btn" onClick={create} disabled={busy} className="btn-primary mt-4 disabled:opacity-50">{busy ? <CircleNotch size={16} className="animate-spin" /> : <Plus size={16} weight="bold" />} Create Trade Project</button>
       </div>
@@ -490,19 +491,19 @@ function Costing({ P, cur }) {
         <div className="grid sm:grid-cols-3 gap-3">
           <Lbl t="Quantity"><input data-testid="cc-qty" type="number" className={inputCls} value={cur.quantity} onChange={(e) => P.update({ quantity: e.target.value })} /></Lbl>
           <Lbl t={<span className="inline-flex items-center gap-1">Unit of measure <InfoTip text="Choose the trade unit your prices are quoted in (e.g. per Metric Ton, per KG, per Container). All costing is calculated per this unit." /></span>}>
-            <select data-testid="cc-unit" className={inputCls} value={cur.unit} onChange={(e) => P.update({ unit: e.target.value }, `Unit → ${e.target.value}`)}>{UNITS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+            <ResponsiveSelect data-testid="cc-unit" className={inputCls} value={cur.unit} onChange={(e) => P.update({ unit: e.target.value }, `Unit → ${e.target.value}`)}>{UNITS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</ResponsiveSelect>
           </Lbl>
           <Lbl t={<span className="inline-flex items-center gap-1">Incoterm <InfoTip text={INCOTERM_INFO[cur.incoterm]} /></span>}>
-            <select data-testid="cc-incoterm" className={inputCls} value={cur.incoterm} onChange={(e) => P.update({ incoterm: e.target.value }, `Incoterm → ${e.target.value}`)}>{INCOTERMS.map((i) => <option key={i} value={i}>{`${i} — ${INCOTERM_INFO[i].split("—")[0].trim()}`}</option>)}</select>
+            <ResponsiveSelect data-testid="cc-incoterm" className={inputCls} value={cur.incoterm} onChange={(e) => P.update({ incoterm: e.target.value }, `Incoterm → ${e.target.value}`)}>{INCOTERMS.map((i) => <option key={i} value={i}>{`${i} — ${INCOTERM_INFO[i].split("—")[0].trim()}`}</option>)}</ResponsiveSelect>
           </Lbl>
           <Lbl t={<span className="inline-flex items-center gap-1">Destination port <InfoTip text="The buyer's port/airport of discharge. It refines freight and the Incoterm delivery point for accurate pricing." /></span>}>
-            <select data-testid="cc-dest-port" className={inputCls} value={cur.destinationPort || ""} onChange={(e) => P.update({ destinationPort: e.target.value }, `Destination port → ${e.target.value}`)}>
+            <ResponsiveSelect data-testid="cc-dest-port" className={inputCls} value={cur.destinationPort || ""} onChange={(e) => P.update({ destinationPort: e.target.value }, `Destination port → ${e.target.value}`)}>
               <option value="">— Select port —</option>{ports.map((p) => <option key={p} value={p}>{p}</option>)}
-            </select>
+            </ResponsiveSelect>
           </Lbl>
           <Lbl t="Margin %"><input data-testid="cc-margin" type="number" className={inputCls} value={cur.marginPct} onChange={(e) => P.update({ marginPct: e.target.value })} /></Lbl>
-          <Lbl t="Your currency"><select data-testid="cc-txn-cur" className={inputCls} value={cur.transactionCurrency} onChange={(e) => P.update({ transactionCurrency: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</select></Lbl>
-          <Lbl t="Global currency"><select data-testid="cc-global-cur" className={inputCls} value={cur.globalCurrency} onChange={(e) => P.update({ globalCurrency: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</select></Lbl>
+          <Lbl t="Your currency"><ResponsiveSelect data-testid="cc-txn-cur" className={inputCls} value={cur.transactionCurrency} onChange={(e) => P.update({ transactionCurrency: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</ResponsiveSelect></Lbl>
+          <Lbl t="Global currency"><ResponsiveSelect data-testid="cc-global-cur" className={inputCls} value={cur.globalCurrency} onChange={(e) => P.update({ globalCurrency: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</ResponsiveSelect></Lbl>
         </div>
         <div className="mt-2 text-[11px] text-slate-400 inline-flex items-center gap-1"><Info size={12} className="text-cyan-300" /> {INCOTERM_INFO[cur.incoterm]}</div>
       </Card>
@@ -955,9 +956,9 @@ function TwinField({ label, value, onApply }) {
 function TwinSelect({ label, value, options, onApply }) {
   return (
     <label className="block"><span className="text-[10px] font-mono-display uppercase tracking-widest text-slate-400">{label}</span>
-      <select value={value || ""} onChange={(e) => onApply(e.target.value)} className="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-cyan-400/40" data-testid={`twin-${label.toLowerCase()}`}>
+      <ResponsiveSelect value={value || ""} onChange={(e) => onApply(e.target.value)} className="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-cyan-400/40" data-testid={`twin-${label.toLowerCase()}`}>
         {options.map((o) => <option key={o} value={o} className="bg-[#0a1024]">{o}</option>)}
-      </select>
+      </ResponsiveSelect>
     </label>
   );
 }
@@ -1009,7 +1010,7 @@ function Settings({ P, cur }) {
           <Lbl t="Title"><input data-testid="cc-set-title" className={inputCls} value={cur.title} onChange={(e) => P.update({ title: e.target.value })} /></Lbl>
           <Lbl t="Buyer"><input data-testid="cc-set-buyer" className={inputCls} value={cur.buyer || ""} onChange={(e) => P.update({ buyer: e.target.value })} placeholder="Buyer / importer name" /></Lbl>
           <Lbl t="Supplier"><input className={inputCls} value={cur.supplier || ""} onChange={(e) => P.update({ supplier: e.target.value })} placeholder="Supplier name" /></Lbl>
-          <Lbl t="Payment method"><select data-testid="cc-set-payment" className={inputCls} value={cur.paymentMethod || ""} onChange={(e) => P.update({ paymentMethod: e.target.value })}><option value="">—</option>{["Advance", "LC (Letter of Credit)", "DA", "DP", "CAD", "Open Account"].map((x) => <option key={x}>{x}</option>)}</select></Lbl>
+          <Lbl t="Payment method"><ResponsiveSelect data-testid="cc-set-payment" className={inputCls} value={cur.paymentMethod || ""} onChange={(e) => P.update({ paymentMethod: e.target.value })}><option value="">—</option>{["Advance", "LC (Letter of Credit)", "DA", "DP", "CAD", "Open Account"].map((x) => <option key={x}>{x}</option>)}</ResponsiveSelect></Lbl>
         </div>
         <Lbl t="Notes" className="mt-3"><textarea className={`${inputCls} h-20`} value={cur.notes || ""} onChange={(e) => P.update({ notes: e.target.value })} /></Lbl>
       </Card>

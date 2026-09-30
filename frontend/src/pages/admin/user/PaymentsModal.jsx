@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useEffect, useState } from "react";
 import { Modal, Banner, input } from "./Modal";
 import { adminOps, errText } from "@/lib/adminOps";
@@ -72,11 +73,11 @@ export default function PaymentsModal({ u, onClose }) {
             <div className="mt-6 glass rounded-2xl p-4" data-testid="payments-grant-panel">
               <div className="text-sm font-semibold">{data.can_grant ? "Grant free access" : "Request free months"}</div>
               <div className="grid sm:grid-cols-3 gap-2 mt-3">
-                <select data-testid="grant-plan" className={input} value={plan} onChange={(e) => setPlan(e.target.value)}>
+                <ResponsiveSelect data-testid="grant-plan" className={input} value={plan} onChange={(e) => setPlan(e.target.value)}>
                   <option value="monthly">Monthly (30 days)</option>
                   <option value="quarterly">Quarterly (90 days)</option>
                   <option value="annual">Annual (365 days)</option>
-                </select>
+                </ResponsiveSelect>
                 <input data-testid="grant-days" className={input} value={days} placeholder="Custom days (optional)"
                   onChange={(e) => setDays(e.target.value.replace(/\D/g, ""))} />
                 <input data-testid="grant-note" className={input} value={note} placeholder="Reason (sent to buyer)"

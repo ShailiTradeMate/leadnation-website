@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useEffect, useState } from "react";
 import { Modal, Banner, input } from "./Modal";
 import { adminOps, errText } from "@/lib/adminOps";
@@ -47,13 +48,13 @@ export default function ContactModal({ u, onClose }) {
       <div className="mt-6">
         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-2">Log a contact attempt (internal)</div>
         <div className="flex gap-2">
-          <select data-testid="contact-channel" value={channel} onChange={(e) => setChannel(e.target.value)}
+          <ResponsiveSelect data-testid="contact-channel" value={channel} onChange={(e) => setChannel(e.target.value)}
             className={`${input} !w-32`}>
             <option value="call">Call</option>
             <option value="email">Email</option>
             <option value="whatsapp">WhatsApp</option>
             <option value="note">Note</option>
-          </select>
+          </ResponsiveSelect>
           <input data-testid="contact-note" className={input} value={note} placeholder="What happened?"
             onChange={(e) => setNote(e.target.value)} />
           <button data-testid="contact-note-save" onClick={add} disabled={busy} className="btn-ghost !py-2 text-xs whitespace-nowrap disabled:opacity-50">

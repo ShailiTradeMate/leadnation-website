@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useEffect, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
@@ -81,7 +82,7 @@ export default function DutyCalculator() {
           </div>
 
           <Field label="Country of Export">
-            <select
+            <ResponsiveSelect
               data-testid="duty-export-country"
               value={form.exportCountry}
               onChange={(e) => setForm({ ...form, exportCountry: e.target.value })}
@@ -90,11 +91,11 @@ export default function DutyCalculator() {
               {countries.map((c) => (
                 <option key={c.code} value={c.code} className="bg-[#0a0f24]">{c.flag} {c.name}</option>
               ))}
-            </select>
+            </ResponsiveSelect>
           </Field>
 
           <Field label="Country of Import">
-            <select
+            <ResponsiveSelect
               data-testid="duty-import-country"
               value={form.importCountry}
               onChange={(e) => setForm({ ...form, importCountry: e.target.value })}
@@ -103,11 +104,11 @@ export default function DutyCalculator() {
               {countries.map((c) => (
                 <option key={c.code} value={c.code} className="bg-[#0a0f24]">{c.flag} {c.name}</option>
               ))}
-            </select>
+            </ResponsiveSelect>
           </Field>
 
           <Field label="Product Category">
-            <select
+            <ResponsiveSelect
               data-testid="duty-category"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -116,7 +117,7 @@ export default function DutyCalculator() {
               {CATEGORIES.map((c) => (
                 <option key={c} value={c} className="bg-[#0a0f24]">{c}</option>
               ))}
-            </select>
+            </ResponsiveSelect>
           </Field>
 
           <div className="grid grid-cols-3 gap-3">
@@ -133,14 +134,14 @@ export default function DutyCalculator() {
               </Field>
             </div>
             <Field label="Currency">
-              <select
+              <ResponsiveSelect
                 data-testid="duty-currency"
                 value={form.currency}
                 onChange={(e) => setForm({ ...form, currency: e.target.value })}
                 className="w-full glass rounded-xl px-4 py-3 outline-none"
               >
                 {CURRENCIES.map((c) => (<option key={c} value={c} className="bg-[#0a0f24]">{c}</option>))}
-              </select>
+              </ResponsiveSelect>
             </Field>
           </div>
 

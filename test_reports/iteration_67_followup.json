@@ -1,0 +1,27 @@
+{
+  "date": "2026-09-30",
+  "original_report": "/app/test_reports/iteration_67.json",
+  "backend": {
+    "result": "15/15 passed",
+    "junit": "/app/test_reports/pytest/iter67_retest.xml",
+    "country_endpoints": {"/api/countries": 250, "/api/duty/countries": 250, "/api/command-center/markets": 250, "/api/news/countries": 250},
+    "event_aliases": "AE, UAE, United Arab Emirates returned identical 5 event IDs"
+  },
+  "frontend": {
+    "onboarding": "REAL existing user, no fixtures: France > Île-de-France > Paris, country change clears dependent fields, role selection PASS",
+    "onboarding_save_payload": "Country plus explicit empty state/city verified; PUT intercepted and ABORTED before backend, no saved user changes",
+    "expo_first_open": "Four consecutive initial-open/select/clear cycles passed before memoization; further first-open checks passed after stabilization. 251/252 options present after visible-option wait; no persistent empty-list issue reproduced",
+    "navigation": "Mobile Explore/Learn groups and first-tap wide-screen touch menus PASS",
+    "keyboard": "Arrow/Enter selection, Escape close, focus restore PASS",
+    "overflow": "Empty offender lists at 390x844 on verify/Expo and 1920x800 on Expo; bounded decorative elements",
+    "agent_coverage": "Public forms/tools/news/buyers/account/admin pricing and user edit dialog coverage retained from original report"
+  },
+  "build": "Production build passed with existing hook-dependency/large-bundle warnings",
+  "mocked_app_apis": [],
+  "identity_or_pricing_mutations": false,
+  "remaining_limitations": [
+    "Physical iPhone/Safari and Android acceptance pending; WebKit binary unavailable",
+    "Full verification submission, payment capture and email inbox delivery not exercised in this UI task"
+  ],
+  "screenshots": ["/app/dropdowns-mobile.jpg", "/app/onboarding-mobile-check.jpg", "/app/mobile-final.jpg", "/app/expo-desktop-final.jpg"]
+}

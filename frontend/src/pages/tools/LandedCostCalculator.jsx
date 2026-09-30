@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useEffect, useState } from "react";
 import { ToolShell, CTARow } from "@/components/ToolShell";
 import SEO from "@/components/SEO";
@@ -49,10 +50,10 @@ export default function LandedCostCalculator() {
               </Field>
             ))}
             <Field label="Currency">
-              <select data-testid="lcc-currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}
+              <ResponsiveSelect data-testid="lcc-currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}
                 className="w-full glass rounded-xl px-4 py-3 outline-none">
                 {CURRENCIES.map((c) => <option key={c} className="bg-[#0a0f24]">{c}</option>)}
-              </select>
+              </ResponsiveSelect>
             </Field>
             <button data-testid="lcc-submit" className="btn-primary w-full justify-center mt-2" disabled={loading}>
               {loading ? "Calculating…" : <>Calculate landed cost <ArrowRight size={14} weight="bold" /></>}

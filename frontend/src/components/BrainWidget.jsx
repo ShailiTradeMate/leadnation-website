@@ -113,9 +113,9 @@ export default function BrainWidget() {
       {/* Launcher (above WhatsApp button) */}
       <button data-testid="brain-widget-fab" onClick={() => setOpen((o) => !o)}
         aria-label="Open Vametra AI Brain"
-        className="fixed bottom-24 right-6 z-[61] grid place-items-center w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_10px_40px_rgba(0,194,255,0.45)] hover:scale-110 transition-transform">
+        className="fixed bottom-24 right-6 z-[61] hidden sm:grid place-items-center w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 shadow-[0_10px_40px_rgba(0,194,255,0.45)] hover:scale-110 transition-transform">
         {open ? <X size={24} weight="bold" color="#fff" /> : <Brain size={26} weight="duotone" color="#fff" />}
-        {!open && <span className="absolute inset-0 rounded-full bg-cyan-400 animate-ping opacity-20" />}
+        {!open && <span aria-hidden="true" className="absolute inset-1/4 rounded-full bg-cyan-400 animate-ping opacity-20" />}
       </button>
 
       {open && (

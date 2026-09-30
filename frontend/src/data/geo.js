@@ -1,39 +1,36 @@
-// Countries + states for the Verified Buyer profile form.
-// States provided for major trading nations; others fall back to a free-text input.
-export const COUNTRIES = [
-  "India", "United States", "United Arab Emirates", "United Kingdom", "China", "Germany",
-  "Singapore", "Australia", "Canada", "France", "Netherlands", "Italy", "Spain", "Japan",
-  "South Korea", "Saudi Arabia", "Qatar", "Kuwait", "Oman", "Bahrain", "Turkey", "Vietnam",
-  "Thailand", "Malaysia", "Indonesia", "Philippines", "Bangladesh", "Sri Lanka", "Nepal",
-  "Pakistan", "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "South Africa", "Nigeria",
-  "Kenya", "Egypt", "Morocco", "Ethiopia", "Ghana", "Tanzania", "Russia", "Poland", "Belgium",
-  "Switzerland", "Sweden", "Norway", "Denmark", "Finland", "Ireland", "Portugal", "Austria",
-  "Greece", "Czech Republic", "Hungary", "Romania", "Ukraine", "Israel", "Jordan", "Lebanon",
-  "New Zealand", "Hong Kong", "Taiwan", "Myanmar", "Cambodia", "Kazakhstan", "Uzbekistan",
-  "Peru", "Ecuador", "Venezuela", "Other",
-];
+import countries from './countries.json';
 
-const STATES = {
-  "India": [
-    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat",
-    "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh",
-    "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan",
-    "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
-    "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
-    "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
-  ],
-  "United States": [
-    "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware",
-    "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky",
-    "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi",
-    "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico",
-    "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania",
-    "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont",
-    "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming",
-  ],
-  "United Arab Emirates": ["Abu Dhabi", "Dubai", "Sharjah", "Ajman", "Umm Al Quwain", "Ras Al Khaimah", "Fujairah"],
-  "Canada": ["Alberta", "British Columbia", "Manitoba", "New Brunswick", "Newfoundland and Labrador", "Nova Scotia", "Ontario", "Prince Edward Island", "Quebec", "Saskatchewan", "Northwest Territories", "Nunavut", "Yukon"],
-  "Australia": ["New South Wales", "Victoria", "Queensland", "Western Australia", "South Australia", "Tasmania", "Australian Capital Territory", "Northern Territory"],
+// ISO identifiers for APIs; names for existing profile/event contracts.
+export const COUNTRY_OPTIONS = countries;
+export const COUNTRIES = countries.map(c => c.name);
+const aliases = {
+  usa: 'US', 'united states of america': 'US', uk: 'GB', uae: 'AE',
+  'korea, republic of': 'KR', 'korea, democratic people\'s republic of': 'KP',
+  'russian federation': 'RU', 'viet nam': 'VN', 'iran, islamic republic of': 'IR',
+  'türkiye': 'TR', czechia: 'CZ', 'holy see': 'VA', 'vatican city state (holy see)': 'VA',
+  'palestinian territory occupied': 'PS', 'palestine, state of': 'PS',
+};
+export const countryCode = value => {
+  const key = String(value || '').trim().toLowerCase();
+  return aliases[key] || countries.find(c => c.code.toLowerCase() === key || c.name.toLowerCase() === key)?.code || '';
 };
 
-export const statesFor = (country) => STATES[country] || [];
+// Preserve API-specific names (e.g. UAE) when adding missing countries to filters.
+export const countryFilterOptions = (existing = []) => {
+  const values = new Map(existing.map(value => [countryCode(value) || value, value]));
+  return countries.map(c => ({ label: c.name, value: values.get(c.code) || c.name }))
+    .concat(existing.filter(v => !countryCode(v)).map(v => ({ label: v, value: v })));
+};
+
+const cache = new Map();
+export const loadLocalities = country => {
+  const code = countryCode(country);
+  if (!code) return Promise.resolve({ states: [], cities: [] });
+  if (!cache.has(code)) {
+    cache.set(code, fetch(`/geo/${code}.json`).then(r => {
+      if (!r.ok) throw new Error('Location list unavailable');
+      return r.json();
+    }).catch(error => { cache.delete(code); throw error; }));
+  }
+  return cache.get(code);
+};

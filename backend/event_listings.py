@@ -127,7 +127,8 @@ async def list_events(category: str = Query(""), country: str = Query(""),
     if category:
         query["category"] = category
     if country:
-        query["country"] = country
+        from geography import country_values
+        query["country"] = {"$in": country_values(country)}
     if industry:
         query["industry"] = industry
     if audience:

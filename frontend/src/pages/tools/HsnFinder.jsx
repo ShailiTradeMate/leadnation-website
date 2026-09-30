@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useState } from "react";
 import { ToolShell, CTARow, Card, ChipList } from "@/components/ToolShell";
 import SEO from "@/components/SEO";
@@ -45,9 +46,9 @@ export default function HsnFinder() {
               <textarea data-testid="hsn-description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none" />
             </Field>
             <Field label="Category">
-              <select data-testid="hsn-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none">
+              <ResponsiveSelect data-testid="hsn-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none">
                 {CATEGORIES.map((c) => <option key={c} className="bg-[#0a0f24]">{c}</option>)}
-              </select>
+              </ResponsiveSelect>
             </Field>
             <button data-testid="hsn-submit" className="btn-primary w-full justify-center" disabled={loading}>
               {loading ? "Searching…" : <><MagnifyingGlass size={16} weight="bold" /> Find HSN code</>}

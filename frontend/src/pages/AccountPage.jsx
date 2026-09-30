@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { CountrySelect } from '@/components/LocationSelect';
 import React, { useState, useEffect, useCallback } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import SEO from "@/components/SEO";
@@ -133,9 +135,9 @@ export default function AccountPage() {
         {editing && (
           <div className="mt-5 grid sm:grid-cols-3 gap-3" data-testid="account-edit-form">
             <label className="block"><span className="text-[11px] uppercase tracking-widest text-slate-400">Role</span>
-              <select data-testid="account-edit-role" className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" value={edit.role} onChange={(e) => setEdit({ ...edit, role: e.target.value })}><option value="">—</option>{ROLES.map((r) => <option key={r}>{r}</option>)}</select></label>
-            <label className="block"><span className="text-[11px] uppercase tracking-widest text-slate-400">Country (ISO-2 e.g. IN, US)</span>
-              <input data-testid="account-edit-country" className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" value={edit.country} onChange={(e) => setEdit({ ...edit, country: e.target.value })} placeholder="IN" /></label>
+              <ResponsiveSelect data-testid="account-edit-role" className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" value={edit.role} onChange={(e) => setEdit({ ...edit, role: e.target.value })}><option value="">—</option>{ROLES.map((r) => <option key={r}>{r}</option>)}</ResponsiveSelect></label>
+            <label className="block"><span className="text-[11px] uppercase tracking-widest text-slate-400">Country</span>
+              <CountrySelect valueType="code" data-testid="account-edit-country" className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" value={edit.country} onChange={(e) => setEdit({ ...edit, country: e.target.value })} /></label>
             <label className="block"><span className="text-[11px] uppercase tracking-widest text-slate-400">Mobile</span>
               <input data-testid="account-edit-mobile" className="w-full mt-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm outline-none" value={edit.mobile} onChange={(e) => setEdit({ ...edit, mobile: e.target.value })} /></label>
             <button data-testid="account-save-profile" onClick={saveProfile} className="btn-primary !py-2 !text-sm sm:col-span-3 justify-center">Save profile</button>
@@ -241,7 +243,7 @@ function BuyersTab({ buyers, reload }) {
     <div>
       <div className="glass rounded-2xl p-4 mb-3 grid sm:grid-cols-5 gap-2" data-testid="account-buyer-form">
         <input className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none" placeholder="Buyer name" data-testid="account-buyer-name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
-        <input className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none" placeholder="Country" value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })} />
+        <CountrySelect data-testid="account-buyer-country" className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none" value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })} />
         <input className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none" placeholder="Product" value={f.product} onChange={(e) => setF({ ...f, product: e.target.value })} />
         <input className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm outline-none" placeholder="Contact" value={f.contact} onChange={(e) => setF({ ...f, contact: e.target.value })} />
         <button onClick={add} data-testid="account-buyer-add" className="btn-primary !py-2 !text-sm justify-center"><Plus size={14} /> Save</button>

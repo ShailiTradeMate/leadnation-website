@@ -1,5 +1,13 @@
 # LeadNation — Changelog
 
+## 2026-09-30 — Mobile dropdown repair + complete location reference
+- Shared touch/search/keyboard picker replaced 58 native selects across 22 pages; added country selectors to remaining country text fields. Responsive signup/header fixes, mobile Explore/Learn groups, pointer-aware navigation, no mobile floating-button obstruction, bounded decoration.
+- 250 countries/territories, 4,963 subdivisions, 148,038 city records; on-demand per-country loading, dependent resets, missing-locality custom entry. Offline ODbL dataset, no new external API keys. Country APIs aligned to 250 and Expo ISO/full-name/legacy aliases match.
+- Agent iteration67 followed by 15/15 API retest, real onboarding country/state/city/role checks (no mutation), mobile touch and desktop keyboard/focus checks, admin-modal layering, zero overflow in final mobile/desktop checks. Safari binary unavailable: physical-device acceptance still required.
+- Full current details: `PRD.md`; previous 721-line PRD retained in `PRD_HISTORY_PRE_MOBILE_2026-09-30.md` to preserve historical evidence without continuing to grow the requirements file.
+- No auth credentials, prices, user profiles, or verification statuses changed. Latest Business Services pricing and Academy/Brain/marketing backlog remain unchanged.
+
+
 ## 2026-08-07 (later) — Payment emails (user + admin) + Admin CMS Payments table
 Reported: user paid ₹499 (India Razorpay) but received no email. Root cause: checkout never passed the buyer email → email send was skipped. Verified iteration_42 (8/8 backend PASS + CMS renders); emails confirmed dispatching via Resend (sent:True).
 - Unified `_finalize_paid()` in monetize.py for BOTH gateways (Razorpay IN + Stripe INTL): atomic-idempotent, activates subscription, enriches the TX, and sends TWO emails.

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { COUNTRY_OPTIONS } from '@/data/geo';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 export const API = `${BACKEND_URL}/api`;
@@ -21,7 +22,9 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-export const fetchCountries = () => api.get("/countries").then((r) => r.data);
+export const fetchCountries = () => api.get("/countries").then((r) =>
+  COUNTRY_OPTIONS.map(c => ({ ...c, ...(r.data.find(row => row.code === c.code) || {}) }))
+).catch(() => COUNTRY_OPTIONS);
 export const fetchBusinessTypes = () => api.get("/business-types").then((r) => r.data);
 export const fetchTradeDirections = () => api.get("/trade-directions").then((r) => r.data);
 export const fetchProducts = () => api.get("/products").then((r) => r.data);

@@ -102,16 +102,8 @@ def _mk_id(prefix: str, seed: str) -> str:
 
 # ---------------- Countries (full ISO list, used by the UI dropdown) ----------------
 def _country_list() -> List[Dict[str, str]]:
-    out = []
-    try:
-        import pycountry
-        for c in pycountry.countries:
-            out.append({"code": c.alpha_2.lower(), "name": getattr(c, "common_name", c.name)})
-    except Exception as exc:  # pragma: no cover - pycountry is a hard dependency
-        logging.warning("pycountry unavailable: %s", exc)
-        out = [{"code": "in", "name": "India"}, {"code": "us", "name": "United States"},
-               {"code": "ae", "name": "United Arab Emirates"}, {"code": "gb", "name": "United Kingdom"}]
-    return sorted(out, key=lambda x: x["name"])
+    from geography import COUNTRIES as all_countries
+    return [{"code": c['code'].lower(), "name": c['name']} for c in all_countries]
 
 
 COUNTRIES = _country_list()

@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { countryFilterOptions } from '@/data/geo';
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
@@ -32,6 +34,7 @@ export default function Expo() {
 
   const featured = useMemo(() => items.filter((i) => i.featured), [items]);
   const rest = useMemo(() => items.filter((i) => !i.featured), [items]);
+  const countryChoices = useMemo(() => countryFilterOptions(filters.countries), [filters.countries]);
 
   return (
     <>
@@ -70,24 +73,24 @@ export default function Expo() {
           </div>
           <div>
             <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400 mb-1">Category</div>
-            <select data-testid="expo-filter-category" value={sel.category} onChange={(e) => setSel({ ...sel, category: e.target.value })} className={selCls}>
+            <ResponsiveSelect data-testid="expo-filter-category" value={sel.category} onChange={(e) => setSel({ ...sel, category: e.target.value })} className={selCls}>
               <option value="">All categories</option>
               {filters.categories.map((c) => <option key={c} value={c} className="bg-[#0a1024]">{c}</option>)}
-            </select>
+            </ResponsiveSelect>
           </div>
           <div>
             <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400 mb-1">Country</div>
-            <select data-testid="expo-filter-country" value={sel.country} onChange={(e) => setSel({ ...sel, country: e.target.value })} className={selCls}>
+            <ResponsiveSelect data-testid="expo-filter-country" value={sel.country} onChange={(e) => setSel({ ...sel, country: e.target.value })} className={selCls}>
               <option value="">All countries</option>
-              {filters.countries.map((c) => <option key={c} value={c} className="bg-[#0a1024]">{c}</option>)}
-            </select>
+              {countryChoices.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+            </ResponsiveSelect>
           </div>
           <div>
             <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400 mb-1">Industry</div>
-            <select data-testid="expo-filter-industry" value={sel.industry} onChange={(e) => setSel({ ...sel, industry: e.target.value })} className={selCls}>
+            <ResponsiveSelect data-testid="expo-filter-industry" value={sel.industry} onChange={(e) => setSel({ ...sel, industry: e.target.value })} className={selCls}>
               <option value="">All industries</option>
               {filters.industries.map((c) => <option key={c} value={c} className="bg-[#0a1024]">{c}</option>)}
-            </select>
+            </ResponsiveSelect>
           </div>
           <Link to="/expo/submit" data-testid="expo-list-cta" className="btn-primary ml-auto"><Plus size={16} weight="bold" /> List your event</Link>
         </div>

@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { COUNTRY_OPTIONS } from '@/data/geo';
 import React, { useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
@@ -20,11 +22,7 @@ const fmtCur = (v, cur) => {
 };
 const num = (v) => (v === "" || v === null || v === undefined ? 0 : parseFloat(v) || 0);
 
-const COUNTRIES = [
-  ["AE", "United Arab Emirates"], ["US", "United States"], ["GB", "United Kingdom"],
-  ["AU", "Australia"], ["SA", "Saudi Arabia"], ["SG", "Singapore"], ["CN", "China"],
-  ["DE", "Germany"], ["JP", "Japan"], ["KR", "South Korea"],
-];
+const COUNTRIES = COUNTRY_OPTIONS.map(c => [c.code, c.name]);
 
 const TABS = [
   ["compile", "Trade Command Center", Lightning],
@@ -108,9 +106,9 @@ function ReportTool() {
           </div>
         </Field>
         <Field label="Country">
-          <select data-testid="report-country" className={inputCls} value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })}>
+          <ResponsiveSelect data-testid="report-country" className={inputCls} value={f.country} onChange={(e) => setF({ ...f, country: e.target.value })}>
             {COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
-          </select>
+          </ResponsiveSelect>
         </Field>
         <Field label="HSN (optional)"><input data-testid="report-hsn" className={inputCls} placeholder="e.g. 33074100" value={f.hsn} onChange={(e) => setF({ ...f, hsn: e.target.value })} /></Field>
         <button data-testid="report-submit" onClick={run} disabled={loading} className="btn-primary w-full justify-center disabled:opacity-50">
@@ -184,8 +182,8 @@ function FxTool() {
     <ToolCard title="Live Currency Exchange" desc="Real-time mid-market rates (updated hourly).">
       <div className="grid sm:grid-cols-4 gap-3 items-end">
         <Field label="Amount"><input data-testid="fx-amount" type="number" className={inputCls} value={f.amount} onChange={(e) => setF({ ...f, amount: parseFloat(e.target.value) || 0 })} /></Field>
-        <Field label="From"><select data-testid="fx-base" className={inputCls} value={f.base} onChange={(e) => setF({ ...f, base: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</select></Field>
-        <Field label="To"><select data-testid="fx-target" className={inputCls} value={f.target} onChange={(e) => setF({ ...f, target: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</select></Field>
+        <Field label="From"><ResponsiveSelect data-testid="fx-base" className={inputCls} value={f.base} onChange={(e) => setF({ ...f, base: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</ResponsiveSelect></Field>
+        <Field label="To"><ResponsiveSelect data-testid="fx-target" className={inputCls} value={f.target} onChange={(e) => setF({ ...f, target: e.target.value })}>{CUR.map((c) => <option key={c}>{c}</option>)}</ResponsiveSelect></Field>
         <button data-testid="fx-submit" onClick={run} disabled={loading} className="btn-primary justify-center disabled:opacity-50">{loading ? <CircleNotch size={16} className="animate-spin" /> : "Convert"}</button>
       </div>
       {data?.ok && (
@@ -235,8 +233,8 @@ function ChaTool() {
     <ToolCard title="CHA Charges Estimator" desc="Indicative customs broker & clearance charges for your shipment.">
       <div className="grid sm:grid-cols-4 gap-3">
         <Field label="Shipment value (₹)"><input data-testid="cha-value" type="number" className={inputCls} value={f.shipmentValue} onChange={(e) => setF({ ...f, shipmentValue: parseFloat(e.target.value) || 0 })} /></Field>
-        <Field label="Mode"><select data-testid="cha-mode" className={inputCls} value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="sea">Sea</option><option value="air">Air</option></select></Field>
-        <Field label="Direction"><select data-testid="cha-dir" className={inputCls} value={f.direction} onChange={(e) => setF({ ...f, direction: e.target.value })}><option>Export</option><option>Import</option></select></Field>
+        <Field label="Mode"><ResponsiveSelect data-testid="cha-mode" className={inputCls} value={f.mode} onChange={(e) => setF({ ...f, mode: e.target.value })}><option value="sea">Sea</option><option value="air">Air</option></ResponsiveSelect></Field>
+        <Field label="Direction"><ResponsiveSelect data-testid="cha-dir" className={inputCls} value={f.direction} onChange={(e) => setF({ ...f, direction: e.target.value })}><option>Export</option><option>Import</option></ResponsiveSelect></Field>
         <Field label="Containers"><input data-testid="cha-containers" type="number" className={inputCls} value={f.containers} onChange={(e) => setF({ ...f, containers: parseInt(e.target.value) || 1 })} /></Field>
       </div>
       <button data-testid="cha-submit" onClick={run} className="btn-primary mt-4">Estimate charges</button>
@@ -286,7 +284,7 @@ function FreightTool() {
   return (
     <ToolCard title="Freight Routes (from India)" desc="Indicative sea & air lanes and transit times.">
       <div className="flex gap-3 items-end">
-        <Field label="Destination"><select data-testid="freight-to" className={inputCls} value={to} onChange={(e) => setTo(e.target.value)}>{COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</select></Field>
+        <Field label="Destination"><ResponsiveSelect data-testid="freight-to" className={inputCls} value={to} onChange={(e) => setTo(e.target.value)}>{COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</ResponsiveSelect></Field>
         <button data-testid="freight-submit" onClick={run} className="btn-primary">Show routes</button>
       </div>
       {data && (
@@ -313,7 +311,7 @@ function BenefitsTool() {
   return (
     <ToolCard title="Government Benefits Finder" desc="Schemes and incentives you can claim.">
       <div className="flex gap-3 items-end">
-        <Field label="Direction"><select data-testid="benefits-dir" className={inputCls} value={direction} onChange={(e) => setDirection(e.target.value)}><option>Export</option><option>Import</option></select></Field>
+        <Field label="Direction"><ResponsiveSelect data-testid="benefits-dir" className={inputCls} value={direction} onChange={(e) => setDirection(e.target.value)}><option>Export</option><option>Import</option></ResponsiveSelect></Field>
         <button data-testid="benefits-submit" onClick={run} className="btn-primary">Find benefits</button>
       </div>
       {data && (
@@ -394,7 +392,7 @@ function CommandCenterTool() {
   const [hs, setHs] = useState("");
   const [exporter, setExporter] = useState("356");
   const [importer, setImporter] = useState("842");
-  const [countries, setCountries] = useState([]);
+  const [countries] = useState(COUNTRY_OPTIONS);
   const [qty, setQty] = useState(1);
   const [unit, setUnit] = useState("unit");
   const [txnCur, setTxnCur] = useState("USD");
@@ -408,7 +406,6 @@ function CommandCenterTool() {
   const [advLoading, setAdvLoading] = useState(false);
   const lastPick = useRef("");
 
-  React.useEffect(() => { api.get("/command-center/markets").then(({ data }) => setCountries(data.countries || [])); }, []);
   React.useEffect(() => {
     const text = q.trim();
     if (text === lastPick.current) return;
@@ -492,14 +489,14 @@ function CommandCenterTool() {
             )}
           </div>
           <Field label="Export from">
-            <select data-testid="cc-exporter" className={inputCls} value={exporter} onChange={(e) => setExporter(e.target.value)}>
+            <ResponsiveSelect data-testid="cc-exporter" className={inputCls} value={exporter} onChange={(e) => setExporter(e.target.value)}>
               {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
+            </ResponsiveSelect>
           </Field>
           <Field label="Import to">
-            <select data-testid="cc-importer" className={inputCls} value={importer} onChange={(e) => setImporter(e.target.value)}>
+            <ResponsiveSelect data-testid="cc-importer" className={inputCls} value={importer} onChange={(e) => setImporter(e.target.value)}>
               {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
+            </ResponsiveSelect>
           </Field>
           <Field label="Quantity">
             <div className="flex gap-2">
@@ -510,10 +507,10 @@ function CommandCenterTool() {
         </div>
         <div className="grid sm:grid-cols-3 gap-3 mt-3">
           <Field label="Your currency (transaction)">
-            <select data-testid="cc-txn-currency" className={inputCls} value={txnCur} onChange={(e) => setTxnCur(e.target.value)}>{CUR.map((c) => <option key={c}>{c}</option>)}</select>
+            <ResponsiveSelect data-testid="cc-txn-currency" className={inputCls} value={txnCur} onChange={(e) => setTxnCur(e.target.value)}>{CUR.map((c) => <option key={c}>{c}</option>)}</ResponsiveSelect>
           </Field>
           <Field label="Quote also in (global currency)">
-            <select data-testid="cc-global-currency" className={inputCls} value={globalCur} onChange={(e) => setGlobalCur(e.target.value)}>{CUR.map((c) => <option key={c}>{c}</option>)}</select>
+            <ResponsiveSelect data-testid="cc-global-currency" className={inputCls} value={globalCur} onChange={(e) => setGlobalCur(e.target.value)}>{CUR.map((c) => <option key={c}>{c}</option>)}</ResponsiveSelect>
           </Field>
           <Field label="Your margin %">
             <input data-testid="cc-margin" type="number" className={inputCls} value={margin} onChange={(e) => setMargin(e.target.value)} placeholder="e.g. 15" />
@@ -691,13 +688,12 @@ function DutyBenefitsTool() {
   const [hs, setHs] = useState("");
   const [origin, setOrigin] = useState("356");
   const [dest, setDest] = useState("842");
-  const [countries, setCountries] = useState([]);
+  const [countries] = useState(COUNTRY_OPTIONS);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const lastPick = useRef("");
 
-  React.useEffect(() => { api.get("/duty/countries").then(({ data }) => setCountries(data.countries || [])); }, []);
   React.useEffect(() => {
     const text = q.trim();
     if (text === lastPick.current) return;
@@ -743,15 +739,15 @@ function DutyBenefitsTool() {
             )}
           </div>
           <Field label="Origin (export from)">
-            <select data-testid="duty-origin" className={inputCls} value={origin} onChange={(e) => setOrigin(e.target.value)}>
+            <ResponsiveSelect data-testid="duty-origin" className={inputCls} value={origin} onChange={(e) => setOrigin(e.target.value)}>
               <option value="">— Any —</option>
               {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
+            </ResponsiveSelect>
           </Field>
           <Field label="Destination (import to)">
-            <select data-testid="duty-dest" className={inputCls} value={dest} onChange={(e) => setDest(e.target.value)}>
+            <ResponsiveSelect data-testid="duty-dest" className={inputCls} value={dest} onChange={(e) => setDest(e.target.value)}>
               {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-            </select>
+            </ResponsiveSelect>
           </Field>
         </div>
         <button data-testid="duty-submit" onClick={() => run()} disabled={loading} className="btn-primary mt-4 disabled:opacity-50">

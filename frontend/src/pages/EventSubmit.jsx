@@ -1,3 +1,5 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
+import { CountrySelect, LocalitySelect } from '@/components/LocationSelect';
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
@@ -28,6 +30,7 @@ export default function EventSubmit() {
   const [params] = useSearchParams();
   const [filters, setFilters] = useState({ categories: [], industries: [], audiences: [], countries: [] });
   const [pricing, setPricing] = useState(null);
+  const [province, setProvince] = useState('');
   const [form, setForm] = useState({
     name: "", category: "Trade Fair", country: "India", city: "", venueName: "", venueAddress: "",
     startDate: "", endDate: "", organizer: "", description: "", audience: "All", industry: "Multi-sector",
@@ -173,27 +176,27 @@ export default function EventSubmit() {
             <div className="grid sm:grid-cols-2 gap-4">
               <Field label={<Label req>Event name</Label>}><input data-testid="ev-name" className={inputCls} value={form.name} onChange={(e) => setF({ name: e.target.value })} placeholder="e.g. India Global Export Summit" /></Field>
               <Field label={<Label req>Category</Label>}>
-                <select data-testid="ev-category" className={inputCls} value={form.category} onChange={(e) => setF({ category: e.target.value })}>
+                <ResponsiveSelect data-testid="ev-category" className={inputCls} value={form.category} onChange={(e) => setF({ category: e.target.value })}>
                   {filters.categories.map((c) => <option key={c} className="bg-[#0a1024]">{c}</option>)}
-                </select>
+                </ResponsiveSelect>
               </Field>
               <Field label={<Label req>Country</Label>}>
-                <select data-testid="ev-country" className={inputCls} value={form.country} onChange={(e) => setF({ country: e.target.value })}>
-                  {["India", "UAE", "USA", "United Kingdom", "Germany", "Singapore", "China", "Australia", "Saudi Arabia", "Other"].map((c) => <option key={c} className="bg-[#0a1024]">{c}</option>)}
-                </select>
+                <CountrySelect data-testid="ev-country" className={inputCls} value={form.country}
+                  onChange={e => { setProvince(''); setF({ country: e.target.value, city: '' }); }} />
               </Field>
-              <Field label={<Label>City</Label>}><input data-testid="ev-city" className={inputCls} value={form.city} onChange={(e) => setF({ city: e.target.value })} /></Field>
+              <Field label={<Label>State / Province</Label>}><LocalitySelect kind="state" country={form.country} data-testid="ev-state" className={inputCls} value={province} onChange={e => { setProvince(e.target.value); setF({ city: '' }); }} /></Field>
+              <Field label={<Label>City</Label>}><LocalitySelect kind="city" country={form.country} state={province} data-testid="ev-city" className={inputCls} value={form.city} onChange={(e) => setF({ city: e.target.value })} /></Field>
               <Field label={<Label req>Start date</Label>}><input data-testid="ev-start" type="date" className={inputCls} value={form.startDate} onChange={(e) => setF({ startDate: e.target.value })} /></Field>
               <Field label={<Label>End date</Label>}><input data-testid="ev-end" type="date" className={inputCls} value={form.endDate} onChange={(e) => setF({ endDate: e.target.value })} /></Field>
               <Field label={<Label>Industry</Label>}>
-                <select data-testid="ev-industry" className={inputCls} value={form.industry} onChange={(e) => setF({ industry: e.target.value })}>
+                <ResponsiveSelect data-testid="ev-industry" className={inputCls} value={form.industry} onChange={(e) => setF({ industry: e.target.value })}>
                   {filters.industries.map((c) => <option key={c} className="bg-[#0a1024]">{c}</option>)}
-                </select>
+                </ResponsiveSelect>
               </Field>
               <Field label={<Label>Target audience</Label>}>
-                <select data-testid="ev-audience" className={inputCls} value={form.audience} onChange={(e) => setF({ audience: e.target.value })}>
+                <ResponsiveSelect data-testid="ev-audience" className={inputCls} value={form.audience} onChange={(e) => setF({ audience: e.target.value })}>
                   {filters.audiences.map((c) => <option key={c} className="bg-[#0a1024]">{c}</option>)}
-                </select>
+                </ResponsiveSelect>
               </Field>
             </div>
             <Field label={<Label>Description / purpose of the venue</Label>}><textarea data-testid="ev-desc" rows={3} className={inputCls} value={form.description} onChange={(e) => setF({ description: e.target.value })} placeholder="What is this event about, who should attend, and what's on show?" /></Field>

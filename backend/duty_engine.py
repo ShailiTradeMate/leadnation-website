@@ -18,6 +18,7 @@ import httpx
 from fastapi import APIRouter, Query, Depends
 
 from core import db, require_admin
+from geography import COUNTRIES as ALL_COUNTRIES
 
 router = APIRouter(prefix="/duty")
 
@@ -257,7 +258,7 @@ def start_scheduler():
 # ---------------- Routes ----------------
 @router.get("/countries")
 async def countries():
-    return {"countries": [{"code": c, "name": n} for c, n in sorted(COUNTRIES, key=lambda x: x[1])]}
+    return {"countries": [{"code": c['code'], "name": c['name']} for c in ALL_COUNTRIES]}
 
 
 @router.get("/meta")

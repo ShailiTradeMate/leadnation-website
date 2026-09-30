@@ -5,6 +5,7 @@ from typing import List, Optional, Any
 from datetime import datetime, timezone
 import uuid, io, csv, logging
 from core import db, require_admin, ADMIN_TOKEN
+from geography import COUNTRIES as ALL_COUNTRIES
 
 router = APIRouter()
 
@@ -91,7 +92,7 @@ async def get_status_checks():
 # ----- Reference data -----
 @router.get("/countries")
 async def list_countries():
-    return COUNTRIES
+    return ALL_COUNTRIES
 
 
 @router.get("/business-types")

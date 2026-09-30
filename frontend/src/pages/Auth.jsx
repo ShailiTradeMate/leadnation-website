@@ -1,3 +1,4 @@
+import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useState } from "react";
 import { Link, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/lib/AuthContext";
@@ -13,7 +14,7 @@ const BUSINESS_ROLES = [
 
 const Shell = ({ title, sub, children }) => (
   <section className="min-h-[80vh] grid place-items-center px-6 py-20">
-    <div className="glass-strong rounded-3xl p-8 w-full max-w-md">
+    <div className="glass-strong rounded-3xl p-5 sm:p-8 w-full min-w-0 max-w-md">
       <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Vametra AI Account</div>
       <h1 className="font-display font-extrabold text-3xl mt-2">{title}</h1>
       {sub && <p className="text-slate-400 text-sm mt-2">{sub}</p>}
@@ -193,17 +194,17 @@ export function Signup() {
         <input data-testid="signup-email" type="email" className={inp} value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="Email" />
         <input data-testid="signup-password" type="password" className={inp} value={form.password} onChange={(e) => set("password", e.target.value)} placeholder="Password (min 6 characters)" />
         <div className="flex gap-2 mt-3">
-          <select data-testid="signup-dial" aria-label="Country code" value={form.countryIso} onChange={(e) => set("countryIso", e.target.value)}
-            className="glass rounded-xl px-3 py-3 outline-none w-36 shrink-0">
-            {COUNTRY_CODES.map((c) => <option key={c.iso} value={c.iso}>{c.flag} {c.dial}</option>)}
-          </select>
-          <input data-testid="signup-mobile" type="tel" inputMode="tel" className="flex-1 glass rounded-xl px-4 py-3 outline-none" value={form.mobile_number} onChange={(e) => set("mobile_number", e.target.value)} placeholder="Mobile number (optional)" />
+          <ResponsiveSelect data-testid="signup-dial" aria-label="Country code" value={form.countryIso} onChange={(e) => set("countryIso", e.target.value)}
+            className="glass rounded-xl px-3 py-3 outline-none w-28 sm:w-36 shrink-0">
+            {COUNTRY_CODES.map((c) => <option key={c.iso} value={c.iso} data-display-label={`${c.flag} ${c.dial}`}>{c.name} ({c.dial})</option>)}
+          </ResponsiveSelect>
+          <input data-testid="signup-mobile" type="tel" inputMode="tel" className="flex-1 min-w-0 w-full glass rounded-xl px-3 py-3 outline-none" value={form.mobile_number} onChange={(e) => set("mobile_number", e.target.value)} placeholder="Mobile (optional)" />
         </div>
         <p data-testid="signup-mobile-note" className="text-[11px] text-slate-500 mt-1.5">Your mobile number will be used for faster login and account recovery when Phone Login becomes available.</p>
         {mobileE164 && <p data-testid="signup-mobile-preview" className="text-[11px] text-cyan-300/80 mt-1">Saved as {mobileE164}</p>}
-        <select data-testid="signup-role" className={inp} value={form.role} onChange={(e) => set("role", e.target.value)}>
+        <ResponsiveSelect data-testid="signup-role" aria-label="Business role" className={inp} value={form.role} onChange={(e) => set("role", e.target.value)}>
           {BUSINESS_ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
+        </ResponsiveSelect>
         {err && <div data-testid="signup-error" className="text-rose-300 text-sm mt-2">{err}</div>}
         <button data-testid="signup-submit" disabled={loading} className="btn-primary w-full justify-center mt-4 disabled:opacity-50">{loading ? <CircleNotch size={16} className="animate-spin" /> : "Create account"}</button>
       </form>
