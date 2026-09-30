@@ -19,19 +19,12 @@ import { Link, useNavigate } from "react-router-dom";
 
 const EASE = [0.16, 1, 0.3, 1];
 
-/** Hero intro — draws the Vametra V, then lands the real logo mark. */
+/** Hero intro — draws the Vametra V stroke before the wordmark appears. */
 function LogoIntro() {
   const reduce = useReducedMotion();
-  if (reduce) {
-    return <img src="/brand/vametra-mark.png?v=2" alt="Vametra AI" data-testid="home-logo-intro" className="w-16 h-16 sm:w-[72px] sm:h-[72px] mb-5" />;
-  }
   return (
     <div data-testid="home-logo-intro" className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] mb-5">
-      <motion.svg
-        viewBox="0 0 100 100" fill="none" className="absolute inset-0 w-full h-full"
-        initial={{ opacity: 1 }} animate={{ opacity: 0 }}
-        transition={{ duration: 0.45, delay: 0.75, ease: "easeOut" }}
-      >
+      <svg viewBox="0 0 100 100" fill="none" className="absolute inset-0 w-full h-full drop-shadow-[0_0_24px_rgba(0,194,255,0.45)]">
         <defs>
           <linearGradient id="vametra-v" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#ffffff" />
@@ -42,16 +35,10 @@ function LogoIntro() {
         <motion.path
           d="M20 20 L50 80 L80 20"
           stroke="url(#vametra-v)" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round"
-          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+          initial={reduce ? false : { pathLength: 0 }} animate={reduce ? false : { pathLength: 1 }}
           transition={{ duration: 0.75, ease: EASE }}
         />
-      </motion.svg>
-      <motion.img
-        src="/brand/vametra-mark.png?v=2" alt="Vametra AI"
-        className="absolute inset-0 w-full h-full drop-shadow-[0_0_24px_rgba(0,194,255,0.45)]"
-        initial={{ opacity: 0, scale: 0.86 }} animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.55, delay: 0.62, ease: EASE }}
-      />
+      </svg>
     </div>
   );
 }
