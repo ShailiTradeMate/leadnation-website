@@ -132,18 +132,18 @@ export default function Home() {
         {/* Copy + command bar */}
         <motion.div
           style={reduce ? undefined : { y: copyY, opacity: copyOpacity }}
-          className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-10 pt-24 pb-14 lg:pt-24 lg:pb-20"
+          className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-10 pt-16 sm:pt-20 pb-14 lg:pt-12 lg:pb-20"
         >
           <div className="max-w-2xl">
             <Reveal y={14} delay={0.05}>
-              <div className="mb-7 sm:mb-9">
+              <div className="mb-8 sm:mb-10">
                 <h2
                   data-testid="home-brand-wordmark"
                   className="font-brand brand-wordmark text-[32px] sm:text-5xl lg:text-[60px] leading-[1.02] whitespace-nowrap tracking-[0.07em]"
                 >
                   Vametra <span className="brand-wordmark-ai">AI</span>
                 </h2>
-                <div className="mt-3 flex items-center gap-3">
+                <div className="mt-4 flex items-center gap-3">
                   <span className="h-px w-10 sm:w-16 bg-gradient-to-r from-cyan-400 to-transparent" />
                   <span className="text-[10px] sm:text-[11px] font-mono-display tracking-[0.3em] uppercase text-cyan-300/80">
                     Intelligence Beyond Borders
