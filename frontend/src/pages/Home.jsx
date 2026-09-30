@@ -19,30 +19,6 @@ import { Link, useNavigate } from "react-router-dom";
 
 const EASE = [0.16, 1, 0.3, 1];
 
-/** Hero intro — draws the Vametra V stroke before the wordmark appears. */
-function LogoIntro() {
-  const reduce = useReducedMotion();
-  return (
-    <div data-testid="home-logo-intro" className="relative w-16 h-16 sm:w-[72px] sm:h-[72px] mb-5">
-      <svg viewBox="0 0 100 100" fill="none" className="absolute inset-0 w-full h-full drop-shadow-[0_0_24px_rgba(0,194,255,0.45)]">
-        <defs>
-          <linearGradient id="vametra-v" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="55%" stopColor="#38bdf8" />
-            <stop offset="100%" stopColor="#2563eb" />
-          </linearGradient>
-        </defs>
-        <motion.path
-          d="M20 20 L50 80 L80 20"
-          stroke="url(#vametra-v)" strokeWidth="11" strokeLinecap="round" strokeLinejoin="round"
-          initial={reduce ? false : { pathLength: 0 }} animate={reduce ? false : { pathLength: 1 }}
-          transition={{ duration: 0.75, ease: EASE }}
-        />
-      </svg>
-    </div>
-  );
-}
-
 /** Scroll-triggered entrance. Collapses to a plain div when reduced motion is on. */
 function Reveal({ children, delay = 0, y = 40, className = "", ...rest }) {
   const reduce = useReducedMotion();
@@ -159,9 +135,7 @@ export default function Home() {
           className="relative z-10 w-full max-w-7xl mx-auto px-5 sm:px-10 pt-24 pb-14 lg:pt-24 lg:pb-20"
         >
           <div className="max-w-2xl">
-            <LogoIntro />
-
-            <Reveal y={14} delay={0.55}>
+            <Reveal y={14} delay={0.05}>
               <div className="mb-7 sm:mb-9">
                 <h2
                   data-testid="home-brand-wordmark"
@@ -178,7 +152,7 @@ export default function Home() {
               </div>
             </Reveal>
 
-            <Reveal delay={0.75} y={26}>
+            <Reveal delay={0.18} y={26}>
               <h1
                 data-testid="home-hero-title"
                 className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-[56px] leading-[1.06]"
@@ -188,13 +162,13 @@ export default function Home() {
               </h1>
             </Reveal>
 
-            <Reveal y={16} delay={0.9}>
+            <Reveal y={16} delay={0.28}>
               <div className="mt-5">
                 <SectionLabel testId="home-eyebrow">Global Trade Intelligence · 195 Countries</SectionLabel>
               </div>
             </Reveal>
 
-            <Reveal delay={1} y={22}>
+            <Reveal delay={0.36} y={22}>
               <p className="mt-5 text-slate-300 text-sm sm:text-base lg:text-lg max-w-xl leading-relaxed">
                 Landed cost, live customs duty, sanctions-screened verified buyers and AI clearance
                 for any product across 195+ markets — from one command console.
@@ -202,7 +176,7 @@ export default function Home() {
             </Reveal>
 
             {/* Search — the command bar */}
-            <Reveal delay={1.1} y={22}>
+            <Reveal delay={0.44} y={22}>
               <div className="mt-7 relative" onBlur={() => setTimeout(() => setFocused(false), 150)}>
                 <div className={`glass-strong rounded-2xl flex items-center gap-3 px-4 py-3 min-h-[56px] transition-all shadow-[0_20px_50px_rgba(0,194,255,0.12)] ${focused ? "cyan-glow" : ""}`}>
                   <MagnifyingGlass size={20} className="text-cyan-300 shrink-0" />
