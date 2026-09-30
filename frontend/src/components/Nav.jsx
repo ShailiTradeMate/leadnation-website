@@ -112,7 +112,6 @@ export default function Nav({ active = "/" }) {
               <div data-testid="nav-brand-wordmark" className="font-brand brand-wordmark text-[13px] sm:text-[15px] leading-none">
                 Vametra <span className="brand-wordmark-ai">AI</span>
               </div>
-              <div className="text-[9px] font-mono-display tracking-[0.22em] text-cyan-300/70 uppercase mt-1.5">Trade Intelligence</div>
             </div>
           </Link>
 
