@@ -138,3 +138,16 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
   area above the eyebrow (user-highlighted spot); h1 trimmed to lg:text-[56px] for hierarchy.
 - Nav de-crowded: brand block gets lg:pr-5 xl:pr-8, links use px-2.5/xl:px-3 + whitespace-nowrap
   so the wordmark no longer touches the Home tab. Verified desktop 1920 and mobile 390.
+
+## 2026-10-01 — LeadNation marketing stack removed (fresh start for vametra.com)
+- Cleared `REACT_APP_GA4_ID`, `REACT_APP_GTM_ID`, `REACT_APP_CLARITY_ID` in frontend/.env
+  (were leadnation.app properties: G-H5809GHQXW, GTM-5JM23MH4, y2xx93q69j). Meta Pixel already empty.
+- Verified after restart: accepting cookies loads NO googletagmanager/clarity/facebook scripts;
+  window.gtag/dataLayer/clarity/fbq all absent. Home + Tools pages, nav, consent banner unaffected.
+- Deleted legacy LeadNation brand artwork: brand/ln-icon.png, ln-mark.png, logo_mark.png,
+  logo_horizontal_dark.png, logo_horizontal_light.png (all unreferenced in src).
+- Deleted legacy marketing docs: memory/ANALYTICS.md, AI_SEARCH_AEO_REPORT_2026-07-14.md,
+  LEADNATION_BRAND_GUIDELINES.md. MARKETING_SETUP_GUIDE.md section 0 rewritten.
+- Outbound scraper UA rebranded: "Vametra-VBIE/1.0 (+https://vametra.com)" (backend/vbie_connectors.py).
+- Untouched on purpose (functional, not marketing): consent storage key `ln_cookie_consent`,
+  DB_NAME, ADMIN_TOKEN, AUTH_API_BASE / DO identity API, Firebase keys, backend test fixtures.

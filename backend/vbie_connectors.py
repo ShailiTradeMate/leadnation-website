@@ -82,7 +82,7 @@ SAM_GOV_API_KEY = os.environ.get("SAM_GOV_API_KEY", "").strip()
 COMPANIES_HOUSE_API_KEY = os.environ.get("COMPANIES_HOUSE_API_KEY", "").strip()
 COMTRADE_API_KEY = os.environ.get("COMTRADE_API_KEY", "").strip()
 
-UA = {"User-Agent": "LeadNation-VBIE/1.0 (+https://leadnation.app)"}
+UA = {"User-Agent": "Vametra-VBIE/1.0 (+https://vametra.com)"}
 
 # ISO-3 → (ISO-2, display name) for buyer countries we surface.
 ISO3 = {

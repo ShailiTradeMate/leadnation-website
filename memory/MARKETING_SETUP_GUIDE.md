@@ -3,21 +3,25 @@ Owner action guide. Created June 2026. Collect the values in the "Give me" boxes
 
 ---
 
-## 0. What is ALREADY live in the code (no action needed)
-| Item | Status | Where |
-|---|---|---|
-| GA4 measurement ID | `G-H5809GHQXW` configured | `frontend/.env` → `REACT_APP_GA4_ID` |
-| Google Tag Manager container | `GTM-5JM23MH4` configured | `REACT_APP_GTM_ID` |
-| Microsoft Clarity project | `y2xx93q69j` configured | `REACT_APP_CLARITY_ID` |
-| Meta Pixel | **empty — needs ID** | `REACT_APP_META_PIXEL_ID` |
-| Cookie consent gate (GDPR opt-in) | Live — tags only fire after "Accept" | `src/lib/analytics.js`, `CookieConsent.jsx` |
-| Event tracking (signup, login, brain query, PDF, payments…) | Live, PII-scrubbed | `EVENTS` in `analytics.js` |
-| robots.txt with AI/GEO bots allowed (GPTBot, PerplexityBot, ClaudeBot…) | Live | `public/robots.txt` |
-| sitemap.xml (77 URLs) + dynamic `/api/sitemap.xml` | Live | `public/sitemap.xml` |
-| JSON-LD: Organization, FAQ, Breadcrumbs, per-page SEO | Live | `src/components/SEO.jsx` |
-| OG / Twitter cards + new logo share image | Live | `public/index.html`, `og-default.png` |
+## 0. Current state (post-cleanup, 1 Oct 2026)
+All leadnation.app marketing identifiers have been **removed** from the codebase. The measurement
+plumbing stays in place and simply stays dormuntil Vametra AI keys are supplied.
 
-**Important:** verification meta tags are not in the code yet, and the live site must be deployed on `vametra.com` before search consoles can verify.
+| Item | Status |
+|---|---|
+| GA4 / GTM / Clarity / Meta Pixel IDs | **EMPTY — awaiting vametra.com keys** (`frontend/.env`) |
+| Tag loader (consent-gated) | Live, no-ops while IDs are empty — verified: no googletagmanager / clarity / facebook script loads |
+| Cookie consent gate (GDPR opt-in) | Live, unaffected |
+| First-party event tracking → `/api/track` | Live, unaffected (works without any third-party keys) |
+| robots.txt with AI/GEO bots allowed | Live, already vametra.com |
+| sitemap.xml (77 URLs) + `/api/sitemap.xml` | Live, already vametra.com |
+| Organization / FAQ / Breadcrumb JSON-LD, OG + Twitter cards | Live, already vametra.com |
+| Old LeadNation brand artwork + legacy analytics/AEO plan docs | Deleted |
+| Search Console / Bing verification tokens | Not present — needed |
+
+**Production note:** the deployed environment keeps its own copy of the env vars. The old GA4/GTM/
+Clarity values must be cleared there too (or redeploy after this change), otherwise vametra.com
+traffic keeps reporting into the dead LeadNation properties.
 
 ---
 
