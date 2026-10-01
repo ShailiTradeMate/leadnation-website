@@ -9,7 +9,8 @@ plumbing stays in place and simply stays dormuntil Vametra AI keys are supplied.
 
 | Item | Status |
 |---|---|
-| GA4 / GTM / Clarity / Meta Pixel IDs | **EMPTY — awaiting vametra.com keys** (`frontend/.env`) |
+| GTM `GTM-KWNFXB47` + GA4 `G-S858BWLS7P` | **LIVE in preview, verified 2 Oct 2026** (`frontend/.env`) — still to be set in production env |
+| Clarity / Meta Pixel IDs | EMPTY — awaiting keys |
 | Tag loader (consent-gated) | Live, no-ops while IDs are empty — verified: no googletagmanager / clarity / facebook script loads |
 | Cookie consent gate (GDPR opt-in) | Live, unaffected |
 | First-party event tracking → `/api/track` | Live, unaffected (works without any third-party keys) |

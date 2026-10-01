@@ -151,3 +151,14 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
 - Outbound scraper UA rebranded: "Vametra-VBIE/1.0 (+https://vametra.com)" (backend/vbie_connectors.py).
 - Untouched on purpose (functional, not marketing): consent storage key `ln_cookie_consent`,
   DB_NAME, ADMIN_TOKEN, AUTH_API_BASE / DO identity API, Firebase keys, backend test fixtures.
+
+## 2026-10-02 — Vametra GTM + GA4 wired and verified
+- Keys set in frontend/.env: REACT_APP_GTM_ID=GTM-KWNFXB47, REACT_APP_GA4_ID=G-S858BWLS7P.
+- GTM container v2 (exported JSON reviewed): 2 tags (Google Tag → Initialization-All Pages;
+  GA4 - Vametra Events (gaawe) eventName={{Event}}, measurementIdOverride=G-S858BWLS7P,
+  eventSettingsVariable=GA4 Event Settings - Vametra) + 1 regex Custom Event trigger covering all
+  13 app events + 8 Data Layer variables (location, plan, tool, country, hs_code, amount, currency, buyers).
+- Verified on preview after consent accept: gtm.js?id=GTM-KWNFXB47 and gtag/js?id=G-S858BWLS7P load,
+  window.gtag true, and clicking Download App pushed `download_app_click` into dataLayer.
+- PENDING: same two env vars must be set in the deployed environment + redeploy; then Clarity,
+  GSC + Bing verification tokens, IndexNow key.
