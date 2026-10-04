@@ -162,3 +162,16 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
   window.gtag true, and clicking Download App pushed `download_app_click` into dataLayer.
 - PENDING: same two env vars must be set in the deployed environment + redeploy; then Clarity,
   GSC + Bing verification tokens, IndexNow key.
+
+## 2026-10-05 — Sitemap consolidation + Clarity live
+- REACT_APP_CLARITY_ID=ysliy7aa8k wired and verified (clarity.ms/tag/ysliy7aa8k loads after consent).
+- Diffed the two production sitemaps: static had 77 URLs, dynamic /api/sitemap.xml had 67, and they
+  disagreed on 42 URLs. Static wrongly listed /directory, /directory/*, /suppliers (all redirect to /)
+  and /search; dynamic was missing /services/*, /legal/*, /marketplace, /network.
+- backend/seo.py: added /marketplace, /network and the 5 /legal/* pages to _static_routes, and the
+  11 SERVICES_DB slugs to _dynamic_routes → /api/sitemap.xml now emits 85 real URLs.
+- Regenerated frontend/public/sitemap.xml from that output so both are byte-identical (85 URLs,
+  no redirecting or noindex URLs). Needs a redeploy to go live.
+- GSC "Couldn't fetch" on https://vametra.com/sitemap.xml investigated: production returns HTTP 200,
+  valid XML, correct content-type, for Googlebot UA / empty UA / gzip / HTTP1.1 (edge is Cloudflare).
+  Treated as a GSC fetch-lag, not a site defect. /api/sitemap.xml already reads Success.

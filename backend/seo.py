@@ -47,6 +47,13 @@ def _static_routes():
         ("/blog", "daily", "0.8"),
         ("/pricing", "monthly", "0.7"),
         ("/services", "weekly", "0.7"),
+        ("/marketplace", "weekly", "0.7"),
+        ("/network", "weekly", "0.7"),
+        ("/legal/privacy", "yearly", "0.3"),
+        ("/legal/terms", "yearly", "0.3"),
+        ("/legal/cookies", "yearly", "0.3"),
+        ("/legal/disclaimer", "yearly", "0.3"),
+        ("/legal/refund", "yearly", "0.3"),
     ]
 
 
@@ -85,6 +92,12 @@ def _dynamic_routes():
             routes.append((f"/hsn/{code}", "weekly", "0.9"))
     except Exception as exc:
         logger.warning("sitemap trade_tools source: %s", exc)
+    try:
+        import services as services_mod
+        for slug in getattr(services_mod, "SERVICES_DB", {}).keys():
+            routes.append((f"/services/{slug}", "monthly", "0.8"))
+    except Exception as exc:
+        logger.warning("sitemap services source: %s", exc)
     return routes
 
 
