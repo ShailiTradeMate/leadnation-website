@@ -115,6 +115,8 @@ building anything new on top of it.
 - [ ] Wire Razorpay checkout + webhook once keys arrive (gateway toggle + pricing already in the Pricing Engine).
 
 # 5. P1/P2 — VERIFIED BUYER & CMS PRODUCT BACKLOG
+- [ ] **Customs Brokers tool** (owner request, 4 Oct 2026) — new tool listing/searching verified customs brokers & CHAs (country/port filters, licence no., services, contact reveal).
+      **URL IS FIXED: `/tools/custom-brokers`** — the owner already wired this exact path into the Microsoft Clarity "Tool to Pricing" funnel, so the route must not be renamed. Add it to the Tools hub, sitemap.xml and the nav Tools menu when built. Until then the URL 404s and that funnel step will read 0.
 - [ ] **Trade News depth** — per-article Brain impact caching, country+topic email digests, "save this story", and a NewsData.io key if richer images/metadata are wanted (optional; Google News + GDELT already carry the feed).
 - [ ] **Expo engine depth** — grow the catalogue past 64 fairs, add organiser-website verification for AI-discovered candidates, and let owners claim/edit a catalogue entry.
 - [ ] **Reviewer Console** — CMS screen for the human-review queue (`/api/verify/admin/queue` + `/decide`) with selfie + document side by side.
