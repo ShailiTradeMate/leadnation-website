@@ -42,5 +42,7 @@ Allow: /
 User-agent: Bingbot
 Allow: /
 
+# Canonical sitemap (dynamic, always current — includes tools, services, HS codes, expo, blog)
 Sitemap: https://vametra.com/api/sitemap.xml
+# Static mirror of the same 85 URLs (fallback for crawlers that prefer a root-level file)
 Sitemap: https://vametra.com/sitemap.xml
