@@ -4,6 +4,7 @@ pages) and IndexNow instant-indexing (Bing / Yandex).
 The sitemap is generated from the SAME in-code data the pages render from, so any
 new country / product / corridor / industry / HSN / blog / academy page is picked
 up automatically on the next crawl — no manual sitemap edits."""
+import asyncio
 import logging
 from datetime import datetime, timezone
 
@@ -18,6 +19,16 @@ SITE = "https://vametra.com"
 
 # IndexNow key (must match the file served at /{key}.txt on the frontend).
 INDEXNOW_KEY = "a3f5c9e21b7d4680b2f1c8e4d9a70f36"
+
+# CMS collection -> public URL prefix + hub page, used by the auto-ping.
+CMS_URL_MAP = {
+    "countries": ("/countries/", "/countries"),
+    "products": ("/products/", "/products"),
+    "corridors": ("/corridors/", "/corridors"),
+    "industries": ("/industries/", "/industries"),
+    "hsn_codes": ("/hsn/", "/tools/hsn-finder"),
+    "blog": ("/blog/", "/blog"),
+}
 
 
 def _static_routes():
@@ -101,6 +112,17 @@ def _dynamic_routes():
     return routes
 
 
+async def _event_routes():
+    """Live expo listings — each published event has a public /expo/{id} page."""
+    try:
+        from event_listings import EVENTS
+        rows = await EVENTS.find({"status": "published"}, {"_id": 1}).to_list(2000)
+        return [(f"/expo/{r['_id']}", "weekly", "0.7") for r in rows]
+    except Exception as exc:
+        logger.warning("sitemap expo source: %s", exc)
+        return []
+
+
 def all_public_urls():
     seen, out = set(), []
     for loc, freq, pri in _static_routes() + _dynamic_routes():
@@ -111,13 +133,26 @@ def all_public_urls():
     return out
 
 
+async def _lastmod_map():
+    """Real per-URL change dates recorded by the auto-ping (Google trusts honest lastmod)."""
+    try:
+        from core import db
+        rows = await db.seo_lastmod.find({}, {"_id": 0}).to_list(5000)
+        return {r["path"]: r["lastmod"] for r in rows if r.get("path") and r.get("lastmod")}
+    except Exception as exc:
+        logger.warning("lastmod lookup: %s", exc)
+        return {}
+
+
 @router.get("/sitemap.xml")
 async def sitemap_xml():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    lastmods = await _lastmod_map()
+    urls = all_public_urls() + await _event_routes()
     rows = "".join(
-        f"<url><loc>{SITE}{loc}</loc><lastmod>{today}</lastmod>"
+        f"<url><loc>{SITE}{loc}</loc><lastmod>{lastmods.get(loc, today)}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>"
-        for loc, freq, pri in all_public_urls())
+        for loc, freq, pri in urls)
     xml = ('<?xml version="1.0" encoding="UTF-8"?>'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
            f"{rows}</urlset>")
@@ -149,3 +184,86 @@ async def seo_indexnow(body: dict = None, x_admin_token: str = Header(default=No
         raise HTTPException(status_code=403, detail="admin only")
     urls = (body or {}).get("urls") or [loc for loc, _f, _p in _static_routes()]
     return await indexnow_submit(urls)
+
+
+async def _ping_and_log(paths: list, source: str):
+    """Record the change date, submit to IndexNow, keep an audit row."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    try:
+        from core import db
+        for p in paths:
+            await db.seo_lastmod.update_one({"path": p}, {"$set": {"path": p, "lastmod": today}}, upsert=True)
+        result = await indexnow_submit(paths)
+        await db.seo_pings.insert_one({"source": source, "paths": paths, "result": result,
+                                       "at": datetime.now(timezone.utc).isoformat()})
+        logger.info("IndexNow auto-ping [%s] %s -> %s", source, len(paths), result)
+    except Exception as exc:
+        logger.warning("auto-ping failed [%s]: %s", source, exc)
+
+
+def notify_content_change(paths, source: str = "cms"):
+    """Fire-and-forget: tell Bing/Yandex instantly and stamp lastmod for Google's next crawl.
+
+    Never blocks or breaks the caller — scheduled on the running loop."""
+    paths = sorted({p for p in (paths or []) if p and p.startswith("/")})
+    if not paths:
+        return
+    try:
+        asyncio.get_running_loop().create_task(_ping_and_log(paths, source))
+    except RuntimeError:
+        logger.warning("auto-ping skipped (no running loop): %s", source)
+
+
+def cms_paths(collection: str, slug: str) -> list:
+    """Detail page + its hub page for a CMS collection item."""
+    prefix, hub = CMS_URL_MAP.get(collection, (None, None))
+    if not prefix:
+        return []
+    return ([f"{prefix}{slug}"] if slug else []) + [hub]
+
+
+@router.get("/seo/ping-log")
+async def seo_ping_log(limit: int = 50, x_admin_token: str = Header(default=None)):
+    """Admin: recent auto-ping activity (what was pushed, when, and the engine response)."""
+    import os
+    if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
+        raise HTTPException(status_code=403, detail="admin only")
+    from core import db
+    rows = await db.seo_pings.find({}, {"_id": 0}).sort("at", -1).to_list(min(limit, 200))
+    return {"count": len(rows), "pings": rows}
+
+
+async def weekly_full_sweep():
+    """Safety net: re-announce every public URL weekly so nothing is ever missed."""
+    paths = [loc for loc, _f, _p in all_public_urls()] + [loc for loc, _f, _p in await _event_routes()]
+    result = await indexnow_submit(paths)
+    try:
+        from core import db
+        await db.seo_pings.insert_one({"source": "weekly-sweep", "paths": [f"{len(paths)} urls"],
+                                       "result": result, "at": datetime.now(timezone.utc).isoformat()})
+    except Exception:
+        pass
+    logger.info("IndexNow weekly sweep: %s urls -> %s", len(paths), result)
+    return result
+
+
+_seo_sched = None
+
+
+def start_seo_scheduler():
+    """Weekly IndexNow sweep (Mondays 01:10 UTC) + one sweep 3 min after boot."""
+    global _seo_sched
+    if _seo_sched:
+        return
+    from apscheduler.schedulers.asyncio import AsyncIOScheduler
+    from apscheduler.triggers.cron import CronTrigger
+    from apscheduler.triggers.date import DateTrigger
+    from datetime import timedelta
+    _seo_sched = AsyncIOScheduler(timezone="UTC")
+    _seo_sched.add_job(weekly_full_sweep, CronTrigger(day_of_week="mon", hour=1, minute=10),
+                       id="indexnow-weekly", replace_existing=True)
+    _seo_sched.add_job(weekly_full_sweep,
+                       DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=3)),
+                       id="indexnow-boot", replace_existing=True)
+    _seo_sched.start()
+    logger.info("IndexNow sweep scheduler started (weekly + boot warm-up)")

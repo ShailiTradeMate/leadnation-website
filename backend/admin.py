@@ -5,6 +5,7 @@ from typing import List, Optional, Any
 from datetime import datetime, timezone
 import uuid, io, csv, logging
 from core import db, require_admin, ADMIN_TOKEN, decode_token
+from seo import notify_content_change, cms_paths
 
 router = APIRouter()
 
@@ -81,6 +82,7 @@ async def admin_create_item(name: str, payload: dict, _: bool = Depends(require_
             "updatedAt": datetime.now(timezone.utc).isoformat()}
     await db[f"cms_{name}"].insert_one(item)
     item.pop("_id", None)
+    notify_content_change(cms_paths(name, item.get("slug") or item.get("code") or item.get("id")), f"cms:{name}:create")
     return item
 
 
@@ -93,6 +95,7 @@ async def admin_update_item(name: str, item_id: str, payload: dict, _: bool = De
     if res.matched_count == 0:
         raise HTTPException(status_code=404, detail="Item not found")
     item = await db[f"cms_{name}"].find_one({"id": item_id}, {"_id": 0})
+    notify_content_change(cms_paths(name, (item or {}).get("slug") or (item or {}).get("code") or item_id), f"cms:{name}:update")
     return item
 
 
@@ -103,6 +106,7 @@ async def admin_delete_item(name: str, item_id: str, _: bool = Depends(require_a
     res = await db[f"cms_{name}"].delete_one({"id": item_id})
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Item not found")
+    notify_content_change(cms_paths(name, None), f"cms:{name}:delete")
     return {"ok": True}
 
 

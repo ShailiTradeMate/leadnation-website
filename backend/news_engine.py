@@ -629,6 +629,11 @@ async def refresh_news(trigger: str = "scheduler") -> Dict[str, Any]:
     except Exception:
         pass
     logging.info("Trade News refreshed (%s topics, trigger=%s)", len(done), trigger)
+    try:
+        from seo import notify_content_change
+        notify_content_change(["/trade-news", "/intelligence"], "news:refresh")
+    except Exception as exc:
+        logging.warning("news auto-ping: %s", exc)
     return {"ok": True, "topics": done, "at": _iso()}
 
 

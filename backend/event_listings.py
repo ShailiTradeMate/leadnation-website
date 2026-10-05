@@ -24,6 +24,7 @@ from core import db, require_admin
 from firebase_auth import optional_user
 from pricing import get_event_pricing, set_event_pricing, region_of
 from emailer import send_event_email, notify_admin
+from seo import notify_content_change
 from emergentintegrations.payments.stripe.checkout import StripeCheckout, CheckoutSessionRequest
 
 router = APIRouter(prefix="/events")
@@ -413,6 +414,7 @@ async def admin_create(body: EventIn, _: dict = Depends(require_admin)):
            "expiresAt": _iso(_now() + timedelta(days=int(cfg.get("durationDays", 30)) * 6)),
            "createdAt": _iso(), "updatedAt": _iso()}
     await EVENTS.insert_one(doc)
+    notify_content_change([f"/expo/{eid}", "/expo"], "expo:admin-create")
     return {"ok": True, "eventId": eid}
 
 
@@ -422,6 +424,7 @@ async def admin_edit(event_id: str, body: EventIn, _: dict = Depends(require_adm
                                   "image": (body.images or [None])[0], "updatedAt": _iso()}})
     if not res.matched_count:
         raise HTTPException(404, "Event not found")
+    notify_content_change([f"/expo/{event_id}", "/expo"], "expo:admin-edit")
     return {"ok": True}
 
 
@@ -440,6 +443,7 @@ async def admin_approve(event_id: str, _: dict = Depends(require_admin)):
                            {"name": ev.get("contactName"), "eventName": ev.get("name")})
     await send_event_email("published", ev.get("contactEmail"),
                            {"name": ev.get("contactName"), "eventName": ev.get("name"), "expiresAt": expires})
+    notify_content_change([f"/expo/{event_id}", "/expo"], "expo:approve")
     return {"ok": True, "expiresAt": expires}
 
 

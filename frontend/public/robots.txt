@@ -44,5 +44,5 @@ Allow: /
 
 # Canonical sitemap (dynamic, always current — includes tools, services, HS codes, expo, blog)
 Sitemap: https://vametra.com/api/sitemap.xml
-# Static mirror of the same 85 URLs (fallback for crawlers that prefer a root-level file)
+# Root-level sitemap index that points at the canonical sitemap above
 Sitemap: https://vametra.com/sitemap.xml

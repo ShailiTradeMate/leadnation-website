@@ -78,6 +78,11 @@ async def _startup():
         news_engine.start_news_refresh()
     except Exception as exc:
         logging.warning("Trade News scheduler init failed: %s", exc)
+    try:
+        import seo
+        seo.start_seo_scheduler()
+    except Exception as exc:
+        logging.warning("SEO auto-ping scheduler init failed: %s", exc)
     for name, source in CMS_COLLECTIONS.items():
         try:
             await _seed_collection(name, source)
