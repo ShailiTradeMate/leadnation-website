@@ -175,3 +175,21 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
 - GSC "Couldn't fetch" on https://vametra.com/sitemap.xml investigated: production returns HTTP 200,
   valid XML, correct content-type, for Googlebot UA / empty UA / gzip / HTTP1.1 (edge is Cloudflare).
   Treated as a GSC fetch-lag, not a site defect. /api/sitemap.xml already reads Success.
+
+## 2026-10-06 — IndexNow auto-ping wired (Bing/Yandex) + honest lastmod for Google
+- backend/seo.py: notify_content_change() fire-and-forget helper; _ping_and_log() stamps
+  db.seo_lastmod and audits to db.seo_pings, then submits to api.indexnow.org; cms_paths()/CMS_URL_MAP
+  map CMS collections to public URL prefixes + hub pages.
+- Hooks: admin.py CMS create/update/delete (blog, countries, products, corridors, industries,
+  hsn_codes); event_listings.py admin create / admin edit / approve (/expo/{id} + /expo);
+  news_engine.refresh_news() (/trade-news + /intelligence).
+- Sitemap now also lists published expo detail pages (155 URLs total, was 85) and uses the real
+  recorded lastmod per URL instead of today-for-everything.
+- Weekly sweep Mondays 01:10 UTC + boot warm-up (boot sweep self-skips if swept within 24h, so
+  restarts don't spam IndexNow). Admin audit endpoint GET /api/seo/ping-log (403 without token).
+- frontend/public/sitemap.xml is now a <sitemapindex> pointing at /api/sitemap.xml, so the root-level
+  file can never go stale; robots.txt comments updated.
+- Google: no ping exists (sitemap ping deprecated 2023, Indexing API is JobPosting/BroadcastEvent
+  only) — handled via accurate per-URL lastmod + GSC instead.
+- Testing: iteration_68 — tests/test_iter68_seo_autoping.py, 16/16 passed; live IndexNow responses
+  ok (200/202). Re-ran after the boot-sweep throttle fix: 16/16 passed.

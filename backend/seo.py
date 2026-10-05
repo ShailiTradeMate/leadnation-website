@@ -233,18 +233,29 @@ async def seo_ping_log(limit: int = 50, x_admin_token: str = Header(default=None
     return {"count": len(rows), "pings": rows}
 
 
-async def weekly_full_sweep():
+async def weekly_full_sweep(boot: bool = False):
     """Safety net: re-announce every public URL weekly so nothing is ever missed."""
+    from core import db
+    if boot:
+        last = await db.seo_pings.find_one({"source": {"$in": ["weekly-sweep", "boot-sweep"]}},
+                                           sort=[("at", -1)])
+        if last and (datetime.now(timezone.utc) - datetime.fromisoformat(last["at"])).total_seconds() < 86400:
+            logger.info("IndexNow boot sweep skipped (swept within 24h)")
+            return {"ok": True, "skipped": "recently swept"}
     paths = [loc for loc, _f, _p in all_public_urls()] + [loc for loc, _f, _p in await _event_routes()]
     result = await indexnow_submit(paths)
     try:
-        from core import db
-        await db.seo_pings.insert_one({"source": "weekly-sweep", "paths": [f"{len(paths)} urls"],
-                                       "result": result, "at": datetime.now(timezone.utc).isoformat()})
+        await db.seo_pings.insert_one({"source": "boot-sweep" if boot else "weekly-sweep",
+                                       "paths": [f"{len(paths)} urls"], "result": result,
+                                       "at": datetime.now(timezone.utc).isoformat()})
     except Exception:
         pass
-    logger.info("IndexNow weekly sweep: %s urls -> %s", len(paths), result)
+    logger.info("IndexNow sweep (%s): %s urls -> %s", "boot" if boot else "weekly", len(paths), result)
     return result
+
+
+async def _boot_sweep():
+    return await weekly_full_sweep(boot=True)
 
 
 _seo_sched = None
@@ -262,7 +273,7 @@ def start_seo_scheduler():
     _seo_sched = AsyncIOScheduler(timezone="UTC")
     _seo_sched.add_job(weekly_full_sweep, CronTrigger(day_of_week="mon", hour=1, minute=10),
                        id="indexnow-weekly", replace_existing=True)
-    _seo_sched.add_job(weekly_full_sweep,
+    _seo_sched.add_job(_boot_sweep,
                        DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=3)),
                        id="indexnow-boot", replace_existing=True)
     _seo_sched.start()
