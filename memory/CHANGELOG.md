@@ -193,3 +193,18 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
   only) — handled via accurate per-URL lastmod + GSC instead.
 - Testing: iteration_68 — tests/test_iter68_seo_autoping.py, 16/16 passed; live IndexNow responses
   ok (200/202). Re-ran after the boot-sweep throttle fix: 16/16 passed.
+
+## 2026-10-06 — GEO phase 1: llms.txt refresh + AI-referral tracking + keyword strategy
+- frontend/public/llms.txt rewritten: added an "Answers to common questions" block (the text AI
+  engines quote), priority corridor list, services/academy/buyers/corridors URLs, a Last-updated
+  line, citation instructions ("cite the as-of date") and the canonical /api/sitemap.xml.
+- frontend/src/lib/analytics.js: AI answer-engine referral detection for 17 hosts (ChatGPT,
+  Perplexity, Gemini, Copilot, Claude, Grok, Meta AI, DeepSeek, Mistral, You.com, Phind, Poe, Andi)
+  + utm_source fallback. Sticky per session (sessionStorage vm_ai_referral), fires an `ai_referral`
+  event once per session and stamps `ai_engine` on EVERY later event and page_view, so AI-sourced
+  conversions are segmentable in GA4/GTM/Clarity. Fires only with analytics consent.
+- Verified on preview: ?utm_source=chatgpt → stored 'chatgpt', dataLayer rows
+  [ai_referral, download_app_click] both carrying ai_engine; detection stays sticky across SPA navs.
+- New doc memory/SEO_KEYWORDS.md: 40 target keywords (tiered T1/T2/T3, one page each, with target
+  URLs), the top-10 country/corridor priority list backed by FY2025-26 DGCIS trade values, and a
+  10-prompt monthly GEO audit list.

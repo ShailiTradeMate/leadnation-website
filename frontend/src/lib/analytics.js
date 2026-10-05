@@ -82,6 +82,62 @@ function applyConsent() {
   if (!c) return; // no consent yet → load nothing (GDPR: opt-in)
   if (c.analytics) loadAnalyticsScripts();
   if (c.marketing) loadMarketingScripts();
+  if (c.analytics) reportAiReferral();
+}
+
+// ── AI answer engines (GEO) ────────────────────────────────────────────────
+// Traffic from ChatGPT/Perplexity/Gemini/Copilot lands as plain "referral" in GA4.
+// We label it so AI-driven sessions and conversions can be segmented.
+const AI_ENGINES = [
+  [/(^|\.)chatgpt\.com$/, "ChatGPT"],
+  [/(^|\.)chat\.openai\.com$/, "ChatGPT"],
+  [/(^|\.)openai\.com$/, "OpenAI"],
+  [/(^|\.)perplexity\.ai$/, "Perplexity"],
+  [/(^|\.)gemini\.google\.com$/, "Gemini"],
+  [/(^|\.)aistudio\.google\.com$/, "Gemini"],
+  [/(^|\.)copilot\.microsoft\.com$/, "Copilot"],
+  [/(^|\.)edgeservices\.bing\.com$/, "Copilot"],
+  [/(^|\.)claude\.ai$/, "Claude"],
+  [/(^|\.)grok\.com$/, "Grok"],
+  [/(^|\.)meta\.ai$/, "Meta AI"],
+  [/(^|\.)deepseek\.com$/, "DeepSeek"],
+  [/(^|\.)mistral\.ai$/, "Mistral"],
+  [/(^|\.)you\.com$/, "You.com"],
+  [/(^|\.)phind\.com$/, "Phind"],
+  [/(^|\.)poe\.com$/, "Poe"],
+  [/(^|\.)andisearch\.com$/, "Andi"],
+];
+
+const AI_SESSION_KEY = "vm_ai_referral";
+
+/** Engine name if this session arrived from an AI assistant, else "". Sticky per session. */
+export function aiReferral() {
+  if (typeof window === "undefined") return "";
+  try {
+    const stored = sessionStorage.getItem(AI_SESSION_KEY);
+    if (stored !== null) return stored;
+    let engine = "";
+    const ref = document.referrer;
+    if (ref) {
+      const host = new URL(ref).hostname.toLowerCase();
+      const hit = AI_ENGINES.find(([re]) => re.test(host));
+      if (hit) engine = hit[1];
+    }
+    const utm = new URLSearchParams(window.location.search).get("utm_source") || "";
+    if (!engine && /chatgpt|perplexity|gemini|copilot|claude/i.test(utm)) engine = utm;
+    sessionStorage.setItem(AI_SESSION_KEY, engine);
+    return engine;
+  } catch (_) { return ""; }
+}
+
+function reportAiReferral() {
+  const engine = aiReferral();
+  if (!engine) return;
+  try {
+    if (sessionStorage.getItem(AI_SESSION_KEY + "_sent")) return;
+    sessionStorage.setItem(AI_SESSION_KEY + "_sent", "1");
+  } catch (_) {}
+  trackEvent("ai_referral", { ai_engine: engine, landing_path: window.location.pathname });
 }
 
 // Called on app mount — respects stored consent; loads nothing until the user opts in.
@@ -137,7 +193,8 @@ function scrub(meta = {}) {
 }
 
 export function trackEvent(name, meta = {}) {
-  const safe = scrub(meta);
+  const engine = aiReferral();
+  const safe = { ...scrub(meta), ...(engine ? { ai_engine: engine } : {}) };
   // GA4
   try { window.gtag && window.gtag("event", name, safe); } catch (_) {}
   // GTM dataLayer (central tag manager)
@@ -158,9 +215,11 @@ export function trackEvent(name, meta = {}) {
 }
 
 export function trackPageView(path) {
-  try { window.gtag && window.gtag("event", "page_view", { page_path: path }); } catch (_) {}
+  const engine = aiReferral();
+  const params = { page_path: path, ...(engine ? { ai_engine: engine } : {}) };
+  try { window.gtag && window.gtag("event", "page_view", params); } catch (_) {}
   try { window.fbq && window.fbq("track", "PageView"); } catch (_) {}
   try {
-    api.post("/track", { name: "page_view", path });
+    api.post("/track", { name: "page_view", path, meta: engine ? { ai_engine: engine } : {} });
   } catch (_) {}
 }
