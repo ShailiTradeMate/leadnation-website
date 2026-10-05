@@ -237,7 +237,7 @@ export default function Home() {
 
             <Reveal delay={0.3} y={18}>
               <div className="mt-8 flex items-center gap-7 text-xs text-slate-400">
-                <Stat value="186+" label="Countries" />
+                <Stat value="195+" label="Countries" />
                 <Stat value="32K" label="HS Codes" />
                 <Stat value="1.2M" label="Data points" />
               </div>
@@ -289,7 +289,7 @@ export default function Home() {
         <div className="mt-10 sm:mt-12 grid md:grid-cols-6 gap-4 sm:gap-5">
           <Reveal className="md:col-span-3 md:row-span-2" delay={0.02}>
             <FeatureCard Icon={GlobeHemisphereEast} title="Customs & Compliance Engine"
-              desc="Live HS codes, duty rates, FTA benefits and document checklists for 186+ markets — synced with DGFT, CBAM and customs authorities worldwide."
+              desc="Live HS codes, duty rates, FTA benefits and document checklists for 195+ markets — synced with DGFT, CBAM and customs authorities worldwide."
               link="/customs-compliance" testId="feat-customs" big full />
           </Reveal>
           <Reveal className="md:col-span-3" delay={0.1}>
