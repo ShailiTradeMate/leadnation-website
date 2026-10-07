@@ -208,3 +208,23 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
 - New doc memory/SEO_KEYWORDS.md: 40 target keywords (tiered T1/T2/T3, one page each, with target
   URLs), the top-10 country/corridor priority list backed by FY2025-26 DGCIS trade values, and a
   10-prompt monthly GEO audit list.
+
+## 2026-10-07 — SEO/GEO Part 1: data foundation for product x country pages
+- NEW backend/seo_pages.py (router /api/seo): /catalogue (8 products, 56 countries, 5 regions),
+  /page-data/{product}/{country} (duty + preferential + RoDTEP + world/country demand + buyers +
+  expos + news + sources[] + disclaimer + dataScore + indexable), /matrix (scores every combination,
+  24h cache, concurrency 8), POST /refresh-all (admin: WITS + RoDTEP + trade cache + HS directory +
+  news + expo engines, per-source report).
+- Data sufficiency gate: duty 40 + demand 30 + buyers 15 + expos 8 + news 7; indexable needs >=70
+  AND a real tariff record AND real demand. Low-score pages render noindex and are never submitted
+  to sitemap/IndexNow; they flip automatically when data lands.
+- FIXED: trade_intel returned "No trade data found" for every HS code (stale in-memory HS directory,
+  5,606 of 16,818 codes; OEC members endpoint 307s). Now falls back to Mongo, rebuilds, and uses
+  follow_redirects.
+- NEW trade_intel.importer_table()/importer_detail(): per-country import value, world rank and share
+  (222 reporting countries, OEC/BACI 2024), cached 14 days — gives every page unique real data.
+- FIXED: /seo/matrix exceeded the 60s gateway limit; now asyncio.gather with semaphore(8) + cache.
+  Verified: agarbatti x middle-east = 9 combos in 8.5s, 8 indexable, Bahrain correctly excluded
+  (score 37, no tariff record). basmati->germany score 100 (duty 0% WITS 2023, RoDTEP 1.0%,
+  $462.7M imports rank 20/222 OEC 2024, 5,280 buyers, 4 expos, 4 news).
+- Docs: memory/seo/EXECUTION_PLAN.md (6-part plan + status board + 7-item owner backlog).

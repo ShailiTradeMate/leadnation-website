@@ -115,6 +115,10 @@ building anything new on top of it.
 - [ ] Wire Razorpay checkout + webhook once keys arrive (gateway toggle + pricing already in the Pricing Engine).
 
 # 5. P1/P2 — VERIFIED BUYER & CMS PRODUCT BACKLOG
+- [ ] **SEO/GEO programme** — live plan + status board in `memory/seo/EXECUTION_PLAN.md`
+      (Part 1 data foundation DONE 7 Oct 2026; Parts 2-6 pending). Owner backlog items tracked there:
+      CHA tool SEO-readiness, Middle East buyer ingestion sources, 2nd duty source (needs free WTO key),
+      optional Comtrade key, admin refresh button, FTA coverage, expo/news country aliases.
 - [ ] **SEO corridor pages to build** (from memory/SEO_KEYWORDS.md, 6 Oct 2026) — 8 new corridor pages
       with FY2025-26 trade values, duty/FTA tables and an as-of date: /corridors/india-to-china,
       -to-netherlands, -to-uk, -to-singapore, -to-germany, -to-saudi-arabia, -to-bangladesh

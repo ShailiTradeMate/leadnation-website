@@ -278,3 +278,53 @@ async def hs_search_route(q: str = Query("", min_length=0), limit: int = 10):
 @router.get("/stats")
 async def stats_route(hs: str = Query(...), force: bool = False):
     return await trade_stats(hs, force=force)
+
+
+# ---------------- Full importer table (country-level detail for SEO pages) ----------------
+async def importer_table(hs6: str, force: bool = False):
+    """Every importing country for the latest year, cached. Lets a page show its own
+    country's real import value and world rank instead of only a global top-N."""
+    hs6 = _norm_hs(hs6)
+    meta = (await _load_hs_map()).get(hs6)
+    if not meta:
+        return None
+    cache_id = f"imptable:{hs6}"
+    if not force:
+        cached = await CACHE.find_one({"_id": cache_id})
+        if cached and (_now() - datetime.fromisoformat(cached["refreshedAt"])).days < CACHE_TTL_DAYS:
+            return cached["result"]
+    try:
+        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as cx:
+            years = await _oec_query(cx, "Year", meta["id"])
+            if not years:
+                return None
+            latest = max(int(r["Year"]) for r in years)
+            rows = await _oec_query(cx, "Importer Country", meta["id"], latest)
+    except Exception as exc:
+        logging.warning("OEC importer table failed for %s: %s", hs6, exc)
+        return None
+    clean = [{"country": r.get("Importer Country"), "value": round(r.get("Trade Value") or 0, 2)}
+             for r in rows if (r.get("Trade Value") or 0) > 0]
+    clean.sort(key=lambda r: -r["value"])
+    total = sum(r["value"] for r in clean)
+    for i, r in enumerate(clean, 1):
+        r["rank"] = i
+        r["share"] = round(100 * r["value"] / total, 2) if total else 0
+    result = {"year": latest, "total": total, "count": len(clean), "rows": clean,
+              "source": "OEC World (CEPII BACI / UN Comtrade)"}
+    await CACHE.replace_one({"_id": cache_id},
+                            {"_id": cache_id, "result": result, "refreshedAt": _now().isoformat()},
+                            upsert=True)
+    return result
+
+
+async def importer_detail(hs6: str, country_name: str):
+    table = await importer_table(hs6)
+    if not table:
+        return None
+    row = next((r for r in table["rows"] if (r["country"] or "").lower() == (country_name or "").lower()), None)
+    return {"year": table["year"], "worldImportsUSD": table["total"], "countriesReporting": table["count"],
+            "source": table["source"],
+            "countryImportsUSD": (row or {}).get("value"),
+            "countryShare": (row or {}).get("share"),
+            "countryRank": (row or {}).get("rank")}
