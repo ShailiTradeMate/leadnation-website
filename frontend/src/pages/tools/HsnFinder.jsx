@@ -5,6 +5,7 @@ import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
 import { MagnifyingGlass } from "@phosphor-icons/react";
+import { HsCodePicker } from "@/components/HsCodePicker";
 
 const CATEGORIES = ["Agriculture & Food", "FMCG", "Textiles & Apparel", "Pharmaceuticals", "Engineering", "Chemicals", "Handicrafts"];
 
@@ -44,6 +45,17 @@ export default function HsnFinder() {
             </Field>
             <Field label="Description (optional)">
               <textarea data-testid="hsn-description" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none" />
+            </Field>
+            <Field label="Or pick from the full HS nomenclature (5,606 codes)">
+              <HsCodePicker
+                label=""
+                testId="hsn-directory-picker"
+                value={form.hs6 || ""}
+                onChange={(code, row) => {
+                  setForm({ ...form, hs6: code, productName: row?.description || form.productName });
+                  if (row?.description) setResults([]);
+                }}
+              />
             </Field>
             <Field label="Category">
               <ResponsiveSelect data-testid="hsn-category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full glass rounded-xl px-4 py-3 outline-none">

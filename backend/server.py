@@ -83,6 +83,10 @@ async def _startup():
         seo.start_seo_scheduler()
     except Exception as exc:
         logging.warning("SEO auto-ping scheduler init failed: %s", exc)
+    try:
+        await trade_intel.ensure_hs_directory()
+    except Exception as exc:
+        logging.warning("HS directory init failed: %s", exc)
     for name, source in CMS_COLLECTIONS.items():
         try:
             await _seed_collection(name, source)

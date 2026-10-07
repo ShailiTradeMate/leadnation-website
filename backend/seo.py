@@ -112,6 +112,21 @@ def _dynamic_routes():
     return routes
 
 
+async def _product_country_routes():
+    """Gate-approved product x country guides only — never submit a noindex or thin page."""
+    try:
+        from core import db as _db
+        urls = set()
+        async for doc in _db.seo_matrix_cache.find({}, {"_id": 0, "rows": 1}):
+            for r in doc.get("rows", []):
+                if r.get("indexable") and r.get("url"):
+                    urls.add(r["url"])
+        return [(u, "monthly", "0.8") for u in sorted(urls)]
+    except Exception as exc:
+        logger.warning("sitemap product-country source: %s", exc)
+        return []
+
+
 async def _event_routes():
     """Live expo listings — each published event has a public /expo/{id} page."""
     try:
@@ -148,7 +163,7 @@ async def _lastmod_map():
 async def sitemap_xml():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     lastmods = await _lastmod_map()
-    urls = all_public_urls() + await _event_routes()
+    urls = all_public_urls() + await _event_routes() + await _product_country_routes()
     rows = "".join(
         f"<url><loc>{SITE}{loc}</loc><lastmod>{lastmods.get(loc, today)}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>"
@@ -242,7 +257,9 @@ async def weekly_full_sweep(boot: bool = False):
         if last and (datetime.now(timezone.utc) - datetime.fromisoformat(last["at"])).total_seconds() < 86400:
             logger.info("IndexNow boot sweep skipped (swept within 24h)")
             return {"ok": True, "skipped": "recently swept"}
-    paths = [loc for loc, _f, _p in all_public_urls()] + [loc for loc, _f, _p in await _event_routes()]
+    paths = ([loc for loc, _f, _p in all_public_urls()]
+             + [loc for loc, _f, _p in await _event_routes()]
+             + [loc for loc, _f, _p in await _product_country_routes()])
     result = await indexnow_submit(paths)
     try:
         await db.seo_pings.insert_one({"source": "boot-sweep" if boot else "weekly-sweep",

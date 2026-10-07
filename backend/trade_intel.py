@@ -85,22 +85,94 @@ async def _load_hs_map() -> dict:
 
 
 async def hs_search(q: str, limit: int = 10):
-    mp = await _load_hs_map()
-    ql = (q or "").strip().lower()
+    """Search the FULL HS6 directory (~16.8k codes) straight from Mongo so results never
+    depend on a warm in-memory map."""
+    ql = (q or "").strip()
     if not ql:
         return []
     digits = re.sub(r"\D", "", ql)
-    out = []
-    if digits:  # numeric → prefix match on code
-        for hs6, v in mp.items():
-            if hs6.startswith(digits[:6]):
-                out.append({"hs6": hs6, "description": v["desc"]})
-    else:  # text → match description
-        for hs6, v in mp.items():
-            if ql in v["desc"].lower():
-                out.append({"hs6": hs6, "description": v["desc"]})
+    if digits:
+        cur = HS_MAP_COLL.find({"hs6": {"$regex": f"^{digits[:6]}"}}, {"_id": 0}).limit(limit * 3)
+    else:
+        safe = re.escape(ql)
+        cur = HS_MAP_COLL.find({"desc": {"$regex": safe, "$options": "i"}}, {"_id": 0}).limit(limit * 3)
+    rows = await cur.to_list(limit * 3)
+    out = [{"hs6": r["hs6"], "description": r.get("desc", "")} for r in rows]
     out.sort(key=lambda x: len(x["description"]))
     return out[:limit]
+
+
+HS_SECTION_NAMES = {
+    1: "Animals & animal products", 2: "Vegetable products", 3: "Fats & oils",
+    4: "Prepared foodstuffs, beverages & tobacco", 5: "Mineral products",
+    6: "Chemicals & allied industries", 7: "Plastics & rubber", 8: "Hides, skins & leather",
+    9: "Wood & wood products", 10: "Pulp, paper & paperboard", 11: "Textiles & apparel",
+    12: "Footwear & headgear", 13: "Stone, cement, ceramics & glass",
+    14: "Pearls, precious stones & metals", 15: "Base metals & articles",
+    16: "Machinery & electrical equipment", 17: "Vehicles, aircraft & vessels",
+    18: "Optical, medical & precision instruments", 19: "Arms & ammunition",
+    20: "Miscellaneous manufactured articles", 21: "Works of art & antiques",
+}
+
+
+async def ensure_hs_directory():
+    """Startup: index the directory and build it once if missing/partial."""
+    try:
+        await HS_MAP_COLL.create_index("hs6", unique=True)
+        await HS_MAP_COLL.create_index("desc")
+        count = await HS_MAP_COLL.count_documents({})
+        if count < 5000:
+            global _HS_MAP
+            _HS_MAP = {}
+            await HS_MAP_COLL.delete_many({})
+            mp = await _load_hs_map()
+            logging.info("HS directory built: %s codes", len(mp))
+        else:
+            logging.info("HS directory ready: %s codes", count)
+    except Exception as exc:
+        logging.warning("HS directory init failed: %s", exc)
+
+
+@router.get("/hs-directory")
+async def hs_directory(q: str = Query("", description="code prefix or description text"),
+                       chapter: str = Query(""), section: int = Query(0),
+                       limit: int = Query(50, le=500), offset: int = Query(0, ge=0)):
+    """Complete HS6 directory with search + paging — powers every HS picker on the site."""
+    query: dict = {}
+    digits = re.sub(r"\D", "", q or "")
+    if digits:
+        query["hs6"] = {"$regex": f"^{digits[:6]}"}
+    elif q.strip():
+        query["desc"] = {"$regex": re.escape(q.strip()), "$options": "i"}
+    if chapter:
+        ch = re.sub(r"\D", "", chapter)[:2].zfill(2)
+        query["hs6"] = {"$regex": f"^{ch}"}
+    if section:
+        query["id"] = {"$gte": section * 1000000, "$lt": (section + 1) * 1000000}
+    total = await HS_MAP_COLL.count_documents(query)
+    rows = await HS_MAP_COLL.find(query, {"_id": 0}).sort("hs6", 1).skip(offset).limit(limit).to_list(limit)
+    return {
+        "total": total, "limit": limit, "offset": offset,
+        "results": [{"hs6": r["hs6"], "chapter": r["hs6"][:2],
+                     "section": int(str(r["id"])[:-6]) if r.get("id") else None,
+                     "description": r.get("desc", "")} for r in rows],
+        "source": "World Customs Organization HS 2022 nomenclature (via OEC/BACI directory)",
+    }
+
+
+@router.get("/hs-chapters")
+async def hs_chapters():
+    """All 97 HS chapters with code counts — for grouped dropdowns."""
+    pipeline = [{"$group": {"_id": {"$substr": ["$hs6", 0, 2]}, "count": {"$sum": 1},
+                            "sample": {"$first": "$desc"}, "sid": {"$first": "$id"}}},
+                {"$sort": {"_id": 1}}]
+    rows = await HS_MAP_COLL.aggregate(pipeline).to_list(200)
+    return {"count": len(rows),
+            "chapters": [{"chapter": r["_id"], "codes": r["count"], "example": r["sample"],
+                          "section": int(str(r["sid"])[:-6]) if r.get("sid") else None,
+                          "sectionName": HS_SECTION_NAMES.get(
+                              int(str(r["sid"])[:-6]) if r.get("sid") else 0, "")}
+                         for r in rows]}
 
 
 # ---------------- OEC source (free) ----------------

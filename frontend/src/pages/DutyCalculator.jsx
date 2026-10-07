@@ -1,5 +1,6 @@
 import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import React, { useEffect, useState } from "react";
+import { HsCodePicker } from "@/components/HsCodePicker";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO, { baseOrgSchema } from "@/components/SEO";
@@ -105,6 +106,15 @@ export default function DutyCalculator() {
                 <option key={c.code} value={c.code} className="bg-[#0a0f24]">{c.flag} {c.name}</option>
               ))}
             </ResponsiveSelect>
+          </Field>
+
+          <Field label="HS / HSN code (optional — all 5,606 codes)">
+            <HsCodePicker
+              label=""
+              testId="duty-hs-picker"
+              value={form.hs6 || ""}
+              onChange={(code) => setForm({ ...form, hs6: code })}
+            />
           </Field>
 
           <Field label="Product Category">

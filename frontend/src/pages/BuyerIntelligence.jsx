@@ -8,6 +8,7 @@ import { fetchBuyerMeta, searchBuyers, fetchBuyerSources } from "@/lib/vbieApi";
 import { SOURCE_CATEGORIES, USAGE_NOTE } from "@/lib/sourceCategories";
 import BuyerDataNotice from "@/components/BuyerDataNotice";
 import { MagnifyingGlass, ShieldCheck, Sparkle, Info } from "@phosphor-icons/react";
+import { HsCodePicker } from "@/components/HsCodePicker";
 
 const TRUST_MINS = [
   { label: "Any trust", value: 0 },
@@ -87,6 +88,13 @@ export default function BuyerIntelligence() {
             <Select testid="buyer-filter-corridor" label="Trade corridor" value={filters.corridor}
               onChange={(v) => setFilters({ ...filters, corridor: v })}
               options={[{ label: "All corridors", value: "" }, ...(meta?.corridors || []).map((c) => ({ label: c, value: c }))]} />
+            <HsCodePicker
+              label="HS code"
+              testId="buyer-filter-hs"
+              placeholder="Any HS code"
+              value={filters.hs || ""}
+              onChange={(code) => setFilters({ ...filters, hs: code })}
+            />
             <Select testid="buyer-filter-trust" label="Minimum trust" value={filters.trust_min}
               onChange={(v) => setFilters({ ...filters, trust_min: Number(v) })}
               options={TRUST_MINS} />
