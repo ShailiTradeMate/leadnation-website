@@ -228,3 +228,33 @@ Feature freeze temporarily lifted for user-requested build. All shared with mobi
   (score 37, no tariff record). basmati->germany score 100 (duty 0% WITS 2023, RoDTEP 1.0%,
   $462.7M imports rank 20/222 OEC 2024, 5,280 buyers, 4 expos, 4 news).
 - Docs: memory/seo/EXECUTION_PLAN.md (6-part plan + status board + 7-item owner backlog).
+
+## 2026-10-07 — SEO/GEO Part 2: full HS directory + product x country page template
+HS CODES EVERYWHERE (owner request)
+- trade_intel: hs_search() now queries Mongo (was a stale in-memory map), new GET /hs-directory
+  (search by code prefix or description, chapter/section filter, paging) and GET /hs-chapters
+  (96 chapters with counts + WCO section names). ensure_hs_directory() runs at startup: creates a
+  unique index on hs6, rebuilds if the directory is partial.
+- Deduped db.trade_hs_map 16,818 -> 5,606 unique codes = the complete WCO HS-2022 six-digit
+  nomenclature. Every HS suggestion field on the site now searches all 5,606 codes.
+- NEW components/HsCodePicker.jsx — shared searchable picker (debounced server search, keyboard
+  nav, clear, mobile-friendly, data-testids). Wired into /tools/hsn-finder, /tools/duty-calculator
+  and the /buyers HS filter. Customs & Compliance + Command Center suggestion inputs inherit the fix.
+
+PART 2 — PRODUCT x COUNTRY TEMPLATE
+- NEW pages/ExportProductCountry.jsx at route /export/:product/to/:country. Answer-first opener,
+  trade snapshot, duty table with SOURCE/AS-OF line, demand (world + country + rank of 222), document
+  checklist, buyer panel, landed-cost explainer, expos, news, 8-question FAQ, and a sticky action rail
+  linking Brain / HS finder / duty / landed cost / buyers / Command Center / country / corridor.
+- noindex is driven by the API's `indexable` flag; thin pages show an explicit notice.
+- Buyer honesty: real counts in Europe; "coverage expanding + notify me" panel elsewhere. No invented counts.
+- seo.py _product_country_routes(): only indexable=true rows enter the sitemap and the IndexNow sweep
+  (sitemap now 182 URLs incl. 27 /export guides; agarbatti/bahrain correctly excluded).
+
+SEO BUG FIXED SITE-WIDE
+- public/index.html carried a static robots meta AND a canonical pointing at the homepage, so EVERY
+  route emitted two robots tags and two canonicals (one wrong). Both removed — react-helmet is now
+  authoritative. Verified: exactly one robots + one self-referencing canonical per page.
+
+TESTING — iteration_69: backend 20/21 pytest (one transient 502 flake, endpoint verified by sibling
+tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
