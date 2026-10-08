@@ -395,3 +395,187 @@ async def refresh_all(x_admin_token: str = Header(default=None)):
 
     report["at"] = datetime.now(timezone.utc).isoformat()
     return {"ok": True, "report": report}
+
+
+# ---------------------------------------------------------------- region hubs
+REGION_HUBS = {
+    "europe": {
+        "name": "Europe", "demonym": "European",
+        "intro": ("Europe is the deepest verified-buyer market on Vametra AI and the most "
+                  "document-driven: EU import duty is set by the Union's Common Customs Tariff, "
+                  "so the rate is identical in every member state, while VAT, labelling and "
+                  "product-conformity rules are national. Pick a country below to see the real "
+                  "applied tariff for your product, the market's own import demand and the "
+                  "verified importers we hold."),
+        "facts": [
+            "EU member states share one external tariff (Common Customs Tariff), so the duty rate is the same whichever member state clears the goods.",
+            "Import VAT, labelling and conformity requirements are national — always check the destination state, not just 'the EU'.",
+            "Agri-food consignments need SPS/phytosanitary documentation and EU-registered establishments for products of animal origin.",
+            "The UK and Switzerland are outside the EU customs union — they set their own tariffs.",
+        ],
+    },
+    "middle-east": {
+        "name": "Middle East", "demonym": "Middle Eastern",
+        "intro": ("The Gulf is the fastest-moving re-export and consumption hub for Asian and "
+                  "African exporters: GCC states apply a 5% common external tariff on most goods "
+                  "and 5% VAT in most members, and India's CEPA with the UAE removes duty on a "
+                  "large share of tariff lines. Verified buyer records for this region are still "
+                  "being ingested — demand figures below are real; buyer coverage is labelled "
+                  "honestly per country."),
+        "facts": [
+            "GCC customs union applies a 5% common external tariff on most goods, with exemptions for many foodstuffs and medicines.",
+            "VAT is 5% in the UAE, Bahrain, Oman and Qatar (0% on some goods) and 15% in Saudi Arabia.",
+            "India–UAE CEPA removes or reduces duty on a large share of tariff lines — check the preferential rate before quoting.",
+            "Saudi Arabia requires SABER/SASO conformity for regulated products; the UAE requires ESMA/MoIAT conformity for many categories.",
+        ],
+    },
+    "asia-pacific": {
+        "name": "Asia Pacific", "demonym": "Asia-Pacific",
+        "intro": ("Asia Pacific holds the largest import volumes on earth and the widest tariff "
+                  "spread — from zero-duty Singapore and Hong Kong to heavily protected "
+                  "agri-food lines. It is also the densest FTA network in the world (ASEAN, "
+                  "RCEP, CPTPP, bilateral CEPAs), so the preferential rate for your origin often "
+                  "matters more than the MFN rate."),
+        "facts": [
+            "Tariffs vary enormously by country and product — always check the specific destination, not a regional average.",
+            "RCEP, ASEAN and bilateral CEPAs can cut duty to zero for qualifying origin — certificates of origin are decisive.",
+            "Japan, South Korea and Australia enforce strict food-safety, labelling and quarantine rules on agri-food imports.",
+            "Singapore and Hong Kong are low/zero-duty re-export hubs rather than final-consumption markets.",
+        ],
+    },
+}
+
+REGION_INDEX_MIN_GUIDES = 3
+
+
+async def _region_rows(slug: str):
+    """Matrix rows for a region, from the 24h matrix cache (computed on demand)."""
+    cached = await db.seo_matrix_cache.find_one({"_id": "matrix:all:all"})
+    fresh = cached and (datetime.now(timezone.utc)
+                        - datetime.fromisoformat(cached["at"])).total_seconds() < 86400
+    if fresh:
+        return [r for r in cached["rows"] if r.get("region") == slug], cached["at"]
+    own = await db.seo_matrix_cache.find_one({"_id": f"matrix:all:{slug}"})
+    if own and (datetime.now(timezone.utc)
+                - datetime.fromisoformat(own["at"])).total_seconds() < 86400:
+        return own["rows"], own["at"]
+    if cached:  # stale but real — serve it rather than block the page
+        return [r for r in cached["rows"] if r.get("region") == slug], cached["at"]
+    built = await matrix(region=slug, limit=1000)
+    return built["rows"], datetime.now(timezone.utc).isoformat()
+
+
+@router.get("/regions")
+async def region_index():
+    out = []
+    for slug, hub in REGION_HUBS.items():
+        rows, at = await _region_rows(slug)
+        per_country = {}
+        for r in rows:
+            per_country[r["country"]] = max(per_country.get(r["country"], 0), r.get("buyers") or 0)
+        out.append({
+            "slug": slug, "name": hub["name"], "url": f"/regions/{slug}",
+            "countries": len({r["country"] for r in rows}),
+            "guides": sum(1 for r in rows if r["indexable"]),
+            "buyers": sum(per_country.values()),
+            "dataAsOf": at,
+        })
+    return {"total": len(out), "regions": out}
+
+
+@router.get("/region/{slug}")
+async def region_page(slug: str):
+    hub = REGION_HUBS.get(slug)
+    if not hub:
+        raise HTTPException(status_code=404, detail="Unknown region")
+    rows, at = await _region_rows(slug)
+    if not rows:
+        raise HTTPException(status_code=503, detail="Region data is being built — try again shortly")
+
+    try:
+        import content, engines
+        corridor_slugs = set(content.CORRIDOR_DB.keys())
+        profile_slugs = set(engines.COUNTRY_PROFILES.keys())
+    except Exception:
+        corridor_slugs, profile_slugs = set(), set()
+
+    by_country = {}
+    for r in rows:
+        c = by_country.setdefault(r["country"], {"rows": [], "buyers": 0})
+        c["rows"].append(r)
+        c["buyers"] = max(c["buyers"], r.get("buyers") or 0)
+
+    countries = []
+    for cslug, agg in by_country.items():
+        meta = COUNTRIES.get(cslug) or {}
+        best = max(agg["rows"], key=lambda r: (r["indexable"], r.get("countryImportsUSD") or 0,
+                                               r["dataScore"]))
+        duties = [r["dutyRate"] for r in agg["rows"] if r.get("dutyRate") is not None]
+        countries.append({
+            "slug": cslug, "name": meta.get("name", cslug.replace("-", " ").title()),
+            "code": meta.get("code", ""),
+            "guides": [{"url": r["url"], "product": PRODUCTS[r["product"]]["name"],
+                        "dutyRate": r["dutyRate"], "importsUSD": r.get("countryImportsUSD"),
+                        "rank": r.get("countryRank")}
+                       for r in sorted(agg["rows"], key=lambda r: -(r.get("countryImportsUSD") or 0))
+                       if r["indexable"]][:4],
+            "indexableGuides": sum(1 for r in agg["rows"] if r["indexable"]),
+            "topImportsUSD": best.get("countryImportsUSD"),
+            "topProduct": PRODUCTS[best["product"]]["name"],
+            "dutyRange": ({"min": min(duties), "max": max(duties)} if duties else None),
+            "buyers": agg["buyers"],
+            "buyerCoverage": bool(agg["buyers"] > 0),
+            "profileUrl": f"/countries/{cslug}" if cslug in profile_slugs else None,
+            "corridorUrl": (f"/corridors/india-to-{cslug}"
+                            if f"india-to-{cslug}" in corridor_slugs else None),
+            "dutyToolUrl": f"/tools/duty-calculator?from={INDIA}&to={meta.get('code', '')}",
+            "landedCostUrl": f"/tools/landed-cost-calculator?from={INDIA}&to={meta.get('code', '')}",
+            "buyersUrl": f"/buyers?country={meta.get('name', '')}",
+        })
+    countries.sort(key=lambda c: (-(c["indexableGuides"]), -(c["topImportsUSD"] or 0)))
+
+    products = {}
+    for r in rows:
+        p = products.setdefault(r["product"], {"slug": r["product"],
+                                               "name": PRODUCTS[r["product"]]["name"],
+                                               "sector": PRODUCTS[r["product"]]["sector"],
+                                               "importsUSD": 0, "guides": 0, "markets": []})
+        p["importsUSD"] += r.get("countryImportsUSD") or 0
+        if r["indexable"]:
+            p["guides"] += 1
+            p["markets"].append({"url": r["url"], "country": (COUNTRIES.get(r["country"]) or {})
+                                 .get("name", r["country"]),
+                                 "importsUSD": r.get("countryImportsUSD")})
+    product_list = sorted(products.values(), key=lambda p: -p["importsUSD"])
+    for p in product_list:
+        p["markets"] = sorted(p["markets"], key=lambda m: -(m["importsUSD"] or 0))[:5]
+
+    indexable_guides = sum(1 for r in rows if r["indexable"])
+    total_imports = sum(r.get("countryImportsUSD") or 0 for r in rows)
+    buyer_total = sum(c["buyers"] for c in countries)
+    indexable = bool(indexable_guides >= REGION_INDEX_MIN_GUIDES and total_imports > 0)
+
+    return {
+        "slug": slug, "name": hub["name"], "url": f"/regions/{slug}",
+        "intro": hub["intro"], "facts": hub["facts"],
+        "stats": {"countries": len(countries), "guides": indexable_guides,
+                  "importsUSD": total_imports, "buyerRecords": buyer_total,
+                  "buyerCoveredCountries": sum(1 for c in countries if c["buyerCoverage"])},
+        "countries": countries, "products": product_list,
+        "indexable": indexable,
+        "indexNote": (None if indexable else
+                      "This hub is not submitted for indexing yet — it needs at least "
+                      f"{REGION_INDEX_MIN_GUIDES} product-market guides backed by real tariff and demand data."),
+        "sources": [
+            {"name": "World Bank WITS / UNCTAD TRAINS", "field": "import duty", "asOf": at[:10]},
+            {"name": "OEC World (CEPII BACI / UN Comtrade)", "field": "import demand", "asOf": at[:10]},
+            {"name": "Vametra Verified Buyer Intelligence (VBIE)", "field": "buyers", "asOf": at[:10]},
+        ],
+        "disclaimer": ("Tariff and demand figures carry the reporting year of their source and can lag "
+                       "the current year. Verified buyer coverage differs by country and is stated per "
+                       "country below — where it reads 'coverage expanding' we hold no screened records "
+                       "for that market yet. Confirm duty and compliance in the destination's own tariff "
+                       "schedule before contracting."),
+        "dataAsOf": at,
+        "generatedAt": datetime.now(timezone.utc).isoformat(),
+    }

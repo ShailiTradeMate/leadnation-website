@@ -63,6 +63,7 @@ export default function Footer() {
             <li><Link to="/products" className="hover:text-cyan-300" data-testid="footer-link-products-index">Products</Link></li>
             <li><Link to="/corridors" className="hover:text-cyan-300" data-testid="footer-link-corridors">Trade Corridors</Link></li>
             <li><Link to="/countries" className="hover:text-cyan-300" data-testid="footer-link-countries">Country Profiles</Link></li>
+            <li><Link to="/regions" className="hover:text-cyan-300" data-testid="footer-link-regions">Export Regions</Link></li>
             <li><Link to="/industries" className="hover:text-cyan-300" data-testid="footer-link-industries">Industries</Link></li>
             <li><Link to="/intelligence" className="hover:text-cyan-300" data-testid="footer-link-intelligence">Intelligence</Link></li>
             <li><Link to="/academy" className="hover:text-cyan-300" data-testid="footer-link-academy">Academy</Link></li>

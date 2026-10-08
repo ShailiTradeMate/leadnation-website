@@ -150,7 +150,11 @@ export default function ExportProductCountry() {
         <div className="reveal-up">
           <nav aria-label="Breadcrumb" className="text-[11px] font-mono-display tracking-[0.18em] uppercase text-slate-500">
             <Link to="/products" className="hover:text-cyan-300">Products</Link> ·{" "}
-            <Link to={`/products/${p.slug}`} className="hover:text-cyan-300">{p.name}</Link> · {c.name}
+            <Link to={`/products/${p.slug}`} className="hover:text-cyan-300">{p.name}</Link> ·{" "}
+            {["europe", "middle-east", "asia-pacific"].includes(c.region) && (
+              <><Link to={`/regions/${c.region}`} data-testid="epc-region-link" className="hover:text-cyan-300">{c.region.replace("-", " ")}</Link> · </>
+            )}
+            {c.name}
           </nav>
           <h1 data-testid="epc-h1" className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl lg:text-5xl mt-4 leading-[1.08]">
             Export {p.name} from India to{" "}

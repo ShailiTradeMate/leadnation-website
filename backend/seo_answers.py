@@ -238,6 +238,56 @@ def _fmt_usd(v):
     return f"US${v:.0f}"
 
 
+async def _region_doc(slug):
+    data = await seo_pages.region_page(slug)
+    st = data["stats"]
+    title = f"Exporting to {data['name']} — duty, demand, documents and buyers by country"
+    md = [f"# {title}", "", data["intro"], "",
+          f"Vametra AI tracks {st['countries']} {data['name']} markets, {st['guides']} product-market "
+          f"export guides backed by real tariff and demand data, and "
+          f"{_fmt_usd(st['importsUSD'])} of measured import demand across the tracked products. "
+          f"Verified buyer records are available for {st['buyerCoveredCountries']} of "
+          f"{st['countries']} countries in this region.", "",
+          f"## What exporters need to know about {data['name']}", ""]
+    md += [f"- {f}" for f in data["facts"]] + [""]
+
+    md += ["## Import demand by product in this region", ""]
+    for p in data["products"]:
+        if p["importsUSD"]:
+            md.append(f"- {p['name']} ({p['sector']}): {_fmt_usd(p['importsUSD'])} imported by the "
+                      f"tracked markets, {p['guides']} market guide(s) published.")
+    md.append("")
+
+    md += [f"## {data['name']} markets", ""]
+    for c in data["countries"]:
+        bits = [f"### {c['name']}"]
+        line = []
+        if c["topImportsUSD"]:
+            line.append(f"imports {_fmt_usd(c['topImportsUSD'])} of {c['topProduct']}")
+        if c["dutyRange"]:
+            dr = c["dutyRange"]
+            line.append(f"applied duty {dr['min']}%" + (f"–{dr['max']}%" if dr['max'] != dr['min'] else ""))
+        line.append(f"{c['buyers']} verified importer records" if c["buyerCoverage"]
+                    else "verified buyer coverage expanding")
+        sentence = ", ".join(line)
+        bits += ["", sentence[:1].upper() + sentence[1:] + "."]
+        for g in c["guides"]:
+            bits.append(f"- {g['product']}: {SITE}{g['url']}")
+        md += bits + [""]
+
+    md += ["## Data sources", ""]
+    for s in data["sources"]:
+        md.append(f"- {s['name']} (as of {s.get('asOf')}) — {s['field']}")
+    md += ["", f"Disclaimer: {data['disclaimer']}", "",
+           "## Source", f"Vametra AI — {SITE}{data['url']}", ""]
+
+    desc = (f"Export to {data['name']}: applied import duty, real import demand and verified buyers "
+            f"across {st['countries']} markets, with {st['guides']} product-market guides.")
+    return {"path": data["url"], "title": title, "description": desc,
+            "markdown": "\n".join(md), "indexable": data["indexable"],
+            "sources": [s["name"] for s in data["sources"]]}
+
+
 def _tool_doc(path):
     t = TOOL_ANSWERS[path]
     md = [f"# {t['title']}", "", t["answer"], ""]
@@ -396,7 +446,15 @@ async def _indexable_export_paths():
 
 async def answer_paths():
     """Paths that have a crawlable answer document — used by the sitemap and llms.txt."""
-    return list(TOOL_ANSWERS.keys()) + await _indexable_export_paths()
+    regions = []
+    try:
+        for slug in seo_pages.REGION_HUBS:
+            data = await seo_pages.region_page(slug)
+            if data.get("indexable"):
+                regions.append(data["url"])
+    except Exception as exc:
+        logger.warning("answer region index: %s", exc)
+    return list(TOOL_ANSWERS.keys()) + regions + await _indexable_export_paths()
 
 
 async def _doc_for(path):
@@ -404,6 +462,8 @@ async def _doc_for(path):
     if path in TOOL_ANSWERS:
         return _tool_doc(path)
     parts = path.strip("/").split("/")
+    if len(parts) == 2 and parts[0] == "regions" and parts[1] in seo_pages.REGION_HUBS:
+        return await _region_doc(parts[1])
     if len(parts) == 4 and parts[0] == "export" and parts[2] == "to":
         return await _export_doc(parts[1], parts[3])
     raise HTTPException(status_code=404, detail="No answer document for this path")

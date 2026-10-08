@@ -35,6 +35,8 @@ const BrainPage = lazy(() => import("@/pages/Brain"));
 const AiAssistant = lazy(() => import("@/pages/AiAssistant"));
 
 const CountriesIndex = lazy(() => import("@/pages/CountriesIndex"));
+const RegionsIndex = lazy(() => import("@/pages/RegionsIndex"));
+const RegionHub = lazy(() => import("@/pages/RegionHub"));
 const CountryProfile = lazy(() => import("@/pages/CountryProfile"));
 const ProductsIndex = lazy(() => import("@/pages/Products").then((m) => ({ default: m.ProductsIndex })));
 const ProductDetail = lazy(() => import("@/pages/Products"));
@@ -128,6 +130,8 @@ function App() {
 
                   {/* Discovery layer */}
                   <Route path="/countries" element={<CountriesIndex />} />
+                  <Route path="/regions" element={<RegionsIndex />} />
+                  <Route path="/regions/:slug" element={<RegionHub />} />
                   <Route path="/countries/:slug" element={<CountryProfile />} />
                   <Route path="/products" element={<ProductsIndex />} />
                   <Route path="/products/:slug" element={<ProductDetail />} />

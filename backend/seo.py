@@ -51,6 +51,7 @@ def _static_routes():
         ("/intelligence", "daily", "0.9"),
         ("/academy", "weekly", "0.9"),
         ("/countries", "weekly", "0.9"),
+        ("/regions", "weekly", "0.9"),
         ("/products", "weekly", "0.9"),
         ("/corridors", "weekly", "0.9"),
         ("/industries", "weekly", "0.8"),
@@ -159,6 +160,20 @@ async def _lastmod_map():
         return {}
 
 
+async def _region_routes():
+    """Region hubs — only the ones that pass the data gate."""
+    out = []
+    try:
+        import seo_pages
+        for slug in seo_pages.REGION_HUBS:
+            data = await seo_pages.region_page(slug)
+            if data.get("indexable"):
+                out.append((data["url"], "weekly", "0.95"))
+    except Exception as exc:
+        logger.warning("sitemap region source: %s", exc)
+    return out
+
+
 async def _answer_routes():
     """Crawlable answer documents (GEO) — full page text for engines that don't run JS."""
     try:
@@ -174,7 +189,7 @@ async def sitemap_xml():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     lastmods = await _lastmod_map()
     urls = (all_public_urls() + await _event_routes() + await _product_country_routes()
-            + await _answer_routes())
+            + await _region_routes() + await _answer_routes())
     rows = "".join(
         f"<url><loc>{SITE}{loc}</loc><lastmod>{lastmods.get(loc, today)}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>"

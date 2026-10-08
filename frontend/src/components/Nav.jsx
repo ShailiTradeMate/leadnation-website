@@ -63,6 +63,7 @@ const EXPLORE = [
   { to: "/products", label: "Products", icon: Package, desc: "Product trade profiles" },
   { to: "/corridors", label: "Corridors", icon: ArrowsLeftRight, desc: "India → World trade lanes" },
   { to: "/countries", label: "Countries", icon: MapPin, desc: "Country trade profiles" },
+  { to: "/regions", label: "Regions", icon: Globe, desc: "Europe · Middle East · Asia Pacific hubs" },
   { to: "/industries", label: "Industries", icon: ShoppingBag, desc: "Sector deep-dives" },
   { to: "/expo", label: "Expos & Events", icon: CalendarBlank, desc: "Worldwide trade fairs" },
   { to: "/customs-compliance", label: "Customs", icon: Compass, desc: "Duty & document engine" },

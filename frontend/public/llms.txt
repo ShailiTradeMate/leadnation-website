@@ -97,6 +97,12 @@ Examples:
 Each document contains the complete answer text and the source + as-of year for
 every figure, and is canonical-tagged back to the human page it mirrors.
 
+## Export region hubs (country-by-country duty, demand and buyer coverage)
+https://vametra.com/regions/europe
+https://vametra.com/regions/middle-east
+https://vametra.com/regions/asia-pacific
+Answer documents: https://vametra.com/api/answers/md/regions/europe (and /middle-east, /asia-pacific)
+
 ## Export incentive data by country
 https://vametra.com/api/incentives/countries — exporting countries whose own official
 export-support schemes Vametra AI publishes, each linked to the administering authority.
