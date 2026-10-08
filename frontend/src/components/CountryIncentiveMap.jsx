@@ -61,7 +61,7 @@ export const CountryIncentiveMap = ({ testIdPrefix = "inc-map" }) => {
               <span className="flex-1">
                 <span className="font-medium text-sm">{r.name}</span>
                 <span className="block text-[11px] text-slate-400 mt-0.5">
-                  {r.schemes} official scheme{r.schemes > 1 ? "s" : ""}{r.hasRateSchedule ? " · rate schedule published" : ""}
+                  {r.schemeCount} official scheme{r.schemeCount > 1 ? "s" : ""}{r.hasRateSchedule ? " · rate schedule published" : ""}
                 </span>
               </span>
               <CaretDown size={14} className={`text-cyan-300 transition-transform ${open === r.code ? "rotate-180" : ""}`} />

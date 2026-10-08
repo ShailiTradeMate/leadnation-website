@@ -402,7 +402,7 @@ def for_country(code: str):
 @router.get("/countries")
 async def covered_countries():
     """Every exporting country whose own official export-support schemes we publish."""
-    rows = [{"code": code, "name": e["name"], "schemes": len(e["schemes"]),
+    rows = [{"code": code, "name": e["name"], "schemeCount": len(e["schemes"]),
              "hasRateSchedule": bool(e.get("hasRateSchedule")),
              "kinds": sorted({s["kind"] for s in e["schemes"]})}
             for code, e in REGISTRY.items()]

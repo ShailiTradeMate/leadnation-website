@@ -197,3 +197,11 @@ Cover + branding, project + exec summary, full Incoterm costing (EXW/FOB/FCA/FAS
 - P1: Extend `TRADE_ALIASES` (trade-name → HS6) from Brain query logs; consider LLM-assisted classification fallback when alias+text match score < 3.
 - P2: Delete obsolete `tests/test_leadnation_api.py` mock-endpoint tests.
 - Rule: never build duplicate tools; route to the existing engine page and add enhancement there.
+
+## Added 2026-06 (after global copy / benefits map / GEO answer layer)
+- P0 (user action, not code): switch ON "Enable Search Engine Crawling and Optimisation" in Deployment → Domain tab so Google renders the SPA export guides. Code-side prerender is impossible on Emergent CRA deploys (Cloudflare SPA routing).
+- P1: Region hub pages for Europe and Middle East linking every country/product/lane into the tools and buyers.
+- P1: Expand the country export-support registry beyond 52 countries as official sources are verified; add a rate schedule only where a government publishes one.
+- P1: Second authentic tariff source alongside WITS/UNCTAD TRAINS (WTO/ITC may need credentials).
+- P2: Localise export guides for non-India origins (today /export/:product/to/:country assumes India as exporter — Brain next-steps already hide the guide for other origins).
+- P2: Vetted Middle East buyer ingestion (license/ToS + sanctions screening first).

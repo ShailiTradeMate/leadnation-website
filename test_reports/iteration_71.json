@@ -1,0 +1,21 @@
+{
+  "summary": "Iteration 71 — Validated origin-aware tools, 52-country incentive registry, and GEO answer layer. Backend: 19/19 pytest cases passed (incentives list + 4 covered + non-covered Benin; duty lookup US & India; hsn finder US & India; next-steps for duty/incentives/buyers with non-India origin; answers index/md tool/md guide/html canonical/404; sitemap includes /api/answers/html/). Frontend: Export Incentive Finder shows duty-export-support card (3 US schemes with authority + outbound https links); CountryIncentiveMap lists 54 tiles, search filters, DE tile expands to show Hermes Cover + inward/outward processing with authorities & official links. Duty Calculator: India origin (100630→276) shows RoDTEP exportBenefit AND Export support in India card; US origin (847130→124) shows no RoDTEP and the US export-support card. HSN Finder: US origin renders hsn-0-origin-support linking to /tools/export-incentive-finder?hs=847130&from=842&to=124; India origin renders hsn-0-origin-benefit with RoDTEP/Appendix 4R text. Landed Cost page copy mentions 'set your own export and import countries'. Mobile 390x844 has 0px horizontal overflow on all three tool pages. No India-only wording on non-India origin pages.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter71_origin_geo.py",
+    "/app/test_reports/pytest/iter71.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Incentive country list uses 'schemes' as integer count in list view but 'schemes' as array in detail view — same key, different type. Consider renaming the count field to 'schemeCount' for clarity.",
+    "Transient 502 observed once on /api/incentives/countries during the first run; passed on retry. Monitor edge-platform cold-start latency."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter71_origin_geo.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "None required — all tested surfaces are public.",
+  "seed_data_creation": "None",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend regression file is /app/backend/tests/test_iter71_origin_geo.py (19 tests). Covers incentives registry (/api/incentives/countries, /api/incentives/{code}), origin-aware duty lookup & hsn-finder, /api/tools/next-steps origin wording, GEO answers (/api/answers/index|md|html) and sitemap. Frontend selectors validated: duty-submit, duty-export-support, duty-benefit, hsn-0-origin-support, hsn-0-origin-benefit, inc-map-root, inc-map-search, inc-map-{code}, inc-map-detail-{code}. No open issues."
+}

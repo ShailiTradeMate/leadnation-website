@@ -272,3 +272,24 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 - Errors now distinguish timeout vs 429 vs generic, and show a "Retry this question" button (data-testid brain-retry-N).
 - Verified in browser: /brain deep link renders one question and a full sourced answer, no error.
 - Open: Brain still defaults an unspecified market to India (tracked under "Global Tool Copy" backlog item).
+
+## 2026-06 — Global tool copy, country benefits map, GEO answer layer
+### Global tool copy (origin-aware)
+- Duty Calculator, Landed Cost Calculator, Export Incentive Finder, HSN Finder and Tools hub copy rewritten: no India-only wording for non-Indian exporters. Incentive finder no longer fixes origin to India.
+- `duty_engine.duty_and_benefits()` now returns `exportSupport` for ANY origin; RoDTEP `exportBenefit` stays India-only.
+- `trade_tools.hsn_finder()` returns `exportSupport` + origin-aware `sources` (DGFT only listed when origin=India).
+- `tools_brain.deterministic_steps()` origin-aware; `_export_page(hs, dest, origin)` only offers the India-export guides for India origin; added an "Export support in {country}" next step.
+- Removed the expired Interest Equalisation scheme from /api/customs/benefits; that card relabelled "Indian Government Schemes (DGFT)".
+
+### Country benefits map (NEW backend/export_incentives.py)
+- Curated registry of 52 exporting countries, ~100 schemes: scheme name + administering authority + OFFICIAL url + what it gives + kind (remission/drawback/tax-refund/temporary-import/finance/insurance/grant). Official URLs web-verified Jun 2026.
+- CTO decision: directory-level coverage with official links; NO percentage is ever shown unless the government publishes an official rate schedule (today only India RoDTEP, flagged `hasRateSchedule`). Uncovered countries return an honest "not yet verified" note instead of invented schemes.
+- Routes: GET /api/incentives/countries, GET /api/incentives/{code}. UI: `frontend/src/components/CountryIncentiveMap.jsx` on the Export Incentive Finder.
+
+### SEO/GEO answer layer (NEW backend/seo_answers.py)
+- Platform constraint: Emergent CRA deploys serve the frontend from Cloudflare with SPA routing, so pre-rendered nested HTML files are NOT served. True prerender needs the platform "Enable Search Engine Crawling and Optimisation" toggle (user to switch on) or a Next.js/external deploy.
+- Built instead: crawlable answer documents with the full page text — GET /api/answers/index, /api/answers/md/{path}, /api/answers/html/{path}, /api/answers/json/{path}. 8 tool/Brain pages + every indexable export guide (106 docs today).
+- Each HTML doc carries exactly one canonical back to the human page, keeps source + as-of year on every figure, and is listed in /api/sitemap.xml and public/llms.txt.
+
+### Verification
+- Testing agent iteration 71: backend 19/19 pytest (`backend/tests/test_iter71_origin_geo.py`), frontend 100%, no mobile overflow. `schemes` count field renamed to `schemeCount` after review; re-verified in browser.
