@@ -190,6 +190,12 @@ async def duty_and_benefits(hs6, origin=None, destination=None):
                 "igst": igst, "note": "BCD from WITS applied rate; IGST standard slab; SWS = 10% of BCD. IGST is creditable for registered importers.",
             }
 
+    # Origin country's own official export-support schemes (any exporting country)
+    if origin:
+        import export_incentives
+        out["exportSupport"] = {"code": origin, "name": NAME_BY_CODE.get(origin, ""),
+                                **export_incentives.for_country(origin)}
+
     # India export benefit (RoDTEP) when origin is India
     if origin == "356":
         rb = await rodtep_rate(hs6)

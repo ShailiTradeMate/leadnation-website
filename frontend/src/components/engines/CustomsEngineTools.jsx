@@ -226,7 +226,7 @@ export function FreightTool() {
   const [data, setData] = useState(null);
   const run = async () => { const { data } = await api.get("/customs/freight-routes", { params: { to } }); setData(data); };
   return (
-    <ToolCard title="Freight Routes (from India)" desc="Indicative sea & air lanes and transit times.">
+    <ToolCard title="Freight Routes" desc="Indicative sea & air lanes and transit times. Lane coverage starts from Indian gateway ports — more origins are being added.">
       <div className="flex gap-3 items-end">
         <Field label="Destination"><ResponsiveSelect data-testid="freight-to" className={inputCls} value={to} onChange={(e) => setTo(e.target.value)}>{COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}</ResponsiveSelect></Field>
         <button data-testid="freight-submit" onClick={run} className="btn-primary">Show routes</button>
@@ -253,7 +253,7 @@ export function BenefitsTool() {
   const [data, setData] = useState(null);
   const run = async () => { const { data } = await api.get("/customs/benefits", { params: { direction } }); setData(data); };
   return (
-    <ToolCard title="Government Benefits Finder" desc="Schemes and incentives you can claim.">
+    <ToolCard title="Indian Government Schemes (DGFT)" desc="India-specific schemes for Indian exporters and importers. For other exporting countries, use the country benefits map on the Export Incentive Finder.">
       <div className="flex gap-3 items-end">
         <Field label="Direction"><ResponsiveSelect data-testid="benefits-dir" className={inputCls} value={direction} onChange={(e) => setDirection(e.target.value)}><option>Export</option><option>Import</option></ResponsiveSelect></Field>
         <button data-testid="benefits-submit" onClick={run} className="btn-primary">Find benefits</button>
@@ -628,7 +628,7 @@ const KpiCard = ({ label, main, sub1, sub2, subCur, subLabel, accent }) => (
   </div>
 );
 
-/* ---------------- Duty & Benefits (global tariffs + India + RoDTEP) ---------------- */
+/* ---------------- Duty & Benefits (global tariffs + origin-aware export support) ---------------- */
 export function DutyBenefitsTool({ initial = {}, focus = "duty" }) {
   const [q, setQ] = useState("");
   const [sugg, setSugg] = useState([]);
@@ -671,7 +671,7 @@ export function DutyBenefitsTool({ initial = {}, focus = "duty" }) {
 
   return (
     <div className="space-y-5">
-      <ToolCard title={focus === "benefits" ? "Export Incentive Finder — RoDTEP by HS code, duty at destination" : "Duty & Benefits — any country, any product"} desc="Real import tariffs worldwide (World Bank WITS / UNCTAD TRAINS) with India BCD/IGST/SWS breakdown and DGFT RoDTEP export benefit. Pick your origin and destination country.">
+      <ToolCard title={focus === "benefits" ? "Export Incentive Finder — your country's schemes, your buyer's duty" : "Duty & Benefits — any country, any product"} desc="Real import tariffs worldwide (World Bank WITS / UNCTAD TRAINS), the destination's own tax breakdown, and the official export-support schemes published by your exporting country. Pick your origin and destination country.">
         <div className="grid lg:grid-cols-4 gap-3 items-end">
           <div className="lg:col-span-2 relative">
             <Field label="Product or HS code">
@@ -747,6 +747,30 @@ export function DutyBenefitsTool({ initial = {}, focus = "duty" }) {
               </div>
             )}
 
+            {data.exportSupport?.covered && (
+              <div className="mt-4" data-testid="duty-export-support">
+                <div className="text-xs font-mono-display tracking-widest uppercase text-cyan-300 mb-2">
+                  Export support in {data.exportSupport.country || data.origin.name}
+                </div>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  {data.exportSupport.schemes.map((s, i) => (
+                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                      data-testid={`duty-support-${i}`}
+                      className="glass rounded-xl px-4 py-3 hover:border-cyan-400/30 transition-colors">
+                      <div className="text-sm text-cyan-200 font-medium flex items-start gap-1">{s.name} <ArrowSquareOut size={11} className="mt-1 shrink-0" /></div>
+                      <div className="text-[11px] text-slate-400 mt-0.5">{s.authority}</div>
+                      <div className="text-[12px] text-slate-300 mt-1 leading-relaxed">{s.gives}</div>
+                    </a>
+                  ))}
+                </div>
+                {data.exportSupport.note && <div className="text-[11px] text-slate-500 mt-2">{data.exportSupport.note}</div>}
+                <div className="text-[11px] text-slate-500 mt-1">Official sources verified {data.exportSupport.verifiedOn}. {data.exportSupport.disclaimer}</div>
+              </div>
+            )}
+            {data.exportSupport && !data.exportSupport.covered && (
+              <div className="mt-4 text-[12px] text-amber-300/80" data-testid="duty-export-support-none">{data.exportSupport.note}</div>
+            )}
+
             {data.exportBenefit?.note && <div className="text-[11px] text-amber-300/80 mt-3">{data.exportBenefit.note}</div>}
             {(data.notes || []).map((n, i) => <div key={i} data-testid={`duty-note-${i}`} className="text-[11px] text-amber-300/80 mt-2">{n}</div>)}
           </div>
@@ -758,7 +782,7 @@ export function DutyBenefitsTool({ initial = {}, focus = "duty" }) {
           </div>
           <BrainNextSteps tool={focus === "benefits" ? "incentives" : "duty"} testIdPrefix="duty-next"
             inputs={{ hs: data.hsCode, origin, destination: dest, product: q.split(" · ")[1] || "" }}
-            result={{ hsCode: data.hsCode, importDuty: data.importDuty, preferential: data.preferential, exportBenefit: data.exportBenefit, indiaBreakdown: data.indiaBreakdown }} />
+            result={{ hsCode: data.hsCode, importDuty: data.importDuty, preferential: data.preferential, exportBenefit: data.exportBenefit, indiaBreakdown: data.indiaBreakdown, exportSupport: data.exportSupport }} />
         </div>
       )}
     </div>

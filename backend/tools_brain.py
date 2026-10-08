@@ -26,10 +26,13 @@ def _code_from_name(name: str) -> str:
     return CODE_BY_NAME.get((name or "").lower(), "")
 
 
-def _export_page(hs6: str, dest_code: str) -> Optional[str]:
+def _export_page(hs6: str, dest_code: str, origin_code: str = "") -> Optional[str]:
+    """Product × country guides are India-export guides — only offer them for India origin."""
     try:
         import seo_pages
     except Exception:
+        return None
+    if origin_code and str(origin_code) != seo_pages.INDIA:
         return None
     pslug = next((s for s, p in seo_pages.PRODUCTS.items() if hs6 in p["hs"]), None)
     c = seo_pages.COUNTRY_BY_CODE.get(str(dest_code or "").lstrip("0"))
@@ -57,7 +60,10 @@ def _common(hs6, origin, dest, product=""):
     if hs6:
         steps.append(_step(f"World demand for HS {hs6}", f"/tools/product-research?hs={hs6}",
                            "Top importing countries, world trade value and multi-year trend."))
-    ep = _export_page(hs6, dest)
+    if on:
+        steps.append(_step(f"Export support in {on}", f"/tools/export-incentive-finder?hs={hs6}&from={origin}&to={dest}",
+                           f"The official schemes {on} publishes for its exporters, with authority links.", "incentive"))
+    ep = _export_page(hs6, dest, origin)
     if ep:
         steps.append(_step(f"{on or 'India'} → {dn} export guide", ep,
                            "Documents, certifications, FTA status and buyer coverage for this exact lane.", "guide"))
@@ -78,24 +84,26 @@ def deterministic_steps(tool: str, inputs: dict, result: dict):
 
     if tool == "duty":
         steps = _common(hs6, origin, dest, product)
-        steps.append(_brain(f"Duty, documents and savings plan for HS {hs6} from {_name(origin) or 'India'} to {_name(dest)}"))
+        steps.append(_brain(f"Duty, documents and savings plan for HS {hs6} from {_name(origin) or 'my country'} to {_name(dest)}"))
 
     elif tool == "trade-stats":
+        o = origin or "356"
+        on = _name(o)
         top = (result.get("topImporters") or [{}])[0]
         top_code = _code_from_name(top.get("country", ""))
         if top_code:
             steps.append(_step(f"Check import duty into {top.get('country')} (#1 importer)",
-                               f"/tools/duty-calculator?hs={hs6}&from=356&to={top_code}",
+                               f"/tools/duty-calculator?hs={hs6}&from={o}&to={top_code}",
                                "The biggest market first — see MFN and preferential rates."))
             steps.append(_step(f"Find buyers in {top.get('country')}",
                                f"/buyers?hs={hs6}&country={quote(top.get('country'))}",
                                "Importer records for the market with the highest demand.", "buyers"))
         steps.append(_step("Cost a shipment to the best market",
-                           f"/tools/landed-cost-calculator?hs={hs6}&from=356&to={top_code or '784'}",
+                           f"/tools/landed-cost-calculator?hs={hs6}&from={o}&to={top_code or '784'}",
                            "Compare buyer landed cost across markets in one run."))
-        ep = _export_page(hs6, top_code)
+        ep = _export_page(hs6, top_code, o)
         if ep:
-            steps.append(_step(f"India → {top.get('country')} export guide", ep, "Lane-specific documents and compliance.", "guide"))
+            steps.append(_step(f"{on} → {top.get('country')} export guide", ep, "Lane-specific documents and compliance.", "guide"))
         steps.append(_brain(f"Full trade analysis for HS {hs6} ({product}) — demand, top markets and opportunities"))
 
     elif tool == "command-center":
@@ -111,7 +119,7 @@ def deterministic_steps(tool: str, inputs: dict, result: dict):
                                "Re-run the quote where your buyer pays the least."))
         steps.append(_step("Save this as a Trade Project", "/command-center",
                            "Compliance checklist, documents and PDF report in the full workspace.", "workspace"))
-        ep = _export_page(hs6, dest)
+        ep = _export_page(hs6, dest, origin)
         if ep:
             steps.append(_step(f"{_name(origin) or 'India'} → {dn} export guide", ep, "Documents, FTA and certifications for this lane.", "guide"))
         steps.append(_brain(f"Full export plan for HS {hs6} ({product}) from {_name(origin)} to {dn}"))
@@ -120,14 +128,14 @@ def deterministic_steps(tool: str, inputs: dict, result: dict):
         o, dd = origin or "356", dest or "784"
         on, dn = _name(o), _name(dd)
         steps.append(_step(f"Full duty & FTA check: {on} → {dn}", f"/tools/duty-calculator?hs={hs6}&from={o}&to={dd}",
-                           f"MFN and preferential rates into {dn}" + (" + RoDTEP export benefit." if o == "356" else ".")))
+                           f"MFN and preferential rates into {dn}" + (" + RoDTEP export benefit." if o == "356" else f" + export support in {on}.")))
         steps.append(_step(f"World demand for HS {hs6}", f"/tools/product-research?hs={hs6}",
                            "Who imports it, how much and the 5-year trend."))
         steps.append(_step(f"Cost a shipment to {dn} (Command Center)", f"/tools/landed-cost-calculator?hs={hs6}&from={o}&to={dd}",
                            "FOB → CIF → landed with duty, VAT and FX."))
         steps.append(_step(f"Find buyers in {dn}" if dn else "Find buyers for this HS code",
                            f"/buyers?hs={hs6}&country={quote(dn)}" if dn else f"/buyers?hs={hs6}", "Importer records matched to the HS family.", "buyers"))
-        ep = _export_page(hs6, dd) if o == "356" else None
+        ep = _export_page(hs6, dd, o)
         if ep:
             steps.append(_step(f"India → {dn} export guide", ep, "Documents, certifications and FTA status for this lane.", "guide"))
         steps.append(_brain(f"Export documents, certifications, duty and best buyers for HS {hs6} ({product}) from {on} to {dn}"))
@@ -138,7 +146,7 @@ def deterministic_steps(tool: str, inputs: dict, result: dict):
             steps.append(_step("Start with Export Academy basics", "/academy", "IEC, GST, first shipment — step by step.", "learn"))
             steps.append(_step("Classify your product (HSN Finder)", "/tools/hsn-finder", "Every duty, benefit and document starts with the right HS code."))
         elif score < 75:
-            steps.append(_step("Check duty & RoDTEP for your product", "/tools/duty-calculator", "See what your buyer pays and what DGFT refunds you."))
+            steps.append(_step("Check duty & export benefits for your product", "/tools/duty-calculator", "See what your buyer pays and what your own country refunds you."))
             steps.append(_step("Get export-ready with Vametra services", "/services", "Certifications, documentation and compliance support.", "service"))
         else:
             steps.append(_step("Find verified buyers now", "/buyers", "You're export-ready — go straight to real importers.", "buyers"))
@@ -148,21 +156,22 @@ def deterministic_steps(tool: str, inputs: dict, result: dict):
 
     elif tool == "buyers":
         dn = _name(dest)
+        o = origin or "356"
         if hs6 and dest:
-            steps.append(_step(f"Import duty into {dn}", f"/tools/duty-calculator?hs={hs6}&from=356&to={dest}",
+            steps.append(_step(f"Import duty into {dn}", f"/tools/duty-calculator?hs={hs6}&from={o}&to={dest}",
                                "Know the tariff before you quote these buyers."))
-            steps.append(_step(f"Quote for {dn} (Command Center)", f"/tools/landed-cost-calculator?hs={hs6}&from=356&to={dest}",
+            steps.append(_step(f"Quote for {dn} (Command Center)", f"/tools/landed-cost-calculator?hs={hs6}&from={o}&to={dest}",
                                "Landed price your buyer will actually pay."))
-        ep = _export_page(hs6, dest)
+        ep = _export_page(hs6, dest, o)
         if ep:
-            steps.append(_step(f"India → {dn} export guide", ep, "Documents and compliance for this lane.", "guide"))
+            steps.append(_step(f"{_name(o)} → {dn} export guide", ep, "Documents and compliance for this lane.", "guide"))
         steps.append(_step("Open full Buyer Intelligence", f"/buyers?hs={hs6}&country={quote(dn)}" if dn else "/buyers",
                            "Trust scores, evidence, watchlists and contact unlock.", "buyers"))
         steps.append(_brain(f"How do I approach importers of HS {hs6} in {dn or 'this market'}? Give me an outreach plan."))
 
     elif tool == "incentives":
         steps = _common(hs6, origin or "356", dest, product)
-        steps.append(_brain(f"All export incentives and schemes for HS {hs6} shipped from India to {_name(dest)}"))
+        steps.append(_brain(f"All export incentives and schemes for HS {hs6} shipped from {_name(origin) or 'India'} to {_name(dest)}"))
 
     if not steps:
         steps = [_step("Open the Customs & Compliance Engine", "/customs-compliance", "Duty, trade stats, FX, CBM and routes in one place."), _brain("Help me plan my next export shipment")]
@@ -208,7 +217,11 @@ def fallback_insight(tool: str, inputs: dict, result: dict) -> str:
         if pref:
             s += f" A preferential {pref.get('rate')}% rate exists for your origin — a certificate of origin unlocks it."
         if result.get("exportBenefit"):
-            s += f" RoDTEP refunds {result['exportBenefit'].get('rate')}% of FOB on the Indian side."
+            s += f" {result['exportBenefit'].get('scheme')} refunds {result['exportBenefit'].get('rate')}% of FOB on the export side."
+        elif (result.get("exportSupport") or {}).get("covered"):
+            es = result["exportSupport"]
+            s += (f" {es.get('country')} publishes {len(es.get('schemes') or [])} official export-support "
+                  f"scheme(s) you can use on the export side.")
         return s + " Next: turn this into a landed-cost quote."
     if tool == "trade-stats" and result.get("topImporters"):
         t = result["topImporters"][0]

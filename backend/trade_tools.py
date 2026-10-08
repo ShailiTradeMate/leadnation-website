@@ -205,12 +205,20 @@ async def hsn_finder(payload: HsnFindRequest):
         matches = await _directory_match(payload.productName, payload.description or "")
     results = await asyncio.gather(*[_enrich(m, payload.destination or "", i < 3, payload.origin or "") for i, m in enumerate(matches)])
     meta = await duty_engine.get_meta()
+    import export_incentives
+    origin = payload.origin or ""
+    sources = ["WCO HS 2022 nomenclature", "World Bank WITS / UNCTAD TRAINS"]
+    if origin == "356":
+        sources.insert(1, "DGFT RoDTEP Appendix 4R")
+    elif origin:
+        sources.append("Official national export-support authorities")
     return {
-        "query": payload.productName or payload.hs6, "origin": payload.origin or "", "destination": payload.destination or "",
+        "query": payload.productName or payload.hs6, "origin": origin, "destination": payload.destination or "",
         "originName": duty_engine.NAME_BY_CODE.get(payload.origin or "", ""),
         "destinationName": duty_engine.NAME_BY_CODE.get(payload.destination or "", ""),
         "results": list(results), "total": len(results),
-        "sources": ["WCO HS 2022 nomenclature", "DGFT RoDTEP Appendix 4R", "World Bank WITS / UNCTAD TRAINS"],
+        "exportSupport": ({"code": origin, **export_incentives.for_country(origin)} if origin else None),
+        "sources": sources,
         "refreshedAt": meta.get("lastRefresh"),
         "note": "HS6 is the international level used by every customs authority; national schedules add 2–4 digits (e.g. India ITC-HS 8-digit, EU CN 8-digit, US HTS 10-digit) — confirm the national line before filing. Export incentives are shown only for the selected origin.",
     }

@@ -9,10 +9,10 @@ import {
 } from "@phosphor-icons/react";
 
 const TOOLS = [
-  { to: "/tools/hsn-finder", label: "HSN Finder", Icon: MagnifyingGlass, desc: "All 5,606 HS codes with DGFT RoDTEP rate, IGST slab and live import duty at your destination.", data: "WCO HS-2022 · DGFT · WITS" },
-  { to: "/tools/duty-calculator", label: "Customs Duty Calculator", Icon: Calculator, desc: "Real MFN & preferential tariffs for 56 countries, India BCD/IGST/SWS breakdown, RoDTEP.", data: "World Bank WITS / UNCTAD TRAINS" },
+  { to: "/tools/hsn-finder", label: "HSN Finder", Icon: MagnifyingGlass, desc: "All 5,606 HS codes with live import duty at your destination and the export support your own country gives.", data: "WCO HS-2022 · WITS · official authorities" },
+  { to: "/tools/duty-calculator", label: "Customs Duty Calculator", Icon: Calculator, desc: "Real MFN & preferential tariffs for 56 countries, destination tax breakdown, origin-aware export support.", data: "World Bank WITS / UNCTAD TRAINS" },
   { to: "/tools/landed-cost-calculator", label: "Landed Cost Calculator", Icon: Coins, desc: "Ex-Works → FOB → CIF → landed with live duty, VAT and FX; compare buyer cost across markets.", data: "Trade Command Center engine" },
-  { to: "/tools/export-incentive-finder", label: "Export Incentive Finder", Icon: Sparkle, desc: "RoDTEP by HS code, destination duty and every DGFT scheme you can stack.", data: "DGFT Appendix 4R · WITS" },
+  { to: "/tools/export-incentive-finder", label: "Export Incentive Finder", Icon: Sparkle, desc: "Official export-support schemes in 50+ exporting countries, plus the duty your buyer pays.", data: "Official authorities · DGFT Appendix 4R · WITS" },
   { to: "/tools/product-research", label: "Product Research", Icon: ChartLine, desc: "Who imports your product: world trade value, top importers/exporters and 5-year trend.", data: "OEC World / CEPII BACI" },
   { to: "/tools/find-buyers", label: "Buyer Discovery", Icon: Users, desc: "27,000+ verified importer records by HS code and market, with trust scores.", data: "Vametra Buyer Intelligence" },
   { to: "/tools/export-readiness", label: "Export Readiness Score", Icon: ClipboardText, desc: "Score your export readiness 0–100 and get a personalised roadmap from the Brain.", data: "Vametra AI Brain" },

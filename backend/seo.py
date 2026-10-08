@@ -159,11 +159,22 @@ async def _lastmod_map():
         return {}
 
 
+async def _answer_routes():
+    """Crawlable answer documents (GEO) — full page text for engines that don't run JS."""
+    try:
+        import seo_answers
+        return [(f"/api/answers/html{p}", "weekly", "0.6") for p in await seo_answers.answer_paths()]
+    except Exception as exc:
+        logger.warning("sitemap answer source: %s", exc)
+        return []
+
+
 @router.get("/sitemap.xml")
 async def sitemap_xml():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     lastmods = await _lastmod_map()
-    urls = all_public_urls() + await _event_routes() + await _product_country_routes()
+    urls = (all_public_urls() + await _event_routes() + await _product_country_routes()
+            + await _answer_routes())
     rows = "".join(
         f"<url><loc>{SITE}{loc}</loc><lastmod>{lastmods.get(loc, today)}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>"

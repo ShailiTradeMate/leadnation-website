@@ -19,7 +19,7 @@ export default function LandedCostCalculator() {
       />
       <ToolShell testIdPrefix="lcc" label="Landed Cost Calculator"
         title="Your true landed cost — with real duty, VAT and FX."
-        sub="Enter your per-unit costs once. The Trade Command Center engine applies the destination's live tariff and VAT, converts to your buyer's currency, ranks the markets where your buyer pays the least, and the Vametra AI Brain reads the numbers back to you.">
+        sub="Enter your per-unit costs once and set your own export and import countries. The Trade Command Center engine applies the destination's live tariff and VAT, converts to your buyer's currency, ranks the markets where your buyer pays the least, and the Vametra AI Brain reads the numbers back to you.">
         <div className="space-y-5">
           <CommandCenterTool initial={initial} showIntro={false} />
           <div className="flex flex-wrap items-center gap-3 text-sm">

@@ -346,7 +346,6 @@ async def benefits(direction: str = "Export"):
         {"scheme": "Duty Drawback", "detail": "Refund of customs duty on inputs used in exports.", "link": OFFICIAL_LINKS["dgft"]},
         {"scheme": "EPCG", "detail": "0% duty on capital goods vs export obligation.", "link": OFFICIAL_LINKS["dgft"]},
         {"scheme": "Advance Authorisation", "detail": "Duty-free inputs for export production.", "link": OFFICIAL_LINKS["dgft"]},
-        {"scheme": "Interest Equalisation", "detail": "2% (extra 2% MSME) on pre/post-shipment credit.", "link": OFFICIAL_LINKS["dgft"]},
         {"scheme": "MAI / Market Access", "detail": "Support for trade fairs and market development.", "link": OFFICIAL_LINKS["dgft"]},
     ]}
 

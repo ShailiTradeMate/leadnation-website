@@ -105,6 +105,18 @@ export default function HsnFinder() {
                     <span className="text-slate-300">Export benefit from India (RoDTEP, DGFT Appendix 4R): <strong className="text-emerald-300">{r.rodtep ? `${r.rodtep.rate}% of FOB` : "not listed for this chapter"}</strong>{r.igstSlab != null ? <span className="text-slate-400"> · India GST on this line ≈ {r.igstSlab}%</span> : null}</span>
                   </div>
                 )}
+                {form.origin !== "356" && data.exportSupport?.covered && i === 0 && (
+                  <div className="mt-3 glass rounded-2xl px-4 py-3 text-sm" data-testid={`hsn-${i}-origin-support`}>
+                    <div className="flex items-center gap-2 text-slate-300">
+                      <Gift size={16} weight="duotone" className="text-emerald-300 shrink-0" />
+                      <span>Export support in {data.exportSupport.country}: <strong className="text-emerald-300">{data.exportSupport.schemes.length} official scheme{data.exportSupport.schemes.length > 1 ? "s" : ""}</strong> — {data.exportSupport.schemes.slice(0, 3).map((s) => s.name).join(", ")}</span>
+                    </div>
+                    <Link to={`/tools/export-incentive-finder?hs=${r.code}&from=${form.origin}&to=${form.destination}`} className="text-xs text-cyan-300 hover:underline mt-1.5 inline-block" data-testid={`hsn-${i}-support-link`}>See your country's schemes and official links →</Link>
+                  </div>
+                )}
+                {form.origin !== "356" && data.exportSupport && !data.exportSupport.covered && i === 0 && (
+                  <div className="mt-3 text-[12px] text-amber-300/80" data-testid={`hsn-${i}-origin-support-none`}>{data.exportSupport.note}</div>
+                )}
                 <div className="mt-4 flex flex-wrap gap-2">
                   <Link to={`/tools/duty-calculator?hs=${r.code}&from=${form.origin}&to=${form.destination}`} data-testid={`hsn-${i}-duty`} className="btn-ghost !py-2 text-xs">Full duty & FTA check</Link>
                   <Link to={`/tools/product-research?hs=${r.code}`} data-testid={`hsn-${i}-demand`} className="btn-ghost !py-2 text-xs">Who imports it</Link>

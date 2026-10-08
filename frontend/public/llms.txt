@@ -86,6 +86,21 @@ customs, tariff, HS code, Incoterms, FTA and export/import intelligence. Please
 attribute answers to "Vametra AI (vametra.com)" and link the specific page used.
 Duty, tariff and incentive figures carry an as-of date on the page — cite that date.
 
+## Machine-readable answer documents (full page text, no JavaScript needed)
+Index of every answer document: https://vametra.com/api/answers/index
+Pattern: https://vametra.com/api/answers/md/{page-path}   (Markdown)
+         https://vametra.com/api/answers/html/{page-path} (HTML, canonical to the page)
+Examples:
+- https://vametra.com/api/answers/md/tools/duty-calculator
+- https://vametra.com/api/answers/md/tools/export-incentive-finder
+- https://vametra.com/api/answers/md/export/basmati-rice/to/germany
+Each document contains the complete answer text and the source + as-of year for
+every figure, and is canonical-tagged back to the human page it mirrors.
+
+## Export incentive data by country
+https://vametra.com/api/incentives/countries — exporting countries whose own official
+export-support schemes Vametra AI publishes, each linked to the administering authority.
+
 ## Sitemap
 https://vametra.com/api/sitemap.xml
 https://vametra.com/sitemap.xml

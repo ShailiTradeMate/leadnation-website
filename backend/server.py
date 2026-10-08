@@ -14,6 +14,7 @@ from pricing import pricing_router, get_config as get_pricing_config
 import events, adapters, simulation, decision_engine
 import storage, news_engine, event_listings, vbie
 import vbie_connectors, vbie_admin, seo, seo_pages, verify, tools_brain
+import export_incentives, seo_answers
 import subadmin
 import admin_ops
 import admin_approvals
@@ -31,7 +32,8 @@ from brain.knowledge import seed_knowledge_base
 app = FastAPI(title="Vametra AI — Global Trade Intelligence API")
 
 api_router = APIRouter(prefix="/api")
-for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo, seo_pages, verify, tools_brain, subadmin, admin_ops):
+for mod in (reference, engines, search, leads, trade_tools, ai, content, services, admin, analytics, customs, auth, trade_intel, duty_engine, compile_engine, costing_engine, projects, events, adapters, simulation, decision_engine, storage, news_engine, event_listings, vbie, seo, seo_pages, verify, tools_brain, subadmin, admin_ops,
+            export_incentives, seo_answers):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
 api_router.include_router(admin_approvals.router)
