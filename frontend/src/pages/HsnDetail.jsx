@@ -47,6 +47,13 @@ export default function HsnDetail() {
         <Mini label="Duty Drawback" value={h.drawback} />
       </section>
 
+      <section className="max-w-7xl mx-auto px-6 sm:px-10 mt-5 flex flex-wrap gap-2" data-testid="hsn-detail-tools">
+        <Link to={`/tools/duty-calculator?hs=${h.hs6 || h.code}&from=356&to=784`} className="btn-primary !py-2 text-sm">Import duty for HS {h.hs6 || h.code}</Link>
+        <Link to={`/tools/product-research?hs=${h.hs6 || h.code}`} className="btn-ghost !py-2 text-sm">Who imports it (real data)</Link>
+        <Link to={`/tools/landed-cost-calculator?hs=${h.hs6 || h.code}&from=356&to=784`} className="btn-ghost !py-2 text-sm">Cost a shipment</Link>
+        <Link to={`/buyers?hs=${h.hs6 || h.code}`} className="btn-ghost !py-2 text-sm">Find buyers</Link>
+      </section>
+
       <section className="max-w-7xl mx-auto px-6 sm:px-10 mt-6 grid lg:grid-cols-2 gap-5">
         <Card title="Export Benefits"><div className="mt-3"><ChipList items={h.exportBenefits} /></div></Card>
         <Card title="Documents Required"><div className="mt-3"><ChipList items={h.documents} variant="violet" /></div></Card>

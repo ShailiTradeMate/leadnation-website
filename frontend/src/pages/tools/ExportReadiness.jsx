@@ -4,6 +4,7 @@ import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
 import { ClipboardText, CheckSquare, Square, ArrowRight } from "@phosphor-icons/react";
+import { BrainNextSteps } from "@/components/BrainNextSteps";
 
 const QUESTIONS = [
   { key: "iec", label: "Do you have an IEC code?" },
@@ -99,6 +100,11 @@ export default function ExportReadiness() {
                 </ul>
               </div>
               <CTARow testIdPrefix="er-cta" />
+            </div>
+          )}
+          {step === 3 && result && (
+            <div className="mt-5">
+              <BrainNextSteps tool="readiness" testIdPrefix="er-next" inputs={{ ...answers }} result={{ score: result.score, band: result.band, recommendations: result.recommendations }} />
             </div>
           )}
         </div>

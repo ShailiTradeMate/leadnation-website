@@ -170,6 +170,8 @@ async def duty_and_benefits(hs6, origin=None, destination=None):
     if mfn:
         out["importDuty"] = {"rate": mfn["rate"], "type": "MFN (applied)", "year": mfn["year"],
                              "source": "World Bank WITS / UNCTAD TRAINS"}
+        if mfn["rate"] == 0:
+            out["notes"].append("0% is the ad-valorem rate reported to WITS. Some lines (e.g. EU cereals, sugar) carry specific duties per tonne that are not expressed as a percentage — confirm in the destination tariff schedule.")
     # Preferential rate for the specific origin (if any)
     if origin and origin != destination:
         pref = await wits_tariff(destination, origin, hs6)
@@ -256,9 +258,26 @@ def start_scheduler():
 
 
 # ---------------- Routes ----------------
+ISO2_BY_CODE = {
+    "356": "IN", "842": "US", "156": "CN", "784": "AE", "826": "GB", "276": "DE", "392": "JP", "36": "AU",
+    "682": "SA", "702": "SG", "250": "FR", "380": "IT", "124": "CA", "76": "BR", "410": "KR", "484": "MX",
+    "528": "NL", "724": "ES", "643": "RU", "792": "TR", "360": "ID", "764": "TH", "458": "MY", "704": "VN",
+    "710": "ZA", "818": "EG", "566": "NG", "404": "KE", "586": "PK", "050": "BD", "144": "LK", "608": "PH",
+    "756": "CH", "056": "BE", "616": "PL", "752": "SE", "204": "BJ", "634": "QA", "512": "OM", "414": "KW",
+    "48": "BH", "32": "AR", "152": "CL", "170": "CO", "604": "PE", "376": "IL", "348": "HU", "203": "CZ",
+    "620": "PT", "300": "GR", "372": "IE", "578": "NO", "208": "DK", "246": "FI", "40": "AT", "554": "NZ",
+}
+_FLAG_BY_ISO2 = {c["code"]: c.get("flag", "") for c in ALL_COUNTRIES}
+
+
 @router.get("/countries")
 async def countries():
-    return {"countries": [{"code": c['code'], "name": c['name']} for c in ALL_COUNTRIES]}
+    """Countries with live WITS tariff coverage — the ONLY valid values for duty / Command Center lanes."""
+    return {"countries": [{"code": code, "name": name, "iso2": ISO2_BY_CODE.get(code, ""),
+                           "flag": _FLAG_BY_ISO2.get(ISO2_BY_CODE.get(code, ""), ""),
+                           "currency": CURRENCY_BY_CODE.get(code, "USD")}
+                          for code, name in sorted(COUNTRIES, key=lambda x: x[1])],
+            "total": len(COUNTRIES), "source": "World Bank WITS / UNCTAD TRAINS reporters"}
 
 
 @router.get("/meta")

@@ -1,6 +1,7 @@
 import { ResponsiveSelect } from '@/components/ui/responsive-select';
 import { countryFilterOptions } from '@/data/geo';
 import React, { useEffect, useState, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import DownloadCTA from "@/components/DownloadCTA";
 import BuyerCard from "@/components/BuyerCard";
@@ -19,7 +20,8 @@ const TRUST_MINS = [
 
 export default function BuyerIntelligence() {
   const [meta, setMeta] = useState(null);
-  const [filters, setFilters] = useState({ q: "", country: "", sector: "", corridor: "", trust_min: 0 });
+  const [params] = useSearchParams();
+  const [filters, setFilters] = useState({ q: "", country: params.get("country") || "", sector: "", corridor: "", trust_min: 0, hs: params.get("hs") || "" });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 

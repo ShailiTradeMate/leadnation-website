@@ -1,5 +1,5 @@
 import { ResponsiveSelect } from '@/components/ui/responsive-select';
-import { COUNTRY_OPTIONS } from '@/data/geo';
+import { LaneCountrySelect } from '@/components/LaneCountrySelect';
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
@@ -290,7 +290,6 @@ function TopBar({ P, cur, openPalette }) {
 /* ---------------- Start screen (no project) ---------------- */
 function StartScreen({ P }) {
   const [f, setF] = useState({ title: "", product: "", hs: "", exporter: "356", importer: "842" });
-  const [countries] = useState(COUNTRY_OPTIONS);
   const [busy, setBusy] = useState(false);
   const [sugg, setSugg] = useState([]);
   const [openSugg, setOpenSugg] = useState(false);
@@ -339,9 +338,9 @@ function StartScreen({ P }) {
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">HS code (auto-filled)</span>
             <input data-testid="cc-new-hs" className={`${inputCls} mt-1`} value={f.hs} onChange={(e) => setF({ ...f, hs: e.target.value })} placeholder="Select a product above →" /></label>
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Export from</span>
-            <ResponsiveSelect data-testid="cc-new-exporter" className={`${inputCls} mt-1`} value={f.exporter} onChange={(e) => setF({ ...f, exporter: e.target.value })}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</ResponsiveSelect></label>
+            <LaneCountrySelect testId="cc-new-exporter" className={`${inputCls} mt-1`} value={f.exporter} onChange={(e) => setF({ ...f, exporter: e.target.value })} /></label>
           <label className="block"><span className="text-[11px] font-mono-display uppercase tracking-widest text-slate-400">Import to</span>
-            <ResponsiveSelect data-testid="cc-new-importer" className={`${inputCls} mt-1`} value={f.importer} onChange={(e) => setF({ ...f, importer: e.target.value })}>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</ResponsiveSelect></label>
+            <LaneCountrySelect testId="cc-new-importer" className={`${inputCls} mt-1`} value={f.importer} onChange={(e) => setF({ ...f, importer: e.target.value })} /></label>
         </div>
         <button data-testid="cc-create-btn" onClick={create} disabled={busy} className="btn-primary mt-4 disabled:opacity-50">{busy ? <CircleNotch size={16} className="animate-spin" /> : <Plus size={16} weight="bold" />} Create Trade Project</button>
       </div>

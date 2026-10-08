@@ -1,93 +1,34 @@
-import { ResponsiveSelect } from '@/components/ui/responsive-select';
-import React, { useEffect, useState } from "react";
-import { ToolShell, CTARow } from "@/components/ToolShell";
-import SEO from "@/components/SEO";
+import React from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ToolShell } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
-import { api } from "@/lib/api";
-import { Coins, ArrowRight } from "@phosphor-icons/react";
-
-const CURRENCIES = ["USD", "EUR", "INR", "AED", "GBP", "AUD"];
+import SEO from "@/components/SEO";
+import { CommandCenterTool } from "@/components/engines/CustomsEngineTools";
+import { ArrowSquareOut, Lightning } from "@phosphor-icons/react";
 
 export default function LandedCostCalculator() {
-  const [form, setForm] = useState({ productCost: 10000, freight: 800, insurance: 120, duty: 600, localCharges: 350, currency: "USD" });
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e) => {
-    e?.preventDefault();
-    setLoading(true);
-    try {
-      const { data } = await api.post("/landed-cost", form);
-      setResult(data);
-    } finally { setLoading(false); }
-  };
-  useEffect(() => { submit(); }, []); // eslint-disable-line
-
+  const [p] = useSearchParams();
+  const initial = { hs: p.get("hs") || "", from: p.get("from") || "", to: p.get("to") || "" };
   return (
     <>
-      <SEO title="Landed Cost Calculator · Free Import Cost Estimator"
-        description="Calculate your true landed cost — product, freight, insurance, duty and local charges. Free breakdown for any shipment."
+      <SEO title="Landed Cost Calculator · FOB → CIF → Landed with Real Duty, VAT & FX"
+        description="Build your full export cost waterfall — Ex-Works, FOB, CIF and landed cost at destination with live WITS duty, VAT/GST and exchange rates. Compare what your buyer pays across markets and quote in two currencies."
         path="/tools/landed-cost-calculator"
-        keywords="landed cost calculator, import cost calculator, CIF DDP, freight calculator, true landed cost"
+        keywords="landed cost calculator, FOB CIF calculator, export costing, import cost calculator, DDP price calculator, buyer landed cost comparison"
+        schema={{ "@context": "https://schema.org", "@type": "WebApplication", name: "Vametra AI Landed Cost Calculator", applicationCategory: "BusinessApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }}
       />
       <ToolShell testIdPrefix="lcc" label="Landed Cost Calculator"
-        title="See your true landed cost."
-        sub="Add every component — product, freight, insurance, duty, local charges — and get the real cost of doing business at destination."
-      >
-        <div className="grid lg:grid-cols-12 gap-8">
-          <form onSubmit={submit} className="lg:col-span-5 glass-strong rounded-3xl p-6 sm:p-7 space-y-3">
-            {[
-              ["productCost", "Product cost"],
-              ["freight", "Freight"],
-              ["insurance", "Insurance"],
-              ["duty", "Customs duty"],
-              ["localCharges", "Local charges (THC, drayage, CHA)"],
-            ].map(([k, l]) => (
-              <Field key={k} label={l}>
-                <input data-testid={`lcc-${k}`} type="number" min="0" value={form[k]}
-                  onChange={(e) => setForm({ ...form, [k]: Number(e.target.value) || 0 })}
-                  className="w-full glass rounded-xl px-4 py-3 outline-none" />
-              </Field>
-            ))}
-            <Field label="Currency">
-              <ResponsiveSelect data-testid="lcc-currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                className="w-full glass rounded-xl px-4 py-3 outline-none">
-                {CURRENCIES.map((c) => <option key={c} className="bg-[#0a0f24]">{c}</option>)}
-              </ResponsiveSelect>
-            </Field>
-            <button data-testid="lcc-submit" className="btn-primary w-full justify-center mt-2" disabled={loading}>
-              {loading ? "Calculating…" : <>Calculate landed cost <ArrowRight size={14} weight="bold" /></>}
-            </button>
-            <CTARow testIdPrefix="lcc-cta" />
-          </form>
-
-          <div className="lg:col-span-7">
-            {result && (
-              <div data-testid="lcc-result" className="glass-strong rounded-3xl p-7">
-                <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300 flex items-center gap-2">
-                  <Coins size={14} weight="duotone" /> Total landed cost
-                </div>
-                <div className="mt-2 text-5xl sm:text-6xl font-display font-extrabold gradient-text">
-                  {result.currency} {result.total.toLocaleString()}
-                </div>
-                <div className="mt-7 space-y-2">
-                  {result.breakdown.map((b, i) => (
-                    <div key={b.label} data-testid={`lcc-row-${i}`} className="glass rounded-2xl px-4 py-3 flex items-center gap-4">
-                      <div className="text-sm flex-1">{b.label}</div>
-                      <div className="text-[10px] font-mono-display tracking-widest text-slate-400">{b.share}%</div>
-                      <div className="font-display font-bold">{result.currency} {b.amount.toLocaleString()}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        title="Your true landed cost — with real duty, VAT and FX."
+        sub="Enter your per-unit costs once. The Trade Command Center engine applies the destination's live tariff and VAT, converts to your buyer's currency, ranks the markets where your buyer pays the least, and the Vametra AI Brain reads the numbers back to you.">
+        <div className="space-y-5">
+          <CommandCenterTool initial={initial} showIntro={false} />
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <Link to="/customs-compliance?tab=compile" data-testid="lcc-open-engine" className="btn-ghost"><Lightning size={15} weight="bold" /> Open in full Customs & Compliance Engine <ArrowSquareOut size={13} /></Link>
+            <Link to="/command-center" data-testid="lcc-open-workspace" className="btn-ghost">Save as a Trade Project (workspace)</Link>
           </div>
         </div>
       </ToolShell>
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-12 pb-12"><DownloadCTA /></section>
     </>
   );
-}
-function Field({ label, children }) {
-  return <label className="block"><div className="text-[10px] font-mono-display tracking-[0.25em] uppercase text-slate-400 mb-2">{label}</div>{children}</label>;
 }

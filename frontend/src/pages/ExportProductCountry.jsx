@@ -299,8 +299,8 @@ export default function ExportProductCountry() {
                 {benefit && <> Against that, {benefit.scheme} returns <strong>{benefit.rate}% of FOB</strong> to you as a transferable scrip.</>}
               </div>
               <div className="grid sm:grid-cols-2 gap-3 mt-3">
-                <ToolLink to="/tools/landed-cost-calculator" icon={Calculator} testId="epc-tool-landed" label="Landed Cost Calculator" note="All 11 Incoterms, your currency" />
-                <ToolLink to="/tools/duty-calculator" icon={Scales} testId="epc-tool-duty" label="Duty Calculator" note="Live rates by HS code and market" />
+                <ToolLink to={`/tools/landed-cost-calculator?hs=${duty?.hsCode || p.primaryHs}&from=356&to=${c.code}`} icon={Calculator} testId="epc-tool-landed" label="Landed Cost Calculator" note="All 11 Incoterms, your currency" />
+                <ToolLink to={`/tools/duty-calculator?hs=${duty?.hsCode || p.primaryHs}&from=356&to=${c.code}`} icon={Scales} testId="epc-tool-duty" label="Duty Calculator" note="Live rates by HS code and market" />
               </div>
             </Section>
 
@@ -357,11 +357,11 @@ export default function ExportProductCountry() {
               <div className="text-[10px] font-mono-display tracking-[0.25em] uppercase text-cyan-300">Run this trade</div>
               <p className="text-[13px] text-slate-400 mt-2">Take these numbers straight into the tools.</p>
             </div>
-            <ToolLink to="/brain" icon={Brain} testId="epc-rail-brain" label="Ask the Vametra AI Brain" note={`Anything about ${p.name} into ${c.name}`} />
-            <ToolLink to="/tools/hsn-finder" icon={FileText} testId="epc-rail-hs" label="HS Code Finder" note="All 5,606 HS codes, searchable" />
-            <ToolLink to="/tools/duty-calculator" icon={Scales} testId="epc-rail-duty" label="Duty Calculator" note="Confirm the applied rate" />
-            <ToolLink to="/tools/landed-cost-calculator" icon={Calculator} testId="epc-rail-landed" label="Landed Cost" note="Quote with confidence" />
-            <ToolLink to="/buyers" icon={Users} testId="epc-rail-buyers" label="Verified Buyers" note="Screened, source-cited records" />
+            <ToolLink to={`/brain?q=${encodeURIComponent(`Export ${p.name} from India to ${c.name} — duty, documents, buyers and pricing plan`)}`} icon={Brain} testId="epc-rail-brain" label="Ask the Vametra AI Brain" note={`Anything about ${p.name} into ${c.name}`} />
+            <ToolLink to={`/tools/hsn-finder?hs=${duty?.hsCode || p.primaryHs}&to=${c.code}`} icon={FileText} testId="epc-rail-hs" label="HS Code Finder" note="All 5,606 HS codes, searchable" />
+            <ToolLink to={`/tools/duty-calculator?hs=${duty?.hsCode || p.primaryHs}&from=356&to=${c.code}`} icon={Scales} testId="epc-rail-duty" label="Duty Calculator" note="Confirm the applied rate" />
+            <ToolLink to={`/tools/landed-cost-calculator?hs=${duty?.hsCode || p.primaryHs}&from=356&to=${c.code}`} icon={Calculator} testId="epc-rail-landed" label="Landed Cost" note="Quote with confidence" />
+            <ToolLink to={`/buyers?hs=${duty?.hsCode || p.primaryHs}&country=${encodeURIComponent(c.name)}`} icon={Users} testId="epc-rail-buyers" label="Verified Buyers" note="Screened, source-cited records" />
             <ToolLink to="/command-center" icon={Truck} testId="epc-rail-cc" label="Trade Command Center" note="Run the whole shipment" />
             <ToolLink to={`/countries/${c.slug}`} icon={Globe} testId="epc-rail-country" label={`${c.name} trade profile`} note="Tariffs, partners, compliance" />
             <ToolLink to={`/corridors/india-to-${c.slug}`} icon={ArrowRight} testId="epc-rail-corridor" label={`India → ${c.name}`} note="Corridor playbook" />

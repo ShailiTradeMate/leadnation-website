@@ -73,17 +73,12 @@ async def universal_search(query: str, limit: int = 30):
 
     # Priority 3 — Engines + Network (suppliers / buyers / tools)
     eng_hits = 0
-    from trade_tools import SAMPLE_SUPPLIERS, SAMPLE_BUYERS
+    from trade_tools import SAMPLE_SUPPLIERS
     ql = query.lower()
     for s in SAMPLE_SUPPLIERS:
         if not query or ql in s["company"].lower() or ql in s.get("products", "").lower() or ql in s.get("category", "").lower():
             results.append({"type": "supplier", "label": s["company"], "to": "/suppliers",
                             "sub": f"{s.get('category','')} · {s.get('city','')}", "source": "engines"})
-            eng_hits += 1
-    for b in SAMPLE_BUYERS:
-        if query and ql in b["company"].lower():
-            results.append({"type": "buyer", "label": b["company"], "to": "/network",
-                            "sub": f"Buyer · {b.get('city','')}", "source": "engines"})
             eng_hits += 1
     tools = [("HSN Finder", "/tools/hsn-finder"), ("Duty Calculator", "/tools/duty-calculator"),
              ("Find Buyers", "/tools/find-buyers"), ("Export Readiness", "/tools/export-readiness"),

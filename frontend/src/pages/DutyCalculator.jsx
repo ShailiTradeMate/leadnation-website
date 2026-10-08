@@ -1,238 +1,50 @@
-import { ResponsiveSelect } from '@/components/ui/responsive-select';
-import React, { useEffect, useState } from "react";
-import { HsCodePicker } from "@/components/HsCodePicker";
-import { PageHero } from "@/components/PageHero";
+import React from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ToolShell } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
-import SEO, { baseOrgSchema } from "@/components/SEO";
-import { api, fetchCountries } from "@/lib/api";
-import { Calculator, ArrowRight, TrendDown } from "@phosphor-icons/react";
-import { useNavigate } from "react-router-dom";
+import SEO from "@/components/SEO";
+import { DutyBenefitsTool } from "@/components/engines/CustomsEngineTools";
+import { ArrowSquareOut, ShieldCheck } from "@phosphor-icons/react";
 
-const CATEGORIES = [
-  "Agriculture & Food",
-  "Textiles & Apparel",
-  "Electronics",
-  "Pharmaceuticals",
-  "Machinery",
-  "Chemicals",
-  "Automobiles & Parts",
-  "Gems & Jewellery",
-  "Furniture & Handicrafts",
-  "Energy & Petrochemicals",
+const FAQ = [
+  ["Where does the duty rate come from?", "Applied MFN and preferential tariffs are read live from the World Bank WITS / UNCTAD TRAINS database (56 reporting countries, HS6 level) and cached for 7 days. The data year is shown next to every rate."],
+  ["Why is my product not found?", "Search by product name (e.g. 'turmeric') or type the 6-digit HS code. If WITS has no record for a country/product pair, we say so instead of guessing."],
+  ["What is RoDTEP?", "Remission of Duties and Taxes on Exported Products — an Indian export benefit (DGFT Appendix 4R) paid as a tradable e-scrip as a percentage of FOB value."],
 ];
-const CURRENCIES = ["USD", "EUR", "INR", "AED", "GBP", "AUD", "SGD", "JPY"];
 
 export default function DutyCalculator() {
-  const [countries, setCountries] = useState([]);
-  const [form, setForm] = useState({
-    exportCountry: "IN",
-    importCountry: "AE",
-    category: "Agriculture & Food",
-    value: 10000,
-    currency: "USD",
-  });
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    fetchCountries().then(setCountries);
-  }, []);
-
-  const calc = async (e) => {
-    e?.preventDefault();
-    setLoading(true);
-    try {
-      const r = await api.post("/duty-calc", form);
-      setResult(r.data);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { calc(); /* initial */ }, []); // eslint-disable-line
-
+  const [p] = useSearchParams();
+  const initial = { hs: p.get("hs") || "", from: p.get("from") || "", to: p.get("to") || "" };
   return (
     <>
       <SEO
-        title="Customs Duty Calculator · Free Import & Export Tariff Tool"
-        description="Estimate customs duty, taxes and landed cost for any product between any two countries — free, instant, and powered by Vametra AI's trade engine."
+        title="Customs Duty Calculator · Real Import Tariffs (WITS) + RoDTEP"
+        description="Check the real import duty for any product into 56 countries — MFN and preferential rates from World Bank WITS / UNCTAD TRAINS, India BCD/IGST/SWS breakdown and DGFT RoDTEP export benefit. Free, by HS code."
         path="/tools/duty-calculator"
-        keywords="customs duty calculator, import duty calculator, export duty India UAE, landed cost calculator, free tariff tool"
+        keywords="customs duty calculator, import duty calculator, import duty by HS code, tariff lookup, RoDTEP rate, India UAE duty, India Germany import duty"
         schema={{
-          "@context": "https://schema.org",
-          "@type": "WebApplication",
-          name: "Vametra AI Customs Duty Calculator",
-          applicationCategory: "BusinessApplication",
-          operatingSystem: "Web",
+          "@context": "https://schema.org", "@type": "WebApplication",
+          name: "Vametra AI Customs Duty Calculator", applicationCategory: "BusinessApplication", operatingSystem: "Web",
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
         }}
       />
-
-      <PageHero
-        testIdPrefix="duty"
-        label="SEO Tool · 100% Free"
-        title="Customs Duty Calculator"
-        sub="Estimate duty, taxes and landed cost in any corridor on earth. Powered by the Vametra AI trade engine — no signup, no card, instant result."
-      />
-
-      <section className="max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-8">
-        <form onSubmit={calc} className="lg:col-span-5 glass-strong rounded-3xl p-7 sm:p-8 space-y-4">
-          <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300 flex items-center gap-2">
-            <Calculator size={16} weight="duotone" /> Configure shipment
+      <ToolShell testIdPrefix="duty" label="Customs Duty Calculator"
+        title="Real import duty, by HS code, for 56 countries."
+        sub="Pick your product, origin and destination. You get the applied MFN rate, any preferential (FTA) rate for your origin, India's BCD + IGST + SWS breakdown and the DGFT RoDTEP export benefit — with the data year and source on every number.">
+        <div className="space-y-5">
+          <DutyBenefitsTool initial={initial} />
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            <Link to="/customs-compliance?tab=duty" data-testid="duty-open-engine" className="btn-ghost"><ShieldCheck size={15} weight="bold" /> Open in full Customs & Compliance Engine <ArrowSquareOut size={13} /></Link>
+            <span className="text-slate-500 text-xs">Same engine — plus Command Center, Trade Statistics, FX, CBM and freight routes.</span>
           </div>
-
-          <Field label="Country of Export">
-            <ResponsiveSelect
-              data-testid="duty-export-country"
-              value={form.exportCountry}
-              onChange={(e) => setForm({ ...form, exportCountry: e.target.value })}
-              className="w-full glass rounded-xl px-4 py-3 outline-none"
-            >
-              {countries.map((c) => (
-                <option key={c.code} value={c.code} className="bg-[#0a0f24]">{c.flag} {c.name}</option>
-              ))}
-            </ResponsiveSelect>
-          </Field>
-
-          <Field label="Country of Import">
-            <ResponsiveSelect
-              data-testid="duty-import-country"
-              value={form.importCountry}
-              onChange={(e) => setForm({ ...form, importCountry: e.target.value })}
-              className="w-full glass rounded-xl px-4 py-3 outline-none"
-            >
-              {countries.map((c) => (
-                <option key={c.code} value={c.code} className="bg-[#0a0f24]">{c.flag} {c.name}</option>
-              ))}
-            </ResponsiveSelect>
-          </Field>
-
-          <Field label="HS / HSN code (optional — all 5,606 codes)">
-            <HsCodePicker
-              label=""
-              testId="duty-hs-picker"
-              value={form.hs6 || ""}
-              onChange={(code) => setForm({ ...form, hs6: code })}
-            />
-          </Field>
-
-          <Field label="Product Category">
-            <ResponsiveSelect
-              data-testid="duty-category"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full glass rounded-xl px-4 py-3 outline-none"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c} className="bg-[#0a0f24]">{c}</option>
-              ))}
-            </ResponsiveSelect>
-          </Field>
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <Field label="Product Value">
-                <input
-                  data-testid="duty-value"
-                  type="number"
-                  min="1"
-                  value={form.value}
-                  onChange={(e) => setForm({ ...form, value: Number(e.target.value) || 0 })}
-                  className="w-full glass rounded-xl px-4 py-3 outline-none"
-                />
-              </Field>
-            </div>
-            <Field label="Currency">
-              <ResponsiveSelect
-                data-testid="duty-currency"
-                value={form.currency}
-                onChange={(e) => setForm({ ...form, currency: e.target.value })}
-                className="w-full glass rounded-xl px-4 py-3 outline-none"
-              >
-                {CURRENCIES.map((c) => (<option key={c} value={c} className="bg-[#0a0f24]">{c}</option>))}
-              </ResponsiveSelect>
-            </Field>
+          <div className="grid md:grid-cols-3 gap-4" data-testid="duty-faq">
+            {FAQ.map(([q, a]) => (
+              <div key={q} className="glass rounded-2xl p-5"><div className="font-display font-bold text-sm">{q}</div><p className="text-sm text-slate-400 mt-2 leading-relaxed">{a}</p></div>
+            ))}
           </div>
-
-          <button data-testid="duty-submit" className="btn-primary w-full justify-center" disabled={loading}>
-            {loading ? "Calculating…" : <>Calculate landed cost <ArrowRight size={16} weight="bold" /></>}
-          </button>
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Indicative figures only. Real duties depend on HS code, certificate of origin and live tariff schedules — for exact figures, use the Vametra AI app.
-          </p>
-        </form>
-
-        <div className="lg:col-span-7">
-          {result && (
-            <div data-testid="duty-result" className="glass-strong rounded-3xl p-7 sm:p-9">
-              <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
-                {result.exportCountry} → {result.importCountry} · {result.category}
-              </div>
-              <div className="mt-3 flex items-end gap-3 flex-wrap">
-                <div className="text-5xl sm:text-6xl font-display font-extrabold gradient-text">
-                  {result.currency} {result.estimatedLandedCost.toLocaleString()}
-                </div>
-                {result.ftaApplied && (
-                  <span className="px-3 py-1.5 rounded-full text-[11px] font-mono-display tracking-widest uppercase bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 flex items-center gap-1">
-                    <TrendDown size={12} weight="bold" /> FTA applied
-                  </span>
-                )}
-              </div>
-              <div className="text-sm text-slate-400 mt-1">Estimated landed cost</div>
-
-              <div className="mt-7 grid sm:grid-cols-2 gap-4">
-                <Row label="Shipment value" value={`${result.currency} ${result.shipmentValue.toLocaleString()}`} />
-                <Row label={`Customs duty (${result.dutyRate}%)`} value={`+ ${result.currency} ${result.estimatedDuty.toLocaleString()}`} />
-                <Row label={`VAT / GST (${result.vatRate}%)`} value={`+ ${result.currency} ${result.estimatedTaxes.toLocaleString()}`} />
-                <Row label="Customs handling (~0.5%)" value={`+ ${result.currency} ${result.estimatedHandling.toLocaleString()}`} />
-              </div>
-
-              <div className="mt-6 p-4 rounded-2xl bg-cyan-500/5 border border-cyan-400/15 text-sm text-slate-300">
-                {result.note}
-              </div>
-
-              <div className="mt-7 grid sm:grid-cols-2 gap-3">
-                <button
-                  data-testid="duty-cta-create-account"
-                  onClick={() => navigate("/contact")}
-                  className="btn-primary justify-center w-full"
-                >
-                  Create free account
-                </button>
-                <a
-                  href="#download"
-                  data-testid="duty-cta-download"
-                  className="btn-ghost justify-center w-full"
-                >
-                  Download Vametra AI app
-                </a>
-              </div>
-            </div>
-          )}
         </div>
-      </section>
-
-      <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">
-        <DownloadCTA id="download" />
-      </section>
+      </ToolShell>
+      <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-12 pb-12"><DownloadCTA /></section>
     </>
-  );
-}
-
-function Field({ label, children }) {
-  return (
-    <label className="block">
-      <div className="text-[10px] font-mono-display tracking-[0.25em] uppercase text-slate-400 mb-2">{label}</div>
-      {children}
-    </label>
-  );
-}
-function Row({ label, value }) {
-  return (
-    <div className="glass rounded-2xl p-4 flex items-center justify-between">
-      <div className="text-[11px] uppercase tracking-[0.2em] text-slate-400 font-mono-display">{label}</div>
-      <div className="font-display font-bold">{value}</div>
-    </div>
   );
 }

@@ -9,14 +9,14 @@ import {
 } from "@phosphor-icons/react";
 
 const TOOLS = [
-  { to: "/tools/hsn-finder", label: "HSN Finder", Icon: MagnifyingGlass, desc: "Find the right HSN code with GST, RoDTEP and compliance in seconds." },
-  { to: "/tools/duty-calculator", label: "Customs Duty Calculator", Icon: Calculator, desc: "Estimate duty, tax and landed cost in any corridor on earth." },
-  { to: "/tools/landed-cost-calculator", label: "Landed Cost Calculator", Icon: Coins, desc: "Detailed cost breakdown — product, freight, insurance, duty and local charges." },
-  { to: "/tools/export-incentive-finder", label: "Export Incentive Finder", Icon: Sparkle, desc: "Discover RoDTEP, drawback, MSME subvention and DGFT incentives." },
-  { to: "/tools/product-research", label: "Product Research", Icon: ChartLine, desc: "Demand, opportunity and top markets for any product." },
-  { to: "/tools/find-buyers", label: "Buyer Discovery", Icon: Users, desc: "Find verified buyers for your product by market and demand." },
-  { to: "/tools/export-readiness", label: "Export Readiness Score", Icon: ClipboardText, desc: "Score your export readiness 0–100 and get a personalised roadmap." },
-  { to: "/ai-assistant", label: "AI Trade Copilot", Icon: Robot, desc: "Ask anything — HSN, FTAs, certifications, markets. Powered by AI." },
+  { to: "/tools/hsn-finder", label: "HSN Finder", Icon: MagnifyingGlass, desc: "All 5,606 HS codes with DGFT RoDTEP rate, IGST slab and live import duty at your destination.", data: "WCO HS-2022 · DGFT · WITS" },
+  { to: "/tools/duty-calculator", label: "Customs Duty Calculator", Icon: Calculator, desc: "Real MFN & preferential tariffs for 56 countries, India BCD/IGST/SWS breakdown, RoDTEP.", data: "World Bank WITS / UNCTAD TRAINS" },
+  { to: "/tools/landed-cost-calculator", label: "Landed Cost Calculator", Icon: Coins, desc: "Ex-Works → FOB → CIF → landed with live duty, VAT and FX; compare buyer cost across markets.", data: "Trade Command Center engine" },
+  { to: "/tools/export-incentive-finder", label: "Export Incentive Finder", Icon: Sparkle, desc: "RoDTEP by HS code, destination duty and every DGFT scheme you can stack.", data: "DGFT Appendix 4R · WITS" },
+  { to: "/tools/product-research", label: "Product Research", Icon: ChartLine, desc: "Who imports your product: world trade value, top importers/exporters and 5-year trend.", data: "OEC World / CEPII BACI" },
+  { to: "/tools/find-buyers", label: "Buyer Discovery", Icon: Users, desc: "27,000+ verified importer records by HS code and market, with trust scores.", data: "Vametra Buyer Intelligence" },
+  { to: "/tools/export-readiness", label: "Export Readiness Score", Icon: ClipboardText, desc: "Score your export readiness 0–100 and get a personalised roadmap from the Brain.", data: "Vametra AI Brain" },
+  { to: "/brain", label: "Vametra AI Brain", Icon: Robot, desc: "Ask anything — HSN, FTAs, certifications, markets — grounded in the same live engines.", data: "AI Brain" },
 ];
 
 export default function ToolsHub() {
@@ -31,8 +31,8 @@ export default function ToolsHub() {
       <PageHero
         testIdPrefix="tools"
         label="Trade Tools Hub · 100% Free"
-        title="Eight tools. One unfair advantage."
-        sub="Every tool a global trader needs — HSN, duties, buyers, incentives, readiness — instant, accurate, free. Powered by the Vametra AI engine."
+        title="Eight tools. One engine. Real data on every screen."
+        sub="HSN, duties, landed cost, demand, buyers, incentives, readiness — every result comes from the live Customs & Compliance Engine and Buyer Intelligence, and the Vametra AI Brain tells you the next step. Free, no signup."
       />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -51,6 +51,7 @@ export default function ToolsHub() {
                 </div>
                 <h3 className="mt-4 font-display font-bold text-lg leading-tight">{t.label}</h3>
                 <p className="mt-2 text-sm text-slate-400 leading-relaxed line-clamp-3">{t.desc}</p>
+                <div className="mt-3 text-[10px] font-mono-display uppercase tracking-widest text-cyan-300/80" data-testid={`tools-card-${i}-source`}>{t.data}</div>
                 <div className="mt-4 inline-flex items-center gap-2 text-cyan-300 text-sm font-medium">
                   Open <ArrowRight size={14} weight="bold" className="group-hover:translate-x-1 transition-transform" />
                 </div>

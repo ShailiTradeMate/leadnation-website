@@ -65,7 +65,7 @@ export const HsCodePicker = ({
         onClick={() => setOpen((o) => !o)}
         className="w-full flex items-center justify-between gap-3 rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-left hover:border-cyan-400/40 transition-colors"
       >
-        <span className={`truncate text-sm ${value ? "text-white" : "text-slate-400"}`}>
+        <span className={`min-w-0 flex-1 truncate text-sm ${value ? "text-white" : "text-slate-400"}`}>
           {value ? `HS ${value}${selected ? ` — ${selected.description}` : ""}` : placeholder}
         </span>
         <span className="flex items-center gap-2 shrink-0">
