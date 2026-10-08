@@ -304,6 +304,16 @@ async def _boot_sweep():
 _seo_sched = None
 
 
+async def _warm_matrix_cache():
+    """Keep the product x country matrix cache fresh so region hubs never build on a user request."""
+    try:
+        import seo_pages
+        out = await seo_pages.matrix(limit=1000, force=True)
+        logger.info("SEO matrix cache warmed: %s rows, %s indexable", out["count"], out["indexable"])
+    except Exception as exc:
+        logger.warning("SEO matrix warm failed: %s", exc)
+
+
 def start_seo_scheduler():
     """Weekly IndexNow sweep (Mondays 01:10 UTC) + one sweep 3 min after boot."""
     global _seo_sched
@@ -314,6 +324,11 @@ def start_seo_scheduler():
     from apscheduler.triggers.date import DateTrigger
     from datetime import timedelta
     _seo_sched = AsyncIOScheduler(timezone="UTC")
+    _seo_sched.add_job(_warm_matrix_cache, CronTrigger(hour=2, minute=30),
+                       id="seo-matrix-warm", replace_existing=True)
+    _seo_sched.add_job(_warm_matrix_cache,
+                       DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=5)),
+                       id="seo-matrix-warm-boot", replace_existing=True)
     _seo_sched.add_job(weekly_full_sweep, CronTrigger(day_of_week="mon", hour=1, minute=10),
                        id="indexnow-weekly", replace_existing=True)
     _seo_sched.add_job(_boot_sweep,

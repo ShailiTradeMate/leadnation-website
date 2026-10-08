@@ -1,0 +1,34 @@
+{
+  "summary": "Iter72: Validated Region Hubs (Part 4 Geography) backend + frontend. 14/14 iter72 backend tests pass; 19/19 iter71 regression tests re-run and still green. Frontend /regions index (3 cards), /regions/europe (20 country cards, snapshot/facts/products/countries, chips with prefilled query params, guide links), /regions/middle-east (9 'coverage expanding' cards, brain CTA prefilled, no fake buyer numbers but real $4.03B import demand), nav Explore -> Regions, footer-link-regions, export guide breadcrumb epc-region-link -> /regions/europe, mobile 390x844 no horizontal overflow — all verified. Sitemap includes /regions, 3 hub URLs and /api/answers/html/regions/* URLs. Answer markdown money format correctly uppercased 'US$524.12M'. HTML answer has exactly one canonical pointing to https://vametra.com/regions/asia-pacific. Europe buyers deduped (~23,702, not ~190k).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/seo/regions", "issue": "First cold request after idle returned 502 once (took >150s); subsequent requests served in <1.5s. Acceptable per spec note about 24h matrix cache, but a warm-up ping or longer upstream timeout at the ingress would prevent intermittent 502s."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter72_region_hubs.py",
+    "/app/backend/tests/test_iter71_origin_geo.py",
+    "/app/test_reports/pytest/iter72_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "backend/seo_pages.py exposes per-country field as topImportsUSD (not importsUSD) and buyers (not buyerRecords). This matches the frontend usage and is fine, but the request spec text used importsUSD/buyerRecords — recommend aligning naming or documenting in the API contract.",
+    "Pytest warning: TestRegionEurope uses class-scoped fixture defined as instance method (deprecated in pytest 10). Harmless but worth fixing in regression file by moving fixture to module-level or using @classmethod."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_iter72_region_hubs.py (new)"
+  ],
+  "success_rate": {"backend": "100% (14/14 new + 19/19 iter71 regression)", "frontend": "100%"},
+  "test_credentials": "None required — all tested surfaces are public.",
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iter72 region hubs (/regions, /regions/{europe|middle-east|asia-pacific}) and GEO answer docs (/api/answers/md|html/regions/{slug}) are fully functional and indexable; sitemap updated. Regression file at /app/backend/tests/test_iter72_region_hubs.py. Note: per-country field names are topImportsUSD/buyers/buyerCoverage (not importsUSD/buyerRecords as the request text used). The first call to /api/seo/region/{slug} after idle may 502 once due to cold 24h matrix cache; subsequent calls are fast.",
+  "rca of the issue": "No bugs found. One transient 502 on cold /api/seo/regions resolved on retry (cache warm-up). The initial 'MISSING epc-region-link' observation during fast navigation was a race between SPA data fetch and selector probe; after wait_until='networkidle' the breadcrumb and link render correctly with href=/regions/europe."
+}

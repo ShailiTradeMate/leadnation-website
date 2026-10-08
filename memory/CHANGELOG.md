@@ -293,3 +293,13 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 
 ### Verification
 - Testing agent iteration 71: backend 19/19 pytest (`backend/tests/test_iter71_origin_geo.py`), frontend 100%, no mobile overflow. `schemes` count field renamed to `schemeCount` after review; re-verified in browser.
+
+## 2026-06 — SEO/GEO Part 4: region hubs
+- NEW `/regions` index + `/regions/europe`, `/regions/middle-east`, `/regions/asia-pacific` hubs (`frontend/src/pages/RegionsIndex.jsx`, `RegionHub.jsx`, routes in App.js).
+- Backend `seo_pages.py`: REGION_HUBS (intro + 4 verified facts each), `_region_rows()` reading the 24h matrix cache, GET /api/seo/regions and GET /api/seo/region/{slug}. Per country: indexable guides, top import demand, applied duty range, buyer count or honest "coverage expanding", plus prefilled duty/landed-cost/buyers links and country-profile/corridor links only where those pages exist.
+- Same indexability gate: a hub is only submitted for indexing with >=3 real-data guides and real demand (`indexNote` explains when not).
+- GEO answer docs for hubs: /api/answers/md|html/regions/{slug}; added to /api/sitemap.xml (+ /regions static route) and public/llms.txt.
+- Internal links (no orphans): Explore nav + footer -> /regions; export guide breadcrumb -> its region hub (epc-region-link).
+- Added a daily 02:30 UTC + boot+5min matrix cache warm job (`seo._warm_matrix_cache`) so hubs never build on a user request (fixes the cold 502 the tester saw).
+- Live data: Europe 20 markets / 38 guides / US$2.97B demand / 23,702 buyer records; Middle East 9 markets / 16 guides / US$4.03B demand / 0 buyers (coverage expanding); Asia Pacific 14 markets / 26 guides.
+- Verified: testing agent iteration 72 — 14/14 new backend tests + 19/19 iter71 regression, frontend 100%, no mobile overflow. Local re-run after the warm-job fix: 33 passed.
