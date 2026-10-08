@@ -263,3 +263,5 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 ## 2026-10-08 — Tools rewire (iteration 70)
 - `/tools/*` embed real Customs & Compliance Engine components; mock backend removed; HSN Finder on full 5,606-code directory with RoDTEP/IGST/WITS duty; Buyer Discovery on real buyer records; `LaneCountrySelect` fixes wrong (alpha-2) lane codes in Customs Engine + Command Center; `BrainNextSteps` panel + `POST /api/tools/next-steps`; `/customs-compliance?tab=` deep links; export-guide tool rail pre-filled with lane params; `HsCodePicker` mobile overflow fix.
 - Tests: `backend/tests/test_iter70_tools_rewire.py` 25/25; frontend flows all green (`test_reports/iteration_70.json`).
+
+- 2026-10-08 (follow-up): HSN Finder made global — Exporting-from + Importing-to selectors; cards = destination MFN duty, preferential rate for the chosen origin, destination VAT/GST; India RoDTEP/GST shown only when origin/destination is India; HS code highlighted large; Brain steps carry `from=` origin. Verified US→Canada laptop (847130, 0% MFN, 5% GST).

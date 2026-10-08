@@ -117,14 +117,20 @@ def deterministic_steps(tool: str, inputs: dict, result: dict):
         steps.append(_brain(f"Full export plan for HS {hs6} ({product}) from {_name(origin)} to {dn}"))
 
     elif tool == "hsn":
-        steps.append(_step(f"Import duty for HS {hs6} — any destination", f"/tools/duty-calculator?hs={hs6}&from=356&to={dest or '784'}",
-                           "Real WITS tariff + India RoDTEP for the code you just classified."))
+        o, dd = origin or "356", dest or "784"
+        on, dn = _name(o), _name(dd)
+        steps.append(_step(f"Full duty & FTA check: {on} → {dn}", f"/tools/duty-calculator?hs={hs6}&from={o}&to={dd}",
+                           f"MFN and preferential rates into {dn}" + (" + RoDTEP export benefit." if o == "356" else ".")))
         steps.append(_step(f"World demand for HS {hs6}", f"/tools/product-research?hs={hs6}",
                            "Who imports it, how much and the 5-year trend."))
-        steps.append(_step("Cost a shipment (Command Center)", f"/tools/landed-cost-calculator?hs={hs6}&from=356&to={dest or '784'}",
+        steps.append(_step(f"Cost a shipment to {dn} (Command Center)", f"/tools/landed-cost-calculator?hs={hs6}&from={o}&to={dd}",
                            "FOB → CIF → landed with duty, VAT and FX."))
-        steps.append(_step("Find buyers for this HS code", f"/buyers?hs={hs6}", "Importer records matched to the HS family.", "buyers"))
-        steps.append(_brain(f"Export documents, certifications and best markets for HS {hs6} ({product})"))
+        steps.append(_step(f"Find buyers in {dn}" if dn else "Find buyers for this HS code",
+                           f"/buyers?hs={hs6}&country={quote(dn)}" if dn else f"/buyers?hs={hs6}", "Importer records matched to the HS family.", "buyers"))
+        ep = _export_page(hs6, dd) if o == "356" else None
+        if ep:
+            steps.append(_step(f"India → {dn} export guide", ep, "Documents, certifications and FTA status for this lane.", "guide"))
+        steps.append(_brain(f"Export documents, certifications, duty and best buyers for HS {hs6} ({product}) from {on} to {dn}"))
 
     elif tool == "readiness":
         score = int(result.get("score") or 0)

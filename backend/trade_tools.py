@@ -149,9 +149,9 @@ def _igst(hs6: str):
     return duty_engine.IGST_BY_CHAPTER.get(hs6[:2], 18)
 
 
-async def _enrich(row: dict, destination: str, with_duty: bool):
+async def _enrich(row: dict, destination: str, with_duty: bool, origin: str = ""):
     hs6 = row["hs6"]
-    rod = await duty_engine.rodtep_rate(hs6)
+    rod = await duty_engine.rodtep_rate(hs6) if (origin in ("", "356")) else None
     section = trade_intel.HS_SECTION_NAMES
     sec_id = None
     try:
@@ -159,18 +159,28 @@ async def _enrich(row: dict, destination: str, with_duty: bool):
         sec_id = int(str(meta["id"])[:-6]) if meta and meta.get("id") else None
     except Exception:
         pass
-    duty = None
+    duty, pref = None, None
     if with_duty and destination:
         try:
             duty = await asyncio.wait_for(duty_engine.wits_tariff(destination, "000", hs6), timeout=25)
+            if origin and origin != destination:
+                pref = await asyncio.wait_for(duty_engine.wits_tariff(destination, origin, hs6), timeout=25)
+                if pref and duty and pref["rate"] >= duty["rate"]:
+                    pref = None
         except Exception:
-            duty = None
+            pass
+    from costing_engine import VAT_BY_CODE
     return {
+        "originName": duty_engine.NAME_BY_CODE.get(origin, ""),
+        "destinationName": duty_engine.NAME_BY_CODE.get(destination, ""),
+        "destinationVat": {"rate": VAT_BY_CODE.get(destination), "label": "GST (IGST)" if destination == "356" else "VAT / GST"} if destination and destination in VAT_BY_CODE else None,
+        "preferentialDuty": {"rate": pref["rate"], "type": pref["type"], "year": pref["year"],
+                             "origin": duty_engine.NAME_BY_CODE.get(origin, origin), "source": "World Bank WITS / UNCTAD TRAINS"} if pref else None,
         "code": hs6, "title": row["desc"], "chapter": hs6[:2],
         "section": sec_id, "sectionName": section.get(sec_id, "") if sec_id else "",
         "matchScore": round(max(row.get("score", 0), 0), 1),
         "rodtep": {"rate": rod["rate"], "unit": "% of FOB", "source": rod["source"], "effectiveDate": rod["effectiveDate"]} if rod else None,
-        "igstSlab": _igst(hs6),
+        "igstSlab": _igst(hs6) if destination == "356" or origin == "356" else None,
         "igstSource": "curated line" if _curated(hs6) else "chapter default",
         "importDuty": {"rate": duty["rate"], "type": duty["type"], "year": duty["year"],
                        "destination": duty_engine.NAME_BY_CODE.get(destination, destination),
@@ -182,7 +192,8 @@ class HsnFindRequest(BaseModel):
     productName: str = ""
     description: Optional[str] = ""
     hs6: Optional[str] = ""
-    destination: Optional[str] = ""  # ISO numeric, e.g. 784
+    origin: Optional[str] = ""       # ISO numeric exporter, e.g. 356
+    destination: Optional[str] = ""  # ISO numeric importer, e.g. 784
 
 
 @router.post("/hsn-finder")
@@ -192,15 +203,16 @@ async def hsn_finder(payload: HsnFindRequest):
         matches = [{"hs6": r["hs6"], "desc": r.get("desc", ""), "score": 10} for r in rows]
     else:
         matches = await _directory_match(payload.productName, payload.description or "")
-    results = await asyncio.gather(*[_enrich(m, payload.destination or "", i < 3) for i, m in enumerate(matches)])
+    results = await asyncio.gather(*[_enrich(m, payload.destination or "", i < 3, payload.origin or "") for i, m in enumerate(matches)])
     meta = await duty_engine.get_meta()
     return {
-        "query": payload.productName or payload.hs6, "destination": payload.destination or "",
+        "query": payload.productName or payload.hs6, "origin": payload.origin or "", "destination": payload.destination or "",
+        "originName": duty_engine.NAME_BY_CODE.get(payload.origin or "", ""),
         "destinationName": duty_engine.NAME_BY_CODE.get(payload.destination or "", ""),
         "results": list(results), "total": len(results),
         "sources": ["WCO HS 2022 nomenclature", "DGFT RoDTEP Appendix 4R", "World Bank WITS / UNCTAD TRAINS"],
         "refreshedAt": meta.get("lastRefresh"),
-        "note": "HS6 is the international level; confirm the Indian 8-digit ITC-HS line on your shipping bill. IGST slab is the chapter-level default — verify the exact rate for your line.",
+        "note": "HS6 is the international level used by every customs authority; national schedules add 2–4 digits (e.g. India ITC-HS 8-digit, EU CN 8-digit, US HTS 10-digit) — confirm the national line before filing. Export incentives are shown only for the selected origin.",
     }
 
 

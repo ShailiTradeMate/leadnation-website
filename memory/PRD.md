@@ -64,6 +64,7 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Country dropdowns for duty/command-center lanes use `/api/duty/countries` (56 WITS countries, ISO-numeric) via `LaneCountrySelect` — the old alpha-2 list silently returned no data.
 - "Vametra AI Brain · next steps" panel (`POST /api/tools/next-steps`) under every result: AI read of the user's numbers (Emergent key, falls back to deterministic text) + pre-filled links to the next tool/buyers/export guide/Brain + plan upsell. Fires `tool_next_step` / `upgrade_cta_click` analytics events.
 - Removed mock endpoints: `/duty-calc`, `/landed-cost`, `/export-incentive`, `/product-research`, `/find-buyers` (legacy tests in `tests/test_leadnation_api.py` for these are obsolete).
+- **Global, not India-centric (owner rule 8 Oct):** every tool must take exporting + importing country; India-specific schemes (RoDTEP, IGST) appear only when India is the origin/destination. HSN Finder updated accordingly.
 - Rule going forward (owner): never build duplicates; every feature must be useful for marketing and route to signup/plan.
 
 ## Priorities / next actions
