@@ -1,0 +1,23 @@
+{
+  "summary": "Iteration 70 (/tools rewire): comprehensive backend + frontend verification of real-data tools, HSN directory, duty countries, Brain next-steps, removed mock endpoints, customs-compliance deep links, export page rail, and mobile overflow. Backend: 25/25 pytest green in 32s. Frontend: all 8 tools work with real data and Brain panels, deep links carry correct params, mobile has no horizontal overflow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter70_tools_rewire.py",
+    "/app/test_reports/pytest/iter70.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "No critical issues found. /tools pages now consistently reuse CustomsEngineTools components (DRY), 404s for removed mocks are intentional, Brain next-steps are deterministic + optional LLM upgrade, Mongo _id not exposed in any tested endpoint."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter70_tools_rewire.py"],
+  "success_rate": {"backend": "100% (25/25)", "frontend": "100% (14/14 flows verified)"},
+  "seed_data_creation": "None.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "test_iter70_tools_rewire.py covers: /api/duty/countries (56 countries, IN/DE/UAE codes 356/276/784), /api/hsn-finder (agarbatti→330741, basmati→100630, turmeric+UAE WITS rate, hs6:091030, zzzqqq empty), /api/hsn/{code} (091030 non-curated, 10063020 curated Basmati+1.0% RoDTEP, 000000 404), /api/tools/next-steps (7 tools deterministic, duty-specific export+buyers links, ai:true), /duty-calc /landed-cost /export-incentive /product-research /find-buyers all return 404 (intentional), /api/export-readiness still returns score+band, /api/duty/lookup rice-IN→DE includes 'specific' duty notes for 0% rate. Frontend verified: tools hub 8 cards + 'Eight tools. One engine.' hero, duty-calculator auto-fills with ?hs/from/to and shows Brain panel, hsn-finder example chip + cotton t-shirt + hsn-0-detail→/hsn/330741, product-research OEC data with #1 importer step link, landed-cost full flow 90s computes KPIs+Advisor+Brain panel with /buyers and /command-center steps, export-incentive page title+benefits-dir+inc-open-engine, find-buyers shows '113 verified importers · HS 100630 · Germany' with fb-card-0 and fb-next-panel, export-readiness score 33 with er-next-panel, /customs-compliance?tab=duty activates Duty & Benefits tab, ?tab=trade activates Trade Statistics, ?tab=compile shows Command Center with cc-tab-open-workspace, /export/basmati-rice/to/germany rail links carry hs=100630&from=356&to=276&country=Germany correctly, /buyers?hs=100630&country=Germany preselects buyer-filter-country=Germany, mobile 390x844 has 0 overflow across all 4 tool pages."
+}

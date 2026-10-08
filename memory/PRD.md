@@ -58,8 +58,17 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Government registry matching remains **MOCKED / not live-validated** from prior work; requires authorized registry access. This is unrelated to location data, which is real offline reference data.
 - Never rerun destructive old tests57–62 against deleted fixtures. Credential/status source: `test_credentials.md` (private).
 
+## Tools rewire — 8 Oct 2026 (iteration 70, 25/25 backend + all frontend flows passed)
+- Every `/tools/*` page now embeds the REAL Customs & Compliance Engine components (shared `components/engines/CustomsEngineTools.jsx`): Duty (WITS+RoDTEP), Landed Cost = Command Center quote, Product Research = OEC Trade Statistics, Incentives = RoDTEP+Govt benefits, Buyer Discovery = real `/api/buyers/search`. No duplicated logic; each page has "Open in full Customs & Compliance Engine" (`/customs-compliance?tab=`).
+- HSN Finder: all 5,606 HS codes + trade-name alias layer (`TRADE_ALIASES`) + DGFT RoDTEP + IGST slab + live WITS duty at destination. `/api/hsn/{code}` now works for any HS6 (curated knowledge merged for 5 flagship lines).
+- Country dropdowns for duty/command-center lanes use `/api/duty/countries` (56 WITS countries, ISO-numeric) via `LaneCountrySelect` — the old alpha-2 list silently returned no data.
+- "Vametra AI Brain · next steps" panel (`POST /api/tools/next-steps`) under every result: AI read of the user's numbers (Emergent key, falls back to deterministic text) + pre-filled links to the next tool/buyers/export guide/Brain + plan upsell. Fires `tool_next_step` / `upgrade_cta_click` analytics events.
+- Removed mock endpoints: `/duty-calc`, `/landed-cost`, `/export-incentive`, `/product-research`, `/find-buyers` (legacy tests in `tests/test_leadnation_api.py` for these are obsolete).
+- Rule going forward (owner): never build duplicates; every feature must be useful for marketing and route to signup/plan.
+
 ## Priorities / next actions
 - **P0:** Owner mobile-device acceptance (iPhone/Safari and Android); latest admin-pricing acceptance still pending. Any newly reported mobile defect takes priority.
+- **P0 (SEO plan):** Part 3 server-side pre-rendering for SEO routes → Part 4 region hubs/country pages → Part 5 product×country batch. See `memory/seo/EXECUTION_PLAN.md`.
 - **P1:** Fresh vametra.com marketing/SEO/GEO plan (do not recycle leadnation.app plan); Academy ↔ Brain coordination remains backlog-only; Expo email inbox validation.
 - **P2:** International Expo pricing; localized location names and reproducible geographic-data refresh; optional remembered recent countries.
 - Frozen until expressly requested: broad admin/buyer approval regression, hard-delete consistency, CMS volume/timeouts, live registry integration, subscription/payment changes.

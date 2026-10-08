@@ -258,3 +258,8 @@ SEO BUG FIXED SITE-WIDE
 
 TESTING — iteration_69: backend 20/21 pytest (one transient 502 flake, endpoint verified by sibling
 tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
+
+
+## 2026-10-08 — Tools rewire (iteration 70)
+- `/tools/*` embed real Customs & Compliance Engine components; mock backend removed; HSN Finder on full 5,606-code directory with RoDTEP/IGST/WITS duty; Buyer Discovery on real buyer records; `LaneCountrySelect` fixes wrong (alpha-2) lane codes in Customs Engine + Command Center; `BrainNextSteps` panel + `POST /api/tools/next-steps`; `/customs-compliance?tab=` deep links; export-guide tool rail pre-filled with lane params; `HsCodePicker` mobile overflow fix.
+- Tests: `backend/tests/test_iter70_tools_rewire.py` 25/25; frontend flows all green (`test_reports/iteration_70.json`).

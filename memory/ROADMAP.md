@@ -190,3 +190,10 @@ Cover + branding, project + exec summary, full Incoterm costing (EXW/FOB/FCA/FAS
 - [x] Users tab hydration from canonical DO registry + shared `profiles` (iteration_55).
 - [x] Cookie banner hidden for staff/admin routes.
 - [x] Bulk main-admin approvals, sub-admin free-month subscription requests, shared `approved` status sync, CMS Verified Buyer list + registry-match onboarding scaffold, hard-delete resiliency, main-admin token precedence fix — SHIPPED, agent-tested (iterations 57–62), **awaiting the §1 validation above**.
+
+
+## Added 2026-10-08
+- P1: Charts in tools (duty split donut / landed-cost waterfall bars) — owner said "if necessary"; Trade Statistics already has bars/trend.
+- P1: Extend `TRADE_ALIASES` (trade-name → HS6) from Brain query logs; consider LLM-assisted classification fallback when alias+text match score < 3.
+- P2: Delete obsolete `tests/test_leadnation_api.py` mock-endpoint tests.
+- Rule: never build duplicate tools; route to the existing engine page and add enhancement there.

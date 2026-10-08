@@ -13,6 +13,7 @@ Engineering Goods & Machinery · publish strictly by data sufficiency, never by 
 |---|---|---|
 | **1** | Data foundation: aggregator + sufficiency gate + refresh | ✅ **DONE 7 Oct 2026** |
 | 2 | Frontend `/export/{product}/to/{country}` template + answer-first content | ✅ **DONE 7 Oct 2026** (+ full 5,606-code HS directory in every picker) |
+| 2b | Tools rewire: /tools embed real engines, HSN Finder on full directory, Brain next-steps panel, lane dropdown fix | ✅ **DONE 8 Oct 2026** (iter 70) |
 | 3 | Server-side pre-rendering for SEO routes (AI crawler visibility) | ⬜ **next** |
 | 4 | Geography: region hubs + country/corridor pages (Europe + Middle East + CN/UK/NL/DE/SG/SA) | ⬜ |
 | 5 | Publish product × country batch 1 (gate-approved only) + full internal-link graph | ⬜ |
