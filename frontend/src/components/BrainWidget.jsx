@@ -95,13 +95,13 @@ export default function BrainWidget() {
       const { data } = await api.post("/brain/ask", {
         question, session_id: sid.current, user_id,
         page_context: page.slug ? { type: page.type, slug: page.slug } : undefined,
-      });
+      }, { timeout: 180000 });
       setThread((t) => [...t, {
         role: "assistant", answer: data.answer, engines: data.enginesUsed || [],
         sources: data.sources || [], recommendations: data.recommendations || [], ctas: data.ctas || [],
       }]);
     } catch (e) {
-      const msg = e?.response?.status === 429 ? "You're asking quickly — give me a moment and try again." : "Something went wrong. Please try again.";
+      const msg = e?.code === "ECONNABORTED" ? "That took longer than expected. Please ask again." : e?.response?.status === 429 ? "You're asking quickly — give me a moment and try again." : "Something went wrong. Please try again.";
       setThread((t) => [...t, { role: "assistant", answer: msg, error: true }]);
     } finally { setLoading(false); }
   };

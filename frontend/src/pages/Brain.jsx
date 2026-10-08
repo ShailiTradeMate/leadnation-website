@@ -57,6 +57,8 @@ export default function BrainPage() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
   const sid = useRef(sessionId());
+  const presetDone = useRef(false);
+  const inFlight = useRef(false);
   const [searchParams] = useSearchParams();
   const [pf, setPf] = useState({ direction: "Export", product: "", origin: "India", destination: "", hsn: "" });
 
@@ -64,17 +66,18 @@ export default function BrainPage() {
 
   useEffect(() => {
     const preset = searchParams.get("q");
-    if (preset) ask(preset);
+    if (preset && !presetDone.current) { presetDone.current = true; ask(preset); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const ask = async (question, mode) => {
-    if (!question.trim() || loading) return;
+    if (!question.trim() || inFlight.current) return;
+    inFlight.current = true;
     setThread((t) => [...t, { role: "user", answer: question }]);
     setQ("");
     setLoading(true);
     try {
-      const { data } = await api.post("/brain/ask", { question, session_id: sid.current, mode });
+      const { data } = await api.post("/brain/ask", { question, session_id: sid.current, mode }, { timeout: 180000 });
       setThread((t) => [...t, {
         role: "assistant", answer: data.answer, isMock: data.isMock,
         engines: data.enginesUsed || [], sources: data.sources || [],
@@ -83,8 +86,13 @@ export default function BrainPage() {
         entities: data.entities,
       }]);
     } catch (e) {
-      setThread((t) => [...t, { role: "assistant", answer: "Something went wrong reaching the Brain. Please try again.", error: true }]);
-    } finally { setLoading(false); }
+      const msg = e?.code === "ECONNABORTED"
+        ? "That question needed deep research and timed out. Try asking it again — or narrow it to one product and one market."
+        : e?.response?.status === 429
+          ? "You're asking quickly — give me a few seconds and try again."
+          : "Something went wrong reaching the Brain. Please try again.";
+      setThread((t) => [...t, { role: "assistant", answer: msg, error: true, retryQuestion: question, retryMode: mode }]);
+    } finally { setLoading(false); inFlight.current = false; }
   };
 
   const askProduct = () => {
@@ -200,6 +208,12 @@ export default function BrainPage() {
                 )}
                 <div className={`rounded-2xl px-4 py-3 max-w-[85%] ${m.role === "user" ? "bg-cyan-500/15 border border-cyan-400/30 text-white text-sm" : "bg-white/5 border border-white/10"}`}>
                   {m.role === "user" ? m.answer : <FormattedAnswer text={m.answer} />}
+                  {m.error && m.retryQuestion && (
+                    <button data-testid={`brain-retry-${i}`} onClick={() => ask(m.retryQuestion, m.retryMode)} disabled={loading}
+                      className="mt-3 text-[11px] px-3 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 hover:bg-cyan-500/30 disabled:opacity-50">
+                      Retry this question
+                    </button>
+                  )}
                   {m.engines?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-1.5" data-testid={`brain-engines-${i}`}>
                       {m.engines.map((e) => (

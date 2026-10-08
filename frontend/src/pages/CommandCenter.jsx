@@ -973,7 +973,7 @@ function BrainModule({ cur, P }) {
     setMsgs((m) => [...m, { role: "user", text: question }]); setQ(""); setBusy(true);
     trackEvent(EVENTS.BRAIN_QUERY, { context: "command_center" });
     try {
-      const { data } = await api.post("/brain/ask", { question, session_id: `tcc-${cur.id}`, page_context: { type: "tcc", workspace: "brain", product: cur.product, hs: cur.hs, exporter: cur.exporter, importer: cur.importer, stage: cur.stage } });
+      const { data } = await api.post("/brain/ask", { question, session_id: `tcc-${cur.id}`, page_context: { type: "tcc", workspace: "brain", product: cur.product, hs: cur.hs, exporter: cur.exporter, importer: cur.importer, stage: cur.stage } }, { timeout: 180000 });
       setMsgs((m) => [...m, { role: "assistant", text: data.answer || "No answer." }]);
     } catch (_) { setMsgs((m) => [...m, { role: "assistant", text: "Brain unavailable, try again." }]); }
     finally { setBusy(false); }

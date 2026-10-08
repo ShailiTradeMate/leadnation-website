@@ -265,3 +265,10 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 - Tests: `backend/tests/test_iter70_tools_rewire.py` 25/25; frontend flows all green (`test_reports/iteration_70.json`).
 
 - 2026-10-08 (follow-up): HSN Finder made global — Exporting-from + Importing-to selectors; cards = destination MFN duty, preferential rate for the chosen origin, destination VAT/GST; India RoDTEP/GST shown only when origin/destination is India; HS code highlighted large; Brain steps carry `from=` origin. Verified US→Canada laptop (847130, 0% MFN, 5% GST).
+
+## 2026-06 — Brain chat reliability fix
+- `/brain?q=...` deep links no longer fire the question twice (React double-effect guard via presetDone ref + inFlight ref instead of loading state).
+- Brain requests now use a 180s timeout (was global 30s axios timeout) in Brain page, BrainWidget and Command Center brain panel — this was the cause of "Something went wrong reaching the Brain".
+- Errors now distinguish timeout vs 429 vs generic, and show a "Retry this question" button (data-testid brain-retry-N).
+- Verified in browser: /brain deep link renders one question and a full sourced answer, no error.
+- Open: Brain still defaults an unspecified market to India (tracked under "Global Tool Copy" backlog item).
