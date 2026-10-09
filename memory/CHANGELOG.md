@@ -303,3 +303,24 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 - Added a daily 02:30 UTC + boot+5min matrix cache warm job (`seo._warm_matrix_cache`) so hubs never build on a user request (fixes the cold 502 the tester saw).
 - Live data: Europe 20 markets / 38 guides / US$2.97B demand / 23,702 buyer records; Middle East 9 markets / 16 guides / US$4.03B demand / 0 buyers (coverage expanding); Asia Pacific 14 markets / 26 guides.
 - Verified: testing agent iteration 72 — 14/14 new backend tests + 19/19 iter71 regression, frontend 100%, no mobile overflow. Local re-run after the warm-job fix: 33 passed.
+
+## 2026-06 — SEO/GEO Part 5: publish batch 1 + internal link graph
+### Published set
+- 392 gate-approved guides live (8 product families x 49 markets avg) across 5 regions: Europe 152, Asia Pacific 104, Middle East 64, Americas 40, Africa 32.
+- Added `americas` and `africa` REGION_HUBS (4 verified facts each) so every guide has a region parent — no region-orphan guides.
+- Sitemap now ~975 URLs: /export, 8 product hubs, 392 guides, /regions + 5 hubs, 413 GEO answer docs.
+- `POST /api/seo/publish-batch` (admin) submitted 562 URLs to IndexNow in 2 chunks, both HTTP 200.
+
+### New pages
+- `/export` — ExportGuidesIndex.jsx: all guides grouped by product, market search, region chips.
+- `/export/:product` — ExportProductHub.jsx: per-product hub with stats (markets, demand, duty range, zero-duty markets, buyer records), all markets with duty/demand/rank, tool deep links, region + related-product links.
+
+### Link graph (zero orphans)
+- `backend/seo_pages.py`: MARKETING_PRODUCT_SLUG, `_approved_rows()`, `_related_links()`, GET /api/seo/guides, /api/seo/product-hub/{product}, /api/seo/guides-by-country/{country}; `page-data` now returns `related`.
+- `frontend/src/components/LinkGraph.jsx`: RelatedGuides (same product other markets, same market other products, region hub, corridor, country profile, product overview) + CountryGuides.
+- Guides: breadcrumb now points to /export/{product} (previously linked a NON-EXISTENT /products/{seo-slug} for 5 of 8 products — real broken-link bug, fixed).
+- Country profiles, corridor pages and marketing product pages now list their published guides; nav + footer carry "Export Guides".
+- GEO answer docs added for the 8 product hubs (413 docs total); llms.txt documents /export, product hubs and all 5 region hubs.
+
+### Verification
+- Testing agent iteration 73: 16/16 new backend tests, frontend 100%, zero-orphan reachability confirmed, no mobile overflow. Low-priority testids added afterwards (hub-duty/hub-landed/hub-buyers/hub-market-region/hub-market-corridor) and the stale iter72 3-region assertion updated. Local re-run: 49 passed.

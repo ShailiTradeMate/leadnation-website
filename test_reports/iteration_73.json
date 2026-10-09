@@ -1,0 +1,32 @@
+{
+  "summary": "Iter 73 (Publish batch 1 + internal link graph) end-to-end tested. Backend: 16/16 new pytest cases in test_iter73_publish_batch.py pass (guides index with 392 approved + 5 regions incl. Americas 40 / Africa 32 and all with hub URLs; product-hub basmati-rice with 49 markets, stats, 7 related, regions, tools map, marketingProduct=/products/basmati-rice; engineering-machinery marketingProduct=null; not-a-product -> 404; guides-by-country germany=8 guides regionHub=/regions/europe, uae regionHub=/regions/middle-east; page-data related block has productHub/guidesIndex/regionHub/marketingProduct + 8 sameProductMarkets excl Germany + 7 sameCountryProducts excl basmati-rice; region/americas + region/africa indexable w/ 4 facts; answers/index total=413; MD /export/pharmaceuticals contains comma-formatted buyer counts and >=40 market lines; HTML /export/basmati-rice has exactly one canonical to https://vametra.com/export/basmati-rice; sitemap has ~975 unique <loc> incl /export, 8 product hubs, 5 region hubs, /regions and 413 answers URLs; publish-batch returns 403 without token and ok+submitted>=560 with token). Regression: iter71 (19/19 pass), iter72 (13/14 pass - the one failure is an outdated assertion in test_iter72_region_hubs.py::TestRegionIndex::test_regions_index_returns_three which hardcodes 3 regions; actual is now 5 by design, not a bug). Frontend: /export loads 8 product sections (guides-product-{slug}), H1 '392 market guides...', guides-search, 5 region chips (guides-region-{slug}), guides-hub-{slug} buttons and guides-link-{product}-{country} market chips all present. /export/basmati-rice renders hub-h1/hub-answer/hub-snapshot/hub-markets (49)/hub-regions/hub-related/hub-sources + all 6 tools and hub-marketing-link. /export/basmati-rice/to/germany: epc-related present with exactly 8 epc-same-product-* and 7 epc-same-country-* chips, epc-product-hub->/export/basmati-rice, epc-related-region->/regions/europe, epc-related-product-page->/products/basmati-rice, epc-hub-crumb->/export/basmati-rice (breadcrumb fix verified). /countries/uae shows cp-guides-root; /corridors/india-to-uae shows cd-guides-root; /products/basmati-rice has pd-markets + pd-hub-link->/export/basmati-rice. Explore nav + footer-link-guides -> /export. Mobile 390x844 has no horizontal overflow on /export, /export/basmati-rice, /export/basmati-rice/to/germany.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ExportProductHub market card", "issue": "The 'Duty', 'Landed cost', 'Buyers' and region chips inside each hub-market-{country} card have no data-testid attributes (only the market anchor and 'Guide' chip do). Chips are clickable and have correct hrefs - testability only.", "selector": "[data-testid='hub-market-indonesia'] a (Duty/Landed cost/Buyers/region)", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_iter73_publish_batch.py",
+    "/app/test_reports/pytest/iter73.xml"
+  ],
+  "action_items": [
+    "(Optional) Add data-testid='hub-duty-{country}', 'hub-landed-{country}', 'hub-buyers-{country}' on the chips inside ExportProductHub market cards for easier downstream automation.",
+    "(Housekeeping) Update legacy regression /app/backend/tests/test_iter72_region_hubs.py::TestRegionIndex::test_regions_index_returns_three to expect {europe, middle-east, asia-pacific, americas, africa} - current hardcoded set of 3 fails against the now-correct 5-region API."
+  ],
+  "critical_code_review_comments": [
+    "Breadcrumb fix in ExportProductCountry.jsx is confirmed: epc-hub-crumb now routes to /export/{product} instead of the old non-existent /products/{seo-slug}.",
+    "Zero-orphan reachability verified: /export -> product hub -> guide -> back up via epc-product-hub / epc-related-region / breadcrumb to /export; tools and Brain reachable from hub-tool-* buttons.",
+    "First-call latency: /api/seo/guides can take up to ~2 min on cold start (as flagged); frontend ExportGuidesIndex correctly waits (shows loader) and renders when ready - no user-facing error, but consider server-side cache warming on deploy."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter73_publish_batch.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "ADMIN_TOKEN=leadnation-admin-2026 from /app/backend/.env",
+  "seed_data_creation": "None. POST /api/seo/publish-batch invoked once with admin token; it only submits to IndexNow and does not create seed data.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend testids pattern in product-hub market cards: hub-market-{country-slug} and hub-guide-{country-slug} only. The inner Duty/Landed cost/Buyers chips have no testid - use text or href selectors. All ExportGuidesIndex testids use the real product/country slug (not the 'leadnation-build' placeholder from the spec). First call to /api/seo/guides may take ~90-120s on cold start - use wait_for_selector with 130s+ timeout. iter72 TestRegionIndex::test_regions_index_returns_three is now stale (expects 3, reality 5) - update expected set before rerunning that regression.",
+  "rca of the issue": "N/A - no production bugs found. Only observation: hub market card sub-chips (Duty / Landed cost / Buyers) lack data-testid, which is testability debt rather than a functional defect."
+}

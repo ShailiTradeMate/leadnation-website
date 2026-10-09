@@ -114,11 +114,11 @@ export default function ExportProductHub() {
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
                   <Link to={m.url} data-testid={`hub-guide-${m.countrySlug}`} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Guide</Link>
-                  <Link to={m.dutyToolUrl} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Duty</Link>
-                  <Link to={m.landedCostUrl} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Landed cost</Link>
-                  <Link to={m.buyersUrl} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Buyers</Link>
-                  {m.regionHub && <Link to={m.regionHub} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">{m.region.replace("-", " ")}</Link>}
-                  {m.corridor && <Link to={m.corridor} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Corridor</Link>}
+                  <Link to={m.dutyToolUrl} data-testid={`hub-duty-${m.countrySlug}`} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Duty</Link>
+                  <Link to={m.landedCostUrl} data-testid={`hub-landed-${m.countrySlug}`} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Landed cost</Link>
+                  <Link to={m.buyersUrl} data-testid={`hub-buyers-${m.countrySlug}`} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Buyers</Link>
+                  {m.regionHub && <Link to={m.regionHub} data-testid={`hub-market-region-${m.countrySlug}`} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">{m.region.replace("-", " ")}</Link>}
+                  {m.corridor && <Link to={m.corridor} data-testid={`hub-market-corridor-${m.countrySlug}`} className="glass rounded-full px-2.5 py-1 hover:border-cyan-400/40 transition-colors">Corridor</Link>}
                 </div>
               </div>
             ))}

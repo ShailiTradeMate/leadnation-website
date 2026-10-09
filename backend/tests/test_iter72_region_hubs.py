@@ -20,14 +20,14 @@ TIMEOUT = 150  # cold matrix cache
 
 # ---------- /api/seo/regions index ----------
 class TestRegionIndex:
-    def test_regions_index_returns_three(self):
+    def test_regions_index_returns_all_hubs(self):
         r = requests.get(f"{BASE_URL}/api/seo/regions", timeout=TIMEOUT)
         assert r.status_code == 200
         data = r.json()
         regions = data.get("regions") if isinstance(data, dict) else data
         assert isinstance(regions, list)
         slugs = {x["slug"] for x in regions}
-        assert slugs == {"europe", "middle-east", "asia-pacific"}
+        assert slugs == {"europe", "middle-east", "asia-pacific", "americas", "africa"}
         for row in regions:
             for k in ("slug", "name", "url", "countries", "guides", "buyers", "dataAsOf"):
                 assert k in row, f"missing {k} in {row}"
