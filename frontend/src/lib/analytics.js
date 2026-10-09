@@ -1,4 +1,5 @@
 import { api } from "@/lib/api";
+import { isCrawler } from "@/lib/crawler";
 
 const GA4_ID = process.env.REACT_APP_GA4_ID;
 const GTM_ID = process.env.REACT_APP_GTM_ID;
@@ -78,6 +79,7 @@ function loadMarketingScripts() {
 
 // Load only the services the visitor has consented to. Re-callable when consent changes.
 function applyConsent() {
+  if (isCrawler()) return; // crawler / pre-render: keep the render budget for content
   const c = getConsent();
   if (!c) return; // no consent yet → load nothing (GDPR: opt-in)
   if (c.analytics) loadAnalyticsScripts();

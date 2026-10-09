@@ -1,14 +1,12 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { DeviceMobile, ArrowRight } from "@phosphor-icons/react";
-import SEO from "@/components/SEO";
 import { APP_LINKS } from "@/data/contact";
 
-export default function AppFeatureNote({ feature = "This feature", path = "/", icon: Icon = DeviceMobile, points = [] }) {
+export default function AppFeatureNote({ feature = "This feature", icon: Icon = DeviceMobile, points = [] }) {
   const navigate = useNavigate();
   return (
     <>
-      <SEO title={`${feature} · In the Vametra AI App`} description={`${feature} is built into the Vametra AI mobile app. Download to connect with traders worldwide.`} path={path} />
       <section className="max-w-3xl mx-auto px-6 pt-36 pb-24 text-center">
         <div className="w-20 h-20 mx-auto rounded-3xl grid place-items-center bg-gradient-to-br from-cyan-500/25 to-violet-500/25 border border-white/10">
           <Icon size={40} weight="duotone" className="text-cyan-300" />

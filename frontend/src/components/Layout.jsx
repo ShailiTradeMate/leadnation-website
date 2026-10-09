@@ -8,6 +8,7 @@ import AnalyticsProvider from "@/components/Analytics";
 import { useLocation } from "react-router-dom";
 import { SettingsProvider, useSettings } from "@/lib/SettingsContext";
 import { Wrench } from "@phosphor-icons/react";
+import { isSearchBot } from "@/lib/crawler";
 
 function Maintenance({ message }) {
   return (
@@ -28,6 +29,7 @@ function Shell({ children }) {
   const { settings } = useSettings();
   const isAdmin = pathname.startsWith("/admin");
   const maintenance = settings.maintenance && !isAdmin;
+  const bot = isSearchBot();
 
   if (maintenance) {
     return (
@@ -43,8 +45,8 @@ function Shell({ children }) {
       {!isAdmin && <BackButton />}
       <main className={`relative z-10 ${isAdmin ? "" : "pt-[68px]"}`}>{children}</main>
       {!isAdmin && <Footer />}
-      {!isAdmin && <WhatsAppButton />}
-      {!isAdmin && <BrainWidget />}
+      {!isAdmin && !bot && <WhatsAppButton />}
+      {!isAdmin && !bot && <BrainWidget />}
     </div>
   );
 }
