@@ -324,3 +324,19 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 
 ### Verification
 - Testing agent iteration 73: 16/16 new backend tests, frontend 100%, zero-orphan reachability confirmed, no mobile overflow. Low-priority testids added afterwards (hub-duty/hub-landed/hub-buyers/hub-market-region/hub-market-corridor) and the stale iter72 3-region assertion updated. Local re-run: 49 passed.
+
+## 2026-06 — Live HTTP audit of all 975 sitemap URLs + two SEO fixes
+### Audit (prod, Googlebot UA, redirects not followed, 2026-10-09 22:27 UTC)
+- 975/975 = HTTP 200. Zero 3xx, zero 404, zero 5xx, zero timeouts.
+- 562 landing pages / 413 machine-readable answer docs.
+- Answer docs: 413/413 exactly one canonical, zero canonical mismatches, h1 on all, median 280 words, min 127 — no thin docs. Median 430ms.
+- Landing pages: every page type rendered for Googlebot EXCEPT export guides — only 67/392 rendered; 325 returned the ~202-word SPA shell (no h1, no canonical). Rendered pages avg 1.6s vs 11s for the shell ones = edge pre-render worker render timeout. API itself was fast (page-data 0.35-0.93s), so the cause was third-party analytics keeping the page off network-idle.
+- Also found: /marketplace and /network emitted TWO canonical + TWO robots tags (page <SEO> plus AppFeatureNote <SEO>).
+
+### Fixes applied
+- NEW `frontend/src/lib/crawler.js`: `isSearchBot()` (strict bot/AI-crawler UA list) and `isCrawler()` (bots + headless renderers).
+- `analytics.js applyConsent()` short-circuits for crawlers → GTM, GA4, Clarity, Meta Pixel are never injected into a crawler/pre-render render.
+- `Layout.jsx` hides the floating Brain + WhatsApp widgets only for strict search bots (headless browsers keep the full UI so UI automation still works).
+- `AppFeatureNote.jsx`: removed its `<SEO>`; the page-level SEO is authoritative.
+- Verified by testing agent iteration 74 (frontend 100%): single canonical/robots on both pages with the correct page titles, analytics globals undefined under headless, widgets still render, cookie banner + content pages unaffected, no mobile overflow.
+- PENDING: re-run the 392-guide audit after the next production deploy to confirm the rendered count rises from 67.
