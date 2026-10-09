@@ -97,10 +97,19 @@ Examples:
 Each document contains the complete answer text and the source + as-of year for
 every figure, and is canonical-tagged back to the human page it mirrors.
 
+## Export guides (one per product × destination market, real tariff + demand data only)
+Index of all published guides: https://vametra.com/export
+Product hubs: https://vametra.com/export/{product}  (e.g. /export/basmati-rice, /export/pharmaceuticals)
+Guides: https://vametra.com/export/{product}/to/{country}
+Answer documents: https://vametra.com/api/answers/md/export/{product} and
+                  https://vametra.com/api/answers/md/export/{product}/to/{country}
+
 ## Export region hubs (country-by-country duty, demand and buyer coverage)
 https://vametra.com/regions/europe
 https://vametra.com/regions/middle-east
 https://vametra.com/regions/asia-pacific
+https://vametra.com/regions/americas
+https://vametra.com/regions/africa
 Answer documents: https://vametra.com/api/answers/md/regions/europe (and /middle-east, /asia-pacific)
 
 ## Export incentive data by country

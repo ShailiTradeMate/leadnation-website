@@ -52,6 +52,7 @@ def _static_routes():
         ("/academy", "weekly", "0.9"),
         ("/countries", "weekly", "0.9"),
         ("/regions", "weekly", "0.9"),
+        ("/export", "weekly", "0.95"),
         ("/products", "weekly", "0.9"),
         ("/corridors", "weekly", "0.9"),
         ("/industries", "weekly", "0.8"),
@@ -161,7 +162,7 @@ async def _lastmod_map():
 
 
 async def _region_routes():
-    """Region hubs — only the ones that pass the data gate."""
+    """Region hubs + product hubs — only the ones that pass the data gate."""
     out = []
     try:
         import seo_pages
@@ -169,6 +170,9 @@ async def _region_routes():
             data = await seo_pages.region_page(slug)
             if data.get("indexable"):
                 out.append((data["url"], "weekly", "0.95"))
+        guides = await seo_pages.guides_index()
+        for p in guides["products"]:
+            out.append((p["hub"], "weekly", "0.9"))
     except Exception as exc:
         logger.warning("sitemap region source: %s", exc)
     return out
@@ -215,6 +219,22 @@ async def indexnow_submit(urls: list) -> dict:
     except Exception as exc:
         logger.warning("IndexNow submit failed: %s", exc)
         return {"ok": False, "reason": str(exc)}
+
+
+@router.post("/seo/publish-batch")
+async def seo_publish_batch(x_admin_token: str = Header(default=None)):
+    """Admin: submit the whole published set (static + guides + hubs + regions) to IndexNow."""
+    import os
+    if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
+        raise HTTPException(status_code=403, detail="admin only")
+    paths = sorted({loc for loc, _f, _p in (all_public_urls() + await _event_routes()
+                                            + await _product_country_routes() + await _region_routes())})
+    urls = [p if p.startswith("http") else f"{SITE}{p}" for p in paths]
+    chunks, results = [urls[i:i + 500] for i in range(0, len(urls), 500)], []
+    for ch in chunks:
+        results.append(await indexnow_submit(ch))
+    notify_content_change(paths, source="publish-batch")
+    return {"ok": True, "submitted": len(urls), "chunks": len(chunks), "results": results}
 
 
 @router.post("/seo/indexnow")

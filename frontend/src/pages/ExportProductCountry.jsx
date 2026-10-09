@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { RelatedGuides } from "@/components/LinkGraph";
 import { api } from "@/lib/api";
 import {
   ArrowRight, Scales, Globe, FileText, Users, Calculator,
@@ -150,7 +151,7 @@ export default function ExportProductCountry() {
         <div className="reveal-up">
           <nav aria-label="Breadcrumb" className="text-[11px] font-mono-display tracking-[0.18em] uppercase text-slate-500">
             <Link to="/products" className="hover:text-cyan-300">Products</Link> ·{" "}
-            <Link to={`/products/${p.slug}`} className="hover:text-cyan-300">{p.name}</Link> ·{" "}
+            <Link to={`/export/${p.slug}`} className="hover:text-cyan-300" data-testid="epc-hub-crumb">{p.name}</Link> ·{" "}
             {["europe", "middle-east", "asia-pacific"].includes(c.region) && (
               <><Link to={`/regions/${c.region}`} data-testid="epc-region-link" className="hover:text-cyan-300">{c.region.replace("-", " ")}</Link> · </>
             )}
@@ -353,6 +354,8 @@ export default function ExportProductCountry() {
                 ))}
               </div>
             </Section>
+
+            <RelatedGuides related={d.related} productName={p.name} countryName={c.name} />
           </div>
 
           {/* Action rail */}

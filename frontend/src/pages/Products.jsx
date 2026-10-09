@@ -48,13 +48,21 @@ export function ProductsIndex() {
   );
 }
 
+const SEO_PRODUCT_SLUG = {
+  "basmati-rice": "basmati-rice", agarbatti: "agarbatti", spices: "indian-spices",
+  textiles: "cotton-textiles", pharmaceuticals: "pharmaceuticals",
+};
+
 export default function ProductDetail() {
   const { slug } = useParams();
   const [p, setP] = useState(null);
   const [nf, setNf] = useState(false);
+  const [hub, setHub] = useState(null);
   useEffect(() => {
-    setP(null); setNf(false);
+    setP(null); setNf(false); setHub(null);
     api.get(`/product/${slug}`).then((r) => r.data?.error ? setNf(true) : setP(r.data)).catch(() => setNf(true));
+    const seoSlug = SEO_PRODUCT_SLUG[String(slug || "").toLowerCase()];
+    if (seoSlug) api.get(`/seo/product-hub/${seoSlug}`, { timeout: 120000 }).then((r) => setHub(r.data)).catch(() => {});
   }, [slug]);
 
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Product not found</h1><Link to="/products" className="btn-primary mt-6 inline-flex">Browse products</Link></div>;
@@ -125,6 +133,30 @@ export default function ProductDetail() {
               <Link key={c} to={`/corridors/${c}`} className="glass rounded-2xl px-5 py-4 flex items-center justify-between hover:border-cyan-400/30">
                 <span className="text-sm capitalize">{c.replace(/-/g, " ")}</span>
                 <ArrowRight size={14} className="text-cyan-300" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {hub?.markets?.length > 0 && (
+        <section className="max-w-7xl mx-auto px-6 sm:px-10 mt-10" data-testid="pd-markets">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="font-display font-bold text-2xl">Export guides by market</h2>
+              <p className="text-sm text-slate-400 mt-1.5">
+                {hub.stats.markets} published markets with real duty and demand data · duty {hub.stats.dutyMin}–{hub.stats.dutyMax}%
+              </p>
+            </div>
+            <Link to={hub.url} data-testid="pd-hub-link" className="btn-ghost text-sm">
+              Open {hub.name} hub <ArrowRight size={13} />
+            </Link>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-1.5">
+            {hub.markets.slice(0, 24).map((m) => (
+              <Link key={m.url} to={m.url} data-testid={`pd-market-${m.countrySlug}`}
+                className="text-[12px] glass rounded-full px-3 py-1.5 hover:border-cyan-400/40 transition-colors">
+                {m.country} <span className="text-slate-500">{m.dutyRate != null ? `${m.dutyRate}%` : ""}</span>
               </Link>
             ))}
           </div>

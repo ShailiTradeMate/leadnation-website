@@ -4,6 +4,7 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { CountryGuides } from "@/components/LinkGraph";
 import { api } from "@/lib/api";
 import { ArrowsLeftRight, ArrowRight, Compass, FileText, Truck, CurrencyCircleDollar } from "@phosphor-icons/react";
 
@@ -54,9 +55,12 @@ export default function CorridorDetail() {
   const { slug } = useParams();
   const [c, setC] = useState(null);
   const [nf, setNf] = useState(false);
+  const [guides, setGuides] = useState(null);
   useEffect(() => {
-    setC(null); setNf(false);
+    setC(null); setNf(false); setGuides(null);
     api.get(`/corridor/${slug}`).then((r) => r.data?.error ? setNf(true) : setC(r.data)).catch(() => setNf(true));
+    const dest = String(slug || "").split("india-to-")[1];
+    if (dest) api.get(`/seo/guides-by-country/${dest}`, { timeout: 120000 }).then((r) => setGuides(r.data)).catch(() => {});
   }, [slug]);
 
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Corridor not found</h1><Link to="/corridors" className="btn-primary mt-6 inline-flex">Browse corridors</Link></div>;
@@ -117,6 +121,12 @@ export default function CorridorDetail() {
               </Link>
             ))}
           </div>
+        </section>
+      )}
+
+      {guides?.total > 0 && (
+        <section className="max-w-7xl mx-auto px-6 sm:px-10 mt-8">
+          <CountryGuides data={guides} heading={`Export guides: ${c.from} → ${c.to}`} testIdPrefix="cd-guides" />
         </section>
       )}
 

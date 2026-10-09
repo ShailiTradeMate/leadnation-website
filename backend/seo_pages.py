@@ -292,6 +292,7 @@ async def product_country_page(product: str, country: str):
         "product": {"slug": product, **{k: p[k] for k in ("name", "sector", "hs", "primaryHs")}},
         "country": c,
         "url": f"/export/{product}/to/{country}",
+        "related": await _related_links(product, country),
         "duty": duty, "demand": demand, "buyers": buyers, "expos": expos, "news": news,
         "dataScore": score, "indexable": indexable,
         "sources": sources,
@@ -443,6 +444,33 @@ REGION_HUBS = {
             "Singapore and Hong Kong are low/zero-duty re-export hubs rather than final-consumption markets.",
         ],
     },
+    "americas": {
+        "name": "Americas", "demonym": "American",
+        "intro": ("The Americas split into two very different tariff worlds: USMCA North America, "
+                  "where the United States classifies at 10-digit HTS and duty depends heavily on "
+                  "origin rules, and Mercosur-led South America, where a common external tariff and "
+                  "local registration requirements decide whether your price works at all. Demand is "
+                  "large and dollar-denominated, and clearance is document-strict."),
+        "facts": [
+            "The United States classifies imports at 10-digit HTS level and charges duty on FOB value, not CIF — the same HS6 can carry several different US rates.",
+            "US imports may also attract trade-remedy duties (Section 301, anti-dumping, countervailing) that sit on top of the MFN rate and are not visible in MFN tariff data.",
+            "Mercosur members (Brazil, Argentina, Paraguay, Uruguay) apply a common external tariff, and Brazil adds federal and state taxes on import that often exceed the duty itself.",
+            "Food, pharma and cosmetics need prior registration with the destination regulator (US FDA, Brazil ANVISA, Mexico COFEPRIS) before the first shipment can clear.",
+        ],
+    },
+    "africa": {
+        "name": "Africa", "demonym": "African",
+        "intro": ("Africa is the fastest-growing import market for Indian agri-food, pharma and "
+                  "engineering goods, and the most procedurally demanding: most countries sit inside "
+                  "a regional customs union with a common external tariff, and many require "
+                  "pre-shipment conformity assessment before the goods leave your port."),
+        "facts": [
+            "Most African states apply a regional common external tariff — ECOWAS, EAC, SADC or SACU — so the rate follows the bloc, not just the country.",
+            "AfCFTA tariff liberalisation is phasing in between members; it does not reduce duty on goods arriving from outside Africa.",
+            "Several markets require pre-export conformity assessment with a certificate issued before shipment — Nigeria SONCAP, Kenya PVoC, Tanzania PVoC, Egypt GOEIC registration.",
+            "Letters of credit and documentary collection remain common; confirm the bank and FX-availability position before shipping on open account.",
+        ],
+    },
 }
 
 REGION_INDEX_MIN_GUIDES = 3
@@ -579,3 +607,176 @@ async def region_page(slug: str):
         "dataAsOf": at,
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ---------------------------------------------------------------- link graph (Part 5)
+# seo_pages product slugs -> existing marketing product page slugs (content.py PRODUCTS_DB)
+MARKETING_PRODUCT_SLUG = {
+    "basmati-rice": "basmati-rice", "agarbatti": "agarbatti", "indian-spices": "spices",
+    "cotton-textiles": "textiles", "pharmaceuticals": "pharmaceuticals",
+}
+
+
+async def _approved_rows():
+    """Every gate-approved (indexable) product x country row, from the warmed matrix cache."""
+    cached = await db.seo_matrix_cache.find_one({"_id": "matrix:all:all"})
+    if not cached:
+        built = await matrix(limit=1000)
+        return [r for r in built["rows"] if r["indexable"]], built["generatedAt"]
+    return [r for r in cached["rows"] if r.get("indexable")], cached["at"]
+
+
+def _corridor_slug(country_slug: str):
+    try:
+        import content
+        s = f"india-to-{country_slug}"
+        return f"/corridors/{s}" if s in content.CORRIDOR_DB else None
+    except Exception:
+        return None
+
+
+async def _related_links(product: str, country: str):
+    """Sibling links so no guide is a dead end: same product elsewhere, same market other products."""
+    rows, _at = await _approved_rows()
+    p, c = PRODUCTS[product], COUNTRIES[country]
+    same_product = [{"url": r["url"], "country": (COUNTRIES.get(r["country"]) or {}).get("name", r["country"]),
+                     "countrySlug": r["country"], "dutyRate": r["dutyRate"],
+                     "importsUSD": r.get("countryImportsUSD"), "region": r.get("region")}
+                    for r in rows if r["product"] == product and r["country"] != country]
+    same_country = [{"url": r["url"], "product": PRODUCTS[r["product"]]["name"],
+                     "productSlug": r["product"], "sector": PRODUCTS[r["product"]]["sector"],
+                     "dutyRate": r["dutyRate"], "importsUSD": r.get("countryImportsUSD")}
+                    for r in rows if r["country"] == country and r["product"] != product]
+    same_product.sort(key=lambda r: -(r["importsUSD"] or 0))
+    same_country.sort(key=lambda r: -(r["importsUSD"] or 0))
+    region = next((k for k, v in REGIONS.items() if c["code"] in v["codes"]), None)
+    return {
+        "productHub": f"/export/{product}", "productName": p["name"],
+        "guidesIndex": "/export",
+        "regionHub": (f"/regions/{region}" if region in REGION_HUBS else None),
+        "regionName": (REGION_HUBS[region]["name"] if region in REGION_HUBS else None),
+        "marketingProduct": (f"/products/{MARKETING_PRODUCT_SLUG[product]}"
+                             if product in MARKETING_PRODUCT_SLUG else None),
+        "corridor": _corridor_slug(country),
+        "countryProfile": (f"/countries/{country}" if country in _profile_slugs() else None),
+        "sameProductMarkets": same_product[:8],
+        "sameCountryProducts": same_country[:8],
+    }
+
+
+def _profile_slugs():
+    try:
+        import engines
+        return set(engines.COUNTRY_PROFILES.keys())
+    except Exception:
+        return set()
+
+
+@router.get("/guides")
+async def guides_index():
+    """Every published export guide, grouped by product and by region — the publish batch + hub index."""
+    rows, at = await _approved_rows()
+    by_product, by_region = {}, {}
+    for r in rows:
+        p = PRODUCTS[r["product"]]
+        cname = (COUNTRIES.get(r["country"]) or {}).get("name", r["country"])
+        entry = {"url": r["url"], "country": cname, "countrySlug": r["country"],
+                 "dutyRate": r["dutyRate"], "importsUSD": r.get("countryImportsUSD"),
+                 "region": r.get("region")}
+        bp = by_product.setdefault(r["product"], {"slug": r["product"], "name": p["name"],
+                                                  "sector": p["sector"], "hub": f"/export/{r['product']}",
+                                                  "primaryHs": p["primaryHs"], "markets": []})
+        bp["markets"].append(entry)
+        br = by_region.setdefault(r.get("region") or "other",
+                                  {"slug": r.get("region"), "guides": 0, "countries": set()})
+        br["guides"] += 1
+        br["countries"].add(cname)
+    for bp in by_product.values():
+        bp["markets"].sort(key=lambda m: -(m["importsUSD"] or 0))
+        bp["marketCount"] = len(bp["markets"])
+        bp["demandUSD"] = sum(m["importsUSD"] or 0 for m in bp["markets"])
+    products = sorted(by_product.values(), key=lambda p: -p["demandUSD"])
+    regions = [{"slug": k, "name": (REGION_HUBS.get(k) or {}).get("name", k.title()),
+                "url": (f"/regions/{k}" if k in REGION_HUBS else None),
+                "guides": v["guides"], "countries": len(v["countries"])}
+               for k, v in sorted(by_region.items(), key=lambda kv: -kv[1]["guides"])]
+    return {"total": len(rows), "url": "/export", "products": products, "regions": regions,
+            "dataAsOf": at}
+
+
+@router.get("/product-hub/{product}")
+async def product_hub(product: str):
+    """One product, every gate-approved market — the parent page for its guides."""
+    p = PRODUCTS.get(product)
+    if not p:
+        raise HTTPException(status_code=404, detail="Unknown product")
+    rows, at = await _approved_rows()
+    mine = [r for r in rows if r["product"] == product]
+    if not mine:
+        raise HTTPException(status_code=404, detail="No published markets for this product yet")
+
+    markets = []
+    for r in sorted(mine, key=lambda r: -(r.get("countryImportsUSD") or 0)):
+        c = COUNTRIES.get(r["country"]) or {}
+        markets.append({"url": r["url"], "country": c.get("name", r["country"]),
+                        "countrySlug": r["country"], "code": c.get("code"),
+                        "region": r.get("region"),
+                        "regionHub": (f"/regions/{r.get('region')}"
+                                      if r.get("region") in REGION_HUBS else None),
+                        "dutyRate": r["dutyRate"], "importsUSD": r.get("countryImportsUSD"),
+                        "rank": r.get("countryRank"), "buyers": r.get("buyers") or 0,
+                        "dutyToolUrl": f"/tools/duty-calculator?hs={p['primaryHs']}&from={INDIA}&to={c.get('code','')}",
+                        "landedCostUrl": f"/tools/landed-cost-calculator?hs={p['primaryHs']}&from={INDIA}&to={c.get('code','')}",
+                        "buyersUrl": f"/buyers?hs={p['primaryHs']}&country={c.get('name','')}",
+                        "corridor": _corridor_slug(r["country"])})
+    duties = [m["dutyRate"] for m in markets if m["dutyRate"] is not None]
+    return {
+        "slug": product, "name": p["name"], "sector": p["sector"],
+        "hsCodes": p["hs"], "primaryHs": p["primaryHs"], "aka": p.get("aka", []),
+        "url": f"/export/{product}",
+        "stats": {"markets": len(markets),
+                  "demandUSD": sum(m["importsUSD"] or 0 for m in markets),
+                  "dutyMin": (min(duties) if duties else None),
+                  "dutyMax": (max(duties) if duties else None),
+                  "buyerRecords": sum(m["buyers"] for m in markets),
+                  "zeroDutyMarkets": sum(1 for d in duties if d == 0)},
+        "markets": markets,
+        "regions": [{"slug": k, "name": v["name"], "url": f"/regions/{k}",
+                     "markets": sum(1 for m in markets if m["region"] == k)}
+                    for k, v in REGION_HUBS.items()
+                    if any(m["region"] == k for m in markets)],
+        "relatedProducts": [{"slug": s, "name": PRODUCTS[s]["name"], "url": f"/export/{s}",
+                             "sector": PRODUCTS[s]["sector"]}
+                            for s in PRODUCTS if s != product][:7],
+        "tools": {"hsnFinder": f"/tools/hsn-finder?q={p['primaryHs']}&from={INDIA}",
+                  "dutyCalculator": f"/tools/duty-calculator?hs={p['primaryHs']}&from={INDIA}",
+                  "landedCost": f"/tools/landed-cost-calculator?hs={p['primaryHs']}&from={INDIA}",
+                  "productResearch": f"/tools/product-research?hs={p['primaryHs']}",
+                  "buyers": f"/buyers?hs={p['primaryHs']}",
+                  "brain": f"/brain?q=Which market should I export {p['name']} to first and why%3F"},
+        "marketingProduct": (f"/products/{MARKETING_PRODUCT_SLUG[product]}"
+                             if product in MARKETING_PRODUCT_SLUG else None),
+        "guidesIndex": "/export",
+        "sources": [{"name": "World Bank WITS / UNCTAD TRAINS", "field": "duty", "asOf": at[:10]},
+                    {"name": "OEC World (CEPII BACI / UN Comtrade)", "field": "demand", "asOf": at[:10]}],
+        "disclaimer": ("Duty and demand figures carry the reporting year of their source and can lag the "
+                       "current year. Only markets with real tariff and demand data are published here."),
+        "dataAsOf": at,
+    }
+
+
+@router.get("/guides-by-country/{country}")
+async def guides_by_country(country: str):
+    """Published guides for one market — used by country profiles and corridor pages."""
+    c = COUNTRIES.get(country)
+    rows, at = await _approved_rows()
+    mine = [r for r in rows if r["country"] == country]
+    return {"country": (c or {}).get("name", country), "countrySlug": country,
+            "total": len(mine), "dataAsOf": at,
+            "regionHub": next((f"/regions/{k}" for k, v in REGIONS.items()
+                               if c and c["code"] in v["codes"] and k in REGION_HUBS), None),
+            "guides": [{"url": r["url"], "product": PRODUCTS[r["product"]]["name"],
+                        "productSlug": r["product"], "productHub": f"/export/{r['product']}",
+                        "sector": PRODUCTS[r["product"]]["sector"], "dutyRate": r["dutyRate"],
+                        "importsUSD": r.get("countryImportsUSD")}
+                       for r in sorted(mine, key=lambda r: -(r.get("countryImportsUSD") or 0))]}

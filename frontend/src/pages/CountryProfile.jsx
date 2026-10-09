@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { PageHero, SectionLabel } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { CountryGuides } from "@/components/LinkGraph";
 import { api, fetchTradeNews, fetchExpos } from "@/lib/api";
 import { ArrowRight, TrendUp, TrendDown, Buildings, Compass, Newspaper, CalendarBlank, Storefront, Globe } from "@phosphor-icons/react";
 
@@ -12,13 +13,15 @@ export default function CountryProfile() {
   const [notFound, setNotFound] = useState(false);
   const [news, setNews] = useState([]);
   const [expos, setExpos] = useState([]);
+  const [guides, setGuides] = useState(null);
 
   useEffect(() => {
-    setData(null); setNotFound(false);
+    setData(null); setNotFound(false); setGuides(null);
     api.get(`/country/${slug}`).then((r) => {
       if (r.data?.error) setNotFound(true);
       else setData(r.data);
     }).catch(() => setNotFound(true));
+    api.get(`/seo/guides-by-country/${slug}`, { timeout: 120000 }).then((r) => setGuides(r.data)).catch(() => {});
     fetchTradeNews().then(setNews).catch(() => {});
     fetchExpos().then(setExpos).catch(() => {});
   }, [slug]);
@@ -199,6 +202,12 @@ export default function CountryProfile() {
               </Link>
             ))}
           </div>
+        </section>
+      )}
+
+      {guides?.total > 0 && (
+        <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-12">
+          <CountryGuides data={guides} heading={`Export guides for ${guides.country}`} testIdPrefix="cp-guides" />
         </section>
       )}
 

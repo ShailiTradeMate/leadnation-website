@@ -446,15 +446,51 @@ async def _indexable_export_paths():
 
 async def answer_paths():
     """Paths that have a crawlable answer document — used by the sitemap and llms.txt."""
-    regions = []
+    hubs = []
     try:
         for slug in seo_pages.REGION_HUBS:
             data = await seo_pages.region_page(slug)
             if data.get("indexable"):
-                regions.append(data["url"])
+                hubs.append(data["url"])
+        guides = await seo_pages.guides_index()
+        hubs += [p["hub"] for p in guides["products"]]
     except Exception as exc:
         logger.warning("answer region index: %s", exc)
-    return list(TOOL_ANSWERS.keys()) + regions + await _indexable_export_paths()
+    return list(TOOL_ANSWERS.keys()) + hubs + await _indexable_export_paths()
+
+
+async def _product_hub_doc(product):
+    d = await seo_pages.product_hub(product)
+    st = d["stats"]
+    title = f"Export {d['name']} — {st['markets']} markets, duty, demand and buyers"
+    md = [f"# {title}", "",
+          f"Vametra AI publishes {st['markets']} export markets for {d['name']} (HS {d['primaryHs']}"
+          + (f", also {', '.join(h for h in d['hsCodes'] if h != d['primaryHs'])}" if len(d["hsCodes"]) > 1 else "")
+          + f"), covering {_fmt_usd(st['demandUSD'])} of measured import demand. Applied import duty "
+            f"across those markets runs from {st['dutyMin']}% to {st['dutyMax']}%, and "
+            f"{st['zeroDutyMarkets']} of them currently report 0% duty on this product. "
+            f"{st['buyerRecords']:,} verified importer records are held across these markets.", "",
+          "## Markets, duty and demand", ""]
+    for m in d["markets"]:
+        bits = [f"- {m['country']}"]
+        if m["dutyRate"] is not None:
+            bits.append(f"duty {m['dutyRate']}%")
+        if m["importsUSD"]:
+            bits.append(f"imports {_fmt_usd(m['importsUSD'])}")
+        if m["rank"]:
+            bits.append(f"#{m['rank']} worldwide")
+        bits.append(f"guide: {SITE}{m['url']}")
+        md.append(" · ".join(bits))
+    md += ["", "## By region", ""]
+    md += [f"- {r['name']}: {r['markets']} markets — {SITE}{r['url']}" for r in d["regions"]]
+    md += ["", "## Data sources", ""]
+    md += [f"- {s['name']} (as of {s.get('asOf')}) — {s['field']}" for s in d["sources"]]
+    md += ["", f"Disclaimer: {d['disclaimer']}", "",
+           "## Source", f"Vametra AI — {SITE}{d['url']}", ""]
+    desc = (f"Export {d['name']} (HS {d['primaryHs']}): applied import duty and real import demand for "
+            f"{st['markets']} markets, {_fmt_usd(st['demandUSD'])} measured demand.")
+    return {"path": d["url"], "title": title, "description": desc, "markdown": "\n".join(md),
+            "sources": [s["name"] for s in d["sources"]]}
 
 
 async def _doc_for(path):
@@ -464,6 +500,8 @@ async def _doc_for(path):
     parts = path.strip("/").split("/")
     if len(parts) == 2 and parts[0] == "regions" and parts[1] in seo_pages.REGION_HUBS:
         return await _region_doc(parts[1])
+    if len(parts) == 2 and parts[0] == "export" and parts[1] in seo_pages.PRODUCTS:
+        return await _product_hub_doc(parts[1])
     if len(parts) == 4 and parts[0] == "export" and parts[2] == "to":
         return await _export_doc(parts[1], parts[3])
     raise HTTPException(status_code=404, detail="No answer document for this path")

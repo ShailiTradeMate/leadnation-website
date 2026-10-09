@@ -126,7 +126,8 @@ export default function RegionHub() {
 
       <div className="max-w-7xl mx-auto px-5 sm:px-10 pt-16 sm:pt-20 pb-20">
         <nav aria-label="Breadcrumb" className="text-[11px] font-mono-display tracking-[0.18em] uppercase text-slate-500">
-          <Link to="/regions" className="hover:text-cyan-300">Regions</Link> · {d.name}
+          <Link to="/regions" className="hover:text-cyan-300">Regions</Link> · {d.name} ·{" "}
+          <Link to="/export" className="hover:text-cyan-300" data-testid="region-guides-index">All export guides</Link>
         </nav>
         <h1 data-testid="region-h1" className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl lg:text-5xl mt-4 leading-[1.08]">
           Exporting to <span className="gradient-text">{d.name}</span>
@@ -168,7 +169,7 @@ export default function RegionHub() {
               {d.products.filter((p) => p.importsUSD > 0).map((p) => (
                 <div key={p.slug} className="glass rounded-2xl p-5" data-testid={`region-product-${p.slug}`}>
                   <div className="flex items-baseline justify-between gap-3">
-                    <h3 className="font-display font-bold text-base">{p.name}</h3>
+                    <Link to={`/export/${p.slug}`} data-testid={`region-product-hub-${p.slug}`} className="font-display font-bold text-base hover:text-cyan-300 transition-colors">{p.name}</Link>
                     <span className="font-mono-display text-cyan-300 text-sm">{money(p.importsUSD)}</span>
                   </div>
                   <div className="text-[11px] text-slate-400 mt-1">{p.sector} · {p.guides} market guide{p.guides === 1 ? "" : "s"}</div>

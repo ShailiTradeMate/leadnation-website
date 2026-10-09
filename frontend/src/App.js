@@ -51,6 +51,8 @@ const Network = lazy(() => import("@/pages/Network"));
 const BuyerIntelligence = lazy(() => import("@/pages/BuyerIntelligence"));
 const BuyerProfile = lazy(() => import("@/pages/BuyerProfile"));
 const ExportProductCountry = lazy(() => import("@/pages/ExportProductCountry"));
+const ExportGuidesIndex = lazy(() => import("@/pages/ExportGuidesIndex"));
+const ExportProductHub = lazy(() => import("@/pages/ExportProductHub"));
 const ServicesHub = lazy(() => import("@/pages/Services").then((m) => ({ default: m.ServicesHub })));
 const ServiceDetail = lazy(() => import("@/pages/Services"));
 
@@ -103,6 +105,8 @@ function App() {
                   <Route path="/legal/disclaimer" element={<Disclaimer />} />
                   <Route path="/legal/refund" element={<RefundPolicy />} />
                   <Route path="/command-center" element={<CommandCenter />} />
+                  <Route path="/export" element={<ExportGuidesIndex />} />
+                  <Route path="/export/:product" element={<ExportProductHub />} />
                   <Route path="/export/:product/to/:country" element={<ExportProductCountry />} />
                   <Route path="/customs-compliance" element={<CustomsCompliance />} />
                   <Route path="/trade-news" element={<TradeNews />} />
