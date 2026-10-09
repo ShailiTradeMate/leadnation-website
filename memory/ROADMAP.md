@@ -205,3 +205,6 @@ Cover + branding, project + exec summary, full Incoterm costing (EXW/FOB/FCA/FAS
 - P1: Second authentic tariff source alongside WITS/UNCTAD TRAINS (WTO/ITC may need credentials).
 - P2: Localise export guides for non-India origins (today /export/:product/to/:country assumes India as exporter — Brain next-steps already hide the guide for other origins).
 - P2: Vetted Middle East buyer ingestion (license/ToS + sanctions screening first).
+
+## Backlog — deferred by user (2026-06)
+- **Facebook / Meta issue — DEFERRED until the marketing (SEO/GEO) track is complete.** User instruction: "mark this Facebook issue in the backlog; once we are done with marketing, we will solve it." Exact symptom to be re-confirmed with the user when picked up (candidates seen in this app: Meta/Facebook domain verification meta tag, Facebook page/OG share rendering, Meta Pixel + consent gating). Do NOT start without the user restating the symptom.
