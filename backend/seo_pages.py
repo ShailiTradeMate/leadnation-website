@@ -309,6 +309,8 @@ async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
     """Score every allowed product x country combination — drives publishing decisions
     and feeds the sitemap (only indexable rows are ever submitted). Cached 24h."""
     import asyncio
+    if not isinstance(min_score, int):  # called directly (warmers, cold-cache fallbacks)
+        min_score = 0
     cache_id = f"matrix:{product or 'all'}:{region or 'all'}"
     if not force:
         cached = await db.seo_matrix_cache.find_one({"_id": cache_id})
