@@ -334,6 +334,19 @@ async def _warm_matrix_cache():
         logger.warning("SEO matrix warm failed: %s", exc)
 
 
+async def _warm_page_cache():
+    """Pre-build every guide payload. A cold tariff cache makes one guide take ~15s —
+    far longer than the crawler pre-render worker waits — so this is what keeps
+    Googlebot getting real HTML instead of the SPA shell."""
+    try:
+        import seo_pages
+        out = await seo_pages.warm_page_cache()
+        logger.info("SEO page cache warmed: %s/%s built, %s indexable",
+                    out["built"], out["total"], out["indexable"])
+    except Exception as exc:
+        logger.warning("SEO page warm failed: %s", exc)
+
+
 def start_seo_scheduler():
     """Weekly IndexNow sweep (Mondays 01:10 UTC) + one sweep 3 min after boot."""
     global _seo_sched
@@ -351,6 +364,11 @@ def start_seo_scheduler():
                        id="seo-matrix-warm-boot", replace_existing=True)
     _seo_sched.add_job(weekly_full_sweep, CronTrigger(day_of_week="mon", hour=1, minute=10),
                        id="indexnow-weekly", replace_existing=True)
+    _seo_sched.add_job(_warm_page_cache, CronTrigger(hour=3, minute=10),
+                       id="seo-page-warm", replace_existing=True)
+    _seo_sched.add_job(_warm_page_cache,
+                       DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=8)),
+                       id="seo-page-warm-boot", replace_existing=True)
     _seo_sched.add_job(_boot_sweep,
                        DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=3)),
                        id="indexnow-boot", replace_existing=True)

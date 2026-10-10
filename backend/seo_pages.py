@@ -256,19 +256,22 @@ async def catalogue():
     }
 
 
-@router.get("/page-data/{product}/{country}")
-async def product_country_page(product: str, country: str):
-    p = PRODUCTS.get(product)
-    c = COUNTRIES.get(country)
-    if not p or not c:
-        raise HTTPException(status_code=404, detail="Unknown product or country")
+PAGE_CACHE_TTL = 86400
 
+
+async def _build_page_data(product: str, country: str, p: dict, c: dict):
+    """Compute one guide payload. Sections run concurrently — the duty lookup is the
+    slow leg (up to ~15s on a cold tariff cache) and must not be serialised behind it."""
+    import asyncio
     hs = p["primaryHs"]
-    duty = await _duty_section(hs, c["code"])
-    demand = await _demand_section(hs, c["name"])
-    buyers = await _buyer_section(c["name"], p["hs"], p["sector"])
-    expos = await _expo_section(c["name"])
-    news = await _news_section(c["name"])
+    duty, demand, buyers, expos, news, related = await asyncio.gather(
+        _duty_section(hs, c["code"]),
+        _demand_section(hs, c["name"]),
+        _buyer_section(c["name"], p["hs"], p["sector"]),
+        _expo_section(c["name"]),
+        _news_section(c["name"]),
+        _related_links(product, country),
+    )
 
     score = _score(duty, demand, buyers, expos, news)
     indexable = bool(score >= INDEX_THRESHOLD and duty and duty.get("importDuty")
@@ -292,7 +295,7 @@ async def product_country_page(product: str, country: str):
         "product": {"slug": product, **{k: p[k] for k in ("name", "sector", "hs", "primaryHs")}},
         "country": c,
         "url": f"/export/{product}/to/{country}",
-        "related": await _related_links(product, country),
+        "related": related,
         "duty": duty, "demand": demand, "buyers": buyers, "expos": expos, "news": news,
         "dataScore": score, "indexable": indexable,
         "sources": sources,
@@ -301,6 +304,57 @@ async def product_country_page(product: str, country: str):
                       "customs tariff and DGFT notifications before contracting or shipping.",
         "generatedAt": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@router.get("/page-data/{product}/{country}")
+async def product_country_page(product: str, country: str, force: bool = False):
+    """Served from a 24h cache so the crawler pre-render worker always gets a fast
+    response — a cold build can take ~15s, long enough for the worker to give up and
+    serve the bare SPA shell to Googlebot."""
+    p = PRODUCTS.get(product)
+    c = COUNTRIES.get(country)
+    if not p or not c:
+        raise HTTPException(status_code=404, detail="Unknown product or country")
+
+    cache_id = f"{product}:{country}"
+    if not force:
+        cached = await db.seo_page_cache.find_one({"_id": cache_id})
+        if cached and (datetime.now(timezone.utc)
+                       - datetime.fromisoformat(cached["at"])).total_seconds() < PAGE_CACHE_TTL:
+            return {**cached["payload"], "cachedAt": cached["at"]}
+
+    payload = await _build_page_data(product, country, p, c)
+    await db.seo_page_cache.replace_one(
+        {"_id": cache_id},
+        {"_id": cache_id, "payload": payload, "at": datetime.now(timezone.utc).isoformat()},
+        upsert=True)
+    return payload
+
+
+async def warm_page_cache(limit: int = 1000):
+    """Pre-build every guide payload so no crawler request ever pays the cold cost.
+    Bounded concurrency — the tariff upstream is the constraint, not us."""
+    import asyncio
+    sem = asyncio.Semaphore(6)
+    combos = [(ps, p, cs, c) for ps, p in PRODUCTS.items()
+              for cs, c in COUNTRIES.items()][:limit]
+
+    async def one(ps, p, cs, c):
+        async with sem:
+            try:
+                payload = await _build_page_data(ps, cs, p, c)
+                await db.seo_page_cache.replace_one(
+                    {"_id": f"{ps}:{cs}"},
+                    {"_id": f"{ps}:{cs}", "payload": payload,
+                     "at": datetime.now(timezone.utc).isoformat()}, upsert=True)
+                return payload["indexable"]
+            except Exception as exc:
+                logger.warning("page cache warm %s/%s: %s", ps, cs, exc)
+                return None
+
+    res = await asyncio.gather(*[one(*x) for x in combos])
+    built = [r for r in res if r is not None]
+    return {"built": len(built), "indexable": sum(1 for r in built if r), "total": len(combos)}
 
 
 @router.get("/matrix")
@@ -363,6 +417,15 @@ async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
         {"_id": cache_id, "rows": out, "at": datetime.now(timezone.utc).isoformat()}, upsert=True)
     rows = [r for r in out if r["dataScore"] >= min_score][:limit]
     return {"count": len(rows), "indexable": sum(1 for r in rows if r["indexable"]), "rows": rows}
+
+
+@router.post("/warm-pages")
+async def warm_pages(x_admin_token: str = Header(default=None), limit: int = 1000):
+    """Admin: pre-build every guide payload so crawler requests are always warm."""
+    import os
+    if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
+        raise HTTPException(status_code=403, detail="admin only")
+    return await warm_page_cache(limit=limit)
 
 
 @router.post("/refresh-all")
