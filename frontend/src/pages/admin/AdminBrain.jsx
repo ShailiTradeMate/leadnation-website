@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Brain, ArrowLeft, ArrowsClockwise, Database, Cpu, Question, Warning } from "@phosphor-icons/react";
 import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
+import SEO from "@/components/SEO";
 
 const Panel = ({ title, icon: I, children, testid }) => (
   <div className="glass-strong rounded-2xl p-5" data-testid={testid}>
@@ -52,6 +53,7 @@ export default function AdminBrain() {
 
   return (
     <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-24 pb-24">
+      <SEO title="Admin · Brain" description="Vametra AI Brain administration." path="/admin/brain" noindex />
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <button onClick={() => navigate("/admin-cms")} className="text-xs text-slate-400 hover:text-cyan-300 flex items-center gap-1 mb-2" data-testid="brain-admin-back"><ArrowLeft size={12} /> Back to CMS</button>

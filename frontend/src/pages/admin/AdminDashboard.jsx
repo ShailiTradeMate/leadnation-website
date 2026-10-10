@@ -5,6 +5,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { adminApi, isAdminLoggedIn, getAdminToken } from "@/lib/admin";
 import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
+import SEO from "@/components/SEO";
 import {
   Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck, Bell,
 } from "@phosphor-icons/react";
@@ -59,6 +60,7 @@ export function AdminLogin() {
 
   return (
     <section className="min-h-[80vh] grid place-items-center px-6">
+      <SEO title="Admin sign in" description="Vametra AI staff sign in." path="/admin-login" noindex />
       <form onSubmit={onSubmit} data-testid="admin-login-form" className="glass-strong rounded-3xl p-8 w-full max-w-md">
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Admin Control Center</div>
         <h1 className="font-display font-extrabold text-3xl mt-2">Sign in to Vametra AI</h1>
@@ -135,6 +137,7 @@ export default function AdminDashboard() {
 
   return (
     <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-24">
+      <SEO title="Admin Control Center" description="Vametra AI administration." path="/admin-cms" noindex />
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">

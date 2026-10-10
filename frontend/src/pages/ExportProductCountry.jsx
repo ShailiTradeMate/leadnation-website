@@ -132,8 +132,8 @@ export default function ExportProductCountry() {
         faqs={faqs}
         breadcrumbs={[
           { name: "Home", path: "/" },
-          { name: "Products", path: "/products" },
-          { name: p.name, path: `/products/${p.slug}` },
+          { name: "Export Guides", path: "/export" },
+          { name: p.name, path: `/export/${p.slug}` },
           { name: `To ${c.name}`, path: d.url },
         ]}
         schema={{
@@ -142,7 +142,7 @@ export default function ExportProductCountry() {
           name: title,
           description,
           dateModified: d.generatedAt,
-          about: { "@type": "Product", name: p.name, category: p.sector },
+          about: { "@type": "Thing", name: p.name, description: `${p.sector} · HS ${p.primaryHs}` },
           isPartOf: { "@type": "WebSite", name: "Vametra AI", url: "https://vametra.com" },
         }}
       />
@@ -150,7 +150,7 @@ export default function ExportProductCountry() {
       <div className="max-w-7xl mx-auto px-5 sm:px-10 pt-16 sm:pt-20 pb-20">
         <div className="reveal-up">
           <nav aria-label="Breadcrumb" className="text-[11px] font-mono-display tracking-[0.18em] uppercase text-slate-500">
-            <Link to="/products" className="hover:text-cyan-300">Products</Link> ·{" "}
+            <Link to="/export" className="hover:text-cyan-300" data-testid="epc-guides-crumb">Export Guides</Link> ·{" "}
             <Link to={`/export/${p.slug}`} className="hover:text-cyan-300" data-testid="epc-hub-crumb">{p.name}</Link> ·{" "}
             {["europe", "middle-east", "asia-pacific"].includes(c.region) && (
               <><Link to={`/regions/${c.region}`} data-testid="epc-region-link" className="hover:text-cyan-300">{c.region.replace("-", " ")}</Link> · </>

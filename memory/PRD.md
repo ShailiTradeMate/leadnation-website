@@ -76,7 +76,18 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - **Needs a production deploy** — the boot warmer then runs 8 min later. Re-audit afterwards.
 - Full detail in `CHANGELOG.md` (2026-10-10) and `PRERENDER_ESCALATION.md`.
 
+## GSC rich-result + head hygiene — 10 Oct 2026 (preview verified, needs deploy)
+- GSC confirmed `/export/indian-spices/to/chile` is indexed and fully rendered (prerender fix worked).
+- GSC "Product snippets: 1 invalid item" → `about` was `@type: Product` without offers; now `Thing`
+  (ExportProductCountry, Products.jsx, SEO.productSchema).
+- Crawled HTML had two `<title>`/description/og sets: React 19 hoists Helmet tags and does not dedupe
+  the static ones in `public/index.html` → static title/description/og/twitter removed; every public
+  page renders `<SEO>`; admin pages got `<SEO noindex>`.
+- BreadcrumbList pointed at `/products/indian-spices` (not a real page) → now `/export` → `/export/{product}`.
+- New `/api/answers/index.html` (HTML directory of 413 answer docs) for AI browsing tools that refuse JSON.
+
 ## Priorities / next actions
+- **P0:** Deploy, then: GSC "Validate fix" on Product snippets, re-inspect the 3 sample guides.
 - **P0:** Deploy, then re-audit the export guides with Googlebot UA and report rendered/shell counts.
 - **P0 (marketing Part 6):** answer-first rewrites of the older pages + the 16-item acceptance report.
 - **P0:** Owner mobile-device acceptance (iPhone/Safari and Android); latest admin-pricing acceptance still pending. Any newly reported mobile defect takes priority.

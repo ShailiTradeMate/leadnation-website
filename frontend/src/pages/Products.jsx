@@ -84,7 +84,7 @@ export default function ProductDetail() {
           { q: `Which countries are the best export markets for ${p.name}?`, a: `${p.overview.substring(0, 200)}` },
           { q: `How do I find verified buyers for ${p.name}?`, a: `Use Vametra AI's Verified Buyer Intelligence to reach contact-verified importers of ${p.name} sourced from official government trade records across 195+ countries.` },
         ]}
-        schema={{ "@context": "https://schema.org", "@type": "Product", name: p.name, category: p.category, description: p.overview }}
+        schema={{ "@context": "https://schema.org", "@type": "Thing", name: p.name, description: p.overview, additionalType: "https://schema.org/ProductGroup" }}
       />
       <section className="relative pt-16 pb-10">
         <div className="aurora" />

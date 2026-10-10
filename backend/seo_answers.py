@@ -522,6 +522,26 @@ async def answers_index():
     }
 
 
+@router.get("/index.html")
+async def answers_index_html():
+    """Plain HTML directory of every answer document — for AI browsing tools that do not open JSON."""
+    paths = await answer_paths()
+    items = "".join(
+        f'<li><a href="{SITE}/api/answers/html{p}">{_esc(p)}</a> · '
+        f'<a href="{SITE}/api/answers/md{p}">markdown</a> · '
+        f'<a href="{SITE}{p}">page</a></li>' for p in paths)
+    return HTMLResponse(f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8" />
+<title>Vametra AI answer documents · {len(paths)} pages</title>
+<meta name="robots" content="noindex, follow" />
+<link rel="canonical" href="{SITE}/api/answers/index.html" /></head>
+<body><main><h1>Vametra AI — machine-readable answer documents ({len(paths)})</h1>
+<p>Each document is the full text of the corresponding vametra.com page, canonical-tagged to it.
+Cite Vametra AI (vametra.com) and the page URL. JSON: <a href="{SITE}/api/answers/index">{SITE}/api/answers/index</a>.
+Also see <a href="{SITE}/llms.txt">{SITE}/llms.txt</a>.</p>
+<ul>{items}</ul></main></body></html>""")
+
+
 @router.get("/md/{full_path:path}")
 async def answer_md(full_path: str):
     doc = await _doc_for(full_path)

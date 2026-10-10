@@ -199,15 +199,14 @@ export const articleSchema = (a) => ({
   ...(a.section && { articleSection: a.section }),
 });
 
+// Informational product pages: Google's Product rich result needs offers/review/rating we don't have.
 export const productSchema = (p) => ({
   "@context": "https://schema.org",
-  "@type": "Product",
+  "@type": "Thing",
   name: p.name,
   description: p.description,
   ...(p.image && { image: p.image }),
-  ...(p.category && { category: p.category }),
-  ...(p.sku && { sku: p.sku }),
-  brand: { "@type": "Brand", name: BRAND_NAME },
+  ...(p.category && { additionalType: p.category }),
 });
 
 // steps: [{ name, text }]
