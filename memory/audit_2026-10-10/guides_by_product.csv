@@ -1,0 +1,11 @@
+product,total,rendered,partial,shell,redirect,failure,http_4xx_5xx
+agarbatti,49,48,0,1,0,0,0
+basmati-rice,49,46,0,3,0,0,0
+cotton-textiles,49,48,0,1,0,0,0
+engineering-machinery,49,47,0,2,0,0,0
+fresh-fruits,49,49,0,0,0,0,0
+fresh-vegetables,49,48,0,1,0,0,0
+hubs,15,14,1,0,0,0,0
+indian-spices,49,46,0,3,0,0,0
+pharmaceuticals,49,49,0,0,0,0,0
+ALL,407,395,1,11,0,0,0

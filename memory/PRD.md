@@ -86,8 +86,16 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - BreadcrumbList pointed at `/products/indian-spices` (not a real page) → now `/export` → `/export/{product}`.
 - New `/api/answers/index.html` (HTML directory of 413 answer docs) for AI browsing tools that refuse JSON.
 
+## Production verification — 10 Oct 2026 late (`memory/audit_2026-10-10/REPORT.md`)
+- Googlebot full audit: 392 guides → 381 rendered / 11 shell / 0 errors; 15 hubs OK. Shells = cold page-data
+  holes that the edge then cached (`x-rendered-by: crawler-cache`, max-age 3600). 413 answer docs all clean.
+- Fixes (preview only, NOT deployed): stale-while-revalidate page cache + 6-hourly retrying warm;
+  rail links only to existing `/countries/*` (5) and `/corridors/*` (4) — 44/49 countries were soft-404s.
+- Open owner decision: SoftwareApplication `aggregateRating 4.8/126` provenance.
+
 ## Priorities / next actions
-- **P0:** Deploy, then: GSC "Validate fix" on Product snippets, re-inspect the 3 sample guides.
+- **P0:** Deploy, then: GSC "Validate fix" on Product snippets, re-run `audit_2026-10-10/guides_audit.py`
+  once the edge shell cache has expired (or ask platform to purge the 14 URLs), re-inspect 3 guides.
 - **P0:** Deploy, then re-audit the export guides with Googlebot UA and report rendered/shell counts.
 - **P0 (marketing Part 6):** answer-first rewrites of the older pages + the 16-item acceptance report.
 - **P0:** Owner mobile-device acceptance (iPhone/Safari and Android); latest admin-pricing acceptance still pending. Any newly reported mobile defect takes priority.

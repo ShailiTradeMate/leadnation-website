@@ -14,6 +14,7 @@ Nothing here fabricates figures. Every number carries a source and an as-of date
 
 If a section has no data it is returned as null and the page must not invent it.
 """
+import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 
@@ -319,42 +320,78 @@ async def product_country_page(product: str, country: str, force: bool = False):
     cache_id = f"{product}:{country}"
     if not force:
         cached = await db.seo_page_cache.find_one({"_id": cache_id})
-        if cached and (datetime.now(timezone.utc)
-                       - datetime.fromisoformat(cached["at"])).total_seconds() < PAGE_CACHE_TTL:
+        if cached:
+            # Stale-while-revalidate: a request never waits on a cold rebuild when any
+            # copy exists — the edge pre-render worker would time out and cache a shell.
+            if _cache_age(cached) >= PAGE_CACHE_TTL:
+                asyncio.get_running_loop().create_task(_refresh_page_bg(product, country, p, c))
             return {**cached["payload"], "cachedAt": cached["at"]}
 
     payload = await _build_page_data(product, country, p, c)
+    await _store_page(cache_id, payload)
+    return payload
+
+
+def _cache_age(cached) -> float:
+    return (datetime.now(timezone.utc) - datetime.fromisoformat(cached["at"])).total_seconds()
+
+
+async def _store_page(cache_id: str, payload: dict):
     await db.seo_page_cache.replace_one(
         {"_id": cache_id},
         {"_id": cache_id, "payload": payload, "at": datetime.now(timezone.utc).isoformat()},
         upsert=True)
-    return payload
 
 
-async def warm_page_cache(limit: int = 1000):
+_refreshing: set = set()
+
+
+async def _refresh_page_bg(product, country, p, c):
+    cache_id = f"{product}:{country}"
+    if cache_id in _refreshing:
+        return
+    _refreshing.add(cache_id)
+    try:
+        await _store_page(cache_id, await _build_page_data(product, country, p, c))
+    except Exception as exc:
+        logger.warning("page cache bg refresh %s: %s", cache_id, exc)
+    finally:
+        _refreshing.discard(cache_id)
+
+
+async def warm_page_cache(limit: int = 1000, force: bool = False):
     """Pre-build every guide payload so no crawler request ever pays the cold cost.
-    Bounded concurrency — the tariff upstream is the constraint, not us."""
-    import asyncio
+    Entries fresher than half the TTL are skipped unless forced; failures are retried
+    so an upstream tariff hiccup cannot leave a hole that a crawler later falls into."""
     sem = asyncio.Semaphore(3)
     combos = [(ps, p, cs, c) for ps, p in PRODUCTS.items()
               for cs, c in COUNTRIES.items()][:limit]
+    skipped = 0
 
     async def one(ps, p, cs, c):
+        nonlocal skipped
+        cache_id = f"{ps}:{cs}"
+        if not force:
+            cached = await db.seo_page_cache.find_one({"_id": cache_id}, {"at": 1, "payload.indexable": 1})
+            if cached and _cache_age(cached) < PAGE_CACHE_TTL / 2:
+                skipped += 1
+                return cached["payload"]["indexable"]
         async with sem:
-            try:
-                payload = await _build_page_data(ps, cs, p, c)
-                await db.seo_page_cache.replace_one(
-                    {"_id": f"{ps}:{cs}"},
-                    {"_id": f"{ps}:{cs}", "payload": payload,
-                     "at": datetime.now(timezone.utc).isoformat()}, upsert=True)
-                return payload["indexable"]
-            except Exception as exc:
-                logger.warning("page cache warm %s/%s: %s", ps, cs, exc)
-                return None
+            for attempt, backoff in ((1, 5), (2, 15), (3, 0)):
+                try:
+                    payload = await _build_page_data(ps, cs, p, c)
+                    await _store_page(cache_id, payload)
+                    return payload["indexable"]
+                except Exception as exc:
+                    logger.warning("page cache warm %s (attempt %s): %s", cache_id, attempt, exc)
+                    if backoff:
+                        await asyncio.sleep(backoff)
+        return None
 
     res = await asyncio.gather(*[one(*x) for x in combos])
     built = [r for r in res if r is not None]
-    return {"built": len(built), "indexable": sum(1 for r in built if r), "total": len(combos)}
+    return {"built": len(built), "skippedFresh": skipped, "failed": len(combos) - len(built),
+            "indexable": sum(1 for r in built if r), "total": len(combos)}
 
 
 @router.get("/matrix")
@@ -420,12 +457,12 @@ async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
 
 
 @router.post("/warm-pages")
-async def warm_pages(x_admin_token: str = Header(default=None), limit: int = 1000):
+async def warm_pages(x_admin_token: str = Header(default=None), limit: int = 1000, force: bool = False):
     """Admin: pre-build every guide payload so crawler requests are always warm."""
     import os
     if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
         raise HTTPException(status_code=403, detail="admin only")
-    return await warm_page_cache(limit=limit)
+    return await warm_page_cache(limit=limit, force=force)
 
 
 @router.post("/refresh-all")

@@ -370,8 +370,9 @@ export default function ExportProductCountry() {
             <ToolLink to={`/tools/landed-cost-calculator?hs=${duty?.hsCode || p.primaryHs}&from=356&to=${c.code}`} icon={Calculator} testId="epc-rail-landed" label="Landed Cost" note="Quote with confidence" />
             <ToolLink to={`/buyers?hs=${duty?.hsCode || p.primaryHs}&country=${encodeURIComponent(c.name)}`} icon={Users} testId="epc-rail-buyers" label="Verified Buyers" note="Screened, source-cited records" />
             <ToolLink to="/command-center" icon={Truck} testId="epc-rail-cc" label="Trade Command Center" note="Run the whole shipment" />
-            <ToolLink to={`/countries/${c.slug}`} icon={Globe} testId="epc-rail-country" label={`${c.name} trade profile`} note="Tariffs, partners, compliance" />
-            <ToolLink to={`/corridors/india-to-${c.slug}`} icon={ArrowRight} testId="epc-rail-corridor" label={`India → ${c.name}`} note="Corridor playbook" />
+            {d.related?.countryProfile && <ToolLink to={d.related.countryProfile} icon={Globe} testId="epc-rail-country" label={`${c.name} trade profile`} note="Tariffs, partners, compliance" />}
+            {d.related?.corridor && <ToolLink to={d.related.corridor} icon={ArrowRight} testId="epc-rail-corridor" label={`India → ${c.name}`} note="Corridor playbook" />}
+            {!d.related?.countryProfile && <ToolLink to="/countries" icon={Globe} testId="epc-rail-countries-index" label="Country trade profiles" note={`${c.name} profile coming soon · browse published profiles`} />}
 
             <div className="glass rounded-2xl p-4">
               <div className="text-[10px] font-mono-display tracking-[0.2em] uppercase text-slate-400 mb-2">Data sources</div>

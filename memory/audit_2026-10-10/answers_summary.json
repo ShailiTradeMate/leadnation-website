@@ -1,0 +1,51 @@
+{
+ "total": 413,
+ "html_200": 413,
+ "md_200": 413,
+ "errors": 0,
+ "canonical_matches_page": 413,
+ "single_canonical": 413,
+ "robots_index": 413,
+ "single_h1": 413,
+ "in_sitemap_html": 413,
+ "in_sitemap_page": 413,
+ "words_min": 97,
+ "words_median": 262,
+ "words_max": 948,
+ "under_300_words": 397,
+ "exact_duplicates": 0,
+ "template_groups": 277,
+ "largest_template_group": 11,
+ "has_wits_or_trains": 409,
+ "has_oec": 407,
+ "has_dgft_rodtep": 394,
+ "has_percent": 406,
+ "has_usd": 405,
+ "has_hs": 400,
+ "mentions_verify": 410,
+ "placeholder_flagged": 160,
+ "links_to_page": 413,
+ "md_h1_matches": 263,
+ "newest_year_dist": {
+  "": 8,
+  "2026": 221,
+  "2027": 168,
+  "2028": 16
+ },
+ "oldest_year_dist": {
+  "": 8,
+  "2026": 13,
+  "2023": 334,
+  "2021": 42,
+  "2019": 8,
+  "2022": 8
+ },
+ "html_ms_median": 113,
+ "html_ms_max": 308,
+ "kinds": {
+  "tool": 8,
+  "region-hub": 5,
+  "product-hub": 8,
+  "export-guide": 392
+ }
+}

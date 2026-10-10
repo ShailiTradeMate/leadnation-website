@@ -341,8 +341,8 @@ async def _warm_page_cache():
     try:
         import seo_pages
         out = await seo_pages.warm_page_cache()
-        logger.info("SEO page cache warmed: %s/%s built, %s indexable",
-                    out["built"], out["total"], out["indexable"])
+        logger.info("SEO page cache warmed: %s/%s built (%s fresh skipped, %s failed), %s indexable",
+                    out["built"], out["total"], out["skippedFresh"], out["failed"], out["indexable"])
     except Exception as exc:
         logger.warning("SEO page warm failed: %s", exc)
 
@@ -364,7 +364,9 @@ def start_seo_scheduler():
                        id="seo-matrix-warm-boot", replace_existing=True)
     _seo_sched.add_job(weekly_full_sweep, CronTrigger(day_of_week="mon", hour=1, minute=10),
                        id="indexnow-weekly", replace_existing=True)
-    _seo_sched.add_job(_warm_page_cache, CronTrigger(hour=3, minute=10),
+    # Every 6h (cheap: entries fresher than 12h are skipped) so no payload ever reaches the
+    # 24h TTL un-refreshed and a crawler never meets a cold ~15s tariff build.
+    _seo_sched.add_job(_warm_page_cache, CronTrigger(hour="*/6", minute=10),
                        id="seo-page-warm", replace_existing=True)
     _seo_sched.add_job(_warm_page_cache,
                        DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=8)),
