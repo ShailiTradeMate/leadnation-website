@@ -31,6 +31,19 @@ META = db.duty_meta
 CACHE_TTL_DAYS = 7
 REFRESH_DAYS = 7
 
+# Outbound WITS concurrency ceiling. Cache warmers fan out hundreds of product x country
+# lookups at once; without this the event loop and the upstream both stall and ordinary
+# API requests (including crawler pre-render fetches) time out.
+_WITS_GATE = None
+
+
+def _wits_gate():
+    global _WITS_GATE
+    if _WITS_GATE is None:
+        import asyncio
+        _WITS_GATE = asyncio.Semaphore(4)
+    return _WITS_GATE
+
 # ---- Country directory (ISO numeric used by WITS) — major global traders ----
 COUNTRIES = [
     ("356", "India"), ("842", "United States"), ("156", "China"), ("784", "United Arab Emirates"),
@@ -99,7 +112,7 @@ async def _wits_obs(reporter, partner, hs6):
     """Return (rate%, tariffType, year) for the latest year with data, or None."""
     this_year = _now().year
     years = [this_year - y for y in range(2, 8)]  # WITS lags ~2yr; cap window for latency
-    async with httpx.AsyncClient(timeout=20) as cx:
+    async with _wits_gate(), httpx.AsyncClient(timeout=20) as cx:
         for yr in years:
             url = f"{WITS_BASE}/reporter/{reporter}/partner/{partner}/product/{hs6}/year/{yr}/datatype/reported"
             try:

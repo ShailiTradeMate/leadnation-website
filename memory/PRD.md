@@ -67,7 +67,18 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - **Global, not India-centric (owner rule 8 Oct):** every tool must take exporting + importing country; India-specific schemes (RoDTEP, IGST) appear only when India is the origin/destination. HSN Finder updated accordingly.
 - Rule going forward (owner): never build duplicates; every feature must be useful for marketing and route to signup/plan.
 
+## SEO pre-render reliability — 10 Oct 2026 (29/29 pytest)
+- Export guides were served as a bare SPA shell to Googlebot because `/api/seo/page-data` had no
+  cache and a cold WITS duty lookup took ~15s, longer than the edge pre-render worker waits.
+- Now: 24h `db.seo_page_cache`, concurrent section fetch, `POST /api/seo/warm-pages`, a boot+daily
+  warm job, and a global WITS concurrency gate so warmers cannot starve the event loop.
+- All 448 product x country payloads pre-built (400 indexable); page-data responses ~0.23s.
+- **Needs a production deploy** — the boot warmer then runs 8 min later. Re-audit afterwards.
+- Full detail in `CHANGELOG.md` (2026-10-10) and `PRERENDER_ESCALATION.md`.
+
 ## Priorities / next actions
+- **P0:** Deploy, then re-audit the export guides with Googlebot UA and report rendered/shell counts.
+- **P0 (marketing Part 6):** answer-first rewrites of the older pages + the 16-item acceptance report.
 - **P0:** Owner mobile-device acceptance (iPhone/Safari and Android); latest admin-pricing acceptance still pending. Any newly reported mobile defect takes priority.
 - **P0 (SEO plan):** Part 3 server-side pre-rendering for SEO routes → Part 4 region hubs/country pages → Part 5 product×country batch. See `memory/seo/EXECUTION_PLAN.md`.
 - **P1:** Fresh vametra.com marketing/SEO/GEO plan (do not recycle leadnation.app plan); Academy ↔ Brain coordination remains backlog-only; Expo email inbox validation.

@@ -335,7 +335,7 @@ async def warm_page_cache(limit: int = 1000):
     """Pre-build every guide payload so no crawler request ever pays the cold cost.
     Bounded concurrency — the tariff upstream is the constraint, not us."""
     import asyncio
-    sem = asyncio.Semaphore(6)
+    sem = asyncio.Semaphore(3)
     combos = [(ps, p, cs, c) for ps, p in PRODUCTS.items()
               for cs, c in COUNTRIES.items()][:limit]
 

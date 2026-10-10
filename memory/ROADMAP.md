@@ -1,5 +1,17 @@
 # Vametra AI / LeadNation — MASTER BACKLOG & ROADMAP
 
+## Marketing roadmap position — 10 Oct 2026
+- Part 1-2 (foundations, answer-first core pages) — DONE
+- Part 3 (crawler/AI answer layer + platform crawl toggle) — DONE
+- Part 4 (regional hubs: Europe, Middle East, Asia Pacific, Americas, Africa) — DONE
+- Part 5 (publish 392 guides, zero-orphan internal link graph, IndexNow 562 URLs) — DONE
+- **Blocker now cleared in code:** export-guide pre-render shell (page-data cold-cache latency).
+  Awaiting a production deploy + re-audit.
+- **Part 6 = NEXT:** answer-first rewrites of the older/legacy pages + the 16-item acceptance report.
+  Scope: rewrite pre-roadmap pages (home, tools, services, pricing, about, country profiles,
+  corridors) so each opens with a direct answer, carries a real source/as-of line, and routes to a
+  tool/buyers/Brain next step. Then produce the 16-item acceptance report across the whole surface.
+
 ## Latest authorized priority — 2026-09-30 mobile usability
 - [x] Site-wide shared touch/search picker, native-select replacement, mobile header/signup fixes and non-obstructing mobile controls.
 - [x] All 195 countries plus territories (250 total), dependent states/cities with custom fallback; aligned reference APIs and legacy event-country aliases.

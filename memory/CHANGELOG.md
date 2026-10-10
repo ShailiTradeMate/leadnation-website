@@ -340,3 +340,55 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 - `AppFeatureNote.jsx`: removed its `<SEO>`; the page-level SEO is authoritative.
 - Verified by testing agent iteration 74 (frontend 100%): single canonical/robots on both pages with the correct page titles, analytics globals undefined under headless, widgets still render, cookie banner + content pages unaffected, no mobile overflow.
 - PENDING: re-run the 392-guide audit after the next production deploy to confirm the rendered count rises from 67.
+
+## 2026-10-10 — Export-guide pre-render root cause FOUND AND FIXED (page-data cache)
+### Post-deploy re-audit (prod, Googlebot UA, 30-URL random sample)
+- 26/30 guides rendered (87%) vs 21% (69/335) before the crawler-lean deploy — the crawler fix worked.
+- Per-product probe exposed the remaining failures as product-specific, not random:
+  basmati-rice 6/6, fresh-fruits 5/6, engineering-machinery 3/6, **pharmaceuticals 0/6**.
+
+### Real root cause (ours, not the platform)
+- `GET /api/seo/page-data/{product}/{country}` had NO response cache and ran its five
+  sections sequentially. Timed on prod: pharmaceuticals/germany 13.8s, engineering-machinery/germany
+  12.4s, basmati-rice/germany 0.35s. Section profile: `_duty_section` 14.58s cold / 0.92s warm —
+  the whole cost is the WITS tariff lookup.
+- `duty_cache` has a 7-day TTL AND the weekly refresh job CLEARS it, so after every weekly
+  refresh each product x country duty lookup is cold again (~15s) until something warms it.
+  Products users/matrix touched recently were fast; untouched ones (pharma) were always cold
+  and always exceeded what the edge pre-render worker waits for -> bare SPA shell.
+
+### Fixes
+- `seo_pages.py` NEW `_build_page_data()`: the 5 sections + `_related_links` now run under
+  one `asyncio.gather` instead of sequentially.
+- `seo_pages.py` `product_country_page()`: 24h response cache in `db.seo_page_cache`
+  (`PAGE_CACHE_TTL`), `?force=true` to rebuild, cached responses carry `cachedAt`.
+- `seo_pages.py` NEW `warm_page_cache()` + admin route `POST /api/seo/warm-pages`
+  (x-admin-token). Pre-builds all 448 product x country payloads, semaphore 3.
+- `seo.py` NEW `_warm_page_cache()` scheduled 8 min after boot and daily 03:10 UTC, so a
+  deploy or a weekly duty-cache clear self-heals without anyone touching it.
+- `duty_engine.py` NEW `_WITS_GATE` (asyncio.Semaphore(4)) around `_wits_obs`. Without it the
+  warmers fanned out hundreds of concurrent WITS calls and starved the event loop — that is
+  exactly what made 27/29 of the first test run time out at 30s.
+- `seo_pages.py` `matrix()` now coerces a non-int `min_score` to 0, fixing
+  `'>= not supported between int and Query'` when called directly by the warmer
+  (reported by the deployer agent; cosmetic for warming, not the shell cause).
+
+### Verification
+- Warm run: 448/448 built, 400 indexable (up from 392).
+- page-data after warm: 0.229-0.242s across all 8 products incl. every URL that was a shell.
+- API stays sub-second (0.39-0.58s) WHILE the background matrix force-rebuild runs — the
+  WITS gate holds.
+- `backend/tests/test_seo_page_cache.py`: **29 passed** (first run before the WITS gate: 27 failed
+  on ReadTimeout).
+- Preview `/export/pharmaceuticals/to/germany`: h1 + epc-related + epc-hub-crumb + real
+  numbers (HS 300490, 0% MFN 2023, 0.7% RoDTEP, $25.75B imports rank #3).
+- NOT yet live: needs a production deploy, then the boot warmer runs 8 min later. Re-audit after that.
+
+### GSC state (owner screenshot, 10 Oct 2026)
+- Both sitemaps Success, 975 discovered pages each. Discovery was never the problem; keep ONE
+  canonical submission (`/api/sitemap.xml`) and do not resubmit as a remedy.
+
+### Deployer agent verdict (run b5226749) — superseded
+- Attributed the shell to the managed Cloudflare pre-render worker (cache/quota/route depth)
+  because it has no Cloudflare visibility. The real cause was our own cold-cache latency.
+  Lesson: profile the API per product before escalating to the platform.
