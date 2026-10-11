@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { RelatedGuides } from "@/components/LinkGraph";
 import { GuideLoading } from "@/components/GuideLoading";
+import { fetchPageData } from "@/lib/fetchPageData";
 import { api } from "@/lib/api";
 import {
   ArrowRight, Scales, Globe, FileText, Users, Calculator,
@@ -60,14 +61,17 @@ export default function ExportProductCountry() {
   useEffect(() => {
     let dead = false;
     setState("loading");
-    api.get(`/seo/page-data/${product}/${country}`)
-      .then(({ data }) => { if (!dead) { setD(data); setState("ready"); } })
-      .catch(() => { if (!dead) setState("error"); });
+    fetchPageData(`/seo/page-data/${product}/${country}`).then((res) => {
+      if (dead) return;
+      if (res.ok) { setD(res.data); setState("ready"); }
+      else if (res.notFound) setState("notfound");
+      else setState("stalled");
+    });
     return () => { dead = true; };
   }, [product, country]);
 
-  if (state === "loading") return <GuideLoading product={product} country={country} />;
-  if (state === "error" || !d?.ok) {
+  if (state === "loading" || state === "stalled") return <GuideLoading product={product} country={country} />;
+  if (state === "notfound" || !d?.ok) {
     return (
       <div data-testid="epc-error" className="max-w-3xl mx-auto px-5 py-28">
         <SEO title="Export guide not found" description="This export guide is not available." path={`/export/${product}/to/${country}`} noindex />

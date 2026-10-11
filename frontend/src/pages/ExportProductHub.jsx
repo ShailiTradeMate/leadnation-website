@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
+import { fetchPageData } from "@/lib/fetchPageData";
 import { api } from "@/lib/api";
 import {
   ArrowRight, Scales, Users, Calculator, Brain, MagnifyingGlass, Package, Globe, TrendUp,
@@ -32,13 +33,16 @@ export default function ExportProductHub() {
   useEffect(() => {
     let dead = false;
     setState("loading");
-    api.get(`/seo/product-hub/${product}`, { timeout: 120000 })
-      .then(({ data }) => { if (!dead) { setD(data); setState("ready"); } })
-      .catch(() => { if (!dead) setState("error"); });
+    fetchPageData(`/seo/product-hub/${product}`).then((res) => {
+      if (dead) return;
+      if (res.ok) { setD(res.data); setState("ready"); }
+      else if (res.notFound) setState("notfound");
+      else setState("stalled");
+    });
     return () => { dead = true; };
   }, [product]);
 
-  if (state === "loading") {
+  if (state === "loading" || state === "stalled") {
     const pn = titleize(product);
     const lfaqs = [
       {
@@ -113,7 +117,7 @@ export default function ExportProductHub() {
       </div>
     );
   }
-  if (state === "error" || !d) {
+  if (state === "notfound" || !d) {
     return (
       <div data-testid="hub-error" className="max-w-3xl mx-auto px-5 py-28">
         <SEO title="Product not found" description="This product hub is not published." path={`/export/${product}`} noindex />

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
+import { fetchPageData } from "@/lib/fetchPageData";
 import { api } from "@/lib/api";
 import {
   ArrowRight, Globe, Scales, Users, Calculator, Brain, SealCheck, MapPin, Package,
@@ -77,13 +78,16 @@ export default function RegionHub() {
   useEffect(() => {
     let dead = false;
     setState("loading");
-    api.get(`/seo/region/${slug}`, { timeout: 120000 })
-      .then(({ data }) => { if (!dead) { setD(data); setState("ready"); } })
-      .catch(() => { if (!dead) setState("error"); });
+    fetchPageData(`/seo/region/${slug}`).then((res) => {
+      if (dead) return;
+      if (res.ok) { setD(res.data); setState("ready"); }
+      else if (res.notFound) setState("notfound");
+      else setState("stalled");
+    });
     return () => { dead = true; };
   }, [slug]);
 
-  if (state === "loading") {
+  if (state === "loading" || state === "stalled") {
     const rn = titleize(slug);
     const lfaqs = [
       {
@@ -156,7 +160,7 @@ export default function RegionHub() {
       </div>
     );
   }
-  if (state === "error" || !d) {
+  if (state === "notfound" || !d) {
     return (
       <div data-testid="region-error" className="max-w-3xl mx-auto px-5 py-28">
         <SEO title="Region not found" description="This region hub is not available." path={`/regions/${slug}`} noindex />
