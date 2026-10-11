@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
 import {
@@ -39,17 +40,76 @@ export default function ExportProductHub() {
 
   if (state === "loading") {
     const pn = titleize(product);
+    const lfaqs = [
+      {
+        q: `Which market should I export ${pn} to first?`,
+        a: `Shortlist on two numbers together, never one: the measured import demand of each market and the applied import duty it charges on this HS code. A smaller market inside a trade agreement frequently pays you better than a large market applying a double-digit tariff. This hub ranks every published market on both.`,
+      },
+      {
+        q: `What is the HS code for ${pn}?`,
+        a: `This hub states the primary HS line we track for ${pn}, plus any related codes. The first six digits are harmonised worldwide and are the right level for market research; your declaration will use the destination's own 8 or 10-digit national line.`,
+      },
+      {
+        q: `How current is the duty and demand data?`,
+        a: `Applied tariffs come from World Bank WITS / UNCTAD TRAINS and import demand from OEC World (CEPII BACI / UN Comtrade). Both publish with a lag, so every figure carries its reporting year. Where a source holds no record for a product-market pair, we withhold the guide rather than estimate it.`,
+      },
+      {
+        q: `Why are some markets missing from this hub?`,
+        a: `A market is only published once we hold a verified applied tariff and measured import demand for this product. That gate keeps the hub honest, and it is why the market count here is smaller than the number of countries that theoretically import ${pn}.`,
+      },
+      {
+        q: `What do I do after shortlisting a market?`,
+        a: `Open that market's guide for the documents, certifications and buyer coverage, then build the cost waterfall in the Landed Cost Calculator so you know what the buyer actually pays landed. Only then is outreach worth the effort.`,
+      },
+    ];
     return (
-      <div data-testid="hub-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28">
+      <div data-testid="hub-loading" className="max-w-7xl mx-auto px-5 sm:px-10 pt-16 pb-20">
         <SEO
           title={`Export ${pn} — Markets, Duty, Demand & Buyers`}
           description={`Export ${pn}: applied import duty and real import demand for every published market, plus verified buyer coverage. Vametra AI.`}
           path={`/export/${product}`}
           type="article"
+          faqs={lfaqs}
           breadcrumbs={[{ name: "Home", path: "/" }, { name: "Export guides", path: "/export" }, { name: pn, path: `/export/${product}` }]}
         />
-        <h1 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl">Export {pn}</h1>
-        <p className="text-slate-400 mt-4 text-sm">Loading published markets…</p>
+        <nav aria-label="Breadcrumb" className="text-[11px] font-mono-display tracking-[0.18em] uppercase text-slate-500">
+          <Link to="/export" className="hover:text-cyan-300">Export guides</Link> · {pn}
+        </nav>
+        <h1 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl lg:text-5xl mt-4 leading-[1.08]">
+          Export <span className="gradient-text">{pn}</span>
+        </h1>
+        <p className="mt-5 text-[15px] text-slate-300 max-w-3xl leading-relaxed">
+          Loading the published market list with applied duty, measured import demand and verified
+          buyer coverage for each. Nothing is shown until it has been retrieved from its source.
+        </p>
+        <AnswerBlock testId="hub-loading-answer" label="How this hub works"
+          title={`Choosing a market for ${pn} on evidence rather than instinct`}>
+          <p>
+            Exporters usually pick a destination because they have heard of a buyer there, then
+            discover the tariff afterwards. This hub inverts that: every market we publish for{" "}
+            {pn} is listed with its own measured import demand and the applied duty it charges on
+            this HS code, so the shortlist is made before anyone is contacted.
+          </p>
+          <p>
+            Demand and duty have to be read together. A market that imports heavily but applies a
+            high tariff to Indian origin can leave your buyer paying more than a mid-sized market
+            inside a free trade agreement — and the destination's own VAT or GST, charged on the
+            duty-inclusive value, widens that gap further.
+          </p>
+          <p>
+            A market only appears here once we hold both a verified tariff and measured demand for
+            it. Where either is missing, the pair is withheld rather than filled with a chapter
+            average, because an invented number is worse than an acknowledged gap when you are
+            committing working capital.
+          </p>
+        </AnswerBlock>
+        <PageFaq items={lfaqs} heading={`Exporting ${pn} — frequently asked questions`} testIdPrefix="hub-loading-faq" />
+        <div className="mt-12 flex flex-wrap gap-2 text-sm">
+          <Link to="/tools/duty-calculator" className="btn-ghost">Duty calculator</Link>
+          <Link to="/tools/landed-cost-calculator" className="btn-ghost">Landed cost calculator</Link>
+          <Link to="/tools/product-research" className="btn-ghost">World demand</Link>
+          <Link to="/export" className="btn-ghost">All export guides</Link>
+        </div>
       </div>
     );
   }

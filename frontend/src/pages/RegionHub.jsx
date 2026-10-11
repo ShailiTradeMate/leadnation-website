@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
 import {
@@ -84,17 +85,74 @@ export default function RegionHub() {
 
   if (state === "loading") {
     const rn = titleize(slug);
+    const lfaqs = [
+      {
+        q: `What does the ${rn} hub show?`,
+        a: `Every market we track in ${rn}, ranked by its own measured import demand and showing the applied import duty it charges, with links to each published product-market export guide and the verified buyer coverage we hold for that country.`,
+      },
+      {
+        q: `How is a market selected for inclusion?`,
+        a: `A market is only listed once we hold both a verified applied tariff from World Bank WITS / UNCTAD TRAINS and measured import demand from OEC World / CEPII BACI. Pairs where either is missing are withheld rather than filled with a regional average.`,
+      },
+      {
+        q: `Why does a larger market sometimes rank below a smaller one?`,
+        a: `Because import volume is not margin. A high-tariff market can leave your buyer paying more than a smaller market inside a trade agreement, and the destination's own VAT or GST compounds the duty because it is charged on the duty-inclusive value.`,
+      },
+      {
+        q: `What does verified buyer coverage mean here?`,
+        a: `A count of contact-verified, sanctions-screened importer records we actually hold for that country — not a directory estimate. Where coverage is still being ingested, the hub says so instead of showing a number it cannot stand behind.`,
+      },
+      {
+        q: `Does this work for origins other than India?`,
+        a: `The duty, landed-cost and demand engines are origin-aware across the supported reporting countries, so the same ranking logic applies to any origin. The published guides in ${rn} are written for India as the origin; use the Duty Calculator directly for other origins.`,
+      },
+    ];
     return (
-      <div data-testid="region-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28">
+      <div data-testid="region-loading" className="max-w-7xl mx-auto px-5 sm:px-10 pt-16 pb-20">
         <SEO
           title={`Export to ${rn} — Duty, Demand & Buyers by Market`}
           description={`${rn} export hub: applied import duty, measured import demand and verified buyer coverage for every market we track in the region, with product-market export guides.`}
           path={`/regions/${slug}`}
           type="article"
+          faqs={lfaqs}
           breadcrumbs={[{ name: "Home", path: "/" }, { name: "Regions", path: "/regions" }, { name: rn, path: `/regions/${slug}` }]}
         />
-        <h1 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl">Export to {rn}</h1>
-        <p className="text-slate-400 mt-4 text-sm">Loading live trade data for this region…</p>
+        <nav aria-label="Breadcrumb" className="text-[11px] font-mono-display tracking-[0.18em] uppercase text-slate-500">
+          <Link to="/regions" className="hover:text-cyan-300">Regions</Link> · {rn}
+        </nav>
+        <h1 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl lg:text-5xl mt-4 leading-[1.08]">
+          Export to <span className="gradient-text">{rn}</span>
+        </h1>
+        <p className="mt-5 text-[15px] text-slate-300 max-w-3xl leading-relaxed">
+          Loading live duty, demand and buyer-coverage figures for every market in this region.
+          Nothing is shown until it has been retrieved from its named source.
+        </p>
+        <AnswerBlock testId="region-loading-answer" label="Method"
+          title={`How a market earns its place in the ${rn} hub`}>
+          <p>
+            Two dimensions, always together. Measured import demand tells you the size of the
+            opportunity in each market; the applied import tariff tells you how much of it the
+            destination's customs regime takes back. Published side by side, they usually produce a
+            different shortlist from the one an exporter arrives with.
+          </p>
+          <p>
+            Beneath the ranking sits a data gate. A market appears in this hub only when we hold a
+            verified applied tariff and measured trade value for it, so the list is shorter than a
+            map of the region and every row is defensible.
+          </p>
+          <p>
+            Buyer coverage is reported separately and literally: it is the number of
+            contact-verified, sanctions-screened importer records we hold for that country. Markets
+            where that work is still in progress are labelled as expanding rather than inflated.
+          </p>
+        </AnswerBlock>
+        <PageFaq items={lfaqs} heading={`Exporting to ${rn} — frequently asked questions`} testIdPrefix="region-loading-faq" />
+        <div className="mt-12 flex flex-wrap gap-2 text-sm">
+          <Link to="/tools/duty-calculator" className="btn-ghost">Duty calculator</Link>
+          <Link to="/tools/landed-cost-calculator" className="btn-ghost">Landed cost calculator</Link>
+          <Link to="/export" className="btn-ghost">All export guides</Link>
+          <Link to="/regions" className="btn-ghost">All regions</Link>
+        </div>
       </div>
     );
   }
