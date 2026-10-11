@@ -2,12 +2,40 @@ import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ToolShell, Card } from "@/components/ToolShell";
 import SEO from "@/components/SEO";
+import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
 import { MagnifyingGlass, CircleNotch, Gift, Scales, Receipt, ArrowRight } from "@phosphor-icons/react";
 import { HsCodePicker } from "@/components/HsCodePicker";
 import { LaneCountrySelect } from "@/components/LaneCountrySelect";
 import { BrainNextSteps } from "@/components/BrainNextSteps";
+
+const FAQ = [
+  {
+    q: "What is an HS code and why does it matter so much?",
+    a: "The Harmonized System is the WCO's global product nomenclature, and the first six digits are identical in every member country. Customs assesses duty, applies trade-agreement preferences and triggers certification requirements against that code — not against the description on your invoice. It is the single field that determines what your buyer pays.",
+  },
+  {
+    q: "How do I know the suggested code is the right one?",
+    a: "Treat a match as a strong candidate, not a ruling. The finder ranks lines from the complete WCO HS-2022 nomenclature against your product name and description, but classification turns on material, construction, processing stage and packaging. For high-value or repeat shipments, confirm the line with your customs broker or seek an advance ruling.",
+  },
+  {
+    q: "Why do I need to pick an exporting and an importing country?",
+    a: "Because a code on its own has no price. The duty attached to an HS line is set by the importing country, and the rate you get depends on where the goods originate — a trade agreement between your origin and that destination can replace the MFN rate with a preferential one. Same code, different lane, different number.",
+  },
+  {
+    q: "What is the difference between HS and HSN?",
+    a: "HSN is the Indian usage of the same system. The first six digits are the international HS code; India extends them to eight digits for its own tariff and GST schedules, and other countries extend to eight or ten digits of their own. Research happens at six digits, declarations happen at the national line.",
+  },
+  {
+    q: "Where do the duty and benefit figures come from?",
+    a: "Applied MFN and preferential tariffs are read from World Bank WITS / UNCTAD TRAINS at HS6 level with the source data year shown. Export-support schemes come from the administering authority in your exporting country, including DGFT Appendix 4R for India, and rates are shown only where a government publishes an official schedule.",
+  },
+  {
+    q: "Can I look up a code I already have?",
+    a: "Yes — enter the 6-digit code directly instead of a product name and the finder resolves the line, then prices it for your chosen lane. Every result also links straight into the Duty Calculator, Product Research, the Landed Cost Calculator and Buyer Discovery for that same code.",
+  },
+];
 
 const inputCls = "w-full glass rounded-xl px-4 py-3 outline-none";
 const EXAMPLES = ["Laptop", "Basmati rice", "Agarbatti", "Cotton t-shirt", "Smartphone", "Centrifugal pump"];
@@ -42,6 +70,8 @@ export default function HsnFinder() {
         description="Find the correct HS / HSN code for any product from the complete WCO HS-2022 nomenclature. Pick your exporting and importing country to see the live MFN and preferential import duty, destination VAT and origin-specific export benefits. Free, instant, global."
         path="/tools/hsn-finder"
         keywords="HS code finder, HSN code finder, HS code search, harmonized system code lookup, import duty by HS code, HS code for laptop, HS code for basmati rice, tariff code lookup"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }, { name: "HS Code Finder", path: "/tools/hsn-finder" }]}
+        faqs={FAQ}
       />
       <ToolShell testIdPrefix="hsn" label="HSN Finder"
         title="Find your HS code — then see what it costs on your trade lane."
@@ -140,6 +170,28 @@ export default function HsnFinder() {
           </div>
         </div>
       </ToolShell>
+      <AnswerBlock testId="hsn-answer" label="Classification in practice"
+        title="Get the code right before anything else">
+        <p>
+          Every number in an export decision hangs off the HS code. It sets the applied tariff in
+          the destination, decides whether a trade agreement can give you a preferential rate, and
+          triggers the certification and inspection regime you will face at the border. A
+          misclassified shipment can be held, re-assessed or penalised long after it has cleared.
+        </p>
+        <p>
+          Classification is decided by what the article is and how it was made — material,
+          construction, degree of processing, whether it is retail-packed — not by what it is called
+          commercially. That is why two products with the same marketing name can sit in different
+          lines, and why the extra description field here changes the ranking.
+        </p>
+        <p>
+          The research level is six digits, because that is what is harmonised internationally and
+          what tariff databases publish. Your actual declaration will use the destination's national
+          line, which runs to eight or ten digits. Confirm the line with a broker or an advance
+          ruling before you commit to a large or repeat order.
+        </p>
+      </AnswerBlock>
+      <PageFaq items={FAQ} testIdPrefix="hsn-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-12 pb-12"><DownloadCTA /></section>
     </>
   );

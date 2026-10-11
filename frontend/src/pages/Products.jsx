@@ -4,8 +4,32 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { api } from "@/lib/api";
 import { ArrowRight, TrendUp, Package as PackageIcon, ShieldCheck, Truck } from "@phosphor-icons/react";
+
+const INDEX_FAQ = [
+  {
+    q: "What is inside a product trade profile?",
+    a: "The HSN code the product classifies under, the demand picture for it, the countries that import and export the most of it, the compliance and certifications a shipment has to carry, and the logistics constraints that decide packaging and mode. From there it links into the per-market export guides that carry the applied duty for each destination.",
+  },
+  {
+    q: "Why does the HSN code matter more than the product name?",
+    a: "Customs authorities assess duty against the HS code, not the description on your invoice. Two products that sound identical can sit in different HS lines and attract different tariffs and different certification requirements. Every profile states the code so you can verify it before you quote.",
+  },
+  {
+    q: "Where does the demand data come from?",
+    a: "Measured world trade values and the top importer and exporter rankings are read from OEC World / CEPII BACI. Applied and preferential tariffs come from World Bank WITS / UNCTAD TRAINS at HS6 level. HS classification follows WCO HS-2022. Each number carries its data year on the page.",
+  },
+  {
+    q: "Which products are covered?",
+    a: "The catalogue covers the categories where we hold verified duty and demand data end to end — including basmati rice, Indian spices, agarbatti, cotton textiles, pharmaceuticals, fresh fruits, fresh vegetables and engineering machinery. Each of these has a published export guide for every market that meets our data gate.",
+  },
+  {
+    q: "How do I turn a product profile into a shortlist of markets?",
+    a: "Open the product's export guide hub. It ranks every published market for that product by applied duty and measured import demand, so you can shortlist three or four destinations, then cost each one properly in the Landed Cost Calculator before you contact buyers.",
+  },
+];
 
 export function ProductsIndex() {
   const [list, setList] = useState([]);
@@ -14,9 +38,11 @@ export function ProductsIndex() {
   return (
     <>
       <SEO title="Product Trade Profiles · Basmati, Spices, Pharma & More"
-        description="Premium product trade profiles — global demand, top markets, compliance and opportunities for India's biggest export categories."
+        description="Premium product trade profiles — global demand, top markets, compliance and opportunities for India's biggest export categories, each linked to per-market export guides with applied import duty."
         path="/products"
         keywords="export product list, basmati rice export, spices export, agarbatti export, pharmaceuticals export, textiles export"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Products", path: "/products" }]}
+        faqs={INDEX_FAQ}
       />
       <PageHero testIdPrefix="products" label="Product Trade Profiles"
         title="Pick a product. See the global playbook."
@@ -43,6 +69,27 @@ export function ProductsIndex() {
           ))}
         </div>
       </section>
+      <AnswerBlock testId="products-answer" label="Method"
+        title="Why we publish by product and market, not by product alone">
+        <p>
+          A product's global demand tells you almost nothing about whether a specific shipment
+          earns money. The same article can face a zero tariff in one market and a double-digit
+          tariff in the next, and the destination's VAT or GST on imports often matters more than
+          the duty itself.
+        </p>
+        <p>
+          So every profile here is a starting point into a per-market guide. The profile fixes the
+          HS code, the compliance set and the logistics reality. The guide then fixes the numbers
+          for one destination: applied MFN rate, any preferential rate your origin qualifies for,
+          measured import demand for that HS code, and whether we hold verified buyer records.
+        </p>
+        <p>
+          Every figure carries its source and data year. Where World Bank WITS has no record for a
+          country-product pair, or where we hold no verified buyers for a lane, the page states that
+          plainly instead of substituting an estimate.
+        </p>
+      </AnswerBlock>
+      <PageFaq items={INDEX_FAQ} testIdPrefix="products-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>
   );
@@ -68,6 +115,14 @@ export default function ProductDetail() {
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Product not found</h1><Link to="/products" className="btn-primary mt-6 inline-flex">Browse products</Link></div>;
   if (!p) return <div className="max-w-7xl mx-auto px-6 py-32 text-slate-400">Loading…</div>;
 
+  const faqs = [
+    { q: `What is the HSN code for exporting ${p.name}?`, a: `${p.name} falls under category ${p.category} and classifies under HSN ${p.hsn}. Customs assesses duty against the HS code rather than the product description, so confirm the exact line in the HSN Finder before you quote — GST, RoDTEP and drawback all follow the code.` },
+    { q: `Which countries are the best export markets for ${p.name}?`, a: `${String(p.overview || "").substring(0, 200)}` },
+    { q: `What does it cost my buyer to import ${p.name}?`, a: `That depends on the destination's applied tariff for HSN ${p.hsn}, its own VAT or GST on imports, and your freight terms. The Landed Cost Calculator builds the full Ex-Works to landed waterfall using live World Bank WITS duty and exchange rates, so you can see what your buyer actually pays in each market.` },
+    { q: `What compliance and certification does ${p.name} need?`, a: `${(p.compliance || []).slice(0, 6).join(", ") || "Compliance requirements are listed on this page"}${(p.certifications || []).length ? `, plus certifications including ${(p.certifications || []).slice(0, 5).join(", ")}` : ""}. Certification lead time, not tariffs, is usually what delays a first shipment.` },
+    { q: `How do I find verified buyers for ${p.name}?`, a: `Use Vametra AI's Verified Buyer Intelligence to reach contact-verified importers of ${p.name} sourced from official government trade records across 195+ countries. Coverage is stated per market, and where we hold no verified records for a lane the page says so.` },
+  ];
+
   return (
     <>
       <SEO title={`${p.name} — Export Guide, HSN, Compliance & Markets`}
@@ -79,11 +134,7 @@ export default function ProductDetail() {
           { name: "Products", path: "/products" },
           { name: p.name, path: `/products/${p.slug}` },
         ]}
-        faqs={[
-          { q: `What is the HSN code for exporting ${p.name}?`, a: `${p.name} falls under category ${p.category}. Vametra AI lists the exact HSN code, GST, RoDTEP and drawback for ${p.name}.` },
-          { q: `Which countries are the best export markets for ${p.name}?`, a: `${p.overview.substring(0, 200)}` },
-          { q: `How do I find verified buyers for ${p.name}?`, a: `Use Vametra AI's Verified Buyer Intelligence to reach contact-verified importers of ${p.name} sourced from official government trade records across 195+ countries.` },
-        ]}
+        faqs={faqs}
         schema={{ "@context": "https://schema.org", "@type": "Thing", name: p.name, description: p.overview, additionalType: "https://schema.org/ProductGroup" }}
       />
       <section className="relative pt-16 pb-10">
@@ -163,6 +214,27 @@ export default function ProductDetail() {
         </section>
       )}
 
+      <AnswerBlock testId="pd-answer" label={`${p.name} · how to use this profile`}
+        title={`What decides whether ${p.name} is worth exporting to a given market`}>
+        <p>
+          Four numbers, in this order. First the HS code — {p.name} classifies under HSN {p.hsn},
+          and that code, not the description on your invoice, is what the destination's customs
+          authority assesses. Second the applied tariff in that destination for that code, plus any
+          preferential rate your origin qualifies for under a trade agreement.
+        </p>
+        <p>
+          Third, the destination's own import tax stack — VAT or GST is frequently larger than the
+          duty and is charged on the duty-inclusive value, so it compounds. Fourth, real demand:
+          whether that market actually imports meaningful volume of this HS code, read from measured
+          trade data rather than inferred from population or GDP.
+        </p>
+        <p>
+          {p.logistics ? `${p.logistics} ` : ""}Only after those four is buyer outreach worth your
+          time — which is why the market links on this page lead to guides that state all four for
+          a single destination, with the source and data year attached to every figure.
+        </p>
+      </AnswerBlock>
+      <PageFaq items={faqs} heading={`Exporting ${p.name} — frequently asked questions`} testIdPrefix="pd-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>
   );

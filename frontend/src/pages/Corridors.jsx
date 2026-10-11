@@ -4,9 +4,33 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { CountryGuides } from "@/components/LinkGraph";
 import { api } from "@/lib/api";
 import { ArrowsLeftRight, ArrowRight, Compass, FileText, Truck, CurrencyCircleDollar } from "@phosphor-icons/react";
+
+const INDEX_FAQ = [
+  {
+    q: "What is a trade corridor page for?",
+    a: "A corridor is one origin and one destination treated as a single operating problem: how goods leave, how they clear on arrival, which documents travel with them, what duties and taxes apply, and what the realistic transit time and mode are. It is the operational layer that sits under any product decision.",
+  },
+  {
+    q: "How is a corridor different from a country profile?",
+    a: "A country profile describes one market. A corridor describes the movement between two — including the trade agreement that governs it, the origin documentation that agreement demands, and the clearance steps on both sides. Two exporters shipping the same product into the same country from different origins face different corridors.",
+  },
+  {
+    q: "Which corridors are published?",
+    a: "The major India lanes are published today, including India to the UAE, the USA, Australia and Armenia. Each one links to every product-market export guide we hold for that destination, so you can move from the corridor mechanics straight to the duty and demand numbers for your specific product.",
+  },
+  {
+    q: "Does a corridor page tell me my duty?",
+    a: "It tells you the duty and tax regime that governs the lane. The exact rate is HS-code specific, so use the Customs Duty Calculator with your 6-digit code and the corridor's origin and destination — that returns the applied MFN rate and any preferential rate from World Bank WITS / UNCTAD TRAINS.",
+  },
+  {
+    q: "Can I use these for import rather than export?",
+    a: "Yes. Every corridor page sets out both the export process on the origin side and the import clearance process on the destination side, because one party's export problem is the counterparty's import problem and most disputes come from one side not reading the other's half.",
+  },
+];
 
 export function CorridorsIndex() {
   const [list, setList] = useState([]);
@@ -15,9 +39,11 @@ export function CorridorsIndex() {
   return (
     <>
       <SEO title="Trade Corridors · India to UAE, USA, Australia, Armenia"
-        description="Deep-dive trade corridor playbooks — customs, documents, duties and opportunities for every major India lane."
+        description="Trade corridor playbooks — export process, import clearance, customs documents, duties, taxes and logistics for every major India lane, linked to per-product export guides."
         path="/corridors"
         keywords="India UAE trade corridor, India USA trade, India Australia ECTA, India Armenia EAEU, trade lanes"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Trade Corridors", path: "/corridors" }]}
+        faqs={INDEX_FAQ}
       />
       <PageHero testIdPrefix="corridors" label="Trade Corridors"
         title="From your factory to their dock."
@@ -46,6 +72,28 @@ export function CorridorsIndex() {
           ))}
         </div>
       </section>
+      <AnswerBlock testId="corridors-answer" label="Why lanes, not countries"
+        title="The paperwork is lane-specific, and so is the saving">
+        <p>
+          Duty is the number everyone looks at first, but on most lanes the money is lost or saved
+          in documentation. A preferential tariff under a trade agreement is only available if your
+          goods satisfy that agreement's rules of origin and you present a valid origin certificate
+          at clearance. Miss the paperwork and you pay the full applied rate on goods that
+          technically qualified.
+        </p>
+        <p>
+          Each corridor page therefore puts the export process, the import clearance process, the
+          customs regime, the duty and tax treatment, the document set and the logistics profile on
+          one page — for one specific origin-destination pair, because none of those are
+          transferable between lanes.
+        </p>
+        <p>
+          Rates referenced on corridor pages trace back to World Bank WITS / UNCTAD TRAINS, and
+          product-level demand to OEC World / CEPII BACI. For the exact rate on your article, use
+          the Duty Calculator with your 6-digit HS code rather than a corridor-level generalisation.
+        </p>
+      </AnswerBlock>
+      <PageFaq items={INDEX_FAQ} testIdPrefix="corridors-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>
   );
@@ -66,6 +114,30 @@ export default function CorridorDetail() {
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Corridor not found</h1><Link to="/corridors" className="btn-primary mt-6 inline-flex">Browse corridors</Link></div>;
   if (!c) return <div className="max-w-7xl mx-auto px-6 py-32 text-slate-400">Loading…</div>;
 
+  const docs = (c.documents || []).slice(0, 8).join(", ");
+  const faqs = [
+    {
+      q: `What are the customs requirements for exporting from ${c.from} to ${c.to}?`,
+      a: `${c.customsInfo || c.tagline} Clearance on the ${c.to} side and the export formalities on the ${c.from} side are set out in full on this page, because a shipment only moves when both halves are satisfied.`,
+    },
+    {
+      q: `What documents are needed for the ${c.from} to ${c.to} route?`,
+      a: `${docs || "The required document set is listed on this page"}. Missing or inconsistent origin documentation is the most common reason a qualifying shipment ends up paying the full applied tariff on this lane.`,
+    },
+    {
+      q: `What duties and taxes apply on the ${c.from}–${c.to} corridor?`,
+      a: `${c.dutiesTaxes || "Duty and tax treatment for this lane is described on this page."} The exact rate is HS-code specific, so run your 6-digit code through the Customs Duty Calculator with ${c.from} as origin and ${c.to} as destination to get the applied and any preferential rate from World Bank WITS / UNCTAD TRAINS.`,
+    },
+    {
+      q: `How long does a ${c.from} to ${c.to} shipment take?`,
+      a: `${c.logistics || "Transit time and mode options for this lane are described on this page."}`,
+    },
+    {
+      q: `Which products move best from ${c.from} to ${c.to}?`,
+      a: `${(c.popularProducts || []).length ? `${(c.popularProducts || []).map((p) => String(p).replace(/-/g, " ")).slice(0, 8).join(", ")} are the established categories on this lane.` : "The established categories on this lane are listed on this page."} Each links to a product-market export guide carrying the applied duty and measured import demand for that exact pair.`,
+    },
+  ];
+
   return (
     <>
       <SEO title={`${c.from} → ${c.to} Trade Corridor — Customs, Documents, Duties`}
@@ -77,11 +149,7 @@ export default function CorridorDetail() {
           { name: "Trade Corridors", path: "/corridors" },
           { name: `${c.from} → ${c.to}`, path: `/corridors/${c.slug}` },
         ]}
-        faqs={[
-          { q: `What are the customs requirements for exporting from ${c.from} to ${c.to}?`, a: `${c.tagline} Vametra AI provides the full ${c.from}→${c.to} playbook: export process, import clearance, required documents and applicable duties.` },
-          { q: `What documents are needed for the ${c.from} to ${c.to} trade route?`, a: `Vametra AI lists the exact document set, customs procedures and duty rates for shipments from ${c.from} to ${c.to}, with a downloadable checklist.` },
-          { q: `Are there duty savings or FTAs on the ${c.from}–${c.to} corridor?`, a: `${c.tagline} Check Vametra AI's Duty Calculator for FTA-based savings and preferential tariffs on the ${c.from}–${c.to} corridor.` },
-        ]}
+        faqs={faqs}
       />
 
       <section className="relative pt-16 pb-10">
@@ -130,6 +198,27 @@ export default function CorridorDetail() {
         </section>
       )}
 
+      <AnswerBlock testId="cd-answer" label={`${c.from} → ${c.to} · in practice`}
+        title={`What to settle before your first ${c.from} to ${c.to} shipment`}>
+        <p>
+          Classification first. The 6-digit HS code of the exact article decides the applied tariff
+          in {c.to}, the certification regime and whether any preferential rate is even available to
+          a {c.from} origin. Get this wrong and every downstream number is wrong.
+        </p>
+        <p>
+          Then origin qualification. {c.dutiesTaxes || "Duty treatment on this lane is set out above."} A
+          preferential rate is a conditional entitlement, not a default — it requires the goods to
+          meet the agreement's rules of origin and the correct origin document to be presented at
+          clearance in {c.to}.
+        </p>
+        <p>
+          Then the operational half. {c.logistics || ""} Build the cost waterfall in the Landed Cost
+          Calculator so you know what your buyer in {c.to} actually pays once duty, destination tax
+          and freight are applied — and only then open buyer conversations, because a quote you
+          cannot hold is worse than no quote.
+        </p>
+      </AnswerBlock>
+      <PageFaq items={faqs} heading={`${c.from} → ${c.to} — frequently asked questions`} testIdPrefix="cd-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>
   );

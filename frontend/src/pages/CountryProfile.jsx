@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { PageHero, SectionLabel } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { CountryGuides } from "@/components/LinkGraph";
 import { api, fetchTradeNews, fetchExpos } from "@/lib/api";
 import { ArrowRight, TrendUp, TrendDown, Buildings, Compass, Newspaper, CalendarBlank, Storefront, Globe } from "@phosphor-icons/react";
@@ -40,6 +41,32 @@ export default function CountryProfile() {
   }
 
   const filteredExpos = expos.filter((e) => (data.expoSlugs || []).includes(e.id));
+  const faqs = [
+    {
+      q: `What does ${data.name} mainly import and export?`,
+      a: `${data.tagline} The import and export categories, the trade agreements ${data.name} is party to and its customs regime are set out on this page, with product-level duty and demand available per HS code through the tools.`,
+    },
+    {
+      q: `How do I calculate customs duty and landed cost for ${data.name}?`,
+      a: `Enter your 6-digit HS code in the Duty Calculator and set ${data.name} as the destination. You get the applied MFN rate plus any preferential rate your origin qualifies for, read from World Bank WITS / UNCTAD TRAINS with the data year shown. The Landed Cost Calculator then adds ${data.name}'s own import tax, freight and FX to give the figure your buyer actually pays.`,
+    },
+    {
+      q: `Do I automatically get a lower duty if ${data.name} has a trade agreement with my country?`,
+      a: `No. A preferential rate is conditional: the goods must satisfy that agreement's rules of origin and you must present valid origin documentation at clearance in ${data.name}. Price the applied rate as your base case and treat the preferential rate as upside you have to evidence.`,
+    },
+    {
+      q: `How can I find verified buyers in ${data.name}?`,
+      a: `Buyer Intelligence holds contact-verified importer records indexed by HS code and market, sourced from official trade records. Coverage for ${data.name} is stated honestly — where we hold no verified records for a product lane, the page says so rather than showing unvetted contacts.`,
+    },
+    {
+      q: `Which products are worth exporting to ${data.name}?`,
+      a: `Start from measured demand rather than intuition: run your HS code through Product Research to see whether ${data.name} imports meaningful volume, then check the applied tariff. The published export guides for ${data.name} list each product we hold verified duty and demand data for.`,
+    },
+    {
+      q: `What documents will a shipment into ${data.name} need?`,
+      a: `The commercial set — invoice, packing list, bill of lading or airway bill — plus whatever ${data.name} requires for your specific product: certificates of origin to claim preference, and health, phytosanitary or conformity certificates depending on the HS chapter. The corridor page for your origin sets out the full lane-specific list.`,
+    },
+  ];
 
   return (
     <>
@@ -53,11 +80,7 @@ export default function CountryProfile() {
           { name: "Countries", path: "/countries" },
           { name: data.name, path: `/countries/${data.slug}` },
         ]}
-        faqs={[
-          { q: `What does ${data.name} mainly import and export?`, a: `${data.tagline} Vametra AI tracks ${data.name}'s major imports, exports, customs duties and FTA opportunities, updated for ${new Date().getFullYear()}.` },
-          { q: `How do I calculate customs duty and landed cost for ${data.name}?`, a: `Use Vametra AI's free Duty Calculator and Landed Cost Calculator to get HS-code-based duties, taxes and total landed cost for shipments to and from ${data.name} across all Incoterms.` },
-          { q: `How can I find verified buyers in ${data.name}?`, a: `Vametra AI's Verified Buyer Intelligence surfaces real, contact-verified buyers sourced from official government trade records for ${data.name} and 195+ countries.` },
-        ]}
+        faqs={faqs}
         schema={{
           "@context": "https://schema.org",
           "@type": "Country",
@@ -210,6 +233,29 @@ export default function CountryProfile() {
           <CountryGuides data={guides} heading={`Export guides for ${guides.country}`} testIdPrefix="cp-guides" />
         </section>
       )}
+
+      <AnswerBlock testId="cp-answer" label={`${data.name} · how to use this profile`}
+        title={`What to establish before you ship to ${data.name}`}>
+        <p>
+          {data.tagline} A market profile is useful for orientation, but nothing here prices your
+          shipment. Three things do: the HS code of your exact article, the tariff {data.name}{" "}
+          applies to that code from your origin, and {data.name}'s own tax on imports, which is
+          charged on the duty-inclusive value and therefore compounds the tariff.
+        </p>
+        <p>
+          Work in that order. Confirm the classification first, because a trade agreement that looks
+          generous at chapter level can exclude your specific line. Then check whether your origin
+          has preferential access and whether you can actually satisfy the rules of origin — a
+          published preferential rate you cannot document is worth nothing at clearance.
+        </p>
+        <p>
+          Only then is demand worth looking at, and only at HS-code level: whether {data.name}{" "}
+          imports meaningful volume of your product, read from measured trade data rather than
+          inferred from the size of the economy. Where we hold verified duty and demand for a
+          product in this market, there is a published export guide linked on this page.
+        </p>
+      </AnswerBlock>
+      <PageFaq items={faqs} heading={`Exporting to ${data.name} — frequently asked questions`} testIdPrefix="cp-faq" />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">
         <DownloadCTA />
