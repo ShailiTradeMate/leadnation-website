@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
+import { titleize } from "@/lib/slug";
 import SEO, { articleSchema } from "@/components/SEO";
 import { api } from "@/lib/api";
 import { Clock, ArrowRight } from "@phosphor-icons/react";
@@ -54,7 +55,14 @@ export default function BlogDetail() {
   useEffect(() => { setP(null); setNf(false); api.get(`/blog/${slug}`).then((r) => r.data?.error ? setNf(true) : setP(r.data)).catch(() => setNf(true)); }, [slug]);
 
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Post not found</h1><Link to="/blog" className="btn-primary mt-6 inline-flex">Back to blog</Link></div>;
-  if (!p) return <div className="max-w-7xl mx-auto px-6 py-32 text-slate-400">Loading…</div>;
+  if (!p) return (
+    <div className="max-w-7xl mx-auto px-6 py-32">
+      <SEO title={titleize(slug)} description={`${titleize(slug)} — Vametra AI global trade insight.`} path={`/blog/${slug}`} type="article"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Blog", path: "/blog" }, { name: titleize(slug), path: `/blog/${slug}` }]} />
+      <h1 className="font-display font-extrabold text-4xl">{titleize(slug)}</h1>
+      <p className="text-slate-400 mt-4 text-sm">Loading…</p>
+    </div>
+  );
 
   return (
     <>

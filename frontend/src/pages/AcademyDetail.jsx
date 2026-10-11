@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import DownloadCTA from "@/components/DownloadCTA";
+import { titleize } from "@/lib/slug";
 import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import { GraduationCap, Clock, ListChecks, ArrowLeft, ArrowRight, Brain, CheckCircle } from "@phosphor-icons/react";
@@ -28,7 +29,16 @@ export default function AcademyDetail() {
       <Link to="/academy" className="btn-primary mt-6 inline-flex">Back to Academy</Link>
     </section>
   );
-  if (!course) return <section className="max-w-7xl mx-auto px-6 pt-32 pb-24 text-slate-400">Loading course…</section>;
+  if (!course) return (
+    <section className="max-w-7xl mx-auto px-6 pt-32 pb-24">
+      <SEO title={`${titleize(slug)} · Vametra AI Academy`}
+        description={`${titleize(slug)} — a practical Vametra AI Academy guide for exporters and importers.`}
+        path={`/academy/${slug}`}
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Academy", path: "/academy" }, { name: titleize(slug), path: `/academy/${slug}` }]} />
+      <h1 className="font-display font-extrabold text-4xl">{titleize(slug)}</h1>
+      <p className="text-slate-400 mt-4 text-sm">Loading course…</p>
+    </section>
+  );
 
   const askBrain = (q) => navigate(`/brain?q=${encodeURIComponent(q)}`);
 

@@ -18,7 +18,18 @@ export default function HsnDetail() {
   }, [code]);
 
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">HSN {code} not found</h1><Link to="/tools/hsn-finder" className="btn-primary mt-6 inline-flex">Try HSN Finder</Link></div>;
-  if (!h) return <div className="max-w-7xl mx-auto px-6 py-32 text-slate-400">Loading…</div>;
+  if (!h) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-32">
+        <SEO title={`HSN ${code} · GST, RoDTEP & Export Compliance`}
+          description={`HSN ${code}: GST rate, RoDTEP and duty drawback, export benefits, required documents and customs notes, plus applied import duty per destination — Vametra AI.`}
+          path={`/hsn/${code}`}
+          breadcrumbs={[{ name: "Home", path: "/" }, { name: "HSN Codes", path: "/tools/hsn-finder" }, { name: `HSN ${code}`, path: `/hsn/${code}` }]} />
+        <h1 className="font-display font-extrabold text-4xl">HSN {code}</h1>
+        <p className="text-slate-400 mt-4 text-sm">Loading…</p>
+      </div>
+    );
+  }
 
   const faqs = [
     {

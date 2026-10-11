@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
 import {
   ArrowRight, Globe, Scales, Users, Calculator, Brain, SealCheck, MapPin, Package,
@@ -82,7 +83,20 @@ export default function RegionHub() {
   }, [slug]);
 
   if (state === "loading") {
-    return <div data-testid="region-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28 text-slate-400">Loading live trade data for this region…</div>;
+    const rn = titleize(slug);
+    return (
+      <div data-testid="region-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28">
+        <SEO
+          title={`Export to ${rn} — Duty, Demand & Buyers by Market`}
+          description={`${rn} export hub: applied import duty, measured import demand and verified buyer coverage for every market we track in the region, with product-market export guides.`}
+          path={`/regions/${slug}`}
+          type="article"
+          breadcrumbs={[{ name: "Home", path: "/" }, { name: "Regions", path: "/regions" }, { name: rn, path: `/regions/${slug}` }]}
+        />
+        <h1 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl">Export to {rn}</h1>
+        <p className="text-slate-400 mt-4 text-sm">Loading live trade data for this region…</p>
+      </div>
+    );
   }
   if (state === "error" || !d) {
     return (

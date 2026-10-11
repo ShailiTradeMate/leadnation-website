@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { RelatedGuides } from "@/components/LinkGraph";
+import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
 import {
   ArrowRight, Scales, Globe, FileText, Users, Calculator,
@@ -66,7 +67,27 @@ export default function ExportProductCountry() {
   }, [product, country]);
 
   if (state === "loading") {
-    return <div data-testid="epc-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28 text-slate-400">Loading live trade data…</div>;
+    const pn = titleize(product), cn = titleize(country);
+    return (
+      <div data-testid="epc-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28">
+        <SEO
+          title={`Export ${pn} from India to ${cn} — Duty, HS Code & Buyers`}
+          description={`${pn} export guide for ${cn}: applied import duty and HS code, measured import demand, documents, export incentives, verified buyers and landed cost — Vametra AI.`}
+          path={`/export/${product}/to/${country}`}
+          type="article"
+          breadcrumbs={[
+            { name: "Home", path: "/" },
+            { name: "Export Guides", path: "/export" },
+            { name: pn, path: `/export/${product}` },
+            { name: cn, path: `/export/${product}/to/${country}` },
+          ]}
+        />
+        <h1 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl">
+          Export {pn} from India to {cn}
+        </h1>
+        <p className="text-slate-400 mt-4 text-sm">Loading live trade data…</p>
+      </div>
+    );
   }
   if (state === "error" || !d?.ok) {
     return (

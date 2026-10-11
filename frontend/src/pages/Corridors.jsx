@@ -5,6 +5,7 @@ import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
+import { titleize } from "@/lib/slug";
 import { CountryGuides } from "@/components/LinkGraph";
 import { api } from "@/lib/api";
 import { ArrowsLeftRight, ArrowRight, Compass, FileText, Truck, CurrencyCircleDollar } from "@phosphor-icons/react";
@@ -112,7 +113,19 @@ export default function CorridorDetail() {
   }, [slug]);
 
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Corridor not found</h1><Link to="/corridors" className="btn-primary mt-6 inline-flex">Browse corridors</Link></div>;
-  if (!c) return <div className="max-w-7xl mx-auto px-6 py-32 text-slate-400">Loading…</div>;
+  if (!c) {
+    const n = titleize(slug).replace(/\bIndia To\b/i, "India →");
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-32">
+        <SEO title={`${n} Trade Corridor — Customs, Documents, Duties`}
+          description={`${n} trade corridor playbook: export process, import clearance, customs regime, duties and taxes, required documents and logistics — Vametra AI.`}
+          path={`/corridors/${slug}`}
+          breadcrumbs={[{ name: "Home", path: "/" }, { name: "Trade Corridors", path: "/corridors" }, { name: n, path: `/corridors/${slug}` }]} />
+        <h1 className="font-display font-extrabold text-4xl">{n}</h1>
+        <p className="text-slate-400 mt-4 text-sm">Loading…</p>
+      </div>
+    );
+  }
 
   const docs = (c.documents || []).slice(0, 8).join(", ");
   const faqs = [

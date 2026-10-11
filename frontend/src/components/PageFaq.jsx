@@ -18,8 +18,7 @@ export function AnswerBlock({ label, title, children, testId }) {
   );
 }
 
-export function PageFaq({ items = [], heading = "Frequently asked questions", testIdPrefix = "faq" }) {
-  if (!items.length) return null;
+export function PageFaq({ items = [], heading = "Frequently asked questions", testIdPrefix = "faq" }) {  if (!items.length) return null;
   return (
     <section className="max-w-7xl mx-auto px-6 sm:px-10 mt-14" data-testid={`${testIdPrefix}-section`}>
       <h2 className="font-display font-bold text-base md:text-lg">{heading}</h2>

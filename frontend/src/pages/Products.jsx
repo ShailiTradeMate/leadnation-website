@@ -5,6 +5,7 @@ import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
+import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
 import { ArrowRight, TrendUp, Package as PackageIcon, ShieldCheck, Truck } from "@phosphor-icons/react";
 
@@ -113,7 +114,19 @@ export default function ProductDetail() {
   }, [slug]);
 
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Product not found</h1><Link to="/products" className="btn-primary mt-6 inline-flex">Browse products</Link></div>;
-  if (!p) return <div className="max-w-7xl mx-auto px-6 py-32 text-slate-400">Loading…</div>;
+  if (!p) {
+    const n = titleize(slug);
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-32">
+        <SEO title={`${n} — Export Guide, HSN, Compliance & Markets`}
+          description={`${n} export profile: HSN code, demand, leading markets, compliance and certifications, with applied import duty per destination — Vametra AI.`}
+          path={`/products/${slug}`}
+          breadcrumbs={[{ name: "Home", path: "/" }, { name: "Products", path: "/products" }, { name: n, path: `/products/${slug}` }]} />
+        <h1 className="font-display font-extrabold text-4xl">{n}</h1>
+        <p className="text-slate-400 mt-4 text-sm">Loading…</p>
+      </div>
+    );
+  }
 
   const faqs = [
     { q: `What is the HSN code for exporting ${p.name}?`, a: `${p.name} falls under category ${p.category} and classifies under HSN ${p.hsn}. Customs assesses duty against the HS code rather than the product description, so confirm the exact line in the HSN Finder before you quote — GST, RoDTEP and drawback all follow the code.` },

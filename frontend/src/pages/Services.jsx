@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
+import { titleize } from "@/lib/slug";
 import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
@@ -87,7 +88,16 @@ export default function ServiceDetail() {
   };
 
   if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Service not found</h1><Link to="/services" className="btn-primary mt-6 inline-flex">Browse services</Link></div>;
-  if (!s) return <div className="max-w-7xl mx-auto px-6 py-32 text-slate-400">Loading…</div>;
+  if (!s) return (
+    <div className="max-w-7xl mx-auto px-6 py-32">
+      <SEO title={`${titleize(slug)} · Vametra AI Services`}
+        description={`${titleize(slug)} from Vametra AI — global trade intelligence, compliance and market-entry support for exporters and importers.`}
+        path={`/services/${slug}`}
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Services", path: "/services" }, { name: titleize(slug), path: `/services/${slug}` }]} />
+      <h1 className="font-display font-extrabold text-4xl">{titleize(slug)}</h1>
+      <p className="text-slate-400 mt-4 text-sm">Loading…</p>
+    </div>
+  );
 
   return (
     <>

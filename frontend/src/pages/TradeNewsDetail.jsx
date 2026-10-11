@@ -39,7 +39,16 @@ export default function TradeNewsDetail() {
       <Link to="/trade-news" className="btn-primary mt-6 inline-flex">Back to Trade News</Link>
     </section>
   );
-  if (!item) return <section className="max-w-7xl mx-auto px-6 pt-32 pb-24 text-slate-400"><CircleNotch size={20} className="animate-spin inline" /> Loading story…</section>;
+  if (!item) return (
+    <section className="max-w-7xl mx-auto px-6 pt-32 pb-24">
+      <SEO title="Global Trade News · Vametra AI"
+        description="Global trade news and tariff updates from Vametra AI — what changed, which lanes it affects and what exporters and importers should do about it."
+        path={`/trade-news/${id}`} type="article"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Trade News", path: "/trade-news" }]} />
+      <h1 className="font-display font-extrabold text-4xl">Global trade news</h1>
+      <p className="text-slate-400 mt-4 text-sm"><CircleNotch size={20} className="animate-spin inline" /> Loading story…</p>
+    </section>
+  );
 
   return (
     <>

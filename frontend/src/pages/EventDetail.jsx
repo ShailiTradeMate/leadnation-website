@@ -28,7 +28,16 @@ export default function EventDetail() {
       <Link to="/expo" className="btn-primary mt-6 inline-flex">Back to Events</Link>
     </section>
   );
-  if (!ev) return <section className="max-w-7xl mx-auto px-6 pt-32 pb-24 text-slate-400"><CircleNotch size={20} className="animate-spin inline" /> Loading event…</section>;
+  if (!ev) return (
+    <section className="max-w-7xl mx-auto px-6 pt-32 pb-24">
+      <SEO title="Trade Expo & Exhibition Details · Vametra AI Events"
+        description="Trade expo and exhibition details on Vametra AI — dates, venue, sectors and who exhibits, with the duty, demand and buyer intelligence for that market."
+        path={`/expo/${id}`}
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Trade Expos", path: "/expo" }]} />
+      <h1 className="font-display font-extrabold text-4xl">Trade expo details</h1>
+      <p className="text-slate-400 mt-4 text-sm"><CircleNotch size={20} className="animate-spin inline" /> Loading event…</p>
+    </section>
+  );
 
   const gallery = [...(ev.images || []), ...(ev.posters || []), ...(ev.flyers || [])].filter(Boolean);
   const media = (u) => (u?.startsWith("http") ? u : `${API.replace(/\/api$/, "")}${u}`);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
 import {
   ArrowRight, Scales, Users, Calculator, Brain, MagnifyingGlass, Package, Globe, TrendUp,
@@ -36,7 +37,22 @@ export default function ExportProductHub() {
     return () => { dead = true; };
   }, [product]);
 
-  if (state === "loading") return <div data-testid="hub-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28 text-slate-400">Loading published markets…</div>;
+  if (state === "loading") {
+    const pn = titleize(product);
+    return (
+      <div data-testid="hub-loading" className="max-w-7xl mx-auto px-5 sm:px-10 py-28">
+        <SEO
+          title={`Export ${pn} — Markets, Duty, Demand & Buyers`}
+          description={`Export ${pn}: applied import duty and real import demand for every published market, plus verified buyer coverage. Vametra AI.`}
+          path={`/export/${product}`}
+          type="article"
+          breadcrumbs={[{ name: "Home", path: "/" }, { name: "Export guides", path: "/export" }, { name: pn, path: `/export/${product}` }]}
+        />
+        <h1 className="font-display font-extrabold tracking-tight text-3xl sm:text-4xl">Export {pn}</h1>
+        <p className="text-slate-400 mt-4 text-sm">Loading published markets…</p>
+      </div>
+    );
+  }
   if (state === "error" || !d) {
     return (
       <div data-testid="hub-error" className="max-w-3xl mx-auto px-5 py-28">

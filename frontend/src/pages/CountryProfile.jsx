@@ -4,6 +4,7 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
+import { titleize } from "@/lib/slug";
 import { CountryGuides } from "@/components/LinkGraph";
 import { api, fetchTradeNews, fetchExpos } from "@/lib/api";
 import { ArrowRight, TrendUp, TrendDown, Buildings, Compass, Newspaper, CalendarBlank, Storefront, Globe } from "@phosphor-icons/react";
@@ -37,7 +38,19 @@ export default function CountryProfile() {
     );
   }
   if (!data) {
-    return <div className="max-w-7xl mx-auto px-6 sm:px-10 py-32 text-slate-400">Loading profile…</div>;
+    const cn = titleize(slug);
+    return (
+      <div className="max-w-7xl mx-auto px-6 sm:px-10 py-32">
+        <SEO
+          title={`${cn} Trade Profile — Imports, Exports, Customs & Compliance`}
+          description={`${cn} trade profile: major imports and exports, customs duties, trade agreements, compliance and verified buyer coverage — Vametra AI.`}
+          path={`/countries/${slug}`}
+          breadcrumbs={[{ name: "Home", path: "/" }, { name: "Countries", path: "/countries" }, { name: cn, path: `/countries/${slug}` }]}
+        />
+        <h1 className="font-display font-extrabold text-4xl">{cn} Trade Profile</h1>
+        <p className="text-slate-400 mt-4 text-sm">Loading profile…</p>
+      </div>
+    );
   }
 
   const filteredExpos = expos.filter((e) => (data.expoSlugs || []).includes(e.id));
