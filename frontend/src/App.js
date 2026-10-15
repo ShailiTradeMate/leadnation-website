@@ -21,6 +21,7 @@ const EventDetail = lazy(() => import("@/pages/EventDetail"));
 const Contact = lazy(() => import("@/pages/Contact"));
 const GlobalSearch = lazy(() => import("@/pages/GlobalSearch"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
+const About = lazy(() => import("@/pages/About"));
 
 const ToolsHub = lazy(() => import("@/pages/ToolsHub"));
 const DutyCalculator = lazy(() => import("@/pages/DutyCalculator"));
@@ -99,6 +100,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Home />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/about" element={<About />} />
                   <Route path="/legal/privacy" element={<PrivacyPolicy />} />
                   <Route path="/legal/terms" element={<TermsOfService />} />
                   <Route path="/legal/cookies" element={<CookiePolicy />} />

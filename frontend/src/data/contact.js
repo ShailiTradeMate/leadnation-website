@@ -17,8 +17,3 @@ export const CONTACT = {
   linkedin: li?.handle,
   linkedinUrl: li?.url,
 };
-
-export const APP_LINKS = {
-  android: "#coming-soon-android",
-  ios: "#coming-soon-ios",
-};

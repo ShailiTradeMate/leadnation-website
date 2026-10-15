@@ -188,8 +188,8 @@ export default function Nav({ active = "/" }) {
               className="!hidden md:!inline-flex items-center gap-1.5 btn-ghost !py-2 !px-4 text-[12px] !border-emerald-400/30 !text-emerald-200 hover:!bg-emerald-500/10"><ShieldCheck size={15} weight="fill" /> Get Verified</Link>}
             <button data-testid="nav-cta-account" aria-label={isAuthed ? "My account" : "Sign in"} onClick={() => { navigate(isAuthed ? "/account" : "/login"); }}
               className="!hidden sm:!inline-flex btn-ghost !py-2 !px-4 text-[12px] gap-1.5"><UserCircle size={15} weight="duotone" />{isAuthed ? "Account" : "Sign in"}</button>
-            <button data-testid="nav-cta-download" onClick={() => { trackEvent("download_app_click", { location: "nav" }); navigate("/#download"); }}
-              className="btn-primary !hidden sm:!inline-flex !py-2 !px-4 text-[12px]">Download App</button>
+            <button data-testid="nav-cta-explore" onClick={() => { trackEvent("explore_platform_click", { location: "nav" }); navigate("/tools"); }}
+              className="btn-primary !hidden sm:!inline-flex !py-2 !px-4 text-[12px]">Explore Vametra AI</button>
             <button data-testid="nav-mobile-toggle" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} className="lg:hidden text-white p-3" onClick={() => setOpen(!open)}>
               {open ? <X size={22} /> : <List size={22} />}
             </button>

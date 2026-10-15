@@ -72,6 +72,7 @@ export const organizationSchema = {
   "@type": "Organization",
   "@id": `${SITE}/#organization`,
   name: BRAND_NAME,
+  alternateName: ["Vametra", "Vametra AI", "vametra.com", LEGAL_NAME],
   legalName: LEGAL_NAME,
   url: SITE,
   logo: { "@type": "ImageObject", url: `${SITE}/icon-512.png`, width: 512, height: 512 },
@@ -112,10 +113,12 @@ export const baseOrgSchema = organizationSchema;
 export const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
+  "@id": `${SITE}/#website`,
   name: BRAND_NAME,
-  alternateName: "Vametra AI Global Trade Intelligence",
+  alternateName: ["Vametra", "Vametra AI", "vametra.com", "Vametra AI Global Trade Intelligence"],
   url: SITE,
-  publisher: { "@type": "Organization", name: LEGAL_NAME },
+  inLanguage: "en",
+  publisher: { "@id": `${SITE}/#organization` },
   potentialAction: {
     "@type": "SearchAction",
     target: { "@type": "EntryPoint", urlTemplate: `${SITE}/search?q={search_term_string}` },
@@ -127,14 +130,15 @@ export const softwareApplicationSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: BRAND_NAME,
+  alternateName: ["Vametra", "Vametra AI", "vametra.com"],
   applicationCategory: "BusinessApplication",
-  operatingSystem: "Web, iOS, Android",
+  operatingSystem: "Web",
+  browserRequirements: "Requires a modern web browser. No installation required.",
   description:
     "AI-powered Global Trade Intelligence platform: customs duty calculator, HS/HSN code finder, landed cost across all Incoterms, FTA analysis, trade expos, market data and real-time trade news for 195+ countries.",
   url: SITE,
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   publisher: { "@type": "Organization", name: LEGAL_NAME, url: SITE },
-  aggregateRating: { "@type": "AggregateRating", ratingValue: "4.8", ratingCount: "126" },
 };
 
 export const faqSchema = (faqs = []) => ({

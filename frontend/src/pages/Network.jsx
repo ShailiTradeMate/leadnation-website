@@ -8,9 +8,10 @@ export default function Network() {
     <>
       <SEO
         title="Trade Network · Connect with Verified Global Traders"
-        description="Join the Vametra AI Trade Network — connect with verified exporters, importers and customs house agents worldwide, build your trusted trade circle and collaborate in real time."
+        description="Join the Vametra AI Trade Network — connect with verified exporters, importers and customs house agents worldwide, build your trusted trade circle and collaborate. This module is in development and not live yet."
         path="/network"
         keywords="trade network, verified exporters, importers directory, customs house agents, global trade community"
+        noindex
       />
       <AppFeatureNote
         feature="The Trade Network"

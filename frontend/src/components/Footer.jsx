@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { CONTACT, APP_LINKS } from "@/data/contact";
+import { CONTACT } from "@/data/contact";
 import { openCookiePreferences } from "@/lib/analytics";
-import { InstagramLogo, LinkedinLogo, WhatsappLogo, EnvelopeSimple, MapPin, AppleLogo, AndroidLogo } from "@phosphor-icons/react";
+import { InstagramLogo, LinkedinLogo, WhatsappLogo, EnvelopeSimple, MapPin, Lightning, Calculator } from "@phosphor-icons/react";
 import { LogoMark } from "./Nav";
 import { TAGLINE } from "@/lib/brand";
 
@@ -26,28 +26,28 @@ export default function Footer() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
-              href={APP_LINKS.ios}
-              data-testid="footer-download-ios"
+            <Link
+              to="/command-center"
+              data-testid="footer-cta-command-center"
               className="glass rounded-2xl px-4 py-3 flex items-center gap-3 hover:border-cyan-400/40 transition-all"
             >
-              <AppleLogo size={26} weight="fill" />
+              <Lightning size={26} weight="duotone" className="text-cyan-300" />
               <div className="leading-tight">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400">Coming soon on</div>
-                <div className="text-sm font-semibold">App Store</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400">Open the</div>
+                <div className="text-sm font-semibold">Trade Command Center</div>
               </div>
-            </a>
-            <a
-              href={APP_LINKS.android}
-              data-testid="footer-download-android"
+            </Link>
+            <Link
+              to="/tools"
+              data-testid="footer-cta-tools"
               className="glass rounded-2xl px-4 py-3 flex items-center gap-3 hover:border-cyan-400/40 transition-all"
             >
-              <AndroidLogo size={26} weight="fill" />
+              <Calculator size={26} weight="duotone" className="text-violet-300" />
               <div className="leading-tight">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400">Coming soon on</div>
-                <div className="text-sm font-semibold">Google Play</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400">Free, no signup</div>
+                <div className="text-sm font-semibold">Trade tools</div>
               </div>
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -57,6 +57,7 @@ export default function Footer() {
           </div>
           <ul className="space-y-2.5 text-sm text-slate-300">
             <li><Link to="/" className="hover:text-cyan-300" data-testid="footer-link-home">Home</Link></li>
+            <li><Link to="/about" className="hover:text-cyan-300" data-testid="footer-link-about">About Vametra AI</Link></li>
             <li><Link to="/tools" className="hover:text-cyan-300" data-testid="footer-link-tools">Trade Tools Hub</Link></li>
             <li><Link to="/services" className="hover:text-cyan-300" data-testid="footer-link-services">Business Services</Link></li>
             <li><Link to="/brain" className="hover:text-cyan-300" data-testid="footer-link-ai">Vametra AI Brain</Link></li>

@@ -87,7 +87,7 @@ export default function Home() {
           { q: "What is Vametra AI?", a: "Vametra AI is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news for 195+ countries." },
           { q: "Is Vametra AI free?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
           { q: "Which countries does Vametra AI cover?", a: "Vametra AI provides trade, customs and market intelligence for 195+ countries worldwide, with deep coverage of India and major trade corridors." },
-          { q: "Does Vametra AI have a mobile app?", a: "Yes. Vametra AI works on web, iOS and Android with a single shared login, so your trade projects sync across devices." },
+          { q: "Does Vametra AI have a mobile app?", a: "Not yet. Vametra AI is a web platform and runs in any modern mobile or desktop browser with nothing to install — every tool, including the duty calculator, landed cost calculator and Buyer Intelligence, is fully usable on a phone. A native app is on the roadmap and we will announce it when it genuinely exists." },
         ])}
       />
 
