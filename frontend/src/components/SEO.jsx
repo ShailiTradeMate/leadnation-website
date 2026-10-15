@@ -1,6 +1,6 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
-import { SITE_URL, BRAND_NAME, LEGAL_NAME, TAGLINE, PHONE, EMAIL, SAME_AS } from "@/lib/brand";
+import { SITE_URL, BRAND_NAME, LEGAL_NAME, TAGLINE, PHONE, EMAIL, SAME_AS, FOUNDED, FOUNDER } from "@/lib/brand";
 
 const SITE = SITE_URL;
 const DEFAULT_IMAGE = `${SITE}/og-default.png`;
@@ -80,8 +80,8 @@ export const organizationSchema = {
   slogan: TAGLINE,
   description:
     "Vametra AI is an AI-powered Global Trade Intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants — unifying customs duty calculation, HS/HSN code lookup, FTA analysis, landed cost across all Incoterms, trade expos, market intelligence and real-time trade news for 195+ countries.",
-  foundingDate: "2025",
-  founder: { "@type": "Person", name: "Vaibhav Deshmane" },
+  foundingDate: FOUNDED,
+  founder: { "@type": "Person", name: FOUNDER },
   foundingLocation: { "@type": "Place", name: "Ahilyanagar, Maharashtra, India" },
   knowsAbout: [
     "International trade", "Export", "Import", "Customs duty", "HS codes", "HSN codes",
@@ -91,7 +91,7 @@ export const organizationSchema = {
   areaServed: { "@type": "Place", name: "Worldwide" },
   address: {
     "@type": "PostalAddress",
-    streetAddress: "Ekveera Chowk, Pipeline Rd, Savedi",
+    streetAddress: "Savedi",
     addressLocality: "Ahilyanagar",
     addressRegion: "Maharashtra",
     postalCode: "414003",

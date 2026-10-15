@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
-import { BRAND_NAME, LEGAL_NAME, TAGLINE, SITE_URL, SOCIALS, EMAIL } from "@/lib/brand";
+import { BRAND_NAME, LEGAL_NAME, TAGLINE, SITE_URL, SOCIALS, EMAIL, FOUNDED, FOUNDER, HQ } from "@/lib/brand";
 import { ArrowRight, Buildings, Globe, ShieldCheck, Database } from "@phosphor-icons/react";
 
 const FAQ = [
@@ -17,7 +17,7 @@ const FAQ = [
   },
   {
     q: "Who operates Vametra AI?",
-    a: `${LEGAL_NAME}, incorporated in India in 2025 and based in Ahilyanagar, Maharashtra. The platform was founded by Vaibhav Deshmane and serves users worldwide.`,
+    a: `${LEGAL_NAME}, founded in 2026 and based in Savedi, Ahilyanagar, Maharashtra, India. The platform was founded by ${FOUNDER} and serves users worldwide.`,
   },
   {
     q: "Where does Vametra AI get its data?",
@@ -41,7 +41,7 @@ const STATS = [
   { Icon: Globe, k: "195+", v: "Countries with trade and market coverage" },
   { Icon: Database, k: "5,606", v: "HS codes indexed from WCO HS-2022" },
   { Icon: ShieldCheck, k: "56", v: "Reporting countries with live applied tariffs" },
-  { Icon: Buildings, k: "2025", v: "Founded in Ahilyanagar, Maharashtra, India" },
+  { Icon: Buildings, k: "2026", v: "Founded in Savedi, Ahilyanagar, Maharashtra, India" },
 ];
 
 export default function About() {
@@ -61,7 +61,7 @@ export default function About() {
     <>
       <SEO
         title={`About ${BRAND_NAME} — Global Trade Intelligence Platform`}
-        description={`${BRAND_NAME} (${LEGAL_NAME}) is an AI-powered global trade intelligence platform for exporters and importers — customs duty, HS codes, FTAs, landed cost, demand data and verified buyers across 195+ countries. Founded 2025 in Ahilyanagar, India.`}
+        description={`${BRAND_NAME} (${LEGAL_NAME}) is an AI-powered global trade intelligence platform for exporters and importers — customs duty, HS codes, FTAs, landed cost, demand data and verified buyers. Founded ${FOUNDED} in Savedi, Ahilyanagar, India.`}
         path="/about"
         keywords="Vametra, Vametra AI, vametra.com, Vametra AI Technologies, about Vametra AI, global trade intelligence platform, who is Vametra AI"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "About", path: "/about" }]}
@@ -142,9 +142,9 @@ export default function About() {
               ["Brand name", BRAND_NAME],
               ["Also known as", "Vametra · vametra.com"],
               ["Legal entity", LEGAL_NAME],
-              ["Founded", "2025"],
-              ["Founder", "Vaibhav Deshmane"],
-              ["Headquarters", "Ahilyanagar, Maharashtra, India"],
+              ["Founded", FOUNDED],
+              ["Founder", FOUNDER],
+              ["Headquarters", HQ],
               ["Area served", "Worldwide"],
               ["Tagline", TAGLINE],
             ].map(([k, v]) => (
@@ -167,7 +167,7 @@ export default function About() {
               {SOCIALS.map((s) => (
                 <li key={s.key}>
                   <a href={s.url} target="_blank" rel="noopener noreferrer me" className="text-cyan-300 hover:underline" data-testid={`about-link-${s.key}`}>
-                    {s.label} · @{s.handle}
+                    {s.label} · {s.display}
                   </a>
                 </li>
               ))}

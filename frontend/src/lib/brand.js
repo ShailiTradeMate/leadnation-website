@@ -12,11 +12,14 @@ export const BRAND_ONE_LINER =
 
 export const EMAIL = "admin@vametra.com";
 export const PHONE = "+91-8237161088";
+export const FOUNDED = "2026";
+export const FOUNDER = "Vaibhav Deshmane";
+export const HQ = "Savedi, Ahilyanagar, Maharashtra 414003, India";
 
-// key = stable id, order = display order. url is canonical.
+// key = stable id, order = display order. url is canonical. display = what users see.
 export const SOCIALS = [
-  { key: "instagram", label: "Instagram", handle: "vametra_ai", url: "https://www.instagram.com/vametra_ai/" },
-  { key: "linkedin", label: "LinkedIn", handle: "vametra", url: "https://www.linkedin.com/company/vametra.com/" },
+  { key: "instagram", label: "Instagram", handle: "vametra_ai", display: "@vametra_ai", url: "https://www.instagram.com/vametra_ai/" },
+  { key: "linkedin", label: "LinkedIn", handle: "vametra.com", display: "linkedin.com/company/vametra.com", url: "https://www.linkedin.com/company/vametra.com/" },
   // Future: add { key: "twitter", ... }, { key: "youtube", ... } here — everything else updates automatically.
 ];
 

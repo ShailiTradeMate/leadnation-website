@@ -8,12 +8,12 @@ export const CONTACT = {
   whatsapp: "+918237161088",
   whatsappDisplay: "+91 82371 61088",
   address:
-    "Tirthankar, Central Bank of India, Ekveera Chowk, Pipeline Rd, Savedi, Ahilyanagar, Maharashtra 414003, India",
+    "Savedi, Ahilyanagar, Maharashtra 414003, India",
   lat: 19.126793986535226,
   lng: 74.7452378072622,
   phone: PHONE,
   instagram: ig?.handle,
   instagramUrl: ig?.url,
-  linkedin: li?.handle,
+  linkedin: li?.display,
   linkedinUrl: li?.url,
 };
