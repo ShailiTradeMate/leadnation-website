@@ -346,6 +346,17 @@ async def _warm_page_cache():
         logger.warning("SEO page warm failed: %s", exc)
 
 
+async def _warm_prerender():
+    """Keep crawler snapshots of the key static pages fresh (they expire hourly)."""
+    try:
+        import seo_pages
+        out = await seo_pages.warm_prerender()
+        logger.info("SEO prerender warmed: %s/%s complete, shells=%s, errors=%s, max %ss",
+                    out["ok"], out["total"], out["shells"], out["errors"], out["maxSeconds"])
+    except Exception as exc:
+        logger.warning("SEO prerender warm failed: %s", exc)
+
+
 def start_seo_scheduler():
     """Weekly IndexNow sweep (Mondays 01:10 UTC) + one sweep 3 min after boot."""
     global _seo_sched
@@ -370,6 +381,13 @@ def start_seo_scheduler():
     _seo_sched.add_job(_warm_page_cache,
                        DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=8)),
                        id="seo-page-warm-boot", replace_existing=True)
+    # Edge snapshots live ~60 min; re-render the ~35 key static pages every 45 min so an AI
+    # assistant or Googlebot never triggers (and possibly times out on) a cold render.
+    _seo_sched.add_job(_warm_prerender, CronTrigger(minute="5,50"),
+                       id="seo-prerender-warm", replace_existing=True)
+    _seo_sched.add_job(_warm_prerender,
+                       DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=2)),
+                       id="seo-prerender-warm-boot", replace_existing=True)
     _seo_sched.add_job(_boot_sweep,
                        DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=3)),
                        id="indexnow-boot", replace_existing=True)

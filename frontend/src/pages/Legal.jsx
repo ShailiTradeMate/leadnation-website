@@ -1,11 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { HQ } from "@/lib/brand";
 
 const COMPANY = "Vametra AI Technologies Pvt Ltd";
 const PRODUCT = "Vametra AI";
 const EMAIL = "admin@vametra.com";
-const ADDRESS = "Tirthankar, Central Bank of India, Ekveera Chowk, Pipeline Rd, Savedi, Ahilyanagar, Maharashtra 414003, India";
+const ADDRESS = HQ;
 const UPDATED = "5 July 2026";
 
 // Reusable across footer, signup, checkout, reports, and app-store listings.

@@ -14,7 +14,7 @@ const FAQ = [
   },
   {
     q: "Which markets are covered?",
-    a: "Tariff and demand data is available for the 56 reporting countries in World Bank WITS / UNCTAD TRAINS, and we hold reference trade data for 195+ markets. Full written profiles are published where we can evidence the customs and agreement detail rather than paraphrase it.",
+    a: "Tariff and demand data is available for the 56 reporting countries in World Bank WITS / UNCTAD TRAINS, and we hold contact-verified buyer records across 32 countries. Full written profiles are published where we can evidence the customs and agreement detail rather than paraphrase it.",
   },
   {
     q: "How do I check the import duty into a specific country?",

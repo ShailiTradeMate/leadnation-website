@@ -93,7 +93,21 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
   rail links only to existing `/countries/*` (5) and `/corridors/*` (4) — 44/49 countries were soft-404s.
 - Open owner decision: SoftwareApplication `aggregateRating 4.8/126` provenance.
 
+## Brand consistency + AI readability + cache warming — 15 Oct 2026 (preview verified, NOT deployed)
+- Brand facts everywhere: founded 2026, HQ "Savedi, Ahilyanagar, Maharashtra 414003, India" (short form,
+  also Legal.jsx + llms.txt), founder Vaibhav Deshmane, LinkedIn display `linkedin.com/company/vametra.com`.
+- "195+ countries" removed from all 22 places (12 files) → "contact-verified buyers across 32 countries" /
+  "56 tariff-reporting countries". Camera/imaging FAQ + paragraph removed from /about.
+- llms.txt: fixed false "Platforms: Web, iOS, Android" → web only; added /about + its answer doc.
+- New `/api/answers/{md,html,json}/about` entity document (index now 414; sitemap unchanged at 974).
+- Cache warming: page-data warm now oldest-first, 4 concurrent, 250 ms stagger, run log in `seo_warm_runs`;
+  NEW prerender warm of 34 key static pages (Googlebot UA → vametra.com) every 45 min (:05/:50) + 2 min
+  after boot; admin `GET /api/seo/warm-status`, `POST /api/seo/warm-prerender`. First run: 34/34 OK,
+  7 were cold (6–12 s) and are now cached — this was the "cache miss" ChatGPT hit on /about.
+- Backlog: Google Business Profile (revisit when eligible); Home "32K HS Codes" / "1.2M Data points" stats unverified.
+
 ## Priorities / next actions
+- **P0:** Deploy, then re-check `https://vametra.com/about` as GPTBot/ChatGPT-User and `/api/answers/md/about`.
 - **P0:** Deploy, then: GSC "Validate fix" on Product snippets, re-run `audit_2026-10-10/guides_audit.py`
   once the edge shell cache has expired (or ask platform to purge the 14 URLs), re-inspect 3 guides.
 - **P0:** Deploy, then re-audit the export guides with Googlebot UA and report rendered/shell counts.

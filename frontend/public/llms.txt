@@ -4,25 +4,27 @@
 > importers, suppliers, customs house agents and consultants make faster, smarter
 > cross-border trade decisions. It unifies customs duty calculation, HS/HSN code lookup,
 > Free Trade Agreement (FTA) analysis, landed-cost costing across all 11 Incoterms,
-> trade expos & events, live market intelligence, and real-time trade news — for 195+
-> countries — powered by the "Vametra AI Brain" AI engine.
+> trade expos & events, live market intelligence, and real-time trade news — with
+> contact-verified buyer records across 32 countries — powered by the "Vametra AI Brain" AI engine.
 
 Operated by: Vametra AI Technologies Pvt Ltd
 Founder: Vaibhav Deshmane
-Founded: 2025 · Ahilyanagar, Maharashtra, India
+Founded: 2026
+Headquarters: Savedi, Ahilyanagar, Maharashtra 414003, India
 Website: https://vametra.com
 Contact: admin@vametra.com
 Tagline: Intelligence Beyond Borders
 Official social profiles: https://www.instagram.com/vametra_ai/ · https://www.linkedin.com/company/vametra.com/
-Last updated: 2026-10-06
+Last updated: 2026-10-15
+About / entity page: https://vametra.com/about (answer document: https://vametra.com/api/answers/md/about)
 
 ## Entity summary (for knowledge graphs)
 - Type: Organization / SoftwareApplication (BusinessApplication)
 - Industry: International trade, export/import, trade intelligence, SaaS
 - Mission: Make cross-border trade decisions faster and smarter for everyone, everywhere.
-- Coverage: 195+ countries; deep India + major trade-corridor coverage
+- Coverage: applied tariffs for 56 reporting countries (World Bank WITS / UNCTAD TRAINS); contact-verified buyer records across 32 countries; 5,606 HS codes (WCO HS-2022); deep India + major trade-corridor coverage
 - Technology: "Vametra AI Brain" AI engine for trade analysis and recommendations
-- Platforms: Web, iOS, Android (single shared login)
+- Platforms: Web only (runs in any modern browser, nothing to install). No native iOS/Android app exists yet.
 
 ## What Vametra AI does
 - Customs duty & tax calculation by country and HS code
@@ -31,16 +33,16 @@ Last updated: 2026-10-06
 - Free Trade Agreement (FTA) and trade corridor analysis
 - Global trade expos & events directory
 - Real-time, AI-summarised global trade news with per-trade impact
-- Country trade profiles (195+ countries) and industry sector deep-dives
+- Country trade profiles and industry sector deep-dives
 - Export readiness, export incentive finder and buyer discovery tools
 - Sanctions-screened verified buyer intelligence (VBIE)
 - Export/import advisory services: IEC, RCMC, GST and company registration
 - Vametra AI Brain — an AI assistant purpose-built for international trade
 
 ## Answers to common questions
-- **What is Vametra AI?** An AI-powered global trade intelligence platform covering 195+
-  countries that calculates customs duty and landed cost, finds HS codes and verified
-  buyers, and answers trade questions through the Vametra AI Brain.
+- **What is Vametra AI?** An AI-powered global trade intelligence platform that calculates
+  customs duty and landed cost, finds HS codes and contact-verified buyers across 32
+  countries, and answers trade questions through the Vametra AI Brain.
 - **Who is it for?** Exporters, importers, manufacturers, traders, customs house agents
   (CHA), freight forwarders, export consultants and trade students.
 - **What does it replace?** Scattered tariff PDFs, manual landed-cost spreadsheets,
@@ -59,6 +61,7 @@ India ↔ Bangladesh · plus Russia, Japan, South Korea, Indonesia and South Afr
 
 ## Key pages
 - Home: https://vametra.com/
+- About Vametra AI (company, founder, HQ, official channels): https://vametra.com/about
 - Trade Tools Hub: https://vametra.com/tools
 - Duty Calculator: https://vametra.com/tools/duty-calculator
 - HS Code Finder: https://vametra.com/tools/hsn-finder
@@ -91,6 +94,7 @@ Index of every answer document: https://vametra.com/api/answers/index
 Pattern: https://vametra.com/api/answers/md/{page-path}   (Markdown)
          https://vametra.com/api/answers/html/{page-path} (HTML, canonical to the page)
 Examples:
+- https://vametra.com/api/answers/md/about
 - https://vametra.com/api/answers/md/tools/duty-calculator
 - https://vametra.com/api/answers/md/tools/export-incentive-finder
 - https://vametra.com/api/answers/md/export/basmati-rice/to/germany

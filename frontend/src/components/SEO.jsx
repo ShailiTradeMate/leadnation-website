@@ -79,10 +79,10 @@ export const organizationSchema = {
   image: `${SITE}/og-default.png`,
   slogan: TAGLINE,
   description:
-    "Vametra AI is an AI-powered Global Trade Intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants — unifying customs duty calculation, HS/HSN code lookup, FTA analysis, landed cost across all Incoterms, trade expos, market intelligence and real-time trade news for 195+ countries.",
+    "Vametra AI is an AI-powered Global Trade Intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants — unifying customs duty calculation, HS/HSN code lookup, FTA analysis, landed cost across all Incoterms, trade expos, market intelligence and real-time trade news, with contact-verified buyer records across 32 countries.",
   foundingDate: FOUNDED,
   founder: { "@type": "Person", name: FOUNDER },
-  foundingLocation: { "@type": "Place", name: "Ahilyanagar, Maharashtra, India" },
+  foundingLocation: { "@type": "Place", name: "Savedi, Ahilyanagar, Maharashtra, India" },
   knowsAbout: [
     "International trade", "Export", "Import", "Customs duty", "HS codes", "HSN codes",
     "Incoterms", "Free Trade Agreements", "Landed cost", "Trade compliance",
@@ -135,7 +135,7 @@ export const softwareApplicationSchema = {
   operatingSystem: "Web",
   browserRequirements: "Requires a modern web browser. No installation required.",
   description:
-    "AI-powered Global Trade Intelligence platform: customs duty calculator, HS/HSN code finder, landed cost across all Incoterms, FTA analysis, trade expos, market data and real-time trade news for 195+ countries.",
+    "AI-powered Global Trade Intelligence platform: customs duty calculator, HS/HSN code finder, landed cost across all Incoterms, FTA analysis, trade expos, market data and real-time trade news, with verified buyers across 32 countries.",
   url: SITE,
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   publisher: { "@type": "Organization", name: LEGAL_NAME, url: SITE },

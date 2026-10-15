@@ -80,13 +80,13 @@ export default function Home() {
     <div className="relative">
       <SEO
         title="Vametra AI · AI-Powered Global Trade Intelligence Platform"
-        description="Search any product, country or HS code. Decode customs duties, calculate landed cost across all Incoterms, discover trade expos and follow live global trade news — powered by the Vametra AI Brain. Free to start, built for 195+ countries."
+        description="Search any product, country or HS code. Decode customs duties, calculate landed cost across all Incoterms, discover trade expos and follow live global trade news — powered by the Vametra AI Brain. Free to start, with verified buyers across 32 countries."
         path="/"
         keywords="global trade intelligence, customs duty calculator, HS code finder, landed cost calculator, Incoterms, FTA, export import platform, trade expos, trade news, Vametra AI, Intelligence Beyond Borders"
         schema={[websiteSchema, softwareApplicationSchema, faqSchema([
-          { q: "What is Vametra AI?", a: "Vametra AI is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news for 195+ countries." },
+          { q: "What is Vametra AI?", a: "Vametra AI is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news, with contact-verified buyer records across 32 countries." },
           { q: "Is Vametra AI free?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
-          { q: "Which countries does Vametra AI cover?", a: "Vametra AI provides trade, customs and market intelligence for 195+ countries worldwide, with deep coverage of India and major trade corridors." },
+          { q: "Which countries does Vametra AI cover?", a: "Vametra AI publishes applied import tariffs for 56 reporting countries from World Bank WITS / UNCTAD TRAINS, holds contact-verified buyer records across 32 countries, and offers deep coverage of India and its major trade corridors." },
           { q: "Does Vametra AI have a mobile app?", a: "Not yet. Vametra AI is a web platform and runs in any modern mobile or desktop browser with nothing to install — every tool, including the duty calculator, landed cost calculator and Buyer Intelligence, is fully usable on a phone. A native app is on the roadmap and we will announce it when it genuinely exists." },
         ])]}
       />
@@ -164,14 +164,14 @@ export default function Home() {
 
             <Reveal y={16} delay={0.28}>
               <div className="mt-5">
-                <SectionLabel testId="home-eyebrow">Global Trade Intelligence · 195 Countries</SectionLabel>
+                <SectionLabel testId="home-eyebrow">Global Trade Intelligence · Verified Buyers in 32 Countries</SectionLabel>
               </div>
             </Reveal>
 
             <Reveal delay={0.36} y={22}>
               <p className="mt-5 text-slate-300 text-sm sm:text-base lg:text-lg max-w-xl leading-relaxed">
-                Landed cost, live customs duty, sanctions-screened verified buyers and AI clearance
-                for any product across 195+ markets — from one command console.
+                Landed cost, live customs duty, sanctions-screened verified buyers across 32 countries
+                and AI clearance for any product — from one command console.
               </p>
             </Reveal>
 
@@ -237,7 +237,7 @@ export default function Home() {
 
             <Reveal delay={0.3} y={18}>
               <div className="mt-8 flex items-center gap-7 text-xs text-slate-400">
-                <Stat value="195+" label="Countries" />
+                <Stat value="32" label="Buyer countries" />
                 <Stat value="32K" label="HS Codes" />
                 <Stat value="1.2M" label="Data points" />
               </div>
@@ -289,7 +289,7 @@ export default function Home() {
         <div className="mt-10 sm:mt-12 grid md:grid-cols-6 gap-4 sm:gap-5">
           <Reveal className="md:col-span-3 md:row-span-2" delay={0.02}>
             <FeatureCard Icon={GlobeHemisphereEast} title="Customs & Compliance Engine"
-              desc="Live HS codes, duty rates, FTA benefits and document checklists for 195+ markets — synced with DGFT, CBAM and customs authorities worldwide."
+              desc="Live HS codes, duty rates, FTA benefits and document checklists for 56 tariff-reporting countries — synced with DGFT, CBAM and customs authorities worldwide."
               link="/customs-compliance" testId="feat-customs" big full />
           </Reveal>
           <Reveal className="md:col-span-3" delay={0.1}>
@@ -328,7 +328,7 @@ export default function Home() {
                 The World's First <span className="gradient-text">AI-Powered Global Trade Operating System.</span>
               </h2>
               <p className="mt-4 text-slate-300 text-sm sm:text-base max-w-2xl">
-                Stop juggling ten different tools. Build your full FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in any two currencies, and let the Vametra AI Brain flag savings, risks and the best market — for any product across 195 countries.
+                Stop juggling ten different tools. Build your full FOB → CIF → landed-cost waterfall, compare what your buyer pays across markets, quote in any two currencies, and let the Vametra AI Brain flag savings, risks and the best market — for any product across 56 tariff-reporting countries.
               </p>
               <div className="mt-7 grid sm:grid-cols-3 gap-3 max-w-2xl">
                 {[

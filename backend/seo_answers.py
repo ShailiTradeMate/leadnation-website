@@ -493,8 +493,66 @@ async def _product_hub_doc(product):
             "sources": [s["name"] for s in d["sources"]]}
 
 
+ENTITY_PATHS = ["/about"]
+
+BRAND = {
+    "name": "Vametra AI", "legal": "Vametra AI Technologies Pvt Ltd", "founded": "2026",
+    "founder": "Vaibhav Deshmane", "hq": "Savedi, Ahilyanagar, Maharashtra 414003, India",
+    "email": "admin@vametra.com", "tagline": "Intelligence Beyond Borders",
+    "instagram": "https://www.instagram.com/vametra_ai/",
+    "linkedin": "https://www.linkedin.com/company/vametra.com/",
+}
+
+
+def _about_doc():
+    """Entity document for AI assistants — same facts as /about, no JavaScript needed."""
+    b = BRAND
+    title = f"About {b['name']} — Global Trade Intelligence Platform"
+    desc = (f"{b['name']} ({b['legal']}) is an AI-powered global trade intelligence platform for exporters "
+            f"and importers — customs duty, HS codes, FTAs, landed cost, demand data and contact-verified "
+            f"buyers in 32 countries. Founded {b['founded']}, headquartered in {b['hq']}.")
+    md = [f"# {title}", "",
+          f"{b['name']} is an AI-powered global trade intelligence platform. It answers the questions that "
+          "decide whether a shipment makes money: what duty the destination applies to your HS code, what "
+          "your buyer pays landed, whether that market genuinely imports your product, and who the verified "
+          f"importers are. It is also known as Vametra and vametra.com, and is operated by {b['legal']}.", "",
+          "## Company details", "",
+          f"- Brand name: {b['name']}", "- Also known as: Vametra · vametra.com",
+          f"- Legal entity: {b['legal']}", f"- Founded: {b['founded']}", f"- Founder: {b['founder']}",
+          f"- Headquarters: {b['hq']}", "- Area served: Worldwide", f"- Tagline: {b['tagline']}",
+          f"- Website: {SITE}", f"- Contact: {b['email']}",
+          f"- Official Instagram: {b['instagram']}", f"- Official LinkedIn: {b['linkedin']}", "",
+          "## Verified coverage (read from the live platform)", "",
+          "- 5,606 HS codes indexed from WCO HS-2022",
+          "- Applied and preferential tariffs for 56 reporting countries (World Bank WITS / UNCTAD TRAINS, HS6)",
+          "- Contact-verified buyer records across 32 countries, screened before publication",
+          "- 392 published product-market export guides, each backed by a real tariff and measured demand", "",
+          "## Data sources", "",
+          "- World Bank WITS / UNCTAD TRAINS — applied and preferential tariffs",
+          "- OEC World (CEPII BACI / UN Comtrade) — trade values and demand rankings",
+          "- WCO HS-2022 — classification", "- DGFT Appendix 4R — India export-support rates",
+          "- Official trade registries — buyer records", "",
+          "## FAQ", "",
+          "### What does the name Vametra mean, and how is it spelled?", "",
+          "Vametra is a coined brand name, not a dictionary word. It is spelled V-A-M-E-T-R-A and is used "
+          "interchangeably as Vametra, Vametra AI and vametra.com.", "",
+          "### Is Vametra AI free to use?", "",
+          "The trade tools — HS code finder, customs duty calculator, landed cost calculator, export incentive "
+          "finder, product research, buyer discovery and the export readiness score — are free and need no "
+          "signup. An account is required to save work as a Trade Project and for premium buyer intelligence.", "",
+          "### Does Vametra AI have a mobile app?", "",
+          "Not yet. Vametra AI is a web platform that runs in any modern mobile or desktop browser with nothing "
+          "to install. A native app is on the roadmap and will be announced when it actually exists.", "",
+          "## Source", f"Vametra AI — {SITE}/about", ""]
+    return {"path": "/about", "title": title, "description": desc, "markdown": "\n".join(md),
+            "sources": ["Vametra AI Technologies Pvt Ltd (company facts)",
+                        "Live platform endpoints (coverage figures)"]}
+
+
 async def _doc_for(path):
     path = "/" + path.strip("/")
+    if path == "/about":
+        return _about_doc()
     if path in TOOL_ANSWERS:
         return _tool_doc(path)
     parts = path.strip("/").split("/")
@@ -510,7 +568,7 @@ async def _doc_for(path):
 # ---------------------------------------------------------------- routes
 @router.get("/index")
 async def answers_index():
-    paths = await answer_paths()
+    paths = ENTITY_PATHS + await answer_paths()
     return {
         "total": len(paths),
         "generatedAt": datetime.now(timezone.utc).isoformat(),
@@ -525,7 +583,7 @@ async def answers_index():
 @router.get("/index.html")
 async def answers_index_html():
     """Plain HTML directory of every answer document — for AI browsing tools that do not open JSON."""
-    paths = await answer_paths()
+    paths = ENTITY_PATHS + await answer_paths()
     items = "".join(
         f'<li><a href="{SITE}/api/answers/html{p}">{_esc(p)}</a> · '
         f'<a href="{SITE}/api/answers/md{p}">markdown</a> · '

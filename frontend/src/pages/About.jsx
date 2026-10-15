@@ -9,7 +9,7 @@ import { ArrowRight, Buildings, Globe, ShieldCheck, Database } from "@phosphor-i
 const FAQ = [
   {
     q: "What is Vametra AI?",
-    a: "Vametra AI is an AI-powered global trade intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants. It unifies customs duty lookup, HS and HSN classification, free trade agreement analysis, landed cost across all Incoterms, verified buyer intelligence, market demand data and trade news for 195+ countries.",
+    a: "Vametra AI is an AI-powered global trade intelligence platform for exporters, importers, suppliers, customs house agents and trade consultants. It unifies customs duty lookup, HS and HSN classification, free trade agreement analysis, landed cost across all Incoterms, verified buyer intelligence, market demand data and trade news, with contact-verified buyer records across 32 countries.",
   },
   {
     q: "What does the name Vametra mean, and how is it spelled?",
@@ -17,7 +17,7 @@ const FAQ = [
   },
   {
     q: "Who operates Vametra AI?",
-    a: `${LEGAL_NAME}, founded in 2026 and based in Savedi, Ahilyanagar, Maharashtra, India. The platform was founded by ${FOUNDER} and serves users worldwide.`,
+    a: `${LEGAL_NAME}, founded in ${FOUNDED} and headquartered in ${HQ}. The platform was founded by ${FOUNDER} and serves users worldwide.`,
   },
   {
     q: "Where does Vametra AI get its data?",
@@ -31,17 +31,13 @@ const FAQ = [
     q: "Does Vametra AI have a mobile app?",
     a: "Not yet. Vametra AI is a web platform that runs in any modern mobile or desktop browser with nothing to install, and every tool is fully usable on a phone. A native app is on the roadmap and will be announced when it actually exists.",
   },
-  {
-    q: "Is Vametra AI related to any camera or imaging product?",
-    a: "No. Vametra AI operates only in international trade intelligence — customs, tariffs, compliance, market data and buyer discovery. Any search result relating to cameras, imaging or computer vision is an unrelated autocorrection of the brand name and is not associated with Vametra AI in any way.",
-  },
 ];
 
 const STATS = [
-  { Icon: Globe, k: "195+", v: "Countries with trade and market coverage" },
+  { Icon: Globe, k: "32", v: "Countries with contact-verified buyer records" },
   { Icon: Database, k: "5,606", v: "HS codes indexed from WCO HS-2022" },
   { Icon: ShieldCheck, k: "56", v: "Reporting countries with live applied tariffs" },
-  { Icon: Buildings, k: "2026", v: "Founded in Savedi, Ahilyanagar, Maharashtra, India" },
+  { Icon: Buildings, k: FOUNDED, v: `Founded · ${HQ}` },
 ];
 
 export default function About() {
@@ -51,7 +47,7 @@ export default function About() {
     "@id": `${SITE_URL}/about#webpage`,
     url: `${SITE_URL}/about`,
     name: `About ${BRAND_NAME}`,
-    description: `${BRAND_NAME} (${LEGAL_NAME}) is an AI-powered global trade intelligence platform for exporters and importers, covering customs duty, HS codes, FTAs, landed cost, demand data and verified buyers across 195+ countries.`,
+    description: `${BRAND_NAME} (${LEGAL_NAME}) is an AI-powered global trade intelligence platform for exporters and importers, covering customs duty, HS codes, FTAs, landed cost, demand data and contact-verified buyers across 32 countries.`,
     isPartOf: { "@id": `${SITE_URL}/#website` },
     about: { "@id": `${SITE_URL}/#organization` },
     mainEntity: { "@id": `${SITE_URL}/#organization` },
@@ -61,7 +57,7 @@ export default function About() {
     <>
       <SEO
         title={`About ${BRAND_NAME} — Global Trade Intelligence Platform`}
-        description={`${BRAND_NAME} (${LEGAL_NAME}) is an AI-powered global trade intelligence platform for exporters and importers — customs duty, HS codes, FTAs, landed cost, demand data and verified buyers. Founded ${FOUNDED} in Savedi, Ahilyanagar, India.`}
+        description={`${BRAND_NAME} (${LEGAL_NAME}) is an AI-powered global trade intelligence platform for exporters and importers — customs duty, HS codes, FTAs, landed cost, demand data and verified buyers in 32 countries. Founded ${FOUNDED}, headquartered in ${HQ}.`}
         path="/about"
         keywords="Vametra, Vametra AI, vametra.com, Vametra AI Technologies, about Vametra AI, global trade intelligence platform, who is Vametra AI"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "About", path: "/about" }]}
@@ -126,11 +122,6 @@ export default function About() {
           <strong className="text-white">Vametra AI</strong> and{" "}
           <strong className="text-white">vametra.com</strong> all refer to the same platform,
           operated by {LEGAL_NAME}.
-        </p>
-        <p>
-          Vametra AI works exclusively in international trade intelligence. It has no connection to
-          cameras, imaging or computer vision, and no affiliation with any similarly spelled product
-          in those categories.
         </p>
       </AnswerBlock>
 

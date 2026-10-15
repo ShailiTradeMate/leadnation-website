@@ -133,7 +133,7 @@ export default function ProductDetail() {
     { q: `Which countries are the best export markets for ${p.name}?`, a: `${String(p.overview || "").substring(0, 200)}` },
     { q: `What does it cost my buyer to import ${p.name}?`, a: `That depends on the destination's applied tariff for HSN ${p.hsn}, its own VAT or GST on imports, and your freight terms. The Landed Cost Calculator builds the full Ex-Works to landed waterfall using live World Bank WITS duty and exchange rates, so you can see what your buyer actually pays in each market.` },
     { q: `What compliance and certification does ${p.name} need?`, a: `${(p.compliance || []).slice(0, 6).join(", ") || "Compliance requirements are listed on this page"}${(p.certifications || []).length ? `, plus certifications including ${(p.certifications || []).slice(0, 5).join(", ")}` : ""}. Certification lead time, not tariffs, is usually what delays a first shipment.` },
-    { q: `How do I find verified buyers for ${p.name}?`, a: `Use Vametra AI's Verified Buyer Intelligence to reach contact-verified importers of ${p.name} sourced from official government trade records across 195+ countries. Coverage is stated per market, and where we hold no verified records for a lane the page says so.` },
+    { q: `How do I find verified buyers for ${p.name}?`, a: `Use Vametra AI's Verified Buyer Intelligence to reach contact-verified importers of ${p.name} sourced from official government trade records across 32 countries. Coverage is stated per market, and where we hold no verified records for a lane the page says so.` },
   ];
 
   return (

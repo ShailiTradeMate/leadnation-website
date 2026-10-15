@@ -26,8 +26,8 @@ export default function DownloadCTA({ compact = false, id }) {
             </h3>
             <p className="mt-5 text-slate-300 max-w-md">
               Check real import duty by HS code, build the full FOB → CIF → landed-cost
-              waterfall, size demand in any of 195+ markets and reach verified buyers — all
-              in your browser, nothing to install.
+              waterfall, size real import demand by market and reach verified buyers across 32
+              countries — all in your browser, nothing to install.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <button

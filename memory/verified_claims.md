@@ -17,13 +17,10 @@ Use ONLY these in public copy. Each was read from a live endpoint.
 | Total indexable URLs | 974 | /api/sitemap.xml |
 | Country profiles written | 5 | /api/country-profiles -> len 5 |
 
-## UNSUPPORTED CLAIM — "195+ countries"
-22 occurrences across 12 files. No endpoint or dataset supports it.
-Highest verifiable coverage figures are 56 tariff reporters and 32 buyer-record countries.
-Files: components/SEO.jsx (x2), components/DownloadCTA.jsx, components/Footer.jsx,
-lib/brand.js, pages/About.jsx (x4), pages/Home.jsx (x6), pages/Products.jsx,
-pages/CountriesIndex.jsx, public/manifest.json, public/llms.txt (x4), public/index.html.
-NOT changed. Awaiting user decision.
+## RESOLVED 2026-10-15 — "195+ countries" removed everywhere
+All 22 occurrences replaced with "contact-verified buyers across 32 countries" (buyer context) or
+"56 tariff-reporting countries" (tariff context). `brand.js` exports BUYER_COUNTRIES=32, TARIFF_COUNTRIES=56.
+Still unverified on Home hero: "32K HS Codes" (live: 5,606) and "1.2M Data points" — owner has not asked to change.
 
 Suggested honest replacements:
   "195+ countries"                -> "56 tariff-reporting countries"

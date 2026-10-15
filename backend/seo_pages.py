@@ -361,37 +361,138 @@ async def _refresh_page_bg(product, country, p, c):
 
 async def warm_page_cache(limit: int = 1000, force: bool = False):
     """Pre-build every guide payload so no crawler request ever pays the cold cost.
-    Entries fresher than half the TTL are skipped unless forced; failures are retried
-    so an upstream tariff hiccup cannot leave a hole that a crawler later falls into."""
-    sem = asyncio.Semaphore(3)
-    combos = [(ps, p, cs, c) for ps, p in PRODUCTS.items()
-              for cs, c in COUNTRIES.items()][:limit]
-    skipped = 0
+    Oldest cache entries go first; entries fresher than half the TTL are skipped unless
+    forced; failures are retried so an upstream tariff hiccup cannot leave a hole."""
+    started = datetime.now(timezone.utc)
+    sem = asyncio.Semaphore(4)
+    ages = {d["_id"]: d["at"] async for d in db.seo_page_cache.find({}, {"at": 1})}
+    combos = [(ps, p, cs, c) for ps, p in PRODUCTS.items() for cs, c in COUNTRIES.items()]
+    combos.sort(key=lambda x: ages.get(f"{x[0]}:{x[2]}", ""))  # missing/oldest first
+    combos = combos[:limit]
+    skipped, failed_ids, durations = 0, [], []
 
-    async def one(ps, p, cs, c):
+    async def one(idx, ps, p, cs, c):
         nonlocal skipped
         cache_id = f"{ps}:{cs}"
-        if not force:
-            cached = await db.seo_page_cache.find_one({"_id": cache_id}, {"at": 1, "payload.indexable": 1})
-            if cached and _cache_age(cached) < PAGE_CACHE_TTL / 2:
-                skipped += 1
-                return cached["payload"]["indexable"]
+        at = ages.get(cache_id)
+        if not force and at and _cache_age({"at": at}) < PAGE_CACHE_TTL / 2:
+            skipped += 1
+            cached = await db.seo_page_cache.find_one({"_id": cache_id}, {"payload.indexable": 1})
+            return (cached or {}).get("payload", {}).get("indexable")
+        await asyncio.sleep(0.25 * (idx % 4))
         async with sem:
             for attempt, backoff in ((1, 5), (2, 15), (3, 0)):
+                t0 = datetime.now(timezone.utc)
                 try:
                     payload = await _build_page_data(ps, cs, p, c)
                     await _store_page(cache_id, payload)
+                    durations.append((datetime.now(timezone.utc) - t0).total_seconds())
                     return payload["indexable"]
                 except Exception as exc:
                     logger.warning("page cache warm %s (attempt %s): %s", cache_id, attempt, exc)
                     if backoff:
                         await asyncio.sleep(backoff)
+        failed_ids.append(cache_id)
         return None
 
-    res = await asyncio.gather(*[one(*x) for x in combos])
+    res = await asyncio.gather(*[one(i, *x) for i, x in enumerate(combos)])
     built = [r for r in res if r is not None]
-    return {"built": len(built), "skippedFresh": skipped, "failed": len(combos) - len(built),
-            "indexable": sum(1 for r in built if r), "total": len(combos)}
+    report = {"built": len(durations), "skippedFresh": skipped, "failed": len(failed_ids),
+              "failedIds": failed_ids[:20], "indexable": sum(1 for r in built if r),
+              "total": len(combos),
+              "maxBuildSeconds": round(max(durations), 2) if durations else 0,
+              "avgBuildSeconds": round(sum(durations) / len(durations), 2) if durations else 0}
+    await _log_warm_run("page-data", started, report)
+    return report
+
+
+# Crawler pre-render snapshots expire after ~1h (cache-control max-age=3600). These static
+# brand/hub pages have no backend data cache to protect them, so a first visit by an AI
+# assistant or Googlebot after expiry pays a full render — and may time out into a shell.
+PRERENDER_PATHS = [
+    "/", "/about", "/contact", "/pricing", "/tools", "/tools/duty-calculator", "/tools/hsn-finder",
+    "/tools/landed-cost-calculator", "/tools/export-incentive-finder", "/tools/find-buyers",
+    "/tools/export-readiness", "/tools/product-research", "/export", "/buyers", "/countries",
+    "/corridors", "/customs-compliance", "/industries", "/academy", "/services", "/blog",
+] + [f"/export/{p}" for p in PRODUCTS] + [f"/regions/{r}" for r in REGIONS]
+PRERENDER_UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+SITE = "https://vametra.com"
+
+
+async def warm_prerender(paths=None):
+    """Request each key page as a crawler so the edge keeps a fresh, complete snapshot.
+    Records word count per page: a snapshot under 150 words is flagged as a shell."""
+    import re
+    import httpx
+    started = datetime.now(timezone.utc)
+    paths = paths or PRERENDER_PATHS
+    sem = asyncio.Semaphore(2)
+    results = []
+
+    async def one(path):
+        async with sem:
+            t0 = datetime.now(timezone.utc)
+            row = {"path": path}
+            try:
+                async with httpx.AsyncClient(timeout=45, follow_redirects=True,
+                                             headers={"User-Agent": PRERENDER_UA}) as cli:
+                    r = await cli.get(f"{SITE}{path}")
+                body = re.sub(r"<script.*?</script>|<style.*?</style>", " ", r.text, flags=re.S)
+                words = len(re.sub(r"<[^>]+>", " ", body).split())
+                row.update({"status": r.status_code, "words": words,
+                            "renderedBy": r.headers.get("x-rendered-by"),
+                            "title": bool(re.search(r"<title>[^<]+</title>", r.text)),
+                            "shell": words < 150})
+            except Exception as exc:
+                row.update({"status": None, "error": str(exc)[:160], "shell": True})
+            row["seconds"] = round((datetime.now(timezone.utc) - t0).total_seconds(), 2)
+            results.append(row)
+            await asyncio.sleep(0.25)
+
+    await asyncio.gather(*[one(p) for p in paths])
+    shells = [r["path"] for r in results if r.get("shell")]
+    report = {"total": len(results), "ok": sum(1 for r in results if r.get("status") == 200 and not r["shell"]),
+              "shells": shells, "errors": [r["path"] for r in results if r.get("error")],
+              "maxSeconds": max((r["seconds"] for r in results), default=0),
+              "pages": sorted(results, key=lambda r: r["path"])}
+    if shells:
+        logger.warning("prerender warm: %s shell snapshots: %s", len(shells), shells)
+    await _log_warm_run("prerender", started, report)
+    return report
+
+
+async def _log_warm_run(kind: str, started: datetime, report: dict):
+    try:
+        await db.seo_warm_runs.insert_one({
+            "kind": kind, "startedAt": started.isoformat(),
+            "finishedAt": datetime.now(timezone.utc).isoformat(),
+            "seconds": round((datetime.now(timezone.utc) - started).total_seconds(), 1),
+            "report": report})
+        old = await db.seo_warm_runs.find({"kind": kind}, {"_id": 1}).sort("startedAt", -1).skip(60).to_list(500)
+        if old:
+            await db.seo_warm_runs.delete_many({"_id": {"$in": [o["_id"] for o in old]}})
+    except Exception as exc:
+        logger.warning("warm run log: %s", exc)
+
+
+@router.get("/warm-status")
+async def warm_status(x_admin_token: str = Header(default=None)):
+    """Admin: last page-data and prerender warm runs, plus page-cache freshness."""
+    import os
+    if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
+        raise HTTPException(status_code=403, detail="admin only")
+    out = {}
+    for kind in ("page-data", "prerender"):
+        runs = await db.seo_warm_runs.find({"kind": kind}, {"_id": 0}).sort("startedAt", -1).to_list(5)
+        out[kind] = {"last": runs[0] if runs else None, "recent": [
+            {k: r[k] for k in ("startedAt", "seconds")} | {"summary": {
+                k: v for k, v in r["report"].items() if k not in ("pages", "failedIds")}}
+            for r in runs]}
+    ages = [_cache_age(d) async for d in db.seo_page_cache.find({}, {"at": 1})]
+    out["pageCache"] = {"entries": len(ages), "expected": len(PRODUCTS) * len(COUNTRIES),
+                        "oldestHours": round(max(ages) / 3600, 1) if ages else None,
+                        "staleOverTtl": sum(1 for a in ages if a >= PAGE_CACHE_TTL)}
+    return out
 
 
 @router.get("/matrix")
@@ -463,6 +564,15 @@ async def warm_pages(x_admin_token: str = Header(default=None), limit: int = 100
     if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
         raise HTTPException(status_code=403, detail="admin only")
     return await warm_page_cache(limit=limit, force=force)
+
+
+@router.post("/warm-prerender")
+async def warm_prerender_now(x_admin_token: str = Header(default=None)):
+    """Admin: refresh the crawler snapshots of every key static page right now."""
+    import os
+    if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
+        raise HTTPException(status_code=403, detail="admin only")
+    return await warm_prerender()
 
 
 @router.post("/refresh-all")

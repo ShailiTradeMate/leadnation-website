@@ -30,13 +30,13 @@ export default function CustomsCompliance() {
   return (
     <>
       <SEO title="Vametra AI Trade Command Center™ — AI Global Trade Operating System"
-        description="The world's first AI-powered global trade operating system. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across 195 markets, quote in your currency and any global currency, check duty, FTA benefits, incentives and routes — analysed by the Vametra AI Brain."
+        description="The world's first AI-powered global trade operating system. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across 56 tariff-reporting countries, quote in your currency and any global currency, check duty, FTA benefits, incentives and routes — analysed by the Vametra AI Brain."
         path="/customs-compliance"
         keywords="FOB CIF calculator, landed cost calculator, export costing tool, buyer landed cost comparison, customs duty calculator, FTA checker, RoDTEP incentives, global trade operating system, export quotation tool, dual currency trade quote" />
 
       <PageHero testIdPrefix="customs" label="Vametra AI Trade Command Center™"
         title="The World's First AI-Powered Global Trade Operating System."
-        sub="Plan, cost, comply, price and ship from one screen. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across markets, quote in your currency and any global currency, and let the Vametra AI Brain analyse every number — for any product across 195 countries." />
+        sub="Plan, cost, comply, price and ship from one screen. Build your full FOB → CIF → landed-cost waterfall, compare buyer landed cost across markets, quote in your currency and any global currency, and let the Vametra AI Brain analyse every number — for any product across 56 tariff-reporting countries." />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
         <div className="flex gap-2 overflow-x-auto pb-2 mb-6">

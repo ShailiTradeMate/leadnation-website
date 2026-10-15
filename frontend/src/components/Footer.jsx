@@ -117,7 +117,7 @@ export default function Footer() {
       <div className="border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
           <div>© {new Date().getFullYear()} Vametra AI · Vametra AI Technologies Pvt Ltd · All rights reserved.</div>
-          <div className="font-mono-display tracking-widest">Global Trade Intelligence · 195+ countries</div>
+          <div className="font-mono-display tracking-widest">Global Trade Intelligence · Verified buyers in 32 countries</div>
         </div>
       </div>
     </footer>
