@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform, useSpring, useReducedMotion } from "framer-motion";
 import TradeGlobe from "@/components/TradeGlobe";
 import DownloadCTA from "@/components/DownloadCTA";
-import SEO, { faqSchema } from "@/components/SEO";
+import SEO, { faqSchema, websiteSchema, softwareApplicationSchema } from "@/components/SEO";
 import { SectionLabel } from "@/components/PageHero";
 import { searchAll } from "@/lib/api";
 import {
@@ -83,12 +83,12 @@ export default function Home() {
         description="Search any product, country or HS code. Decode customs duties, calculate landed cost across all Incoterms, discover trade expos and follow live global trade news — powered by the Vametra AI Brain. Free to start, built for 195+ countries."
         path="/"
         keywords="global trade intelligence, customs duty calculator, HS code finder, landed cost calculator, Incoterms, FTA, export import platform, trade expos, trade news, Vametra AI, Intelligence Beyond Borders"
-        schema={faqSchema([
+        schema={[websiteSchema, softwareApplicationSchema, faqSchema([
           { q: "What is Vametra AI?", a: "Vametra AI is an AI-powered Global Trade Intelligence platform that helps exporters, importers and trade professionals calculate customs duties, find HS codes, compute landed cost across all Incoterms, analyse FTAs, discover trade expos and follow real-time trade news for 195+ countries." },
           { q: "Is Vametra AI free?", a: "Yes — you can explore the platform and generate your first trade report for free. Pro plans unlock unlimited reports and premium intelligence." },
           { q: "Which countries does Vametra AI cover?", a: "Vametra AI provides trade, customs and market intelligence for 195+ countries worldwide, with deep coverage of India and major trade corridors." },
           { q: "Does Vametra AI have a mobile app?", a: "Not yet. Vametra AI is a web platform and runs in any modern mobile or desktop browser with nothing to install — every tool, including the duty calculator, landed cost calculator and Buyer Intelligence, is fully usable on a phone. A native app is on the roadmap and we will announce it when it genuinely exists." },
-        ])}
+        ])]}
       />
 
       {/* SCROLL PROGRESS BEAM */}

@@ -19,8 +19,7 @@
         <script type="application/ld+json">
         {
           "@context": "https://schema.org",
-          "@type": "Organization",
-          "@id": "https://vametra.com/#organization",
+          "@type": "Organization",          "@id": "https://vametra.com/#organization",
           "name": "Vametra AI",
           "alternateName": ["Vametra", "Vametra AI", "vametra.com", "Vametra AI Technologies Pvt Ltd"],
           "legalName": "Vametra AI Technologies Pvt Ltd",
@@ -55,38 +54,9 @@
           }
         }
         </script>
-        <script type="application/ld+json">
-        {
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
-          "name": "Vametra AI",
-          "alternateName": ["Vametra", "Vametra AI", "vametra.com"],
-          "applicationCategory": "BusinessApplication",
-          "operatingSystem": "Web",
-          "browserRequirements": "Requires a modern web browser. No installation required.",
-          "url": "https://vametra.com",
-          "description": "AI-powered Global Trade Intelligence platform: customs duty calculator, HS/HSN code finder, landed cost across all Incoterms, FTA analysis, trade expos, market data and real-time trade news for 195+ countries.",
-          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-          "publisher": { "@type": "Organization", "name": "Vametra AI Technologies Pvt Ltd" }
-        }
-        </script>
-        <script type="application/ld+json">
-        {
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          "@id": "https://vametra.com/#website",
-          "name": "Vametra AI",
-          "alternateName": ["Vametra", "Vametra AI", "vametra.com", "Vametra AI Global Trade Intelligence"],
-          "url": "https://vametra.com",
-          "inLanguage": "en",
-          "publisher": { "@id": "https://vametra.com/#organization" },
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": { "@type": "EntryPoint", "urlTemplate": "https://vametra.com/search?q={search_term_string}" },
-            "query-input": "required name=search_term_string"
-          }
-        }
-        </script>
+        <!-- WebSite and SoftwareApplication JSON-LD are rendered on the home page only
+             (pages/Home.jsx). Google requires WebSite markup exclusively on the home page
+             for the site-name feature; repeating it site-wide weakens the signal. -->
         <!--
         manifest.json provides metadata used when your web app is installed on a
         user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/

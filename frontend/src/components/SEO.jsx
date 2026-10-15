@@ -115,7 +115,7 @@ export const websiteSchema = {
   "@type": "WebSite",
   "@id": `${SITE}/#website`,
   name: BRAND_NAME,
-  alternateName: ["Vametra", "Vametra AI", "vametra.com", "Vametra AI Global Trade Intelligence"],
+  alternateName: ["Vametra", "vametra.com", "Vametra AI Global Trade Intelligence"],
   url: SITE,
   inLanguage: "en",
   publisher: { "@id": `${SITE}/#organization` },
