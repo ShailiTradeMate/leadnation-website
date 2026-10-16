@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { BrainExploreCTA } from "@/components/BrainExplore";
 import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { api } from "@/lib/api";
@@ -106,6 +107,7 @@ export default function CountriesIndex() {
           country-product pair, the page states that rather than interpolating a figure.
         </p>
       </AnswerBlock>
+      <BrainExploreCTA kind="country" testIdPrefix="countries-explore" />
       <PageFaq items={FAQ} testIdPrefix="countries-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">
         <DownloadCTA />

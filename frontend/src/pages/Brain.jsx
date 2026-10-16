@@ -3,6 +3,7 @@ import { CountrySelect } from '@/components/LocationSelect';
 import { Link, useSearchParams } from "react-router-dom";
 import { Brain, PaperPlaneTilt, Sparkle, Cpu, Lightning, ArrowUpRight, CircleNotch, Package, MagnifyingGlass } from "@phosphor-icons/react";
 import SEO from "@/components/SEO";
+import { KIND_META } from "@/components/BrainExplore";
 import { AnswerFirst } from "@/components/AnswerFirst";
 import { PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
@@ -137,7 +138,14 @@ export default function BrainPage() {
           Not a chatbot — an operating system. The Brain orchestrates 12 engines across compliance,
           tariffs, products, countries, logistics and policy to answer any trade question.
         </p>
-        <div className="mt-6 flex flex-wrap gap-2" data-testid="brain-engine-badges">
+        <div className="mt-6 flex flex-wrap items-center gap-2" data-testid="brain-explore-tabs">
+          <span className="text-[11px] font-mono-display tracking-widest uppercase text-cyan-300 mr-1">Build a report:</span>
+          {Object.entries(KIND_META).map(([k, m]) => (
+            <Link key={k} to={`/brain/explore?kind=${k}`} data-testid={`brain-explore-${k}`}
+              className="px-3.5 py-1.5 rounded-full text-sm glass border border-transparent hover:border-cyan-400/40 transition-colors">{m.label}</Link>
+          ))}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2" data-testid="brain-engine-badges">
           {Object.values(ENGINE_LABELS).map((l) => (
             <span key={l} className="glass rounded-full px-3 py-1 text-[11px] text-slate-300 border border-white/10">{l}</span>
           ))}

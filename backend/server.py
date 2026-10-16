@@ -26,6 +26,7 @@ from firebase_auth import init_firebase
 
 # Brain (Phase 7 intelligence layer)
 from brain.routes import router as brain_router
+from brain.explore import router as brain_explore_router
 from brain.admin_routes import router as brain_admin_router
 from brain.knowledge import seed_knowledge_base
 
@@ -36,6 +37,7 @@ for mod in (reference, engines, search, leads, trade_tools, ai, content, service
             export_incentives, seo_answers):
     api_router.include_router(mod.router)
 api_router.include_router(brain_router)
+api_router.include_router(brain_explore_router)
 api_router.include_router(admin_approvals.router)
 api_router.include_router(buyer_membership.router)
 api_router.include_router(buyer_admin_actions.router)

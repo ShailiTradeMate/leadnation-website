@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { BrainExploreCTA } from "@/components/BrainExplore";
 import { RelatedGuides } from "@/components/LinkGraph";
 import { GuideLoading } from "@/components/GuideLoading";
 import { fetchPageData } from "@/lib/fetchPageData";
@@ -359,6 +360,7 @@ export default function ExportProductCountry() {
             </Section>
 
             <RelatedGuides related={d.related} productName={p.name} countryName={c.name} />
+            <div className="-mx-6 sm:-mx-10"><BrainExploreCTA kind="guide" defaults={{ product: p.name }} testIdPrefix="epc-explore" title={`${p.name} to a different market, or another product to ${c.name}? Ask the Brain.`} /></div>
           </div>
 
           {/* Action rail */}

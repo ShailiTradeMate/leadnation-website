@@ -4,6 +4,7 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { BrainExploreCTA } from "@/components/BrainExplore";
 import { loadEntity } from "@/lib/fetchPageData";
 import { corridorSeo } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
@@ -97,6 +98,7 @@ export function CorridorsIndex() {
           the Duty Calculator with your 6-digit HS code rather than a corridor-level generalisation.
         </p>
       </AnswerBlock>
+      <BrainExploreCTA kind="corridor" testIdPrefix="corridors-explore" />
       <PageFaq items={INDEX_FAQ} testIdPrefix="corridors-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>
@@ -250,6 +252,7 @@ export default function CorridorDetail() {
           { to: "/export", label: "Export guides" },
           { to: "/corridors", label: "All corridors" },
         ]} />
+      <BrainExploreCTA kind="corridor" defaults={{ origin: c.from }} testIdPrefix="cd-explore" title={`Shipping ${c.from} → somewhere other than ${c.to}? The Brain builds that corridor on demand.`} />
       <PageFaq items={faqs} heading={`${c.from} → ${c.to} — frequently asked questions`} testIdPrefix="cd-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>

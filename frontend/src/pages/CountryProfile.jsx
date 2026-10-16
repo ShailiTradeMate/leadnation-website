@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { PageHero, SectionLabel } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { BrainExploreCTA } from "@/components/BrainExplore";
 import { loadEntity } from "@/lib/fetchPageData";
 import { countrySeo } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
@@ -285,6 +286,7 @@ export default function CountryProfile() {
           { to: "/countries", label: "All country profiles" },
           { to: "/corridors", label: "India trade corridors" },
         ]} />
+      <BrainExploreCTA kind="country" testIdPrefix="cp-explore" title={`Need a different market than ${data.name}? Build its profile with the Brain.`} />
       <PageFaq items={faqs} heading={`Exporting to ${data.name} — frequently asked questions`} testIdPrefix="cp-faq" />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">

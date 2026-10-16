@@ -4,6 +4,7 @@ import { PageHero } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { BrainExploreCTA } from "@/components/BrainExplore";
 import { loadEntity } from "@/lib/fetchPageData";
 import { industrySeo } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
@@ -88,6 +89,7 @@ export function IndustriesIndex() {
           pair, we say so rather than estimate it.
         </p>
       </AnswerBlock>
+      <BrainExploreCTA kind="industry" testIdPrefix="industries-explore" />
       <PageFaq items={INDEX_FAQ} testIdPrefix="industries-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>
@@ -196,6 +198,7 @@ export default function IndustryDetail() {
           { to: "/industries", label: "All export industries" },
           { to: "/countries/usa", label: "USA trade profile" },
         ]} />
+      <BrainExploreCTA kind="industry" defaults={{ industry: i.name }} testIdPrefix="id-explore" title={`${i.name} into a specific market, or a sector we have not profiled? Ask the Brain.`} />
       <PageFaq items={faqs} heading={`${i.name} exports — frequently asked questions`} testIdPrefix="id-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>

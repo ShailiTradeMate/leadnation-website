@@ -4,6 +4,7 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { BrainExploreCTA } from "@/components/BrainExplore";
 import { loadEntity } from "@/lib/fetchPageData";
 import { productSeo } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
@@ -93,6 +94,7 @@ export function ProductsIndex() {
           plainly instead of substituting an estimate.
         </p>
       </AnswerBlock>
+      <BrainExploreCTA kind="product" testIdPrefix="products-explore" />
       <PageFaq items={INDEX_FAQ} testIdPrefix="products-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>
@@ -266,6 +268,7 @@ export default function ProductDetail() {
           { to: "/products", label: "All export products" },
           { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
         ]} />
+      <BrainExploreCTA kind="product" defaults={{ product: p.name, hs: String(p.hsn || "").replace(/\D/g, "").slice(0, 6) }} testIdPrefix="pd-explore" title={`${p.name} into a market we have not published, or a different product entirely? Ask the Brain.`} />
       <PageFaq items={faqs} heading={`Exporting ${p.name} — frequently asked questions`} testIdPrefix="pd-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>

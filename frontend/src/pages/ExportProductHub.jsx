@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { BrainExploreCTA } from "@/components/BrainExplore";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
 import { fetchPageData } from "@/lib/fetchPageData";
@@ -226,6 +227,7 @@ export default function ExportProductHub() {
           </div>
         </section>
 
+        <div className="-mx-6 sm:-mx-10"><BrainExploreCTA kind="guide" defaults={{ product: d.name }} testIdPrefix="hub-explore" title={`${d.name} to a market we have not published yet? The Brain builds that guide on demand.`} /></div>
         <div className="mt-10 text-[11px] text-slate-500 max-w-3xl leading-relaxed" data-testid="hub-sources">
           Sources: {d.sources.map((s) => `${s.name} (${s.field}, as of ${s.asOf})`).join(" · ")}. {d.disclaimer}{" "}
           <Link to="/export" className="text-cyan-300 hover:underline inline-flex items-center gap-1">All export guides <ArrowRight size={11} /></Link>
