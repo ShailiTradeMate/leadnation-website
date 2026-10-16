@@ -3,6 +3,8 @@ import { countryFilterOptions } from '@/data/geo';
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
+import { PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
 import BuyerCard from "@/components/BuyerCard";
 import { fetchBuyerMeta, searchBuyers, fetchBuyerSources } from "@/lib/vbieApi";
@@ -16,6 +18,14 @@ const TRUST_MINS = [
   { label: "Emerging+ (45)", value: 45 },
   { label: "Trusted+ (65)", value: 65 },
   { label: "Verified (80)", value: 80 },
+];
+
+const BUYERS_FAQ = [
+  { q: "What is a verified importers list?", a: "A list of importing companies whose trade activity is evidenced in official records and whose contact details have been confirmed. Vametra AI adds sanctions screening and an explainable trust score to every record, so you can see why a buyer is rated the way it is." },
+  { q: "How many verified buyers does Vametra AI hold?", a: "{buyerRecords} contact-verified buyer records across {buyerCountries} countries and {buyerSectors} sectors, counted live from the platform. Coverage is stated per market; where a market has no verified records yet, the page says so." },
+  { q: "What does the trust score mean?", a: "It summarises the evidence behind a record — source quality, contact resolution, recency and sanctions status — into Verified, Trusted, Emerging or Unverified bands. Every band is explained on the buyer profile." },
+  { q: "Is the verified importers list free?", a: "Searching by HS code, market and sector is free, including company names, sectors and trust bands. Contact details, evidence trails, watchlists and exports require an account and an active plan." },
+  { q: "Do you sell or show raw datasets?", a: "No. Vametra AI shows verified intelligence, never raw source dumps or scraped lead lists, and a buyer without a working contact is never published." },
 ];
 
 export default function BuyerIntelligence() {
@@ -39,9 +49,11 @@ export default function BuyerIntelligence() {
     <>
       <BuyerDataNotice />
       <SEO
-        title="Verified Buyer Intelligence · Find Global Importers with Evidence"
-        description="Discover verified global buyers by market, sector and HS code — each with an explainable trust score and cited source evidence. Powered by the Vametra AI Verified Buyer Intelligence Engine."
+        title="Verified Importers List: 32 Countries, Evidence | Vametra AI"
+        description="Verified importers list: contact-verified, sanctions-screened buyers across 32 countries and 21 sectors, each with an explainable trust score and cited evidence. Search free by HS code and market."
         path="/buyers"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Verified Buyers", path: "/buyers" }]}
+        faqs={BUYERS_FAQ}
         keywords="verified buyers, global importers database, buyer intelligence, trade leads with evidence, export buyer discovery"
       />
 
@@ -51,7 +63,7 @@ export default function BuyerIntelligence() {
           <Sparkle size={14} weight="fill" /> Verified Buyer Intelligence Engine
         </div>
         <h1 className="mt-3 font-display font-black text-4xl sm:text-5xl lg:text-6xl leading-[1.05]">
-          Buyers you can <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-400">trust</span> — with the evidence to prove it.
+          Verified importers list <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-violet-400">with evidence</span>, not scraped leads.
         </h1>
         <p className="mt-4 text-base text-slate-400 max-w-2xl">
           Active importers and public-sector buyers, ingested daily from official government
@@ -135,6 +147,23 @@ export default function BuyerIntelligence() {
 
       <SourcesSection />
 
+      <AnswerFirst testId="buyers-answer"
+        answer="A verified importers list is only useful if every record can be traced to evidence. Vametra AI ingests buyers from official, licence-cleared government sources, resolves a working contact, screens each company against sanctions lists and assigns an explainable trust score — {buyerRecords} records across {buyerCountries} countries and {buyerSectors} sectors. Search is free; contacts and evidence need a plan."
+        rows={[
+          { label: "Contact-verified buyer records", value: "{buyerRecords}" },
+          { label: "Countries covered", value: "{buyerCountries}" },
+          { label: "Sectors", value: "{buyerSectors}" },
+          { label: "Trust bands", value: "Verified · Trusted · Emerging · Unverified" },
+        ]}
+        source="Official trade registries; Vametra AI Buyer Intelligence verification"
+        links={[
+          { to: "/tools/find-buyers", label: "Search buyers by HS code" },
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/export", label: "Export guides by market" },
+          { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
+          { to: "/services/buyer-discovery-service", label: "Done-for-you buyer discovery" },
+        ]} />
+      <PageFaq items={BUYERS_FAQ} heading="Verified importers — frequently asked questions" testIdPrefix="buyers-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pb-16"><DownloadCTA /></section>
     </>
   );

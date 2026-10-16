@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 import { startCheckout } from "@/lib/checkout";
 import { useProject } from "@/lib/ProjectContext";
 import SEO, { breadcrumbSchema, faqSchema } from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { Check, X, Star, CircleNotch, Lightning, ArrowRight } from "@phosphor-icons/react";
 
 const detectRegion = () => {
@@ -57,8 +58,8 @@ export default function Pricing() {
   return (
     <section className="max-w-6xl mx-auto px-6 sm:px-10 pt-16 pb-28" data-testid="pricing-page">
       <SEO
-        title="Pricing · Vametra AI Trade Intelligence Plans"
-        description="Simple, transparent pricing for Vametra AI. Your first trade report is free. Go unlimited with Monthly or Annual Pro plans — customs duties, HS codes, landed cost, expos and trade news. Cancel anytime."
+        title="Export Import Software Pricing & Plans | Vametra AI"
+        description="Export import software pricing: the trade tools are free, your first trade report is free, and Pro plans unlock unlimited reports and verified buyer contacts. Monthly or annual, cancel anytime."
         path="/pricing"
         keywords="Vametra AI pricing, trade intelligence pricing, export software price, customs duty calculator plans, trade report subscription"
         schema={[
@@ -76,7 +77,7 @@ export default function Pricing() {
 
       <div className="text-center max-w-2xl mx-auto">
         <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Plans & Pricing</div>
-        <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl mt-3">Unlock the world's trade desk</h1>
+        <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl mt-3">Export import software pricing — start free, upgrade when it pays</h1>
         <p className="text-slate-400 text-base mt-4">Your first Trade Report is free. Go unlimited with a Pro plan — cancel anytime.</p>
       </div>
 

@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { fetchEvents, fetchEventFilters, fetchExpoEngineStatus } from "@/lib/api";
 import { MapPin, CalendarBlank, Users, Buildings, Plus, Star, CircleNotch, Broadcast, Clock, Globe } from "@phosphor-icons/react";
 
@@ -39,15 +40,16 @@ export default function Expo() {
   return (
     <>
       <SEO
-        title="Global Trade Expos & Events · Live Calendar"
-        description="Every major trade expo, import/export fair, business and industry event worldwide — filtered by sector, country and date. List your own event to reach exporters and buyers."
+        title="Trade Fairs and Exhibitions 2026: Live Calendar | Vametra AI"
+        description="Trade fairs and exhibitions calendar for exporters and importers: filter global expos by sector, country and date, see which lanes they serve, and list your own event."
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Trade Fairs & Exhibitions", path: "/expo" }]}
         path="/expo"
         keywords="trade expo 2026, import export events, Gulfood, Canton Fair, Hannover Messe, list my trade event, global expo calendar"
       />
       <PageHero
         testIdPrefix="expo"
         label="Expo & Events Engine"
-        title="Every trade event on earth — on one calendar."
+        title="Trade fairs and exhibitions — live global calendar."
         sub="Track global expos, import/export fairs, business, agriculture and industry events by sector, country and date — only live and upcoming editions, refreshed daily. Have an event? List it and reach thousands of exporters, importers and buyers."
       />
 
@@ -117,6 +119,21 @@ export default function Expo() {
       </section>
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">
+        <AnswerFirst testId="expo-answer" className="!px-0 !max-w-none !mt-0 mb-10"
+          answer="Trade fairs and exhibitions are still the fastest way to meet importers face to face, but only if the fair serves your lane. This calendar lists expos by sector, country and date and links each market to its export guides, so you can check the applied duty and real import demand before you book a stand — and list your own event to reach exporters."
+          rows={[
+            { label: "Filters", value: "Sector · country · date" },
+            { label: "Linked export guides", value: "{guides}" },
+            { label: "Tariff countries", value: "{tariffCountries}" },
+          ]}
+          source="Organiser listings as shown per event; World Bank WITS for linked duty data"
+          links={[
+            { to: "/expo/submit", label: "List your event" },
+            { to: "/tools/find-buyers", label: "Find verified buyers" },
+            { to: "/export", label: "Export guides" },
+            { to: "/countries/uae", label: "UAE trade profile" },
+            { to: "/regions/middle-east", label: "Middle East export hub" },
+          ]} />
         <DownloadCTA />
       </section>
     </>

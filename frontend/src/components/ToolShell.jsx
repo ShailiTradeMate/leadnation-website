@@ -43,10 +43,10 @@ export function ToolShell({ label, title, sub, children, testIdPrefix = "tool" }
 export function CTARow({ testIdPrefix = "cta" }) {
   return (
     <div className="mt-8 flex flex-wrap gap-3">
-      <Link to="/contact" data-testid={`${testIdPrefix}-create`} className="btn-primary">
+      <Link to="/signup" data-testid={`${testIdPrefix}-create`} className="btn-primary">
         Create free account <ArrowRight size={14} weight="bold" />
       </Link>
-      <a href="/#download" data-testid={`${testIdPrefix}-download`} className="btn-ghost">Download app</a>
+      <Link to="/tools" data-testid={`${testIdPrefix}-tools`} className="btn-ghost">Explore all tools</Link>
       <a
         href="https://wa.me/918237161088"
         target="_blank" rel="noopener noreferrer"

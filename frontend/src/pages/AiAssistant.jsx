@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { api } from "@/lib/api";
 import { Link } from "react-router-dom";
 import { Robot, PaperPlaneTilt, Sparkle } from "@phosphor-icons/react";
@@ -36,13 +37,14 @@ export default function AiAssistant() {
 
   return (
     <>
-      <SEO title="AI Trade Copilot · Ask Anything About Global Trade"
-        description="Vametra AI's AI Trade Copilot answers any export, HSN, FTA or certification question instantly. Free preview."
+      <SEO title="AI Trade Assistant for Duty, HS & Compliance | Vametra AI"
+        description="Free AI trade assistant: ask about import duty, HS codes, FTA rates, certifications and documents and get a sourced answer in seconds, powered by the Vametra AI Brain."
         path="/ai-assistant"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "AI Trade Assistant", path: "/ai-assistant" }]}
         keywords="AI trade assistant, export AI, GPT for trade, HSN AI, customs AI, trade chatbot"
       />
-      <PageHero testIdPrefix="ai" label="Vametra AI AI · Trade Copilot"
-        title="Ask anything. Export anywhere."
+      <PageHero testIdPrefix="ai" label="Vametra AI · Trade Copilot"
+        title="AI trade assistant for duty, HS codes and compliance."
         sub="The AI copilot for global traders. Ask about HSN codes, customs, certifications, markets — get a clear answer in seconds."
       />
 
@@ -107,6 +109,21 @@ export default function AiAssistant() {
         </div>
       </section>
 
+      <AnswerFirst testId="ai-answer"
+        answer="An AI trade assistant should answer a shipment question the way a customs broker would: with the rate, the code, the rule and the source. This copilot is a lightweight front door to the Vametra AI Brain — ask about duty, HS classification, FTA eligibility or documents and get a sourced reply; open the Brain for the full engine."
+        rows={[
+          { label: "Tariff countries", value: "{tariffCountries}" },
+          { label: "HS codes", value: "{hsCodes}" },
+          { label: "Cost", value: "Free preview" },
+        ]}
+        source="Vametra AI Brain over World Bank WITS, OEC/BACI and WCO HS-2022"
+        links={[
+          { to: "/brain", label: "Open the Vametra AI Brain" },
+          { to: "/tools/hsn-finder", label: "HS code finder" },
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/customs-compliance", label: "Customs compliance" },
+          { to: "/countries/usa", label: "USA trade profile" },
+        ]} />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>
   );

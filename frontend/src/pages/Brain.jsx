@@ -3,6 +3,8 @@ import { CountrySelect } from '@/components/LocationSelect';
 import { Link, useSearchParams } from "react-router-dom";
 import { Brain, PaperPlaneTilt, Sparkle, Cpu, Lightning, ArrowUpRight, CircleNotch, Package, MagnifyingGlass } from "@phosphor-icons/react";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
+import { PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
 
@@ -48,6 +50,13 @@ function FormattedAnswer({ text }) {
   flush("end");
   return <div className="space-y-2">{out}</div>;
 }
+
+const BRAIN_FAQ = [
+  { q: "How is the Vametra AI Brain different from ChatGPT for export import questions?", a: "It reads live trade data instead of recalling text. Duty comes from World Bank WITS, demand from OEC/BACI, classification from the WCO HS-2022 directory and buyers from verified registries, and every answer shows its source and data year." },
+  { q: "What can I ask it?", a: "Import duty and FTA rate for a product and lane, the right HS code, landed cost, which markets import a product, export incentives, required documents and which verified buyers exist for an HS code and country." },
+  { q: "Is the Vametra AI Brain free?", a: "Yes — you can ask questions and run the connected tools free. Saving work as a Trade Project and premium buyer contacts require an account and a plan." },
+  { q: "Does it make numbers up when data is missing?", a: "No. Where a source has no record for a product-country pair, the Brain says so rather than estimating. An acknowledged gap is safer than an invented rate in a contract." },
+];
 
 export default function BrainPage() {
   const [thread, setThread] = useState([
@@ -108,9 +117,11 @@ export default function BrainPage() {
 
   return (
     <>
-      <SEO title="Vametra AI Brain · ChatGPT for Global Trade"
-        description="The Vametra AI Brain orchestrates 12 trade engines — compliance, tariffs, HSN, country intelligence, logistics and more — into one unified answer for global traders."
+      <SEO title="AI for Export Import Business: Vametra AI Brain"
+        description="AI for export import business: the Vametra AI Brain answers duty, HS code, FTA, landed cost and buyer questions by reading live WITS, OEC and registry data — not a generic chatbot. Free to try."
         path="/brain"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Vametra AI Brain", path: "/brain" }]}
+        faqs={BRAIN_FAQ}
         keywords="trade AI, export AI, HSN AI, customs AI, trade brain, import export assistant, India trade intelligence"
       />
 
@@ -120,7 +131,7 @@ export default function BrainPage() {
           <Brain size={16} weight="duotone" /> Vametra AI Intelligence Layer
         </div>
         <h1 className="font-display font-extrabold text-4xl sm:text-5xl lg:text-6xl mt-4 max-w-4xl leading-[1.05]">
-          The trade brain.<br /><span className="text-gradient">One mind for global trade.</span>
+          AI for export import business —<br /><span className="text-gradient">ask the Vametra AI Brain.</span>
         </h1>
         <p className="mt-5 text-base sm:text-lg text-slate-300 max-w-2xl">
           Not a chatbot — an operating system. The Brain orchestrates 12 engines across compliance,
@@ -270,6 +281,23 @@ export default function BrainPage() {
         </div>
       </section>
 
+      <AnswerFirst testId="brain-answer"
+        answer="AI for an export import business has to answer with sourced numbers, not prose. The Vametra AI Brain routes each question to the right engine — tariffs from World Bank WITS for {tariffCountries} countries, demand from OEC/BACI, classification across {hsCodes} HS codes, {buyerRecords} verified buyers — and returns the figure, its source and the next step, in one reply."
+        rows={[
+          { label: "Engines orchestrated", value: "12" },
+          { label: "Tariff countries", value: "{tariffCountries}" },
+          { label: "HS codes", value: "{hsCodes}" },
+          { label: "Verified buyers", value: "{buyerRecords}" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; OEC World (BACI); WCO HS-2022; official registries"
+        links={[
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/tools/landed-cost-calculator", label: "Landed cost calculator" },
+          { to: "/buyers", label: "Verified importers list" },
+          { to: "/export", label: "Export guides" },
+          { to: "/countries/uae", label: "UAE trade profile" },
+        ]} />
+      <PageFaq items={BRAIN_FAQ} heading="AI for export import business — frequently asked questions" testIdPrefix="brain-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pb-16"><DownloadCTA /></section>
     </>
   );

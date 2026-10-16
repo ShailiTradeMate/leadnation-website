@@ -19,13 +19,14 @@ export default function Suppliers() {
 
   return (
     <>
-      <SEO title="Supplier Discovery · Verified Indian Manufacturers & Exporters"
-        description="Discover verified Indian suppliers and manufacturers — by product, category and country. Free preview, full directory in the app."
+      <SEO title="Indian Manufacturers and Exporters Directory | Vametra AI"
+        description="Indian manufacturers and exporters directory — sample listings while verified supplier coverage is built. Use verified buyer intelligence and export guides for live data today."
+        noindex
         path="/suppliers"
         keywords="Indian suppliers, verified manufacturers, supplier discovery India, B2B supplier database"
       />
       <PageHero testIdPrefix="suppliers" label="Supplier Discovery"
-        title="Verified suppliers. Verified opportunities."
+        title="Indian manufacturers and exporters directory — coverage in progress."
         sub="Find the right supplier for every product — verified, categorised and ranked by trade performance."
       />
       <section className="max-w-7xl mx-auto px-6 sm:px-10">

@@ -3,6 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ToolShell, Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
+import { PageFaq } from "@/components/PageFaq";
 import { api } from "@/lib/api";
 import { HsCodePicker } from "@/components/HsCodePicker";
 import { ResponsiveSelect } from "@/components/ui/responsive-select";
@@ -15,6 +17,13 @@ const TRUST = {
   emerald: "bg-emerald-500/15 text-emerald-300", cyan: "bg-cyan-500/15 text-cyan-300",
   amber: "bg-amber-500/15 text-amber-300", slate: "bg-slate-500/15 text-slate-300", violet: "bg-violet-500/15 text-violet-300",
 };
+
+const FB_FAQ = [
+  { q: "How do I find buyers for export from India?", a: "Classify your product to its HS code, pick the destination market, and search importers evidenced in official trade registries for that code. Vametra AI returns contact-verified, sanctions-screened records with a trust score; free search shows company, sector and HS family, and a plan unlocks contacts and evidence." },
+  { q: "Are these real importers or scraped leads?", a: "Real importers. Records are ingested from official, licence-cleared government sources, then verified for contact and screened against sanctions lists before publication. A buyer without a working contact is never shown." },
+  { q: "Which countries have verified buyer coverage?", a: "Contact-verified buyer records currently cover {buyerCountries} countries and {buyerSectors} sectors. Where a market is not yet covered, the tool shows real import demand data and says coverage is expanding rather than inventing buyers." },
+  { q: "Is buyer search free?", a: "Searching and seeing company names, sectors, HS families and trust scores is free with no signup. Contact details, evidence trails and watchlists require an account and an active plan." },
+];
 
 export default function FindBuyers() {
   const [p] = useSearchParams();
@@ -48,13 +57,15 @@ export default function FindBuyers() {
 
   return (
     <>
-      <SEO title="Buyer Discovery · Verified Importers by HS Code & Country"
-        description="Search 27,000+ verified importer records by HS code and market. See trust scores, sectors and HS families for free; unlock contacts, evidence and watchlists in Buyer Intelligence."
+      <SEO title="How to Find Buyers for Export from India | Vametra AI"
+        description="How to find buyers for export from India: search contact-verified importer records by HS code across 32 countries, with trust scores and sanctions screening. Free search; contacts with a plan."
         path="/tools/find-buyers"
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }, { name: "Find Buyers", path: "/tools/find-buyers" }]}
+        faqs={FB_FAQ}
         keywords="find buyers for export, verified importers by HS code, buyer database Europe, importers Germany India, export leads, B2B buyer discovery"
       />
       <ToolShell testIdPrefix="fb" label="Buyer Discovery"
-        title="Who imports your product — by HS code, by country."
+        title="How to find buyers for export from India — verified importers."
         sub="Pick an HS code and a market. You see real importer records with trust scores from the Vametra Buyer Intelligence Engine — the same records inside the full /buyers workspace. Markets without coverage show honest demand data, never invented buyers.">
         <div className="grid lg:grid-cols-12 gap-8">
           <div className="lg:col-span-4 min-w-0 glass-strong rounded-3xl p-6 sm:p-7 space-y-4">
@@ -127,6 +138,23 @@ export default function FindBuyers() {
           </div>
         </div>
       </ToolShell>
+      <AnswerFirst testId="fb-answer"
+        answer="To find buyers for export from India, start from your HS code, not a directory: pick the code and the market, and Vametra AI returns importers whose trade in that code is evidenced in official registries. Every record is contact-verified and sanctions-screened — {buyerRecords} buyers across {buyerCountries} countries and {buyerSectors} sectors — and markets without coverage say so instead of showing invented leads."
+        rows={[
+          { label: "Contact-verified buyer records", value: "{buyerRecords}" },
+          { label: "Countries with buyer coverage", value: "{buyerCountries}" },
+          { label: "Sectors", value: "{buyerSectors}" },
+          { label: "Screening", value: "Sanctions + contact resolution" },
+        ]}
+        source="Official trade registries, verified by Vametra AI Buyer Intelligence"
+        links={[
+          { to: "/buyers", label: "Verified importers list" },
+          { to: "/tools/product-research", label: "Which markets import your product" },
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
+          { to: "/blog/how-to-find-buyers-in-gcc", label: "How to find buyers in the GCC" },
+        ]} />
+      <PageFaq items={FB_FAQ} testIdPrefix="fb-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-12 pb-12"><DownloadCTA /></section>
     </>
   );

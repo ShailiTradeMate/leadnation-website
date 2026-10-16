@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { fetchNewsFeed, fetchNewsTopics } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { Link } from "react-router-dom";
@@ -77,15 +78,16 @@ export default function TradeNews() {
   return (
     <>
       <SEO
-        title="Global Trade News · Tariffs, Geopolitics, Currency, Shipping & Business"
-        description="Live global news for traders — tariffs, trade deals, currency, geopolitics, conflict, energy, shipping and business events. Filter by country and topic, updated daily."
+        title="Global Trade News: Tariffs, Shipping, Policy | Vametra AI"
+        description="Global trade news for exporters and importers: tariffs, trade deals, currency, shipping and policy, filtered by country and topic and refreshed daily, with links to live duty and demand data."
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Global Trade News", path: "/trade-news" }]}
         path="/trade-news"
         keywords="trade news today, global business news, tariff news, geopolitics news, currency news, shipping news, country news filter"
       />
       <PageHero
         testIdPrefix="news"
         label="Trade News Engine"
-        title="The world's trade pulse — in real time."
+        title="Global trade news — tariffs, policy, currency and shipping."
         sub="Global news that moves business: tariffs, geopolitics, currency, energy, shipping, policy and major events. Filter by country and topic — refreshed daily, newest first."
       />
 
@@ -204,6 +206,21 @@ export default function TradeNews() {
       </section>
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">
+        <AnswerFirst testId="news-answer" className="!px-0 !max-w-none !mt-0 mb-10"
+          answer="Global trade news matters to an exporter when it changes a number: a tariff notification, a trade deal entering force, a currency move or a shipping disruption. This feed filters stories by country and topic, newest first, and links each market to its live applied duty and demand data so you can check the actual impact on your lane."
+          rows={[
+            { label: "Filters", value: "Country · topic" },
+            { label: "Refresh", value: "Daily, newest first" },
+            { label: "Linked tariff data", value: "{tariffCountries} countries" },
+          ]}
+          source="Headlines as attributed per story; World Bank WITS for linked duty data"
+          links={[
+            { to: "/tools/duty-calculator", label: "Check the duty now" },
+            { to: "/intelligence", label: "Trade intelligence hub" },
+            { to: "/export", label: "Export guides" },
+            { to: "/corridors/india-to-usa", label: "India → USA corridor" },
+            { to: "/countries/india", label: "India trade profile" },
+          ]} />
         <DownloadCTA />
       </section>
     </>

@@ -23,3 +23,11 @@ export async function fetchPageData(path, { attempts = 4, timeout = 120000 } = {
   }
   return { stalled: true };
 }
+
+/** Entity loader for detail pages: real 404/410 (or an {error} body) → onNotFound; a transient
+ *  failure keeps the page in its loading state instead of rendering a soft-404. */
+export async function loadEntity(path, onData, onNotFound) {
+  const r = await fetchPageData(path, { attempts: 3, timeout: 30000 });
+  if (r.ok) return r.data?.error ? onNotFound() : onData(r.data);
+  if (r.notFound) onNotFound();
+}

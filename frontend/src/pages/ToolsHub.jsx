@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import {
   Calculator, Coins, Sparkle, MagnifyingGlass, Users,
@@ -51,8 +52,8 @@ export default function ToolsHub() {
   return (
     <>
       <SEO
-        title="Free Trade Tools · HSN Finder, Duty Calculator, Buyer Discovery"
-        description="Vametra AI's free trade toolbox — HSN finder, customs duty calculator, landed cost calculator, export incentive finder, buyer discovery, export readiness score, AI trade copilot. Real WITS, OEC and official-authority data, no signup."
+        title="Free Export Import Tools: HS, Duty, Landed Cost | Vametra AI"
+        description="Eight free export import tools: HS code finder, custom duty calculator, landed cost calculator, export incentive finder, product research, buyer discovery, readiness score and AI copilot. Real WITS and OEC data, no signup."
         path="/tools"
         keywords="free trade tools, HSN finder, customs duty calculator, landed cost calculator, export incentive finder, buyer discovery, export readiness, AI trade assistant"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }]}
@@ -61,7 +62,7 @@ export default function ToolsHub() {
       <PageHero
         testIdPrefix="tools"
         label="Trade Tools Hub · 100% Free"
-        title="Eight tools. One engine. Real data on every screen."
+        title="Free export import tools for every shipment decision."
         sub="HSN, duties, landed cost, demand, buyers, incentives, readiness — every result comes from the live Customs & Compliance Engine and Buyer Intelligence, and the Vametra AI Brain tells you the next step. Free, no signup."
       />
 
@@ -91,6 +92,22 @@ export default function ToolsHub() {
         </div>
       </section>
 
+      <AnswerFirst testId="tools-answer-first"
+        answer="These free export import tools run in sequence on one engine: find the HS code, check the import duty for your lane, build landed cost, confirm the market really imports the product, then find contact-verified buyers. Every figure comes from World Bank WITS, OEC/BACI or an official authority — {hsCodes} HS codes, {tariffCountries} tariff countries, {buyerCountries} buyer countries — with no signup."
+        rows={[
+          { label: "Tools", value: "8 · all free" },
+          { label: "HS codes", value: "{hsCodes}" },
+          { label: "Tariff-reporting countries", value: "{tariffCountries}" },
+          { label: "Verified buyer records", value: "{buyerRecords}" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; OEC World (BACI); WCO HS-2022; DGFT"
+        links={[
+          { to: "/tools/hsn-finder", label: "HS code finder" },
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/tools/landed-cost-calculator", label: "Landed cost calculator" },
+          { to: "/export", label: "Export guides" },
+          { to: "/countries", label: "Country trade profiles" },
+        ]} />
       <AnswerBlock testId="tools-answer" label="How these fit together"
         title="One sequence, eight entry points">
         <p>

@@ -3,6 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { PageHero, SectionLabel } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { loadEntity } from "@/lib/fetchPageData";
+import { countrySeo } from "@/data/seoTitles";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
 import { CountryGuides } from "@/components/LinkGraph";
@@ -19,10 +22,7 @@ export default function CountryProfile() {
 
   useEffect(() => {
     setData(null); setNotFound(false); setGuides(null);
-    api.get(`/country/${slug}`).then((r) => {
-      if (r.data?.error) setNotFound(true);
-      else setData(r.data);
-    }).catch(() => setNotFound(true));
+    loadEntity(`/country/${slug}`, setData, () => setNotFound(true));
     api.get(`/seo/guides-by-country/${slug}`, { timeout: 120000 }).then((r) => setGuides(r.data)).catch(() => {});
     fetchTradeNews().then(setNews).catch(() => {});
     fetchExpos().then(setExpos).catch(() => {});
@@ -31,6 +31,7 @@ export default function CountryProfile() {
   if (notFound) {
     return (
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-32 text-center">
+        <SEO title="Not found" description="This page does not exist." noindex />
         <h1 className="font-display font-extrabold text-4xl">Country not found</h1>
         <p className="text-slate-400 mt-3">We're adding new country profiles every week.</p>
         <Link to="/countries" className="btn-primary mt-6 inline-flex">Browse all countries</Link>
@@ -42,12 +43,12 @@ export default function CountryProfile() {
     return (
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-32">
         <SEO
-          title={`${cn} Trade Profile — Imports, Exports, Customs & Compliance`}
+          title={countrySeo(cn).title}
           description={`${cn} trade profile: major imports and exports, customs duties, trade agreements, compliance and verified buyer coverage — Vametra AI.`}
           path={`/countries/${slug}`}
           breadcrumbs={[{ name: "Home", path: "/" }, { name: "Countries", path: "/countries" }, { name: cn, path: `/countries/${slug}` }]}
         />
-        <h1 className="font-display font-extrabold text-4xl">{cn} Trade Profile</h1>
+        <h1 className="font-display font-extrabold text-4xl">{countrySeo(cn).h1}</h1>
         <p className="text-slate-400 mt-4 text-sm">Loading profile…</p>
       </div>
     );
@@ -84,8 +85,8 @@ export default function CountryProfile() {
   return (
     <>
       <SEO
-        title={`${data.name} Trade Profile — Imports, Exports, Customs & Compliance`}
-        description={`${data.tagline}. Discover ${data.name}'s major imports, exports, customs duties, FTA opportunities, trade events and compliance — updated for ${new Date().getFullYear()}.`}
+        title={countrySeo(data.name).title}
+        description={`${data.name} trade profile: ${data.tagline}. Major imports and exports, applied customs duties, FTA opportunities, trade events, compliance and verified buyer coverage — updated ${new Date().getFullYear()}.`}
         path={`/countries/${data.slug}`}
         keywords={`${data.name} trade, ${data.name} imports, ${data.name} exports, ${data.name} customs duty, ${data.name} compliance, ${data.name} expo, international trade ${data.name}`}
         breadcrumbs={[
@@ -110,8 +111,8 @@ export default function CountryProfile() {
           <SectionLabel testId="cp-label">Country Trade Profile · {data.code}</SectionLabel>
           <div className="mt-5 flex items-center gap-5">
             <div className="text-7xl sm:text-8xl leading-none">{data.flag}</div>
-            <h1 data-testid="cp-title" className="font-display font-extrabold tracking-tight text-5xl sm:text-7xl">
-              {data.name}
+            <h1 data-testid="cp-title" className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-6xl">
+              {countrySeo(data.name).h1}
             </h1>
           </div>
           <p className="mt-4 text-slate-300 text-lg max-w-2xl">{data.tagline}</p>
@@ -268,6 +269,22 @@ export default function CountryProfile() {
           product in this market, there is a published export guide linked on this page.
         </p>
       </AnswerBlock>
+      <AnswerFirst testId="cp-answer-first" eyebrow={`${data.name} · direct answer`}
+        answer={`${data.name} trade profile in one line: ${data.tagline}. Applied import duty for any HS code comes from World Bank WITS, measured import demand from OEC/BACI, and the verified buyer count for ${data.name} is stated honestly on this page — with a published export guide linked for every product we cover in this market.`}
+        rows={[
+          { label: "Capital", value: data.capital },
+          { label: "Currency", value: data.currency },
+          { label: "Tariff data", value: "WITS / TRAINS · HS6" },
+          { label: "Export guides for this market", value: guides?.total != null ? String(guides.total) : "See below" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; OEC World (BACI); official registries"
+        links={[
+          { to: "/tools/duty-calculator", label: `Duty into ${data.name}` },
+          { to: "/tools/find-buyers", label: `Verified buyers in ${data.name}` },
+          { to: "/export", label: "Export guides" },
+          { to: "/countries", label: "All country profiles" },
+          { to: "/corridors", label: "India trade corridors" },
+        ]} />
       <PageFaq items={faqs} heading={`Exporting to ${data.name} — frequently asked questions`} testIdPrefix="cp-faq" />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">

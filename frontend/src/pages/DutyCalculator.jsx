@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ToolShell } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { DutyBenefitsTool } from "@/components/engines/CustomsEngineTools";
 import { ArrowSquareOut, ShieldCheck } from "@phosphor-icons/react";
 
@@ -18,8 +19,10 @@ export default function DutyCalculator() {
   return (
     <>
       <SEO
-        title="Customs Duty Calculator · Real Import Tariffs for Any Trade Lane"
-        description="Check the real import duty for any product into 56 countries — MFN and preferential rates from World Bank WITS / UNCTAD TRAINS, destination tax breakdown, and the official export-support schemes of your own exporting country. Free, by HS code."
+        title="Custom Duty Calculator India & 56 Countries | Vametra AI"
+        description="Free custom duty calculator for India and 56 reporting countries: applied MFN and FTA rates by HS code from World Bank WITS / UNCTAD TRAINS, destination VAT and official export schemes."
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }, { name: "Custom Duty Calculator", path: "/tools/duty-calculator" }]}
+        faqs={FAQ.map(([q, a]) => ({ q, a }))}
         path="/tools/duty-calculator"
         keywords="customs duty calculator, import duty calculator, import duty by HS code, tariff lookup, preferential FTA rate, US Canada import duty, India UAE duty"
         schema={{
@@ -29,7 +32,7 @@ export default function DutyCalculator() {
         }}
       />
       <ToolShell testIdPrefix="duty" label="Customs Duty Calculator"
-        title="Real import duty, by HS code, for 56 countries."
+        title="Custom duty calculator India — real applied tariffs by HS code."
         sub="Pick your product, origin and destination. You get the applied MFN rate, any preferential (FTA) rate for your origin, the destination's own tax breakdown, and the official export-support schemes your exporting country publishes — with the data year and source on every number.">
         <div className="space-y-5">
           <DutyBenefitsTool initial={initial} />
@@ -44,6 +47,22 @@ export default function DutyCalculator() {
           </div>
         </div>
       </ToolShell>
+      <AnswerFirst testId="duty-answer"
+        answer="A custom duty calculator tells you the import tariff a destination applies to your product's HS code. Vametra AI reads the applied MFN rate and any preferential (FTA) rate for your origin from World Bank WITS / UNCTAD TRAINS for {tariffCountries} reporting countries, then adds destination VAT/GST — so the number you quote is the number your buyer pays."
+        rows={[
+          { label: "Tariff-reporting countries", value: "{tariffCountries}" },
+          { label: "HS codes searchable", value: "{hsCodes}" },
+          { label: "Tariff level", value: "HS6 · applied + preferential" },
+          { label: "Export-support schemes", value: "Official authority pages only" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; DGFT Appendix 4R for India RoDTEP"
+        links={[
+          { to: "/tools/landed-cost-calculator", label: "Landed cost calculator" },
+          { to: "/tools/hsn-finder", label: "HS code finder" },
+          { to: "/export", label: "Export guides by product and market" },
+          { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
+          { to: "/customs-compliance", label: "Customs compliance" },
+        ]} />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-12 pb-12"><DownloadCTA /></section>
     </>
   );

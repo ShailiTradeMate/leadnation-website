@@ -414,7 +414,12 @@ PRERENDER_PATHS = [
     "/tools/landed-cost-calculator", "/tools/export-incentive-finder", "/tools/find-buyers",
     "/tools/export-readiness", "/tools/product-research", "/export", "/buyers", "/countries",
     "/corridors", "/customs-compliance", "/industries", "/academy", "/services", "/blog",
-] + [f"/export/{p}" for p in PRODUCTS] + [f"/regions/{r}" for r in REGIONS]
+] + [f"/export/{p}" for p in PRODUCTS] + [f"/regions/{r}" for r in REGIONS] + [
+    f"/countries/{c}" for c in ("india", "uae", "usa", "australia", "armenia")] + [
+    f"/corridors/india-to-{c}" for c in ("uae", "usa", "australia", "armenia")] + [
+    f"/products/{p}" for p in ("basmati-rice", "agarbatti", "spices", "textiles", "pharmaceuticals")] + [
+    f"/industries/{i}" for i in ("agriculture", "food-processing", "textiles", "chemicals",
+                                 "pharmaceuticals", "engineering", "handicrafts", "fmcg")]
 PRERENDER_UA = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 SITE = "https://vametra.com"
 
@@ -493,6 +498,44 @@ async def warm_status(x_admin_token: str = Header(default=None)):
                         "oldestHours": round(max(ages) / 3600, 1) if ages else None,
                         "staleOverTtl": sum(1 for a in ages if a >= PAGE_CACHE_TTL)}
     return out
+
+
+_facts_cache = {"at": None, "data": None}
+
+
+@router.get("/facts")
+async def facts():
+    """Live, verifiable platform figures for the dated data blocks on every public page.
+    Nothing here is typed in by hand — every number is counted from the database."""
+    now = datetime.now(timezone.utc)
+    if _facts_cache["data"] and (now - _facts_cache["at"]).total_seconds() < 3600:
+        return _facts_cache["data"]
+    from vbie import PUBLIC_Q
+    from trade_intel import HS_MAP_COLL
+    q = dict(PUBLIC_Q)
+    rows, generated = await _approved_rows()
+    data = {
+        "asOf": now.strftime("%B %Y"),
+        "asOfDate": now.date().isoformat(),
+        "hsCodes": await HS_MAP_COLL.count_documents({}),
+        "tariffCountries": len(COUNTRIES),
+        "buyerRecords": await db.entities.count_documents(q),
+        "buyerCountries": len([c for c in await db.entities.distinct("country_name", q) if c]),
+        "buyerSectors": len([s for s in await db.entities.distinct("sector", q) if s]),
+        "guides": len(rows),
+        "products": len(PRODUCTS),
+        "regions": len(REGIONS),
+        "guidesGeneratedAt": generated,
+        "sources": {
+            "tariff": "World Bank WITS / UNCTAD TRAINS",
+            "demand": "OEC World (CEPII BACI / UN Comtrade)",
+            "hs": "WCO HS-2022",
+            "incentives": "DGFT Appendix 4R (RoDTEP)",
+            "buyers": "Official trade registries, contact-verified and sanctions-screened",
+        },
+    }
+    _facts_cache.update(at=now, data=data)
+    return data
 
 
 @router.get("/matrix")

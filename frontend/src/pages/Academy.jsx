@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { api } from "@/lib/api";
 import { GraduationCap, Clock, ListChecks, ArrowRight } from "@phosphor-icons/react";
 
@@ -24,8 +25,9 @@ export default function Academy() {
   return (
     <>
       <SEO
-        title="Trade Learning Academy · Free Import, Export & Customs Courses"
-        description="Master international trade in 6 weeks. Free, structured lessons on import process, export process, documentation, customs clearance, FTA arbitrage and more."
+        title="Learn Export Import Business: Free Courses | Vametra AI"
+        description="Learn export import business with 9 free structured courses: trade basics, import and export process, documentation, customs clearance, Incoterms 2020, FTA arbitrage, trade finance and compliance."
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Academy", path: "/academy" }]}
         path="/academy"
         keywords="learn international trade, import process course, export process course, customs clearance training, trade documentation tutorial, FTA learning"
         schema={{
@@ -39,7 +41,7 @@ export default function Academy() {
       <PageHero
         testIdPrefix="academy"
         label="Vametra AI Academy"
-        title="Master global trade. In weeks, not years."
+        title="Learn export import business — free courses from first shipment to FTA."
         sub="From your very first export inquiry to FTA arbitrage — premium lessons by traders, for traders. 100% free."
       >
         <div className="flex gap-2 flex-wrap">
@@ -100,6 +102,21 @@ export default function Academy() {
       </section>
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">
+        <AnswerFirst testId="academy-answer" className="!px-0 !max-w-none !mt-0 mb-10"
+          answer="To learn the export import business you need the sequence, not a glossary: how a trade is structured, how goods are classified and cleared, which documents move with them, what Incoterms shift the risk, and how FTAs change the price. These nine free courses follow that order and link each lesson to the live tool that applies it."
+          rows={[
+            { label: "Courses", value: "9 · 100% free" },
+            { label: "Levels", value: "Beginner → Advanced" },
+            { label: "Applied in", value: "Duty, HS and landed-cost tools" },
+          ]}
+          source="Vametra AI Academy curriculum"
+          links={[
+            { to: "/academy/export-process-101", label: "Export process 101" },
+            { to: "/academy/incoterms-2020", label: "Incoterms 2020" },
+            { to: "/tools/export-readiness", label: "Export readiness assessment" },
+            { to: "/tools/hsn-finder", label: "HS code finder" },
+            { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
+          ]} />
         <DownloadCTA id="download" />
       </section>
     </>

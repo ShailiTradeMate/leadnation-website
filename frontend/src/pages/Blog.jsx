@@ -4,6 +4,8 @@ import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import { titleize } from "@/lib/slug";
 import SEO, { articleSchema } from "@/components/SEO";
+import { loadEntity } from "@/lib/fetchPageData";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { api } from "@/lib/api";
 import { Clock, ArrowRight } from "@phosphor-icons/react";
 
@@ -13,13 +15,14 @@ export function BlogIndex() {
 
   return (
     <>
-      <SEO title="Vametra AI Blog · Export, Import, Compliance & Trade News"
-        description="Long-form guides for global traders — export, import, compliance, logistics and trade intelligence. Updated weekly."
+      <SEO title="Export Import Blog: Guides, RoDTEP, Incoterms | Vametra AI"
+        description="Export import blog for Indian traders: IEC code, RoDTEP, Incoterms 2020, India-UAE CEPA product list, payment terms and how to find buyers in the GCC — practical, dated guides."
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Blog", path: "/blog" }]}
         path="/blog"
         keywords="trade blog India, export blog, import blog, RoDTEP guide, customs blog, trade compliance guide"
       />
       <PageHero testIdPrefix="blog" label="Knowledge Center"
-        title="Stories, guides & playbooks for traders."
+        title="Export import blog — practical guides for Indian traders."
         sub="The long-form library that turns first-time exporters into seasoned operators."
       />
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -52,9 +55,9 @@ export default function BlogDetail() {
   const { slug } = useParams();
   const [p, setP] = useState(null);
   const [nf, setNf] = useState(false);
-  useEffect(() => { setP(null); setNf(false); api.get(`/blog/${slug}`).then((r) => r.data?.error ? setNf(true) : setP(r.data)).catch(() => setNf(true)); }, [slug]);
+  useEffect(() => { setP(null); setNf(false); loadEntity(`/blog/${slug}`, setP, () => setNf(true)); }, [slug]);
 
-  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Post not found</h1><Link to="/blog" className="btn-primary mt-6 inline-flex">Back to blog</Link></div>;
+  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><SEO title="Not found" description="This page does not exist." noindex /><h1 className="font-display font-extrabold text-4xl">Post not found</h1><Link to="/blog" className="btn-primary mt-6 inline-flex">Back to blog</Link></div>;
   if (!p) return (
     <div className="max-w-7xl mx-auto px-6 py-32">
       <SEO title={titleize(slug)} description={`${titleize(slug)} — Vametra AI global trade insight.`} path={`/blog/${slug}`} type="article"

@@ -4,6 +4,9 @@ import { PageHero } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { loadEntity } from "@/lib/fetchPageData";
+import { industrySeo } from "@/data/seoTitles";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
@@ -37,7 +40,7 @@ export function IndustriesIndex() {
   useEffect(() => { api.get("/industries").then((r) => setList(r.data)); }, []);
   return (
     <>
-      <SEO title="Industry Trade Profiles · 8 sectors, 100+ markets"
+      <SEO title="Export Industries India: 8 Sector Trade Profiles | Vametra"
         description="Explore India's export profile across agriculture, food, textiles, chemicals, pharma, engineering, handicrafts and FMCG — export categories, top importing markets and the compliance each sector has to clear."
         path="/industries"
         keywords="industry export India, agriculture exports, textile exports, pharma exports, engineering exports India"
@@ -45,7 +48,7 @@ export function IndustriesIndex() {
         faqs={INDEX_FAQ}
       />
       <PageHero testIdPrefix="industries" label="Industry Trade Profiles"
-        title="Pick your sector. See your edge."
+        title="Export industries India — sector profiles with real trade data."
         sub="Sector-level trade intelligence — exports, top markets, compliance and opportunity."
       />
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -95,18 +98,18 @@ export default function IndustryDetail() {
   const { slug } = useParams();
   const [i, setI] = useState(null);
   const [nf, setNf] = useState(false);
-  useEffect(() => { setI(null); setNf(false); api.get(`/industry/${slug}`).then((r) => r.data?.error ? setNf(true) : setI(r.data)).catch(() => setNf(true)); }, [slug]);
+  useEffect(() => { setI(null); setNf(false); loadEntity(`/industry/${slug}`, setI, () => setNf(true)); }, [slug]);
 
-  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Industry not found</h1><Link to="/industries" className="btn-primary mt-6 inline-flex">Browse industries</Link></div>;
+  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><SEO title="Not found" description="This page does not exist." noindex /><h1 className="font-display font-extrabold text-4xl">Industry not found</h1><Link to="/industries" className="btn-primary mt-6 inline-flex">Browse industries</Link></div>;
   if (!i) {
     const n = titleize(slug);
     return (
       <div className="max-w-7xl mx-auto px-6 py-32">
-        <SEO title={`${n} Industry · Exports, Markets, Compliance`}
+        <SEO title={industrySeo(n).title}
           description={`${n} sector trade profile: export categories, leading importing markets and the compliance a shipment has to clear — Vametra AI.`}
           path={`/industries/${slug}`}
           breadcrumbs={[{ name: "Home", path: "/" }, { name: "Industries", path: "/industries" }, { name: n, path: `/industries/${slug}` }]} />
-        <h1 className="font-display font-extrabold text-4xl">{n}</h1>
+        <h1 className="font-display font-extrabold text-4xl">{industrySeo(n).h1}</h1>
         <p className="text-slate-400 mt-4 text-sm">Loading…</p>
       </div>
     );
@@ -140,8 +143,8 @@ export default function IndustryDetail() {
 
   return (
     <>
-      <SEO title={`${i.name} Industry · Exports, Markets, Compliance`}
-        description={i.overview}
+      <SEO title={industrySeo(i.name).title}
+        description={`${i.name} exports from India: ${i.overview.substring(0, 125)}`}
         path={`/industries/${i.slug}`}
         keywords={`${i.name} industry, ${i.name} export India, ${i.name} compliance, ${i.name} markets`}
         breadcrumbs={[
@@ -151,7 +154,7 @@ export default function IndustryDetail() {
         ]}
         faqs={faqs}
       />
-      <PageHero testIdPrefix="id" label={`Industry · ${i.name}`} title={i.name} sub={i.overview} />
+      <PageHero testIdPrefix="id" label={`Industry · ${i.name}`} title={industrySeo(i.name).h1} sub={i.overview} />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-2 gap-5">
         <Card title="Export categories"><div className="mt-3"><ChipList items={i.exports} /></div></Card>
         <Card title="Top markets"><div className="mt-3"><ChipList items={i.topMarkets} variant="violet" /></div></Card>
@@ -177,6 +180,22 @@ export default function IndustryDetail() {
           delay a first shipment.
         </p>
       </AnswerBlock>
+      <AnswerFirst testId="id-answer-first" eyebrow={`${i.name} · direct answer`}
+        answer={`${i.name} exports from India: ${i.overview} Start at the sector, pick a category, then open the product-market export guide for the exact lane — applied duty from World Bank WITS, measured demand from OEC/BACI and verified buyer coverage stated per market.`}
+        rows={[
+          { label: "Export categories", value: String((i.exports || []).length) },
+          { label: "Top markets listed", value: String((i.topMarkets || []).length) },
+          { label: "Compliance items", value: String((i.compliance || []).length) },
+          { label: "Tariff countries", value: "{tariffCountries}" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; OEC World (BACI); sector regulators as listed"
+        links={[
+          { to: "/export", label: "Export guides" },
+          { to: "/tools/hsn-finder", label: "HS code finder" },
+          { to: "/tools/product-research", label: "Import demand by HS code" },
+          { to: "/industries", label: "All export industries" },
+          { to: "/countries/usa", label: "USA trade profile" },
+        ]} />
       <PageFaq items={faqs} heading={`${i.name} exports — frequently asked questions`} testIdPrefix="id-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>

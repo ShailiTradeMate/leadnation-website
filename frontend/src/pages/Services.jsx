@@ -5,6 +5,9 @@ import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import { titleize } from "@/lib/slug";
 import SEO from "@/components/SEO";
+import { loadEntity } from "@/lib/fetchPageData";
+import { SERVICE_SEO } from "@/data/seoTitles";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { api } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
 import { ArrowRight, CheckCircle, FileText, Wrench, PaperPlaneTilt, CaretDown, Briefcase } from "@phosphor-icons/react";
@@ -17,13 +20,14 @@ export function ServicesHub() {
 
   return (
     <>
-      <SEO title="Business Services · RCMC, GST, IEC, Export Consulting"
-        description="Vametra AI Business Services — RCMC, GST, IEC and company registration handled by certified CAs. Plus export, import, compliance, market-entry and sourcing consulting."
+      <SEO title="Export Import Services India: IEC, RCMC, GST | Vametra AI"
+        description="Export import services in India: IEC code, RCMC and GST registration handled by certified CAs, plus export, import, compliance, market-entry, sourcing and buyer-discovery consulting."
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Services", path: "/services" }]}
         path="/services"
         keywords="RCMC registration, GST registration, IEC code, company registration, export consulting, import consulting, market entry"
       />
       <PageHero testIdPrefix="services" label="Business Services"
-        title="Compliance, registrations, consulting. Done."
+        title="Export import services India — registration to market entry."
         sub="A Vametra AI CA handles your government documentation and a certified consultant guides your global trade — end to end."
       />
 
@@ -73,7 +77,7 @@ export default function ServiceDetail() {
 
   useEffect(() => {
     setS(null); setNf(false); setSubmitted(false);
-    api.get(`/service/${slug}`).then((r) => r.data?.error ? setNf(true) : setS(r.data)).catch(() => setNf(true));
+    loadEntity(`/service/${slug}`, setS, () => setNf(true));
     setForm((f) => ({ ...f, service: slug }));
   }, [slug]);
 
@@ -87,23 +91,25 @@ export default function ServiceDetail() {
     } catch (_) { setErr("Could not submit — try WhatsApp."); }
   };
 
-  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Service not found</h1><Link to="/services" className="btn-primary mt-6 inline-flex">Browse services</Link></div>;
+  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><SEO title="Not found" description="This page does not exist." noindex /><h1 className="font-display font-extrabold text-4xl">Service not found</h1><Link to="/services" className="btn-primary mt-6 inline-flex">Browse services</Link></div>;
   if (!s) return (
     <div className="max-w-7xl mx-auto px-6 py-32">
-      <SEO title={`${titleize(slug)} · Vametra AI Services`}
+      <SEO title={SERVICE_SEO[slug]?.title || `${titleize(slug)} · Vametra AI Services`}
         description={`${titleize(slug)} from Vametra AI — global trade intelligence, compliance and market-entry support for exporters and importers.`}
         path={`/services/${slug}`}
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Services", path: "/services" }, { name: titleize(slug), path: `/services/${slug}` }]} />
-      <h1 className="font-display font-extrabold text-4xl">{titleize(slug)}</h1>
+      <h1 className="font-display font-extrabold text-4xl">{SERVICE_SEO[slug]?.h1 || titleize(slug)}</h1>
       <p className="text-slate-400 mt-4 text-sm">Loading…</p>
     </div>
   );
 
   return (
     <>
-      <SEO title={`${s.name} · ${s.tagline}`}
+      <SEO title={SERVICE_SEO[s.slug]?.title || `${s.name} · ${s.tagline}`}
         description={s.overview.substring(0, 160)}
         path={`/services/${s.slug}`}
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Services", path: "/services" }, { name: s.name, path: `/services/${s.slug}` }]}
+        faqs={s.faqs}
         keywords={`${s.name}, ${s.category}, ${s.name} India, ${s.name} online`}
         schema={{ "@context": "https://schema.org", "@type": "Service", name: s.name, description: s.overview, provider: { "@type": "Organization", name: "Vametra AI" } }}
       />
@@ -113,7 +119,7 @@ export default function ServiceDetail() {
         <div className="relative max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-10 items-end">
           <div className="lg:col-span-7">
             <SectionLabel>{s.category}</SectionLabel>
-            <h1 data-testid="service-title" className="font-display font-extrabold tracking-tight text-5xl sm:text-6xl mt-4">{s.name}</h1>
+            <h1 data-testid="service-title" className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-6xl mt-4">{SERVICE_SEO[s.slug]?.h1 || s.name}</h1>
             <p className="mt-4 text-slate-300 text-lg">{s.tagline}</p>
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <span data-testid="service-price-in" className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 text-sm">
@@ -158,7 +164,7 @@ export default function ServiceDetail() {
                     <span className="text-sm font-medium pr-4">{f.q}</span>
                     <CaretDown size={14} className={`text-cyan-300 transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
                   </button>
-                  {openFaq === i && <div className="pb-3 text-sm text-slate-300">{f.a}</div>}
+                  <div className={`pb-3 text-sm text-slate-300 ${openFaq === i ? "" : "hidden"}`}>{f.a}</div>
                 </li>
               ))}
             </ul>
@@ -200,6 +206,22 @@ export default function ServiceDetail() {
         </aside>
       </section>
 
+      <AnswerFirst testId="service-answer" eyebrow={`${s.name} · direct answer`}
+        answer={s.overview}
+        rows={[
+          { label: "Starts at", value: s.priceFrom },
+          { label: "Documents listed", value: String((s.documents || []).length) },
+          { label: "Process steps", value: String((s.process || []).length) },
+          { label: "Handled by", value: s.category === "Govt Documentation" ? "Certified CA" : "Certified trade consultant" },
+        ]}
+        source="Vametra AI Services; DGFT / GST / MCA requirements as published"
+        links={[
+          { to: "/tools/export-readiness", label: "Export readiness assessment" },
+          { to: "/tools/export-incentive-finder", label: "Export incentive calculator" },
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/countries/india", label: "India trade profile" },
+          { to: "/services", label: "All services" },
+        ]} />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>
   );

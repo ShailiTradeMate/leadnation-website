@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { api } from "@/lib/api";
 import { TrendUp, TrendDown, CurrencyCircleDollar, Drop, Lightning, Coins, FlowArrow } from "@phosphor-icons/react";
 
@@ -19,8 +20,9 @@ export default function Intelligence() {
   return (
     <>
       <SEO
-        title="Trade Intelligence Hub · Gold, Silver, Oil, Currency Rates & Trends"
-        description="Live commodity prices, FX rates, and global market trends — curated for global traders, exporters and importers by Vametra AI."
+        title="Trade Intelligence: Rates, Commodities & Trends | Vametra AI"
+        description="Trade intelligence hub for exporters and importers: gold, silver and oil prices, currency rates and global trade trends in one view, linked to duty, demand and buyer data for 56 countries."
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Trade Intelligence", path: "/intelligence" }]}
         path="/intelligence"
         keywords="gold price today, silver price, oil price brent wti, USD INR rate, USD AED rate, trade trends, global market intelligence"
       />
@@ -28,7 +30,7 @@ export default function Intelligence() {
       <PageHero
         testIdPrefix="intel"
         label="Trade Intelligence Hub"
-        title="The numbers that move the world."
+        title="Trade intelligence hub — gold, oil, currency and trade trends."
         sub="Commodity prices, currency rates and global trade trends — refreshed in real-time, distilled for traders."
       />
 
@@ -115,6 +117,21 @@ export default function Intelligence() {
       )}
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12">
+        <AnswerFirst testId="intel-answer" className="!px-0 !max-w-none !mt-0 mb-10"
+          answer="Trade intelligence is the set of numbers that decide whether a shipment is still profitable when it lands: commodity prices that move your input cost, the currency pair you invoice in, and the tariff and demand data for the destination. This hub puts the market indicators on one screen and links each to the duty, demand and buyer tools for {tariffCountries} countries."
+          rows={[
+            { label: "Indicators", value: "Gold · silver · oil · FX" },
+            { label: "Tariff countries", value: "{tariffCountries}" },
+            { label: "Export guides", value: "{guides}" },
+          ]}
+          source="Market feeds as shown on screen; World Bank WITS; OEC World (BACI)"
+          links={[
+            { to: "/tools/product-research", label: "Import demand by HS code" },
+            { to: "/tools/landed-cost-calculator", label: "Landed cost calculator" },
+            { to: "/trade-news", label: "Global trade news" },
+            { to: "/export", label: "Export guides" },
+            { to: "/regions/europe", label: "Europe export hub" },
+          ]} />
         <DownloadCTA />
       </section>
     </>

@@ -3,7 +3,9 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import DownloadCTA from "@/components/DownloadCTA";
 import { titleize } from "@/lib/slug";
 import SEO from "@/components/SEO";
-import { api } from "@/lib/api";
+import { loadEntity } from "@/lib/fetchPageData";
+import { courseSeo, clampTitle } from "@/data/seoTitles";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { GraduationCap, Clock, ListChecks, ArrowLeft, ArrowRight, Brain, CheckCircle } from "@phosphor-icons/react";
 
 const COLORS = {
@@ -20,22 +22,23 @@ export default function AcademyDetail() {
 
   useEffect(() => {
     setCourse(null); setNotFound(false);
-    api.get(`/academy/${slug}`).then((r) => setCourse(r.data)).catch(() => setNotFound(true));
+    loadEntity(`/academy/${slug}`, setCourse, () => setNotFound(true));
   }, [slug]);
 
   if (notFound) return (
     <section className="max-w-3xl mx-auto px-6 pt-32 pb-24 text-center">
+      <SEO title="Not found" description="This page does not exist." noindex />
       <h1 className="font-display font-bold text-3xl">Course not found</h1>
       <Link to="/academy" className="btn-primary mt-6 inline-flex">Back to Academy</Link>
     </section>
   );
   if (!course) return (
     <section className="max-w-7xl mx-auto px-6 pt-32 pb-24">
-      <SEO title={`${titleize(slug)} · Vametra AI Academy`}
+      <SEO title={clampTitle(courseSeo(titleize(slug)).title)}
         description={`${titleize(slug)} — a practical Vametra AI Academy guide for exporters and importers.`}
         path={`/academy/${slug}`}
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Academy", path: "/academy" }, { name: titleize(slug), path: `/academy/${slug}` }]} />
-      <h1 className="font-display font-extrabold text-4xl">{titleize(slug)}</h1>
+      <h1 className="font-display font-extrabold text-4xl">{courseSeo(titleize(slug)).h1}</h1>
       <p className="text-slate-400 mt-4 text-sm">Loading course…</p>
     </section>
   );
@@ -44,7 +47,8 @@ export default function AcademyDetail() {
 
   return (
     <>
-      <SEO title={`${course.title} · Vametra AI Academy`} description={course.summary} path={`/academy/${slug}`}
+      <SEO title={clampTitle(courseSeo(course.title).title)} description={`${course.title} — free ${course.level.toLowerCase()} course for exporters and importers: ${course.summary}`} path={`/academy/${slug}`}
+        breadcrumbs={[{ name: "Home", path: "/" }, { name: "Academy", path: "/academy" }, { name: course.title, path: `/academy/${slug}` }]}
         keywords={`${course.title}, learn ${course.title}, trade course, ${course.level} export training`} />
 
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-28 pb-8">
@@ -52,7 +56,7 @@ export default function AcademyDetail() {
         <div className="grid lg:grid-cols-2 gap-8 items-center">
           <div>
             <div className={`inline-block px-3 py-1 rounded-full text-[10px] font-mono-display tracking-widest uppercase border bg-gradient-to-r ${COLORS[course.level] || COLORS.Beginner}`}>{course.level}</div>
-            <h1 className="font-display font-extrabold text-4xl sm:text-5xl mt-4 leading-[1.05]">{course.title}</h1>
+            <h1 data-testid="course-title" className="font-display font-extrabold text-4xl sm:text-5xl mt-4 leading-[1.05]">{courseSeo(course.title).h1}</h1>
             <p className="mt-4 text-base text-slate-300">{course.summary}</p>
             <div className="mt-5 flex items-center gap-5 text-[11px] text-slate-400 font-mono-display tracking-widest uppercase">
               <span className="flex items-center gap-1"><Clock size={13} />{course.duration}</span>
@@ -108,6 +112,22 @@ export default function AcademyDetail() {
         </section>
       )}
 
+      <AnswerFirst testId="course-answer" eyebrow={`${course.title} · what you will learn`}
+        answer={`${course.summary} This free ${course.level.toLowerCase()} course has ${course.outline.length} lessons (${course.duration}) and links each concept to the live Vametra AI tool that applies it, so what you learn can be checked against real duty, HS and demand data straight away.`}
+        rows={[
+          { label: "Level", value: course.level },
+          { label: "Lessons", value: String(course.outline.length) },
+          { label: "Duration", value: course.duration },
+          { label: "Cost", value: "Free" },
+        ]}
+        source="Vametra AI Academy curriculum"
+        links={[
+          { to: "/academy", label: "All courses" },
+          { to: "/tools/hsn-finder", label: "HS code finder" },
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/tools/export-readiness", label: "Export readiness assessment" },
+          { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
+        ]} />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-12 pb-12"><DownloadCTA /></section>
     </>
   );

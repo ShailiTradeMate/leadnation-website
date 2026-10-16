@@ -1,4 +1,5 @@
 import React from "react";
+import { useFacts, fill } from "@/components/AnswerFirst";
 
 /**
  * Visible answer-first content blocks. The same copy is passed to SEO `faqs`
@@ -18,15 +19,17 @@ export function AnswerBlock({ label, title, children, testId }) {
   );
 }
 
-export function PageFaq({ items = [], heading = "Frequently asked questions", testIdPrefix = "faq" }) {  if (!items.length) return null;
+export function PageFaq({ items = [], heading = "Frequently asked questions", testIdPrefix = "faq" }) {
+  const facts = useFacts();
+  if (!items.length) return null;
   return (
     <section className="max-w-7xl mx-auto px-6 sm:px-10 mt-14" data-testid={`${testIdPrefix}-section`}>
       <h2 className="font-display font-bold text-base md:text-lg">{heading}</h2>
       <div className="mt-5 grid md:grid-cols-2 gap-4">
         {items.map((f, i) => (
           <div key={i} data-testid={`${testIdPrefix}-${i}`} className="glass rounded-2xl p-6">
-            <h3 className="font-display font-bold text-sm">{f.q}</h3>
-            <p className="mt-2.5 text-sm text-slate-400 leading-relaxed">{f.a}</p>
+            <h3 className="font-display font-bold text-sm">{fill(f.q, facts)}</h3>
+            <p className="mt-2.5 text-sm text-slate-400 leading-relaxed">{fill(f.a, facts)}</p>
           </div>
         ))}
       </div>

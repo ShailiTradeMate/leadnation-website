@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PageHero } from "@/components/PageHero";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { api } from "@/lib/api";
 import { ArrowRight } from "@phosphor-icons/react";
@@ -37,8 +38,8 @@ export default function CountriesIndex() {
   return (
     <>
       <SEO
-        title="Country Trade Profiles · Imports, Exports, Customs & Opportunities"
-        description="Country-by-country trade profiles — imports, exports, customs duties, trade agreements, compliance and live news for India, UAE, USA, Australia, Armenia and 250+ markets."
+        title="Country Trade Profiles: Tariffs, Imports, Buyers | Vametra"
+        description="Country trade profiles for India, UAE, USA, Australia and Armenia: imports and exports, applied customs duties, trade agreements, compliance and verified buyer coverage, linked to per-product export guides."
         path="/countries"
         keywords="country trade profiles, India trade, UAE trade, USA imports exports, Australia trade, Armenia EAEU"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Countries", path: "/countries" }]}
@@ -47,7 +48,7 @@ export default function CountriesIndex() {
       <PageHero
         testIdPrefix="countries"
         label="Trade Country Profiles"
-        title="Pick a market. See the playbook."
+        title="Country trade profiles — tariffs, imports and verified buyers."
         sub="Every country profile gives you imports, exports, customs duties, FTAs, compliance and live news in one screen."
       />
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -69,6 +70,22 @@ export default function CountriesIndex() {
           ))}
         </div>
       </section>
+      <AnswerFirst testId="countries-answer-first"
+        answer="A country trade profile answers what a market imports, what duty it applies, which agreements lower that duty and whether verified buyers exist there. Vametra AI publishes written profiles for five markets and backs every one with live tariff data for {tariffCountries} reporting countries and verified buyer records across {buyerCountries} countries, linked to per-product export guides."
+        rows={[
+          { label: "Written country profiles", value: "5" },
+          { label: "Tariff-reporting countries", value: "{tariffCountries}" },
+          { label: "Countries with verified buyers", value: "{buyerCountries}" },
+          { label: "Export guides", value: "{guides}" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; OEC World (BACI); official registries"
+        links={[
+          { to: "/countries/uae", label: "UAE trade profile" },
+          { to: "/countries/usa", label: "USA trade profile" },
+          { to: "/regions", label: "Export regions" },
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/corridors", label: "India trade corridors" },
+        ]} />
       <AnswerBlock testId="countries-answer" label="How to use these profiles"
         title="A market is a customs regime before it is an opportunity">
         <p>

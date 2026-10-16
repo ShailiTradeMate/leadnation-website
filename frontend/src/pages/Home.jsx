@@ -79,7 +79,7 @@ export default function Home() {
   return (
     <div className="relative">
       <SEO
-        title="Vametra AI · AI-Powered Global Trade Intelligence Platform"
+        title="Trade Intelligence Platform for Exporters | Vametra AI"
         description="Search any product, country or HS code. Decode customs duties, calculate landed cost across all Incoterms, discover trade expos and follow live global trade news — powered by the Vametra AI Brain. Free to start, with verified buyers across 32 countries."
         path="/"
         keywords="global trade intelligence, customs duty calculator, HS code finder, landed cost calculator, Incoterms, FTA, export import platform, trade expos, trade news, Vametra AI, Intelligence Beyond Borders"
@@ -157,8 +157,8 @@ export default function Home() {
                 data-testid="home-hero-title"
                 className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-[56px] leading-[1.06]"
               >
-                Rule global trade.<br />
-                <span className="gradient-text">Before cargo moves.</span>
+                The AI trade intelligence platform<br />
+                <span className="gradient-text">for exporters and importers.</span>
               </h1>
             </Reveal>
 
@@ -238,8 +238,8 @@ export default function Home() {
             <Reveal delay={0.3} y={18}>
               <div className="mt-8 flex items-center gap-7 text-xs text-slate-400">
                 <Stat value="32" label="Buyer countries" />
-                <Stat value="32K" label="HS Codes" />
-                <Stat value="1.2M" label="Data points" />
+                <Stat value="5,606" label="HS codes" />
+                <Stat value="56" label="Tariff countries" />
               </div>
             </Reveal>
           </div>

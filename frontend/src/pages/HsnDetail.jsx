@@ -4,8 +4,8 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { loadEntity } from "@/lib/fetchPageData";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
-import { api } from "@/lib/api";
 import { ArrowRight } from "@phosphor-icons/react";
 
 export default function HsnDetail() {
@@ -14,10 +14,10 @@ export default function HsnDetail() {
   const [nf, setNf] = useState(false);
   useEffect(() => {
     setH(null); setNf(false);
-    api.get(`/hsn/${code}`).then((r) => r.data?.error ? setNf(true) : setH(r.data)).catch(() => setNf(true));
+    loadEntity(`/hsn/${code}`, setH, () => setNf(true));
   }, [code]);
 
-  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">HSN {code} not found</h1><Link to="/tools/hsn-finder" className="btn-primary mt-6 inline-flex">Try HSN Finder</Link></div>;
+  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><SEO title="Not found" description="This page does not exist." noindex /><h1 className="font-display font-extrabold text-4xl">HSN {code} not found</h1><Link to="/tools/hsn-finder" className="btn-primary mt-6 inline-flex">Try HSN Finder</Link></div>;
   if (!h) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-32">

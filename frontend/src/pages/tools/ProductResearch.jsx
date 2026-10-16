@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ToolShell } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { TradeStatsTool } from "@/components/engines/CustomsEngineTools";
 import { ArrowSquareOut, ChartLineUp } from "@phosphor-icons/react";
@@ -35,15 +36,15 @@ export default function ProductResearch() {
   const initial = { hs: p.get("hs") || "" };
   return (
     <>
-      <SEO title="Product Research · Real World Import Demand by HS Code (OEC / BACI)"
-        description="See who imports your product and how much — top importing and exporting countries, total world trade value and multi-year trend for any of 5,606 HS codes. Real OEC World / CEPII BACI data, not estimates."
+      <SEO title="Export Product Research: Real Import Demand | Vametra AI"
+        description="Free export product research tool: top importing countries, world trade value and multi-year trend for any of 5,606 HS codes, from OEC World / CEPII BACI customs data — measured flows, not estimates."
         path="/tools/product-research"
         keywords="export product research, top importing countries by product, world import demand by HS code, trade statistics by product, best export markets"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }, { name: "Product Research", path: "/tools/product-research" }]}
         faqs={FAQ}
       />
       <ToolShell testIdPrefix="pr" label="Product Research"
-        title="Which countries actually buy your product?"
+        title="Export product research with real import demand by HS code."
         sub="Pick any product or HS code. We show the latest-year world trade value, the top importing and exporting countries with their share, and the multi-year trend — straight from OEC World / CEPII BACI. Then the Brain tells you which market to cost first.">
         <div className="space-y-5">
           <TradeStatsTool initial={initial} />
@@ -53,6 +54,22 @@ export default function ProductResearch() {
           </div>
         </div>
       </ToolShell>
+      <AnswerFirst testId="pr-answer-first"
+        answer="Export product research means checking that a market measurably imports your product before you spend on it. Vametra AI shows, for any of {hsCodes} HS codes, the latest published world trade value, the ranked importing and exporting countries with share, and the multi-year trend — from OEC World / CEPII BACI, built from national customs declarations."
+        rows={[
+          { label: "HS codes researchable", value: "{hsCodes}" },
+          { label: "Data type", value: "Measured bilateral flows" },
+          { label: "Granularity", value: "HS6 · latest published year + trend" },
+          { label: "Published export guides", value: "{guides}" },
+        ]}
+        source="OEC World (CEPII BACI / UN Comtrade)"
+        links={[
+          { to: "/tools/duty-calculator", label: "Check duty for the top markets" },
+          { to: "/tools/landed-cost-calculator", label: "Landed cost calculator" },
+          { to: "/export", label: "Export guides by product" },
+          { to: "/regions/middle-east", label: "Middle East export hub" },
+          { to: "/tools/find-buyers", label: "Find verified buyers" },
+        ]} />
       <AnswerBlock testId="pr-answer" label="Reading the output"
         title="Demand ranking is a shortlist, not an answer">
         <p>

@@ -4,6 +4,9 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { loadEntity } from "@/lib/fetchPageData";
+import { corridorSeo } from "@/data/seoTitles";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
 import { CountryGuides } from "@/components/LinkGraph";
@@ -39,7 +42,7 @@ export function CorridorsIndex() {
 
   return (
     <>
-      <SEO title="Trade Corridors · India to UAE, USA, Australia, Armenia"
+      <SEO title="India Trade Corridors: Duty, FTA, Shipping | Vametra AI"
         description="Trade corridor playbooks — export process, import clearance, customs documents, duties, taxes and logistics for every major India lane, linked to per-product export guides."
         path="/corridors"
         keywords="India UAE trade corridor, India USA trade, India Australia ECTA, India Armenia EAEU, trade lanes"
@@ -47,7 +50,7 @@ export function CorridorsIndex() {
         faqs={INDEX_FAQ}
       />
       <PageHero testIdPrefix="corridors" label="Trade Corridors"
-        title="From your factory to their dock."
+        title="India trade corridors — duty, FTA and shipping by destination."
         sub="The export and import playbook for every major trade lane — duties, docs, transit time, opportunities."
       />
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -107,21 +110,21 @@ export default function CorridorDetail() {
   const [guides, setGuides] = useState(null);
   useEffect(() => {
     setC(null); setNf(false); setGuides(null);
-    api.get(`/corridor/${slug}`).then((r) => r.data?.error ? setNf(true) : setC(r.data)).catch(() => setNf(true));
+    loadEntity(`/corridor/${slug}`, setC, () => setNf(true));
     const dest = String(slug || "").split("india-to-")[1];
     if (dest) api.get(`/seo/guides-by-country/${dest}`, { timeout: 120000 }).then((r) => setGuides(r.data)).catch(() => {});
   }, [slug]);
 
-  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Corridor not found</h1><Link to="/corridors" className="btn-primary mt-6 inline-flex">Browse corridors</Link></div>;
+  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><SEO title="Not found" description="This page does not exist." noindex /><h1 className="font-display font-extrabold text-4xl">Corridor not found</h1><Link to="/corridors" className="btn-primary mt-6 inline-flex">Browse corridors</Link></div>;
   if (!c) {
     const n = titleize(slug).replace(/\bIndia To\b/i, "India →");
     return (
       <div className="max-w-7xl mx-auto px-6 py-32">
-        <SEO title={`${n} Trade Corridor — Customs, Documents, Duties`}
+        <SEO title={String(slug || "").startsWith("india-to-") ? corridorSeo(titleize(String(slug).split("india-to-")[1])).title : `${n} Trade Corridor — Customs, Documents, Duties`}
           description={`${n} trade corridor playbook: export process, import clearance, customs regime, duties and taxes, required documents and logistics — Vametra AI.`}
           path={`/corridors/${slug}`}
           breadcrumbs={[{ name: "Home", path: "/" }, { name: "Trade Corridors", path: "/corridors" }, { name: n, path: `/corridors/${slug}` }]} />
-        <h1 className="font-display font-extrabold text-4xl">{n}</h1>
+        <h1 className="font-display font-extrabold text-4xl">{String(slug || "").startsWith("india-to-") ? corridorSeo(titleize(String(slug).split("india-to-")[1])).h1 : n}</h1>
         <p className="text-slate-400 mt-4 text-sm">Loading…</p>
       </div>
     );
@@ -153,8 +156,8 @@ export default function CorridorDetail() {
 
   return (
     <>
-      <SEO title={`${c.from} → ${c.to} Trade Corridor — Customs, Documents, Duties`}
-        description={`${c.tagline}. Complete playbook: export process, import process, customs information, documents, duties and opportunities.`}
+      <SEO title={c.from === "India" ? corridorSeo(c.to).title : `${c.from} → ${c.to} Trade Corridor — Customs, Documents, Duties`}
+        description={`Export from ${c.from} to ${c.to}: ${c.tagline}. Export and import process, customs regime, applied duty and taxes, required documents and logistics, linked to per-product export guides.`}
         path={`/corridors/${c.slug}`}
         keywords={`${c.from} to ${c.to} trade, ${c.from} ${c.to} export, ${c.from} ${c.to} duty, ${c.from} ${c.to} customs`}
         breadcrumbs={[
@@ -168,9 +171,9 @@ export default function CorridorDetail() {
       <section className="relative pt-16 pb-10">
         <div className="aurora" />
         <div className="relative max-w-7xl mx-auto px-6 sm:px-10">
-          <SectionLabel>Trade Corridor</SectionLabel>
-          <h1 data-testid="cd-title" className="font-display font-extrabold tracking-tight text-5xl sm:text-7xl mt-4 flex flex-wrap items-center gap-3">
-            <span>{c.fromFlag}</span> {c.from} <ArrowsLeftRight size={36} className="text-cyan-300 mx-2" /> {c.to} <span>{c.toFlag}</span>
+          <SectionLabel>Trade Corridor · {c.fromFlag} {c.from} <ArrowsLeftRight size={12} className="inline text-cyan-300 mx-1" /> {c.to} {c.toFlag}</SectionLabel>
+          <h1 data-testid="cd-title" className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-6xl mt-4 max-w-4xl">
+            {c.from === "India" ? corridorSeo(c.to).h1 : `${c.from} → ${c.to} trade corridor — duty, documents and shipping`}
           </h1>
           <p className="mt-4 text-slate-300 text-lg max-w-3xl">{c.tagline}</p>
         </div>
@@ -231,6 +234,22 @@ export default function CorridorDetail() {
           cannot hold is worse than no quote.
         </p>
       </AnswerBlock>
+      <AnswerFirst testId="cd-answer-first" eyebrow={`${c.from} → ${c.to} · direct answer`}
+        answer={`To export from ${c.from} to ${c.to}: ${c.tagline}. ${c.customsInfo || ""} The applied duty and any preferential rate for your HS code are read live from World Bank WITS, and each established product on this lane links to an export guide with measured import demand and verified buyer coverage.`}
+        rows={[
+          { label: "Documents listed", value: String((c.documents || []).length) },
+          { label: "Established products", value: String((c.popularProducts || []).length) },
+          { label: "Export guides on this lane", value: guides?.total != null ? String(guides.total) : "See below" },
+          { label: "Duty source", value: "WITS / TRAINS · HS6" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; customs authorities of both countries as published"
+        links={[
+          { to: "/tools/duty-calculator", label: `Duty into ${c.to}` },
+          { to: "/tools/landed-cost-calculator", label: "Landed cost calculator" },
+          { to: "/tools/find-buyers", label: `Buyers in ${c.to}` },
+          { to: "/export", label: "Export guides" },
+          { to: "/corridors", label: "All corridors" },
+        ]} />
       <PageFaq items={faqs} heading={`${c.from} → ${c.to} — frequently asked questions`} testIdPrefix="cd-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ToolShell, CTARow } from "@/components/ToolShell";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
@@ -61,15 +62,15 @@ export default function ExportReadiness() {
 
   return (
     <>
-      <SEO title="Export Readiness Score · Free 60-second Assessment"
-        description="Score your export readiness in 60 seconds. Get a personalised, actionable roadmap to your first international shipment — registrations, certifications, packaging and market pricing, in priority order. Free."
+      <SEO title="Export Readiness Assessment: Free 60-Sec Score | Vametra AI"
+        description="Free export readiness assessment: answer six questions, get a score and a prioritised roadmap to your first shipment — IEC, RCMC, GST/LUT, certifications, packaging and market pricing."
         path="/tools/export-readiness"
         keywords="export readiness score, export checklist, India exporter readiness, ready to export"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }, { name: "Export Readiness Score", path: "/tools/export-readiness" }]}
         faqs={FAQ}
       />
       <ToolShell testIdPrefix="er" label="Export Readiness"
-        title="Are you ready to export? Find out in 60 seconds."
+        title="Export readiness assessment — your score in 60 seconds."
         sub="Six simple questions. One personalised roadmap. The first step toward your first international shipment."
       >
         <div className="max-w-3xl">
@@ -139,6 +140,22 @@ export default function ExportReadiness() {
           )}
         </div>
       </ToolShell>
+      <AnswerFirst testId="er-answer-first"
+        answer="An export readiness assessment checks whether a business has the registrations, product compliance, packaging and pricing in place to ship abroad. Vametra AI's six-question version scores you in about 60 seconds and returns the steps in the order they unblock each other — IEC and RCMC before incentives, classification before duty, landed cost before a quote."
+        rows={[
+          { label: "Questions", value: "6" },
+          { label: "Time", value: "≈ 60 seconds" },
+          { label: "Output", value: "Score + prioritised roadmap" },
+          { label: "Cost", value: "Free · no signup" },
+        ]}
+        source="Vametra AI readiness model; DGFT registration requirements"
+        links={[
+          { to: "/services/iec-registration", label: "IEC code registration" },
+          { to: "/services/rcmc-registration", label: "RCMC certificate" },
+          { to: "/tools/hsn-finder", label: "Find your HS code" },
+          { to: "/academy/export-process-101", label: "Export process 101 course" },
+          { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
+        ]} />
       <AnswerBlock testId="er-answer" label="What readiness actually means"
         title="Readiness is a sequence, not a score">
         <p>

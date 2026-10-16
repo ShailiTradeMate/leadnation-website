@@ -18,13 +18,14 @@ const KINDS = [
 export function DirectoryHub() {
   return (
     <>
-      <SEO title="Vametra AI Directories · Exporters, Importers, Suppliers, CHA & Agents"
-        description="Verified directories of Indian exporters, global importers, suppliers, customs house agents and export agents — by Vametra AI."
+      <SEO title="Exporters Importers Directory: CHA, Agents | Vametra AI"
+        description="Exporters importers directory — sample listings of exporters, importers, suppliers and customs house agents while verified coverage is built. For live verified buyers use Buyer Intelligence."
+        noindex
         path="/directory"
         keywords="Indian exporters directory, global importers directory, customs house agents India, export agents directory"
       />
       <PageHero testIdPrefix="directory" label="Vametra AI Directory"
-        title="Verified directories. Verified opportunities."
+        title="Exporters importers directory — CHA, agents and suppliers."
         sub="Browse the largest, most-trusted directory of exporters, importers, suppliers and trade agents."
       />
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -60,8 +61,8 @@ export default function DirectoryDetail() {
 
   return (
     <>
-      <SEO title={`${label} Directory · Verified by Vametra AI`}
-        description={`Verified ${label.toLowerCase()} directory — searchable by name, country and category. Powered by Vametra AI.`}
+      <SEO title={`${label} Directory · Vametra AI`} noindex
+        description={`${label} directory — sample listings searchable by name, country and category while verified coverage is built.`}
         path={`/directory/${kind}`}
         keywords={`${label} directory, verified ${label.toLowerCase()}, India ${label.toLowerCase()}`}
       />

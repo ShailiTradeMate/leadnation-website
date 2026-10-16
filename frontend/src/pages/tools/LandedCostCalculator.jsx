@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ToolShell } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { CommandCenterTool } from "@/components/engines/CustomsEngineTools";
 import { ArrowSquareOut, Lightning } from "@phosphor-icons/react";
@@ -39,8 +40,8 @@ export default function LandedCostCalculator() {
   const initial = { hs: p.get("hs") || "", from: p.get("from") || "", to: p.get("to") || "" };
   return (
     <>
-      <SEO title="Landed Cost Calculator · FOB → CIF → Landed with Real Duty, VAT & FX"
-        description="Build your full export cost waterfall — Ex-Works, FOB, CIF and landed cost at destination with live WITS duty, VAT/GST and exchange rates. Compare what your buyer pays across markets and quote in two currencies."
+      <SEO title="Landed Cost Calculator: FOB to Landed Price | Vametra AI"
+        description="Free landed cost calculator: Ex-Works → FOB → CIF → landed at destination with live WITS duty, VAT/GST and FX for 56 countries. Compare buyer landed cost across markets, quote in two currencies."
         path="/tools/landed-cost-calculator"
         keywords="landed cost calculator, FOB CIF calculator, export costing, import cost calculator, DDP price calculator, buyer landed cost comparison"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }, { name: "Landed Cost Calculator", path: "/tools/landed-cost-calculator" }]}
@@ -48,7 +49,7 @@ export default function LandedCostCalculator() {
         schema={{ "@context": "https://schema.org", "@type": "WebApplication", name: "Vametra AI Landed Cost Calculator", applicationCategory: "BusinessApplication", operatingSystem: "Web", offers: { "@type": "Offer", price: "0", priceCurrency: "USD" } }}
       />
       <ToolShell testIdPrefix="lcc" label="Landed Cost Calculator"
-        title="Your true landed cost — with real duty, VAT and FX."
+        title="Landed cost calculator — FOB → CIF → landed with real duty."
         sub="Enter your per-unit costs once and set your own export and import countries. The Trade Command Center engine applies the destination's live tariff and VAT, converts to your buyer's currency, ranks the markets where your buyer pays the least, and the Vametra AI Brain reads the numbers back to you.">
         <div className="space-y-5">
           <CommandCenterTool initial={initial} showIntro={false} />
@@ -58,6 +59,22 @@ export default function LandedCostCalculator() {
           </div>
         </div>
       </ToolShell>
+      <AnswerFirst testId="lcc-answer-first"
+        answer="A landed cost calculator adds freight, insurance, import duty, destination VAT/GST and clearance to your factory price to show what the buyer actually pays. Vametra AI applies the live applied or preferential tariff for your HS code and lane from World Bank WITS across {tariffCountries} countries, converts to the buyer's currency and ranks the cheapest markets."
+        rows={[
+          { label: "Incoterm waterfall", value: "EXW → FOB → CIF → landed" },
+          { label: "Duty source", value: "WITS / TRAINS · HS6" },
+          { label: "Destination markets", value: "{tariffCountries}" },
+          { label: "Currencies", value: "Yours + buyer's" },
+        ]}
+        source="World Bank WITS / UNCTAD TRAINS; destination VAT/GST schedules"
+        links={[
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/tools/product-research", label: "Which markets import most" },
+          { to: "/academy/incoterms-2020", label: "Incoterms 2020 course" },
+          { to: "/corridors/india-to-usa", label: "India → USA corridor" },
+          { to: "/export/basmati-rice", label: "Basmati rice export guides" },
+        ]} />
       <AnswerBlock testId="lcc-answer" label="Method"
         title="Where exporters lose money in the waterfall">
         <p>

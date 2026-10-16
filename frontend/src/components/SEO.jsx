@@ -1,6 +1,7 @@
 import React from "react";
 import { Helmet } from "react-helmet-async";
 import { SITE_URL, BRAND_NAME, LEGAL_NAME, TAGLINE, PHONE, EMAIL, SAME_AS, FOUNDED, FOUNDER } from "@/lib/brand";
+import { useFacts, fillFaqs, fill } from "@/components/AnswerFirst";
 
 const SITE = SITE_URL;
 const DEFAULT_IMAGE = `${SITE}/og-default.png`;
@@ -23,11 +24,13 @@ export default function SEO({
   keywords,
   noindex = false,
 }) {
+  const facts = useFacts();
   const fullTitle = title?.includes(BRAND_NAME) ? title : `${title} · ${BRAND_NAME}`;
   const url = `${SITE}${path}`;
+  description = fill(description, facts);
   const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
   if (breadcrumbs?.length) schemas.push(breadcrumbSchema(breadcrumbs));
-  if (faqs?.length) schemas.push(faqSchema(faqs));
+  if (faqs?.length) schemas.push(faqSchema(fillFaqs(faqs, facts)));
   return (
     <Helmet prioritizeSeoTags>
       <title>{fullTitle}</title>

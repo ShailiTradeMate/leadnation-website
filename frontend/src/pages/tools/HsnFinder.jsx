@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ToolShell, Card } from "@/components/ToolShell";
 import SEO from "@/components/SEO";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
@@ -66,15 +67,15 @@ export default function HsnFinder() {
   return (
     <>
       <SEO
-        title="HS Code Finder · All 5,606 HS Codes with Import Duty for Any Trade Lane"
-        description="Find the correct HS / HSN code for any product from the complete WCO HS-2022 nomenclature. Pick your exporting and importing country to see the live MFN and preferential import duty, destination VAT and origin-specific export benefits. Free, instant, global."
+        title="HS Code Finder: 5,606 Codes with Import Duty | Vametra AI"
+        description="Free HS code finder covering all 5,606 WCO HS-2022 codes. Search by product name, then see live import duty, FTA rate and destination VAT for any of 56 countries."
         path="/tools/hsn-finder"
         keywords="HS code finder, HSN code finder, HS code search, harmonized system code lookup, import duty by HS code, HS code for laptop, HS code for basmati rice, tariff code lookup"
         breadcrumbs={[{ name: "Home", path: "/" }, { name: "Tools", path: "/tools" }, { name: "HS Code Finder", path: "/tools/hsn-finder" }]}
         faqs={FAQ}
       />
       <ToolShell testIdPrefix="hsn" label="HSN Finder"
-        title="Find your HS code — then see what it costs on your trade lane."
+        title="HS code finder with import duty for any trade lane."
         sub="Type the product as you'd say it ('laptop', 'agarbatti', 'cotton t-shirt'). We rank the matching lines from all 5,606 WCO HS-2022 codes, then pull the live import duty into your importing country — including any preferential rate for your exporting country — plus destination VAT and origin-specific export benefits.">
         <div className="grid lg:grid-cols-12 gap-8">
           <form onSubmit={submit} className="lg:col-span-5 min-w-0 glass-strong rounded-3xl p-6 sm:p-7 space-y-4">
@@ -170,6 +171,22 @@ export default function HsnFinder() {
           </div>
         </div>
       </ToolShell>
+      <AnswerFirst testId="hsn-answer-first"
+        answer="An HS code finder matches your product description to the six-digit Harmonized System code customs uses worldwide. Vametra AI searches all {hsCodes} WCO HS-2022 lines, then shows the live import duty, preferential rate and destination VAT for your exact origin-destination lane — so classification and cost are checked in one step."
+        rows={[
+          { label: "HS codes indexed", value: "{hsCodes}" },
+          { label: "Nomenclature", value: "WCO HS-2022 · 6-digit" },
+          { label: "Duty lanes", value: "{tariffCountries} reporting countries" },
+          { label: "Search", value: "Product name or code prefix" },
+        ]}
+        source="WCO HS-2022 nomenclature; World Bank WITS / UNCTAD TRAINS tariffs"
+        links={[
+          { to: "/tools/duty-calculator", label: "Custom duty calculator" },
+          { to: "/tools/product-research", label: "Import demand by HS code" },
+          { to: "/export", label: "Export guides" },
+          { to: "/countries/india", label: "India trade profile" },
+          { to: "/academy/trade-documentation", label: "Trade documentation course" },
+        ]} />
       <AnswerBlock testId="hsn-answer" label="Classification in practice"
         title="Get the code right before anything else">
         <p>

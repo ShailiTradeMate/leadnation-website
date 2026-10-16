@@ -4,6 +4,9 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
+import { loadEntity } from "@/lib/fetchPageData";
+import { productSeo } from "@/data/seoTitles";
+import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { titleize } from "@/lib/slug";
 import { api } from "@/lib/api";
@@ -38,7 +41,7 @@ export function ProductsIndex() {
 
   return (
     <>
-      <SEO title="Product Trade Profiles · Basmati, Spices, Pharma & More"
+      <SEO title="Export Products from India: HS Code, Duty, Buyers | Vametra"
         description="Premium product trade profiles — global demand, top markets, compliance and opportunities for India's biggest export categories, each linked to per-market export guides with applied import duty."
         path="/products"
         keywords="export product list, basmati rice export, spices export, agarbatti export, pharmaceuticals export, textiles export"
@@ -46,7 +49,7 @@ export function ProductsIndex() {
         faqs={INDEX_FAQ}
       />
       <PageHero testIdPrefix="products" label="Product Trade Profiles"
-        title="Pick a product. See the global playbook."
+        title="Export products from India — HS code, duty and buyers per product."
         sub="Demand, top buyers, compliance and trade opportunities — for every product, in one page."
       />
       <section className="max-w-7xl mx-auto px-6 sm:px-10">
@@ -108,21 +111,21 @@ export default function ProductDetail() {
   const [hub, setHub] = useState(null);
   useEffect(() => {
     setP(null); setNf(false); setHub(null);
-    api.get(`/product/${slug}`).then((r) => r.data?.error ? setNf(true) : setP(r.data)).catch(() => setNf(true));
+    loadEntity(`/product/${slug}`, setP, () => setNf(true));
     const seoSlug = SEO_PRODUCT_SLUG[String(slug || "").toLowerCase()];
     if (seoSlug) api.get(`/seo/product-hub/${seoSlug}`, { timeout: 120000 }).then((r) => setHub(r.data)).catch(() => {});
   }, [slug]);
 
-  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><h1 className="font-display font-extrabold text-4xl">Product not found</h1><Link to="/products" className="btn-primary mt-6 inline-flex">Browse products</Link></div>;
+  if (nf) return <div className="max-w-7xl mx-auto px-6 py-32 text-center"><SEO title="Not found" description="This page does not exist." noindex /><h1 className="font-display font-extrabold text-4xl">Product not found</h1><Link to="/products" className="btn-primary mt-6 inline-flex">Browse products</Link></div>;
   if (!p) {
     const n = titleize(slug);
     return (
       <div className="max-w-7xl mx-auto px-6 py-32">
-        <SEO title={`${n} — Export Guide, HSN, Compliance & Markets`}
+        <SEO title={productSeo(n).title}
           description={`${n} export profile: HSN code, demand, leading markets, compliance and certifications, with applied import duty per destination — Vametra AI.`}
           path={`/products/${slug}`}
           breadcrumbs={[{ name: "Home", path: "/" }, { name: "Products", path: "/products" }, { name: n, path: `/products/${slug}` }]} />
-        <h1 className="font-display font-extrabold text-4xl">{n}</h1>
+        <h1 className="font-display font-extrabold text-4xl">{productSeo(n).h1}</h1>
         <p className="text-slate-400 mt-4 text-sm">Loading…</p>
       </div>
     );
@@ -138,8 +141,8 @@ export default function ProductDetail() {
 
   return (
     <>
-      <SEO title={`${p.name} — Export Guide, HSN, Compliance & Markets`}
-        description={`${p.overview.substring(0, 160)}`}
+      <SEO title={productSeo(p.name).title}
+        description={`${p.name} export from India: HSN ${p.hsn}, ${p.overview.substring(0, 110)}`}
         path={`/products/${p.slug}`}
         keywords={`${p.name} export, ${p.name} HSN, ${p.name} compliance, ${p.name} buyers, export ${p.name} from India`}
         breadcrumbs={[
@@ -155,7 +158,7 @@ export default function ProductDetail() {
         <div className="relative max-w-7xl mx-auto px-6 sm:px-10 grid lg:grid-cols-12 gap-10 items-end">
           <div className="lg:col-span-7">
             <SectionLabel>Product Trade Profile · HSN {p.hsn}</SectionLabel>
-            <h1 data-testid="pd-title" className="font-display font-extrabold tracking-tight text-5xl sm:text-6xl mt-4">{p.name}</h1>
+            <h1 data-testid="pd-title" className="font-display font-extrabold tracking-tight text-4xl sm:text-5xl lg:text-6xl mt-4">{productSeo(p.name).h1}</h1>
             <p className="mt-5 text-slate-300 text-lg max-w-2xl">{p.overview}</p>
             <div className="mt-6 flex flex-wrap gap-2 text-xs">
               <Link to={`/hsn/${p.hsn}`} className="glass px-3 py-1.5 rounded-full hover:border-cyan-400/30">HSN {p.hsn}</Link>
@@ -247,6 +250,22 @@ export default function ProductDetail() {
           a single destination, with the source and data year attached to every figure.
         </p>
       </AnswerBlock>
+      <AnswerFirst testId="pd-answer-first" eyebrow={`${p.name} · direct answer`}
+        answer={`${p.name} export from India starts with HSN ${p.hsn}. ${p.overview} The applied import duty per destination comes from World Bank WITS, demand from OEC/BACI, and verified buyers from official registries — each market we publish links to its own export guide below.`}
+        rows={[
+          { label: "HSN", value: String(p.hsn) },
+          { label: "Duty source", value: "WITS / TRAINS · HS6" },
+          { label: "Demand source", value: "OEC World (BACI)" },
+          { label: "Verified buyer countries", value: "{buyerCountries}" },
+        ]}
+        source="WCO HS-2022; World Bank WITS / UNCTAD TRAINS; OEC World (BACI); official registries"
+        links={[
+          { to: `/tools/duty-calculator?hs=${String(p.hsn).replace(/\D/g, "").slice(0, 6)}`, label: `Duty for ${p.name}` },
+          { to: `/tools/find-buyers`, label: `Buyers for ${p.name}` },
+          { to: "/export", label: "Export guides" },
+          { to: "/products", label: "All export products" },
+          { to: "/corridors/india-to-uae", label: "India → UAE corridor" },
+        ]} />
       <PageFaq items={faqs} heading={`Exporting ${p.name} — frequently asked questions`} testIdPrefix="pd-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-16 pb-12"><DownloadCTA /></section>
     </>

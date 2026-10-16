@@ -1,0 +1,48 @@
+// Part 6 keyword map for detail templates — one primary keyword per page, H1 contains it verbatim.
+const B = "Vametra AI";
+
+export const SERVICE_SEO = {
+  "iec-registration": { kw: "iec code registration process", title: `IEC Code Registration Process 2026: Steps, Fees | ${B}`, h1: "IEC code registration process — documents, fees and timeline" },
+  "rcmc-registration": { kw: "rcmc certificate apply online", title: `RCMC Certificate Apply Online: Council & Docs | ${B}`, h1: "RCMC certificate apply online — which council, what documents" },
+  "gst-registration": { kw: "gst for exporters", title: `GST for Exporters: LUT, Refunds, Registration | ${B}`, h1: "GST for exporters — LUT, zero-rated supply and refunds" },
+  "company-registration": { kw: "company registration for export business", title: `Company Registration for Export Business India | ${B}`, h1: "Company registration for export business — structure to IEC" },
+  "business-website": { kw: "export business website", title: `Export Business Website: Build to Win Buyers | ${B}`, h1: "Export business website that buyers trust" },
+  "export-consulting": { kw: "export consultant india", title: "Export Consultant India: Data-Backed Market Entry | Vametra", h1: "Export consultant India — data-backed market entry" },
+  "import-consulting": { kw: "import consultant india", title: "Import Consultant India: Duty, Sourcing, Clearance | Vametra", h1: "Import consultant India — duty, sourcing and clearance" },
+  "compliance-consulting": { kw: "trade compliance consulting", title: `Trade Compliance Consulting: Origin, CBAM | ${B}`, h1: "Trade compliance consulting — rules of origin to sanctions" },
+  "market-entry": { kw: "export market entry strategy", title: `Export Market Entry Strategy: Pick the Market | ${B}`, h1: "Export market entry strategy built on duty and demand data" },
+  "product-sourcing": { kw: "supplier sourcing service", title: `Supplier Sourcing Service: Verified Makers | ${B}`, h1: "Supplier sourcing service — verified Indian manufacturers" },
+  "buyer-discovery-service": { kw: "buyer discovery service", title: `Buyer Discovery Service: Verified Importers | ${B}`, h1: "Buyer discovery service — evidence-backed importers" },
+};
+
+export const countrySeo = (name) => ({
+  title: `${name} Trade Profile: Tariffs, Imports, Buyers | Vametra AI`,
+  h1: `${name} trade profile — tariffs, imports and verified buyers`,
+});
+
+export const corridorSeo = (to) => ({
+  title: `Export from India to ${to}: Duty, FTA, Shipping | Vametra AI`,
+  h1: `Export from India to ${to} — duty, FTA and shipping`,
+});
+
+export const productSeo = (name) => ({
+  title: `${name} Export from India: HS Code, Duty, Buyers | Vametra AI`,
+  h1: `${name} export from India — HS code, duty and buyers`,
+});
+
+export const industrySeo = (name) => ({
+  title: `${name} Exports from India: Trade Profile | Vametra AI`,
+  h1: `${name} exports from India — markets, duty and buyers`,
+});
+
+export const courseSeo = (title) => ({
+  title: `${title}: Free Course for Exporters | Vametra AI`,
+  h1: `${title} — free course`,
+});
+
+// Google truncates around 60 chars; keep the keyword at the front so nothing important is cut.
+export const clampTitle = (t) => {
+  if (t.length <= 60) return t;
+  const short = t.replace(" | Vametra AI", " | Vametra");
+  return short.length <= 60 ? short : short.replace(/ \| Vametra$/, "");
+};
