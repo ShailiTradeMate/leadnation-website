@@ -180,7 +180,7 @@ export default function Nav({ active = "/" }) {
           </nav>
 
           <div className="flex items-center gap-1 sm:gap-3 shrink-0">
-            <NotifBell />
+            {isAuthed && <NotifBell />}
             <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
               <MagnifyingGlass size={16} weight="bold" />
             </Link>
