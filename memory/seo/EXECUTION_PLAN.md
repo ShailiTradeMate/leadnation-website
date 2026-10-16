@@ -17,7 +17,7 @@ Engineering Goods & Machinery · publish strictly by data sufficiency, never by 
 | 3 | Server-side pre-rendering for SEO routes (AI crawler visibility) | ⬜ **next** |
 | 4 | Geography: region hubs + country/corridor pages (Europe + Middle East + CN/UK/NL/DE/SG/SA) | ⬜ |
 | 5 | Publish product × country batch 1 (gate-approved only) + full internal-link graph | ⬜ |
-| 6 | Answer-first rewrites of the 47 existing pages + acceptance report (16 items) | ⬜ |
+| 6 | Answer-first rewrites of the 71 existing pages + acceptance report (16 items) | ✅ **DONE 16 Oct 2026** (preview; item 16 = production render check after deploy) — see `PART6_ACCEPTANCE.md` |
 
 ---
 ## PART 1 — Data foundation ✅ DONE

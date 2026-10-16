@@ -106,8 +106,15 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
   7 were cold (6–12 s) and are now cached — this was the "cache miss" ChatGPT hit on /about.
 - Backlog: Google Business Profile (revisit when eligible); Home "32K HS Codes" / "1.2M Data points" stats unverified.
 
+## Part 6 — answer-first rewrites — 16 Oct 2026 (preview verified, iteration_75, NOT deployed)
+- 71 pages: keyword-led titles ≤60 + H1 with keyword (`data/seoTitles.js`, `seo/PART6_PAGE_PLAN.md`), `AnswerFirst`
+  block (direct answer + dated data table from new `GET /api/seo/facts` + 5 links) on 28 templates, FAQPage/Breadcrumb.
+- Soft-404 hardening on 8 detail templates via `loadEntity()`; genuine not-found now `noindex`; loading state = final title.
+- Nav bell only when logged in. CTARow "Download app" removed. Home stats → 5,606 HS codes / 56 tariff countries.
+- Prerender warm now 56 key pages. Acceptance report: `memory/seo/PART6_ACCEPTANCE.md` (15/16 pass, #16 after deploy).
+
 ## Priorities / next actions
-- **P0:** Deploy, then re-check `https://vametra.com/about` as GPTBot/ChatGPT-User and `/api/answers/md/about`.
+- **P0:** Deploy, then Googlebot-render audit of the 71 Part-6 URLs + `/about` as GPTBot; `/api/answers/md/about`.
 - **P0:** Deploy, then: GSC "Validate fix" on Product snippets, re-run `audit_2026-10-10/guides_audit.py`
   once the edge shell cache has expired (or ask platform to purge the 14 URLs), re-inspect 3 guides.
 - **P0:** Deploy, then re-audit the export guides with Googlebot UA and report rendered/shell counts.

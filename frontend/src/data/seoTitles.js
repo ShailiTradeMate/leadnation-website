@@ -15,34 +15,44 @@ export const SERVICE_SEO = {
   "buyer-discovery-service": { kw: "buyer discovery service", title: `Buyer Discovery Service: Verified Importers | ${B}`, h1: "Buyer discovery service — evidence-backed importers" },
 };
 
+// Search-friendly short forms for long official names (titles must stay ≤60 chars).
+const SHORT = {
+  "United Arab Emirates": "UAE", "United States of America": "USA", "United States": "USA",
+  "United Kingdom": "UK", "Textiles & Apparel": "Textiles", "Cotton Textiles & Apparel": "Cotton Textiles",
+  "Engineering Goods & Machinery": "Engineering Goods", "Food Processing": "Food Processing",
+};
+const short = (n) => SHORT[n] || n;
+
 export const countrySeo = (name) => ({
-  title: `${name} Trade Profile: Tariffs, Imports, Buyers | Vametra AI`,
-  h1: `${name} trade profile — tariffs, imports and verified buyers`,
+  title: clampTitle(`${short(name)} Trade Profile: Tariffs, Imports, Buyers | Vametra AI`),
+  h1: `${short(name)} trade profile — tariffs, imports and verified buyers`,
 });
 
 export const corridorSeo = (to) => ({
-  title: `Export from India to ${to}: Duty, FTA, Shipping | Vametra AI`,
-  h1: `Export from India to ${to} — duty, FTA and shipping`,
+  title: clampTitle(`Export from India to ${short(to)}: Duty, FTA, Shipping | Vametra AI`),
+  h1: `Export from India to ${short(to)} — duty, FTA and shipping`,
 });
 
 export const productSeo = (name) => ({
-  title: `${name} Export from India: HS Code, Duty, Buyers | Vametra AI`,
-  h1: `${name} export from India — HS code, duty and buyers`,
+  title: clampTitle(`${short(name)} Export from India: HS Code, Duty, Buyers | Vametra AI`),
+  h1: `${short(name)} export from India — HS code, duty and buyers`,
 });
 
 export const industrySeo = (name) => ({
-  title: `${name} Exports from India: Trade Profile | Vametra AI`,
-  h1: `${name} exports from India — markets, duty and buyers`,
+  title: clampTitle(`${short(name)} Exports from India: Trade Profile | Vametra AI`),
+  h1: `${short(name)} exports from India — markets, duty and buyers`,
 });
 
 export const courseSeo = (title) => ({
-  title: `${title}: Free Course for Exporters | Vametra AI`,
+  title: clampTitle(`${title}: Free Course for Exporters | Vametra AI`),
   h1: `${title} — free course`,
 });
 
 // Google truncates around 60 chars; keep the keyword at the front so nothing important is cut.
-export const clampTitle = (t) => {
+export function clampTitle(t) {
   if (t.length <= 60) return t;
-  const short = t.replace(" | Vametra AI", " | Vametra");
-  return short.length <= 60 ? short : short.replace(/ \| Vametra$/, "");
-};
+  const s = t.replace(" | Vametra AI", " | Vametra");
+  if (s.length <= 60) return s;
+  const bare = s.replace(/ \| Vametra$/, "");
+  return bare.length <= 60 ? bare : bare.replace(/: [^:]+$/, "");
+}

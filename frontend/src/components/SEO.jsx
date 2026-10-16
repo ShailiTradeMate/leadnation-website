@@ -25,7 +25,8 @@ export default function SEO({
   noindex = false,
 }) {
   const facts = useFacts();
-  const fullTitle = title?.includes(BRAND_NAME) ? title : `${title} · ${BRAND_NAME}`;
+  // Append the brand only when it fits in Google's ~60-char title window; SERPs add the site name anyway.
+  const fullTitle = title?.includes("Vametra") || (title?.length ?? 0) + 13 > 60 ? title : `${title} · ${BRAND_NAME}`;
   const url = `${SITE}${path}`;
   description = fill(description, facts);
   const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];

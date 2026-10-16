@@ -1,0 +1,60 @@
+{
+  "summary": "Part 6 SEO rewrite testing — 6 backend endpoints + 29 frontend pages (hubs, detail pages, soft-404, /about, nav bell, CTA). Backend: 5/6 pytest passed (warm-status pageCache.entries=448 instead of expected 392). Frontend: 23 hub pages all pass (single <title>, len<=60, single <h1>, no raw {token} placeholders, FAQPage/BreadcrumbList JSON-LD where required, data-testid *answer* present). 4 soft-404 pages all pass (not-found H1 + meta robots noindex). /about correct (no camera/imaging, 32, address, 2026). No '195' anywhere on /, /about, /tools, /buyers. nav-notif-bell absent when logged out. Detail-page title/H1 mismatches on /countries/uae (uses 'United Arab Emirates'), /industries/textiles (uses 'Textiles & Apparel'), /academy/incoterms-2020 (duplicate 'Vametra · Vametra AI' brand) — all titles exceed 60 chars. /products/basmati-rice title is 66 chars (spec expected 64). Export-readiness CTARow has no 'Explore all tools' text (uses 'Free trade tools' linking to /tools).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/seo/warm-status", "issue": "pageCache.entries returns 448 (expected: 392 per spec). Response's own 'expected' field also = 448, suggesting data grew beyond 392 guides. page-data and prerender keys are present as required."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "CountryProfile /countries/uae", "issue": "Title 'United Arab Emirates Trade Profile: Tariffs, Imports, Buyers | Vametra AI' is 73 chars (>60) and uses full name instead of 'UAE'. Expected 'UAE Trade Profile: Tariffs, Imports, Buyers | Vametra AI' (56 chars). H1 also expands to 'United Arab Emirates trade profile...'. Likely seoTitles.js uses resolved country.name not the slug/short label.", "selector": "/countries/uae <title>, <h1>", "priority": "HIGH"},
+      {"component": "Industries /industries/textiles", "issue": "Title 'Textiles & Apparel Exports from India: Trade Profile | Vametra AI' (65 chars, >60). Spec expected 'Textiles Exports from India: Trade Profile | Vametra AI'. H1 similarly 'Textiles & Apparel exports from India — markets, duty and buyers' (differs from brief). data-testid id-answer-first present.", "selector": "/industries/textiles <title>", "priority": "HIGH"},
+      {"component": "AcademyDetail /academy/incoterms-2020", "issue": "Title 'Incoterms 2020 Mastery: Free Course for Exporters | Vametra · Vametra AI' (72 chars) contains duplicate brand suffix 'Vametra · Vametra AI'. Contains required 'Incoterms 2020' and 'Free Course' substrings. data-testid course-answer present but no FAQPage JSON-LD on this page (brief did not require it).", "selector": "/academy/incoterms-2020 <title>", "priority": "HIGH"},
+      {"component": "Products /products/basmati-rice", "issue": "Title is 66 chars 'Basmati Rice Export from India: HS Code, Duty, Buyers | Vametra AI' — brief acknowledged ~64; actual is 66. Still over 60 cap applied to other pages. H1 matches spec.", "selector": "/products/basmati-rice <title>", "priority": "MEDIUM"},
+      {"component": "Hub /tools/hsn-finder", "issue": "Title 'HS Code Finder: 5,606 Codes with Import Duty | Vametra AI' is 57 chars. Within the stated <=60 cap but above tight example 'under 56'. Acceptable but worth noting.", "selector": "/tools/hsn-finder <title>", "priority": "LOW"},
+      {"component": "ToolShell CTARow /tools/export-readiness", "issue": "No 'Explore all tools' link text found in CTARow (pre- or post-quiz). The visible primary buttons are 'Open Trade Command Center' and 'Free trade tools' (href=/tools) and 'Create free account' (href=/signup). 'Download app' is correctly absent. 'Create free account' → /signup verified. Spec required link text 'Explore all tools' pointing to /tools; current implementation uses 'Free trade tools' instead.", "selector": "a:has-text('Explore all tools')", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verified_passing": {
+    "hub_pages_23": "All /tools/*, /tools, /buyers, /brain, /ai-assistant, /intelligence, /expo, /trade-news, /customs-compliance, /academy, /pricing, /blog, /countries, /corridors, /products, /industries, /services, / — single <title>, title len<=60, single <h1>, no {hsCodes}/{buyerRecords}/{tariffCountries}/{buyerCountries}/{guides} raw placeholders, BreadcrumbList JSON-LD present on all except '/', FAQPage JSON-LD present on all 12 required pages, data-testid *answer* present on all required pages. Example titles: /brain='AI for Export Import Business: Vametra AI Brain' (47); /customs-compliance='Customs & Compliance Hub for Exporters | Vametra AI'; /tools/duty-calculator='Custom Duty Calculator India & 56 Countries | Vametra AI' (56); /tools/landed-cost-calculator (56); /tools/export-incentive-finder (60); /tools/find-buyers (53); /tools/product-research (56); /tools/export-readiness (59); /tools (60); /buyers (60).",
+    "detail_pages_matching_spec": "/services/iec-registration (title+H1 exact match, service-answer testid, FAQPage JSON-LD), /corridors/india-to-uae (exact title+H1 match, cd-answer-first testid, FAQPage JSON-LD).",
+    "soft_404": "/services/this-does-not-exist, /corridors/india-to-nowhere, /products/nope, /countries/nope — all render 'X not found' H1 AND meta robots='noindex, nofollow'.",
+    "about_page": "No 'camera' or 'imaging' strings. Stat '32' with phrase 'Countries with contact-verified buyer records' present. '2026' and 'Savedi, Ahilyanagar, Maharashtra 414003, India' present.",
+    "no_195_anywhere": "'195' not found on /, /about, /tools, /buyers.",
+    "nav_bell_logged_out": "[data-testid='nav-notif-bell'] not present on homepage when logged out.",
+    "backend_facts": "GET /api/seo/facts returns hsCodes=5606, tariffCountries=56, buyerRecords>0, buyerCountries>0, buyerSectors present, guides=392, asOf string, sources dict. Second call returns identical cached payload.",
+    "backend_answers": "GET /api/answers/index total=414, first item page URL ends with /about. GET /api/answers/md/about starts with '# About Vametra AI'. GET /api/answers/html/about returns 200 HTML.",
+    "backend_warm_status_auth": "No token -> 403. Correct x-admin-token -> 200 with page-data, prerender, pageCache keys."
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_seo_part6.py",
+    "/app/test_reports/pytest/part6_results.xml"
+  ],
+  "action_items": [
+    "Fix /countries/uae: short-label the country (UAE) in seoTitles rather than full name 'United Arab Emirates' so title stays <=60 chars and matches brief.",
+    "Fix /industries/textiles: use short slug label ('Textiles') in title/H1 or shorten template so it stays <=60 and matches brief.",
+    "Fix /academy/incoterms-2020 title: duplicated brand 'Vametra · Vametra AI' — remove the first 'Vametra ·' or stop appending brand twice; also trim to <=60 if possible.",
+    "Trim /products/basmati-rice title to <=64 chars per brief acknowledgement (current 66).",
+    "Backend /api/seo/warm-status: either update spec or adjust the cache to only include 392 guides (currently 448 entries total). Confirm intended count.",
+    "On ToolShell CTARow: add visible link text 'Explore all tools' → /tools (currently reads 'Free trade tools'), to match brief verbatim."
+  ],
+  "critical_code_review_comments": [
+    "seoTitles.js / loadEntity() should expose a short display label distinct from the full canonical name (UAE vs United Arab Emirates; Textiles vs Textiles & Apparel) to keep SEO titles under 60 chars.",
+    "AcademyDetail title template appears to append the brand twice ('… | Vametra · Vametra AI'); this will double-stuff brand across all 50+ academy pages — check in bulk.",
+    "warm-status 'expected' value is being computed from live data (448) rather than the hard-coded guide count (392); either value is defensible but the spec and the response disagree.",
+    "CTARow text in ToolShell doesn't match brief; verify copy strings in a single source so SEO copy audits stay reliable."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_seo_part6.py (new file; pytest-based)"
+  ],
+  "success_rate": {"backend": "83% (5/6)", "frontend": "~90% (23/23 hubs + 2/6 detail-page title-exact + 4/4 soft-404 + /about + no-195 + nav-bell + CTA partial)"},
+  "test_credentials": "ADMIN_TOKEN=leadnation-admin-2026 (used); user login not exercised (not required for Part 6 checks).",
+  "seed_data_creation": "none",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_seo_part6.py; rerun with 'pytest -v'. Frontend was verified at preview URL (no interstitial encountered). Hub-page checks are complete and clean. Focus retest on the 4 detail-page title/H1 fixes (UAE, textiles, incoterms-2020 double-brand, basmati-rice length) and on CTARow 'Explore all tools' text once main agent edits.",
+  "rca_of_the_issue": "Title/H1 mismatches on /countries/uae and /industries/textiles stem from using the entity's canonical name (loaded via loadEntity) instead of a short SEO label. Incoterms-2020 duplicated brand likely from Academy page appending ' | Vametra AI' after seoTitles already appends ' | Vametra'. warm-status mismatch is a static-vs-live count issue."
+}
