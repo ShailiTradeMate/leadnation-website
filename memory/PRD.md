@@ -124,3 +124,5 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - **P1:** Fresh vametra.com marketing/SEO/GEO plan (do not recycle leadnation.app plan); Academy ↔ Brain coordination remains backlog-only; Expo email inbox validation.
 - **P2:** International Expo pricing; localized location names and reproducible geographic-data refresh; optional remembered recent countries.
 - Frozen until expressly requested: broad admin/buyer approval regression, hard-delete consistency, CMS volume/timeouts, live registry integration, subscription/payment changes.
+## 2026-06 Nav fix
+- Fixed clipped "Explore Vametra AI" CTA in desktop nav (Nav.jsx): tightened logo/link padding and action gaps; CTA shows short "Explore" label between lg and xl widths, full "Explore Vametra AI" at 2xl+, so the nav row now fits inside the max-w-7xl container at every desktop width.

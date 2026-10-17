@@ -108,7 +108,7 @@ export default function Nav({ active = "/" }) {
     <header className="fixed top-0 inset-x-0 z-50">
       <div className="glass-strong">
         <div className="max-w-7xl mx-auto px-3 sm:px-8 h-[68px] flex items-center justify-between gap-2">
-          <Link to="/" className="flex items-center gap-2.5 group shrink-0 lg:pr-5 xl:pr-8" data-testid="nav-logo-link">
+          <Link to="/" className="flex items-center gap-2.5 group shrink-0 lg:pr-2 xl:pr-3" data-testid="nav-logo-link">
             <LogoMark />
             <div className="leading-none">
               <div data-testid="nav-brand-wordmark" className="font-brand brand-wordmark text-[13px] sm:text-[15px] leading-none">
@@ -124,7 +124,7 @@ export default function Nav({ active = "/" }) {
               return (
                 <Link key={l.to} to={l.to}
                   data-testid={`nav-link-${l.label.toLowerCase().replace(/\s+/g, "-")}`}
-                  className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap transition-all ${
+                  className={`flex items-center gap-1.5 px-2 xl:px-2.5 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap transition-all ${
                     isActive ? "tab-active text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}>
                   <Icon size={14} weight="duotone" />{l.label}
@@ -141,7 +141,7 @@ export default function Nav({ active = "/" }) {
                   onClick={() => setOpenMenu(openMenu === m.label ? null : m.label)}
                   aria-expanded={openMenu === m.label}
                   onKeyDown={e => { if (e.key === 'Escape') setOpenMenu(null); }}
-                  className="flex items-center gap-1.5 px-2.5 xl:px-3 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap text-slate-300 hover:text-white hover:bg-white/5">
+                  className="flex items-center gap-1.5 px-2 xl:px-2.5 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap text-slate-300 hover:text-white hover:bg-white/5">
                   {m.label}
                   <CaretDown size={11} className={`transition-transform ${openMenu === m.label ? "rotate-180" : ""}`} />
                 </button>
@@ -172,14 +172,14 @@ export default function Nav({ active = "/" }) {
 
             <Link to="/contact"
               data-testid="nav-link-contact"
-              className={`flex items-center gap-1.5 px-2.5 xl:px-3 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap transition-all ${
+              className={`flex items-center gap-1.5 px-2 xl:px-2.5 py-2 rounded-full text-[12.5px] xl:text-[13px] font-medium whitespace-nowrap transition-all ${
                 active === "/contact" ? "tab-active text-white" : "text-slate-300 hover:text-white hover:bg-white/5"
               }`}>
               <Phone size={14} weight="duotone" />Contact
             </Link>
           </nav>
 
-          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {isAuthed && <NotifBell />}
             <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
               <MagnifyingGlass size={16} weight="bold" />
@@ -189,7 +189,10 @@ export default function Nav({ active = "/" }) {
             <button data-testid="nav-cta-account" aria-label={isAuthed ? "My account" : "Sign in"} onClick={() => { navigate(isAuthed ? "/account" : "/login"); }}
               className="!hidden sm:!inline-flex btn-ghost !py-2 !px-4 text-[12px] gap-1.5"><UserCircle size={15} weight="duotone" />{isAuthed ? "Account" : "Sign in"}</button>
             <button data-testid="nav-cta-explore" onClick={() => { trackEvent("explore_platform_click", { location: "nav" }); navigate("/tools"); }}
-              className="btn-primary !hidden sm:!inline-flex !py-2 !px-4 text-[12px]">Explore Vametra AI</button>
+              className="btn-primary !hidden sm:!inline-flex !py-2 !px-3 text-[12px] whitespace-nowrap shrink-0">
+              <span className="2xl:hidden">Explore</span>
+              <span className="hidden 2xl:inline">Explore Vametra AI</span>
+            </button>
             <button data-testid="nav-mobile-toggle" aria-label={open ? 'Close menu' : 'Open menu'} aria-expanded={open} className="lg:hidden text-white p-3" onClick={() => setOpen(!open)}>
               {open ? <X size={22} /> : <List size={22} />}
             </button>
