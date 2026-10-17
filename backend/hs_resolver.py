@@ -102,6 +102,9 @@ CLASSIFY_SYSTEM = (
     '{"canonical": "English trade name", "aliases": ["local names"], '
     '"hs6": ["most likely HS6 code", "second", "third"], "heading": "official HS heading text of the first code", '
     '"note": "one short sentence on the classification"}. '
+    "If no processing or preparation is stated, classify the product in its usual raw traded form "
+    "(fresh/chilled vegetables in chapter 07, fresh fruit in chapter 08, unprocessed cereals in chapter 10) "
+    "and never in a prepared/preserved chapter (16-21). "
     "hs6 must be real 6-digit HS-2022 codes, most likely first. If the input is not a tradable good, "
     'return {"canonical": null, "hs6": []}.'
 )
@@ -126,7 +129,8 @@ WEB_SYSTEM = (
     "classification. Return STRICT JSON only: "
     '{"canonical": "English trade name", "aliases": [], "hs6": ["code", "code"], '
     '"heading": "official HS heading text of the first code", "note": "one sentence", '
-    '"sources": ["url", "url"]}. hs6 must be real 6-digit HS-2022 codes.'
+    '"sources": ["url"]}. If no processing is stated, classify in the raw/fresh form (chapters 07, 08, 10), '
+    'not a prepared/preserved chapter. hs6 must be real 6-digit HS-2022 codes.'
 )
 
 
@@ -159,7 +163,7 @@ def _plausible(canonical, ai_desc, dir_desc):
     """Guard against a valid-but-wrong code: the directory heading should mention the
     commodity, the AI's own heading text, or be a residual ("other…") heading."""
     d = (dir_desc or "").lower()
-    if not d or any(m in d for m in ("other", "n.e.c", "n.e.s", "nesoi", "not elsewhere")):
+    if not d or any(m in d for m in ("other", "n.e.c", "n.e.s", "nesoi", "not elsewhere", "miscellaneous")):
         return True
     terms = [t for t in re.findall(r"[a-z]{4,}", f"{canonical or ''} {ai_desc or ''}".lower())
              if t not in STOPWORDS and t not in GENERIC]
@@ -181,14 +185,39 @@ async def _residual(code):
     return {"hs6": best["hs6"], "description": best.get("desc", "")}
 
 
+PREPARED_WORDS = ("prepared", "preserved", "juice", "sauce", "paste", "puree", "canned", "pickle",
+                  "jam", "dried", "powder", "extract", "concentrate", "roasted", "cooked")
+
+
+FORM_WORDS = ("frozen", "dried", "preserved", "prepared", "provisionally", "canned", "juice", "paste", "powder")
+
+
+def _form_ok(out, desc, product):
+    """Don't drop a fresh commodity into a frozen/dried/prepared line unless the user asked for that form."""
+    d = (desc or "").lower()
+    text = f"{product or ''} {out.get('canonical') or ''}".lower()
+    return all(w not in d or w in text for w in FORM_WORDS)
+
+
+def _processed_ok(out, code, product):
+    """Keep raw commodities out of the prepared/preserved chapters (16-21) unless the
+    user's own wording describes a processed product."""
+    if not re.match(r"^(1[6-9]|2[01])", re.sub(r"\D", "", code or "")):
+        return True
+    text = f"{product or ''} {out.get('canonical') or ''}".lower()
+    return any(w in text for w in PREPARED_WORDS)
+
+
 async def _from_ai(out, via, product):
     """Validate AI candidates against the directory; fall back to searching the canonical name."""
     if not _usable(out):
         return None
     canonical = out.get("canonical")
     for code in (out.get("hs6") or [])[:4]:
+        if not _processed_ok(out, code, product):
+            continue
         v = await _valid_hs6(code)
-        if v and _plausible(canonical, out.get("heading"), v["description"]):
+        if v and _form_ok(out, v["description"], product) and _plausible(canonical, out.get("heading"), v["description"]):
             return {**v, "via": via, "canonical": canonical,
                     "aliases": out.get("aliases") or [], "note": out.get("note") or "",
                     "sources": out.get("sources") or []}
@@ -199,8 +228,10 @@ async def _from_ai(out, via, product):
                 return {**hit, "via": f"{via}+directory", "canonical": canonical,
                         "aliases": out.get("aliases") or [], "note": out.get("note") or "",
                         "sources": out.get("sources") or []}
-    for code in (out.get("hs6") or [])[:2]:
+    for code in [c for c in (out.get("hs6") or [])[:2] if _processed_ok(out, c, product)]:
         res = await _residual(code)
+        if res and not _form_ok(out, res["description"], product):
+            res = None
         if res:
             return {**res, "via": f"{via}+heading", "canonical": canonical, "aliases": out.get("aliases") or [],
                     "note": out.get("note") or "", "sources": out.get("sources") or []}
@@ -209,6 +240,52 @@ async def _from_ai(out, via, product):
         return {**first, "via": via, "canonical": canonical, "aliases": out.get("aliases") or [],
                 "note": out.get("note") or "", "sources": out.get("sources") or []}
     return None
+
+
+ALIASES = db.hs_aliases
+
+
+def _norm_alias(s):
+    """lowercase, punctuation-free, plural-insensitive — "Lady's Fingers" and "ladies finger" land together."""
+    out = []
+    for w in re.findall(r"[a-z0-9]+", (s or "").lower()):
+        if len(w) > 4 and w.endswith("ies"):
+            w = w[:-3] + "y"
+        elif len(w) > 4 and w.endswith("s"):
+            w = w[:-1]
+        if len(w) > 1:
+            out.append(w)
+    return " ".join(out)
+
+
+async def _alias_lookup(product):
+    """A name any user already resolved — answered from Mongo, no AI call."""
+    key = _norm_alias(product)
+    if not key:
+        return None
+    doc = await ALIASES.find_one({"_id": key})
+    if not doc or not doc.get("hs6"):
+        return None
+    await ALIASES.update_one({"_id": key}, {"$inc": {"hits": 1}, "$set": {"lastUsedAt": datetime.now(timezone.utc).isoformat()}})
+    return {"hs6": doc["hs6"], "description": doc.get("description", ""), "canonical": doc.get("canonical"),
+            "via": "alias", "note": doc.get("note", ""), "sources": doc.get("sources") or []}
+
+
+async def _alias_save(product, result):
+    """Remember the query, the canonical name and every alias the classifier returned."""
+    if not result.get("hs6") or result.get("via") in ("alias", "code"):
+        return
+    entry = {"hs6": result["hs6"], "description": result.get("description", ""),
+             "canonical": result.get("canonical"), "note": result.get("note", ""),
+             "sources": result.get("sources") or [], "via": result.get("via"),
+             "learnedFrom": product, "at": datetime.now(timezone.utc).isoformat()}
+    asked = _norm_alias(product)
+    if asked:
+        await ALIASES.update_one({"_id": asked}, {"$set": entry, "$setOnInsert": {"hits": 0}}, upsert=True)
+    # Derived names only fill gaps — never overwrite a mapping another lookup already proved.
+    derived = {_norm_alias(n) for n in [result.get("canonical"), *(result.get("aliases") or [])] if n}
+    for name in derived - {asked, ""}:
+        await ALIASES.update_one({"_id": name}, {"$setOnInsert": {**entry, "hits": 0}}, upsert=True)
 
 
 async def resolve(product: str | None, hs: str | None = None, allow_ai: bool = True) -> dict:
@@ -233,6 +310,10 @@ async def resolve(product: str | None, hs: str | None = None, allow_ai: bool = T
         if age < (HIT_TTL if cached["result"].get("hs6") else MISS_TTL):
             return cached["result"]
 
+    learned = await _alias_lookup(product)
+    if learned:
+        return learned
+
     phrase = await _term(product)
     result = {**phrase, "canonical": None, "note": "", "sources": []} if phrase else None
     if not result and allow_ai:
@@ -247,6 +328,7 @@ async def resolve(product: str | None, hs: str | None = None, allow_ai: bool = T
     if not result:
         result = {"hs6": None, "via": "unresolved", "canonical": None, "note": "", "sources": []}
 
+    await _alias_save(product, result)
     await CACHE.update_one({"_id": cache_id},
                            {"$set": {"result": result, "at": datetime.now(timezone.utc).isoformat(), "query": product}},
                            upsert=True)
@@ -255,6 +337,27 @@ async def resolve(product: str | None, hs: str | None = None, allow_ai: bool = T
 
 async def resolve_hs6(product: str | None, hs: str | None = None) -> str | None:
     return (await resolve(product, hs)).get("hs6")
+
+
+async def ensure_alias_memory():
+    """Index the alias store and seed it from the published product catalogue (aka names included)."""
+    await ALIASES.create_index("hs6")
+    from seo_pages import PRODUCTS
+    seeded = 0
+    for slug, meta in PRODUCTS.items():
+        names = {_norm_alias(n) for n in [meta["name"], slug.replace("-", " "), *(meta.get("aka") or [])] if n}
+        for name in names:
+            if not name:
+                continue
+            res = await ALIASES.update_one(
+                {"_id": name},
+                {"$setOnInsert": {"hs6": meta["primaryHs"], "description": meta["name"], "canonical": meta["name"],
+                                  "note": "", "sources": [], "via": "catalogue", "learnedFrom": slug,
+                                  "at": datetime.now(timezone.utc).isoformat(), "hits": 0}},
+                upsert=True)
+            seeded += 1 if res.upserted_id else 0
+    total = await ALIASES.count_documents({})
+    logger.info("HS alias memory ready: %s names (%s seeded this boot)", total, seeded)
 
 
 async def search(q: str, limit: int = 10) -> list:

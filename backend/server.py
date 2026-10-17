@@ -91,6 +91,11 @@ async def _startup():
         await trade_intel.ensure_hs_directory()
     except Exception as exc:
         logging.warning("HS directory init failed: %s", exc)
+    try:
+        import hs_resolver
+        await hs_resolver.ensure_alias_memory()
+    except Exception as exc:
+        logging.warning("HS alias memory init failed: %s", exc)
     for name, source in CMS_COLLECTIONS.items():
         try:
             await _seed_collection(name, source)

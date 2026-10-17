@@ -162,9 +162,10 @@ async def explore(req: ExploreRequest):
             logger.warning("explore demand %s: %s", hs6, exc)
     elif product:
         notes.append("No HS code could be resolved for that product name — pick a code with the HS finder for duty and demand figures.")
-    if hs6 and (resolution or {}).get("via", "").startswith(("ai", "web")):
+    if hs6 and (resolution or {}).get("via", "").startswith(("ai", "web", "alias")):
         label = resolution.get("canonical") or product
-        src = "web search" if "web" in resolution["via"] else "the Brain's classifier"
+        via = resolution["via"]
+        src = "web search" if "web" in via else "Vametra's learned product names" if via == "alias" else "the Brain's classifier"
         notes.append(f"\"{product}\" was identified as {label} and classified under HS {hs6} by {src}"
                      + (f" — {resolution['note'].rstrip('. ')}" if resolution.get("note") else "")
                      + ". Confirm the 8-digit national code with your customs broker before filing.")
@@ -206,7 +207,7 @@ async def explore(req: ExploreRequest):
                {"name": (demand or {}).get("source") or "OEC World (CEPII BACI)", "for": "import demand"} if demand else None,
                {"name": "Vametra AI Buyer Intelligence (official registries)", "for": "verified buyer counts"} if buyers else None,
                {"name": "Vametra AI Brain classifier" + (" + web search" if "web" in (resolution or {}).get("via", "") else ""),
-                "for": f"HS classification of \"{product}\""} if hs6 and (resolution or {}).get("via", "").startswith(("ai", "web")) else None,
+                "for": f"HS classification of \"{product}\""} if hs6 and (resolution or {}).get("via", "").startswith(("ai", "web", "alias")) else None,
                {"name": "Vametra AI Brain (LLM)", "for": "narrative — verify procedures with the authority"}]
     report = {
         "kind": kind, "title": titles[kind][0], "h1": titles[kind][1],

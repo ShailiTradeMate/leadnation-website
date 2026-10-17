@@ -132,3 +132,8 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Wired everywhere: /api/trade-intel/hs-search (typeahead fallback), /api/hsn-finder (+resolution banner), brain/explore (hsResolution + classification note), brain/engines, costing_engine, compile_engine.
 - Local/misspelled names now work: brinjal & bringle -> 070930, okra & bhindi -> 070999, basmati rice -> 100630; nonsense input stays unresolved (no fabricated code). Duty/demand still only from WITS/OEC.
 - Also added BrainThinking loading animation on /brain/explore. Verified by testing agent iteration_77 (backend 7/8 - one cold-start timing bound, frontend 100%).
+
+## 2026-06 Alias memory for HS resolution
+- New Mongo collection hs_aliases: every resolved product name (the query, the canonical name and each alias the classifier returned) is stored, so repeats like bhindi/bhindis/ladies finger answer from memory (~0.7s) with no AI call.
+- Plural/possessive-insensitive normalisation; derived names only fill gaps (never overwrite a proven mapping); seeded at boot from the published product catalogue (39 names).
+- Classifier accuracy guards added: raw-form default (no frozen/dried/prepared line unless the user said so), prepared-chapter guard (16-21), residual "miscellaneous/n.e.c." heading fallback. Verified: okra/bhindi 070999, brinjal 070930, tinda 070993, pomegranate 081090, frozen okra 071080, mango pulp 200899.
