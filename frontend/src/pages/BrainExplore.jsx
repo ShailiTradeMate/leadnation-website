@@ -6,6 +6,7 @@ import { SectionLabel } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import { PageFaq } from "@/components/PageFaq";
 import { BrainExploreForm, KIND_META, exploreUrl, saveExploreMemory } from "@/components/BrainExplore";
+import { BrainThinking } from "@/components/BrainThinking";
 import { api } from "@/lib/api";
 
 const money = (v) => (v == null ? "—" : v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(0)}M` : `$${(v / 1e3).toFixed(0)}K`);
@@ -66,12 +67,7 @@ export default function BrainExplore() {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 sm:px-10 pb-20">
-        {state === "loading" && (
-          <div data-testid="explore-loading" className="glass rounded-3xl p-8 text-center text-slate-300">
-            <Brain size={28} weight="duotone" className="text-cyan-300 mx-auto animate-pulse" />
-            <div className="mt-3 text-sm">Reading live tariff, demand and buyer data, then writing the report… usually 10–30 seconds.</div>
-          </div>
-        )}
+        {state === "loading" && <BrainThinking testId="explore-loading" />}
         {state === "error" && <div data-testid="explore-error" className="glass rounded-3xl p-6 text-sm text-rose-300 flex items-center gap-2"><Warning size={16} /> {err}</div>}
 
         {r && (

@@ -274,6 +274,43 @@ body {
 }
 .dashflow { stroke-dasharray: 6 8; animation: dashflow 4s linear infinite; }
 
+/* ---- Vametra Brain thinking loader ---- */
+@keyframes brain-ring {
+  0% { transform: scale(.72); opacity: .55; }
+  70% { opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+.brain-ring { animation: brain-ring 2.6s cubic-bezier(.2,.8,.2,1) infinite; }
+
+@keyframes brain-float {
+  0%,100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-5px) scale(1.04); }
+}
+.brain-float { animation: brain-float 2.8s ease-in-out infinite; }
+
+@keyframes synapse {
+  0%,100% { opacity: .15; transform: scale(.7); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.synapse { animation: synapse 1.6s ease-in-out infinite; }
+
+@keyframes brain-scan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+.brain-scan { animation: brain-scan 1.9s cubic-bezier(.45,0,.55,1) infinite; }
+
+@keyframes brain-bar {
+  0% { width: 4%; }
+  55% { width: 68%; }
+  100% { width: 94%; }
+}
+.brain-bar { animation: brain-bar 26s cubic-bezier(.2,.75,.25,1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brain-ring, .brain-float, .synapse, .brain-scan, .brain-bar { animation: none; }
+}
+
 /* Tab indicator */
 .tab-active {
   background: linear-gradient(135deg, color-mix(in srgb, var(--ln-secondary, #00C2FF) 18%, transparent), rgba(124,58,237,0.15));
