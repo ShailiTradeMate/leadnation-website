@@ -1,0 +1,19 @@
+{
+  "summary": "Tested Vametra AI Brain — Explore end-to-end. Backend: 9/9 pytest cases passed on /api/brain/explore (corridor India→Germany basmati, cache hit <5s, country Japan, region Middle East 8 countries, product turmeric→Nigeria hs6=091030 duty=20, industry pharma→UAE, validation 400s, nonsense product notes). Frontend: all 13 BrainExploreCTA instances render with correct data-testids, submit text 'Ask the Brain', and prefilled defaults (cd-explore origin='India', pd-explore product='Basmati Rice' + hs='100630', id-explore industry='Textiles & Apparel', region-explore region='Europe', hub/epc-explore product='Basmati Rice'). /brain hero shows brain-explore-tabs with 6 links pointing to /brain/explore?kind=<k>. E2E corridor flow: form→URL /brain/explore?kind=corridor&origin=India&destination=Germany&product=Basmati+rice; explore-loading shown; explore-kv renders within 90s with duty '0% MFN (applied) (2023)' containing '%' and buyers '5,590 · 125 in this HS'; explore-doc-0 chip present; all 4 explore-cta-* present; explore-published chips; explore-faq-section with 4 items (faq-0..faq-3); explore-sources mentions 'World Bank WITS'; meta robots='noindex, nofollow'; exactly 1 h1 starting 'Export from India to Germany'. Idle /brain/explore?kind=product shows form fields product/hs/origin/destination and 6 kind tabs; clicking explore-tab-country swaps to destination+product only; no loading/error shown. Error path /brain/explore?kind=corridor&destination=&product=rice renders explore-error 'destination country is required'. Mobile 390px: 0 horizontal overflow after report renders.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_brain_explore.py", "/app/test_reports/pytest/brain_explore.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "brain_explore_cache stored stale entries with hs6=None from an earlier resolver version; tests had to clear the cache once. Consider versioning the cache key or invalidating on code bump so old results don't mask fixes.",
+    "/api/brain/explore spec stated id-explore prefills industry 'Textiles'; actual prefill is 'Textiles & Apparel' (correct for display). Spec acceptance was 'industry prefilled' only — flagged for awareness.",
+    "In BrainExplore.jsx useEffect dependency uses sp.toString() which is fine, but defaults effect depends only on [kind] (eslint-disabled). Acceptable but documented."
+  ],
+  "updated_files": ["/app/backend/tests/test_brain_explore.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "seed_data_creation": "Cleared stale brain_explore_cache documents (one-time) to let the new resolver re-populate; the LLM-backed calls generated fresh cached reports during tests.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend tests live at /app/backend/tests/test_brain_explore.py. If LLM narrative calls stall >120s, bump timeout. The brain_explore_cache may contain old-schema entries from prior iterations — if an assertion on hs6 fails, flush that doc and retry (first call takes 10–40s, subsequent cached call <2s).",
+  "rca of the issue": "No bugs found. Initial corridor-basmati test failure was due to a legacy cached report (hs6=None) in brain_explore_cache from a pre-fix resolver; flushing the cache made the current implementation serve correct hs6=100630. Also fixed a case-sensitivity bug in my own test for the 'no HS code resolved' note."
+}

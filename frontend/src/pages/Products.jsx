@@ -4,7 +4,7 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
-import { BrainExploreCTA } from "@/components/BrainExplore";
+import { BrainExploreCard, BrainExploreCTA } from "@/components/BrainExplore";
 import { loadEntity } from "@/lib/fetchPageData";
 import { productSeo } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
@@ -72,6 +72,7 @@ export function ProductsIndex() {
               </div>
             </Link>
           ))}
+          <BrainExploreCard kind="product" variant="image" testId="products-explore-card" />
         </div>
       </section>
       <AnswerBlock testId="products-answer" label="Method"
@@ -94,7 +95,6 @@ export function ProductsIndex() {
           plainly instead of substituting an estimate.
         </p>
       </AnswerBlock>
-      <BrainExploreCTA kind="product" testIdPrefix="products-explore" />
       <PageFaq items={INDEX_FAQ} testIdPrefix="products-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>

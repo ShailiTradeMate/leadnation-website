@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Brain, ArrowRight } from "@phosphor-icons/react";
 import { fetchLaneCountries } from "@/components/LaneCountrySelect";
 
@@ -51,6 +51,33 @@ export function BrainExploreForm({ kind, defaults = {}, onSubmit, testIdPrefix =
         </button>
       </div>
     </form>
+  );
+}
+
+/** Grid card that sits beside the published items (same size/shape) and opens the Brain for anything not listed. */
+export function BrainExploreCard({ kind = "corridor", testId, variant = "plain", className = "" }) {
+  const meta = KIND_META[kind];
+  const name = `Any other ${meta.label.toLowerCase()}`;
+  const header = variant === "image" ? "h-44" : variant === "image-sm" ? "h-40" : null;
+  return (
+    <Link to={`/brain/explore?kind=${kind}`} data-testid={testId || `${kind}-explore-card`}
+      className={`group glass rounded-3xl overflow-hidden border border-cyan-400/20 hover:border-cyan-400/50 hover:-translate-y-1 transition-all ${header ? "" : "p-7"} ${className}`}>
+      {header ? (
+        <div className={`${header} relative overflow-hidden bg-gradient-to-br from-cyan-500/15 via-[#0a0f24] to-violet-500/15 flex items-center justify-center`}>
+          <Brain size={56} weight="duotone" className="text-cyan-300 group-hover:scale-110 transition-transform duration-700" />
+          <div className="absolute top-3 left-3 glass px-2 py-1 rounded-full text-[10px] font-mono-display tracking-widest uppercase text-cyan-300">Vametra AI Brain</div>
+        </div>
+      ) : (
+        <Brain size={40} weight="duotone" className="text-cyan-300" />
+      )}
+      <div className={header ? "p-5" : ""}>
+        <h3 className={`font-display font-extrabold ${header ? "text-lg" : "text-2xl mt-4"}`}>{name}</h3>
+        <p className={`text-sm text-slate-400 ${header ? "mt-1" : "mt-2"}`}>{meta.blurb} Built on demand.</p>
+        <div className="mt-4 inline-flex items-center gap-2 text-cyan-300 text-sm font-medium">
+          Ask the Brain <ArrowRight size={14} weight="bold" className="group-hover:translate-x-1 transition-transform" />
+        </div>
+      </div>
+    </Link>
   );
 }
 

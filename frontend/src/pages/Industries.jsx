@@ -4,7 +4,7 @@ import { PageHero } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
-import { BrainExploreCTA } from "@/components/BrainExplore";
+import { BrainExploreCard, BrainExploreCTA } from "@/components/BrainExplore";
 import { loadEntity } from "@/lib/fetchPageData";
 import { industrySeo } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
@@ -67,6 +67,7 @@ export function IndustriesIndex() {
               </div>
             </Link>
           ))}
+          <BrainExploreCard kind="industry" variant="image-sm" testId="industries-explore-card" />
         </div>
       </section>
       <AnswerBlock testId="industries-answer" label="How to read these pages"
@@ -89,7 +90,6 @@ export function IndustriesIndex() {
           pair, we say so rather than estimate it.
         </p>
       </AnswerBlock>
-      <BrainExploreCTA kind="industry" testIdPrefix="industries-explore" />
       <PageFaq items={INDEX_FAQ} testIdPrefix="industries-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>

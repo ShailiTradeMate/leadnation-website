@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
-import { BrainExploreCTA } from "@/components/BrainExplore";
+import { BrainExploreCard } from "@/components/BrainExplore";
 import { api } from "@/lib/api";
 import { ArrowRight, Package, Globe, MagnifyingGlass } from "@phosphor-icons/react";
 
@@ -90,7 +90,9 @@ export default function ExportGuidesIndex() {
           ))}
         </div>
 
-        <div className="-mx-6 sm:-mx-10"><BrainExploreCTA kind="guide" testIdPrefix="guides-explore" /></div>
+        <div className="mt-5 grid md:grid-cols-3 gap-4">
+          <BrainExploreCard kind="guide" testId="guides-explore-card" className="md:col-span-3 !p-6" />
+        </div>
         {d && (
           <div className="mt-8 text-[11px] text-slate-500">
             Data as of {String(d.dataAsOf || "").slice(0, 10)} · duty from World Bank WITS / UNCTAD TRAINS ·

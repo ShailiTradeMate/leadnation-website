@@ -1,8 +1,8 @@
 # VBIE Production Readiness Audit
 
-Generated: 2026-10-16T21:24:43.966745+00:00
-Records checked: 30518
-**Active production buyers: 30518**
+Generated: 2026-10-17T22:08:08.860636+00:00
+Records checked: 30697
+**Active production buyers: 30697**
 Quarantined this run: 0 · total quarantined: 0 · released: 0
 **Production ready: ✅ YES**
 

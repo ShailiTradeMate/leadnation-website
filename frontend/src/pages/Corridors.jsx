@@ -4,7 +4,7 @@ import { PageHero, SectionLabel } from "@/components/PageHero";
 import { Card } from "@/components/ToolShell";
 import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
-import { BrainExploreCTA } from "@/components/BrainExplore";
+import { BrainExploreCard, BrainExploreCTA } from "@/components/BrainExplore";
 import { loadEntity } from "@/lib/fetchPageData";
 import { corridorSeo } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
@@ -75,6 +75,7 @@ export function CorridorsIndex() {
               </div>
             </Link>
           ))}
+          <BrainExploreCard kind="corridor" variant="image" testId="corridors-explore-card" />
         </div>
       </section>
       <AnswerBlock testId="corridors-answer" label="Why lanes, not countries"
@@ -98,7 +99,6 @@ export function CorridorsIndex() {
           the Duty Calculator with your 6-digit HS code rather than a corridor-level generalisation.
         </p>
       </AnswerBlock>
-      <BrainExploreCTA kind="corridor" testIdPrefix="corridors-explore" />
       <PageFaq items={INDEX_FAQ} testIdPrefix="corridors-faq" />
       <section className="max-w-7xl mx-auto px-6 sm:px-10 pt-20 pb-12"><DownloadCTA /></section>
     </>

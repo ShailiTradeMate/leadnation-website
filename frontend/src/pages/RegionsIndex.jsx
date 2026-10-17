@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
-import { BrainExploreCTA } from "@/components/BrainExplore";
+import { BrainExploreCard } from "@/components/BrainExplore";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import { api } from "@/lib/api";
 import { ArrowRight, Globe } from "@phosphor-icons/react";
@@ -72,6 +72,7 @@ export default function RegionsIndex() {
               </div>
             </Link>
           ))}
+          <BrainExploreCard kind="region" testId="regions-explore-card" className="!p-6" />
         </div>
       </div>
       <div className="pb-20">
@@ -95,7 +96,6 @@ export default function RegionsIndex() {
             are labelled as expanding, not inflated.
           </p>
         </AnswerBlock>
-        <div className="-mx-6 sm:-mx-10"><BrainExploreCTA kind="region" testIdPrefix="regions-explore" /></div>
         <PageFaq items={FAQ} testIdPrefix="regions-faq" />
       </div>
     </div>
