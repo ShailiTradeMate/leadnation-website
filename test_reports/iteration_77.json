@@ -1,0 +1,21 @@
+{
+  "summary": "Iter77 — Smart HS resolution for local/misspelled product names across backend + frontend. Backend pytest (/app/backend/tests/test_iter77_hs_resolver.py): 7/8 passed. (1) /api/trade-intel/hs-search?q=brinjal → hs6=070930 (AI fallback), ?q=okra → 070999, ?q=rice → directory rows (0.4s on curl; test's 10s bound hit a 17s cold-start on first HTTP connection, not an app bug — not a defect). (2) /api/brain/explore local names resolve correctly: country+'bringle'→Argentina returns hsResolution.hs6=070930 with canonical 'eggplant'; product+'okra'→UAE returns 070999; corridor Basmati rice India→Germany regression passes with hs6=100630; nonsense 'zzzqqxnotaproduct' returns hs6=null with 'unresolved' note (no fabricated code). (3) /api/compile/report?product=bhindi&importer=784&exporter=356 returns ok=true with hsCode=070999. Frontend (Playwright on preview URL): (a) /tools/hsn-finder?q=brinjal auto-submits, shows explore banner [data-testid=hsn-resolution] 'brinjal isn\\'t in the HS wording — the Brain read it as eggplant · Brinjal is classified as fresh eggplant under HS heading 0709…', hsn-0-code=070930, with live WITS import duty + VAT/GST rows for destination UAE and India RoDTEP export benefit — real numbers only, no fabrication. (b) /brain/explore?kind=country&destination=Argentina&product=bringle shows [data-testid=explore-loading] with stepping text 'Resolving HS code and lane…', then the report with [data-testid=explore-classification] banner 'Classified by the Brain: eggplant → HS 070930 · Eggplants (Fresh/Chilled)'; duty cell honestly reads 'Not in WITS' for Argentina while import demand shows real OEC figure $35K · #83 and 'Established products on this lane' chips (Fresh eggplant, Brinjal, Baby eggplant, …). No fabricated duty numbers when WITS has no record — spec compliance confirmed. (c) /tools/duty-calculator product input [data-testid=duty-search] accepts 'brinjal' and surfaces suggestion '070930 Eggplants (Fresh/Chilled)' from AI fallback via /api/trade-intel/hs-search. All data-testids present and correctly wired.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_iter77_hs_resolver.py",
+    "/app/test_reports/pytest/iter77_hs.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "hs_resolver.CLASSIFY_SYSTEM uses model id 'gpt-5.4-mini' as default via BRAIN_AI_MODEL env — ensure this model id is valid for emergentintegrations LlmChat. Classification currently works, suggesting either env override or the id is accepted; worth confirming the default in code reflects a shipping model name.",
+    "hs_resolver.resolve() caches 'unresolved' misses for MISS_TTL=3 days; good. HIT_TTL=180 days is long — if the HS directory is updated, cached hits may lag. Consider a cache_version key or invalidate-on-directory-upsert hook (noted previously).",
+    "trade-intel/hs-search cold-call added ~17s latency on the very first request this session; subsequent curls were 0.4s. Likely preview-URL cold start. Not a bug but worth noting for perf monitoring."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter77_hs_resolver.py"],
+  "success_rate": {"backend": "7/8 (88%) — the one failure is a cold-start timing bound, not an app defect", "frontend": "100%"},
+  "seed_data_creation": "None. First-time AI classifications for 'bringle', 'okra', 'bhindi', 'brinjal' and 'zzzqqxnotaproduct' were populated into hs_resolver_cache during this run.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "test_iter77_hs_resolver.py covers the smart-HS resolver end-to-end. First-call AI classifications take 5–30s; results are cached in Mongo collection hs_resolver_cache (keyed by lower(product)|digits(hs)). Argentina correctly reads 'Not in WITS' — do not treat as a bug. Expected mappings: brinjal/bringle→070930, okra/bhindi/ladies finger→070999, Basmati rice→100630, turmeric→091030."
+}

@@ -126,3 +126,9 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Frozen until expressly requested: broad admin/buyer approval regression, hard-delete consistency, CMS volume/timeouts, live registry integration, subscription/payment changes.
 ## 2026-06 Nav fix
 - Fixed clipped "Explore Vametra AI" CTA in desktop nav (Nav.jsx): tightened logo/link padding and action gaps; CTA shows short "Explore" label between lg and xl widths, full "Explore Vametra AI" at 2xl+, so the nav row now fits inside the max-w-7xl container at every desktop width.
+
+## 2026-06 Smart HS resolution (any product name)
+- New backend/hs_resolver.py: HS6 resolution tiers — directory phrase match -> LLM classifier -> Gemini web-grounded lookup -> residual "n.e.c." heading in the same HS heading; every candidate validated against the HS directory, results cached in Mongo (hs_resolver_cache, 180d hits / 3d misses).
+- Wired everywhere: /api/trade-intel/hs-search (typeahead fallback), /api/hsn-finder (+resolution banner), brain/explore (hsResolution + classification note), brain/engines, costing_engine, compile_engine.
+- Local/misspelled names now work: brinjal & bringle -> 070930, okra & bhindi -> 070999, basmati rice -> 100630; nonsense input stays unresolved (no fabricated code). Duty/demand still only from WITS/OEC.
+- Also added BrainThinking loading animation on /brain/explore. Verified by testing agent iteration_77 (backend 7/8 - one cold-start timing bound, frontend 100%).
