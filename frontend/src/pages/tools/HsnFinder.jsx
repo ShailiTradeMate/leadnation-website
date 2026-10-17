@@ -6,7 +6,7 @@ import { AnswerFirst } from "@/components/AnswerFirst";
 import { AnswerBlock, PageFaq } from "@/components/PageFaq";
 import DownloadCTA from "@/components/DownloadCTA";
 import { api } from "@/lib/api";
-import { MagnifyingGlass, CircleNotch, Gift, Scales, Receipt, ArrowRight } from "@phosphor-icons/react";
+import { MagnifyingGlass, CircleNotch, Gift, Scales, Receipt, ArrowRight, Brain } from "@phosphor-icons/react";
 import { HsCodePicker } from "@/components/HsCodePicker";
 import { LaneCountrySelect } from "@/components/LaneCountrySelect";
 import { BrainNextSteps } from "@/components/BrainNextSteps";
@@ -108,6 +108,15 @@ export default function HsnFinder() {
           </form>
 
           <div className="lg:col-span-7 min-w-0 space-y-4">
+            {data?.resolution?.hs6 && (
+              <div data-testid="hsn-resolution" className="glass rounded-2xl px-4 py-3 text-[12px] text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Brain size={14} weight="duotone" className="text-cyan-300" />
+                <span className="text-slate-400">"{data.query}" isn't in the HS wording — the Brain read it as</span>
+                <span className="text-white font-medium">{data.resolution.canonical || data.query}</span>
+                {data.resolution.note && <span className="text-slate-400">· {data.resolution.note}</span>}
+                {String(data.resolution.via || "").includes("web") && <span className="text-[10px] font-mono-display uppercase tracking-widest text-violet-300">web-verified</span>}
+              </div>
+            )}
             {data?.results?.map((r, i) => (
               <div key={r.code} data-testid={`hsn-result-${i}`} className={`glass-strong rounded-3xl p-6 ${i === 0 ? "border border-cyan-400/25" : ""}`}>
                 <div className="flex items-start justify-between gap-3 flex-wrap">

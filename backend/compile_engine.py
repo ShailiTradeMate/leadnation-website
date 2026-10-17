@@ -60,9 +60,8 @@ async def _sample_price(duty_rate, txn_cur, txn_rate, exp_cur, exp_rate):
 async def compile_report(hs="", product="", exporter="", importer="356", currency="USD", force=False):
     hs6 = trade_intel._norm_hs(hs)
     if len(hs6) < 6 and product:
-        hits = await trade_intel.hs_search(product, limit=1)
-        if hits:
-            hs6 = hits[0]["hs6"]
+        import hs_resolver
+        hs6 = await hs_resolver.resolve_hs6(product) or ""
     if len(hs6) < 6:
         return {"ok": False, "error": "Provide a product name or a 6-digit HS code."}
 

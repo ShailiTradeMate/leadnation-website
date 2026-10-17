@@ -203,6 +203,16 @@ async def hsn_finder(payload: HsnFindRequest):
         matches = [{"hs6": r["hs6"], "desc": r.get("desc", ""), "score": 10} for r in rows]
     else:
         matches = await _directory_match(payload.productName, payload.description or "")
+    resolution = None
+    if not matches and (payload.productName or "").strip():
+        # Local or misspelled trade name (brinjal, bhindi, okra…) — let the Brain classify it.
+        import hs_resolver
+        resolution = await hs_resolver.resolve(payload.productName, payload.hs6 or "")
+        if resolution.get("hs6"):
+            siblings = await trade_intel.HS_MAP_COLL.find(
+                {"hs6": {"$regex": f"^{resolution['hs6'][:4]}"}}, {"_id": 0}).limit(6).to_list(6)
+            matches = [{"hs6": resolution["hs6"], "desc": resolution.get("description") or resolution.get("canonical") or "", "score": 9}]
+            matches += [{"hs6": r["hs6"], "desc": r.get("desc", ""), "score": 4} for r in siblings if r["hs6"] != resolution["hs6"]][:5]
     results = await asyncio.gather(*[_enrich(m, payload.destination or "", i < 3, payload.origin or "") for i, m in enumerate(matches)])
     meta = await duty_engine.get_meta()
     import export_incentives
@@ -216,7 +226,7 @@ async def hsn_finder(payload: HsnFindRequest):
         "query": payload.productName or payload.hs6, "origin": origin, "destination": payload.destination or "",
         "originName": duty_engine.NAME_BY_CODE.get(payload.origin or "", ""),
         "destinationName": duty_engine.NAME_BY_CODE.get(payload.destination or "", ""),
-        "results": list(results), "total": len(results),
+        "results": list(results), "total": len(results), "resolution": resolution,
         "exportSupport": ({"code": origin, **export_incentives.for_country(origin)} if origin else None),
         "sources": sources,
         "refreshedAt": meta.get("lastRefresh"),

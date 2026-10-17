@@ -90,9 +90,8 @@ class QuoteRequest(BaseModel):
 async def _resolve_hs(hs, product):
     hs6 = trade_intel._norm_hs(hs)
     if len(hs6) < 6 and product:
-        hits = await trade_intel.hs_search(product, limit=1)
-        if hits:
-            hs6 = hits[0]["hs6"]
+        import hs_resolver
+        hs6 = await hs_resolver.resolve_hs6(product) or ""
     return hs6
 
 

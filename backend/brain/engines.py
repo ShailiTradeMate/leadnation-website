@@ -164,15 +164,14 @@ def _fmt(v):
 
 
 async def _resolve_hs6(product, hsn):
-    from trade_intel import _norm_hs, hs_search
+    from trade_intel import _norm_hs
     if hsn:
         h = _norm_hs(hsn)
         if len(h) >= 6:
             return h
     if product:
-        hits = await hs_search(product, limit=1)
-        if hits:
-            return hits[0]["hs6"]
+        import hs_resolver
+        return await hs_resolver.resolve_hs6(product)
     return None
 
 

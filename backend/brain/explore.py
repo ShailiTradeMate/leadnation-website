@@ -65,20 +65,14 @@ def _closest_published(product_slug, dest_slug, origin_name, dest_code=None):
 
 
 async def _resolve_product_hs6(product, hs):
-    """Catalogue aliases first (basmati → 100630), then the HS directory, then each word of the name."""
-    from brain.engines import _resolve_hs6
+    """Catalogue aliases first (basmati → 100630), then the shared resolver
+    (HS directory → AI classification → web lookup) so local names resolve too."""
+    import hs_resolver
     p = (product or "").strip().lower()
     for slug, meta in PRODUCTS.items():
         if p and (p == meta["name"].lower() or p == slug.replace("-", " ") or p in [a.lower() for a in meta.get("aka", [])]):
-            return meta["primaryHs"]
-    hs6 = await _resolve_hs6(product, hs)
-    if hs6:
-        return hs6
-    for word in sorted(re.findall(r"[a-z]{4,}", p), key=len, reverse=True):
-        hs6 = await _resolve_hs6(word, None)
-        if hs6:
-            return hs6
-    return None
+            return {"hs6": meta["primaryHs"], "via": "catalogue", "canonical": meta["name"], "note": "", "sources": []}
+    return await hs_resolver.resolve(product, hs)
 
 
 async def _narrative(ctx: dict) -> dict:
@@ -125,12 +119,13 @@ async def explore(req: ExploreRequest):
     if kind == "industry" and not product:
         raise HTTPException(400, "industry is required")
 
-    cache_id = f"{kind}|{origin.lower()}|{destination.lower()}|{product.lower()}|{(req.hs or '').strip()}|{(req.region or '').lower()}"
+    cache_id = f"v2|{kind}|{origin.lower()}|{destination.lower()}|{product.lower()}|{(req.hs or '').strip()}|{(req.region or '').lower()}"
     cached = await db.brain_explore_cache.find_one({"_id": cache_id}, {"_id": 0})
     if cached and datetime.fromisoformat(cached["generatedAt"]) > datetime.now(timezone.utc) - CACHE_TTL:
         return {**cached["report"], "cached": True}
 
-    hs6 = await _resolve_product_hs6(product, req.hs) if (product or req.hs) else None
+    resolution = await _resolve_product_hs6(product, req.hs) if (product or req.hs) else {}
+    hs6 = (resolution or {}).get("hs6")
     o_code, o_name = _country_code(origin)
     d_code, d_name = _country_code(destination)
     region_meta = REGIONS.get(_slugify(req.region)) if req.region else None
@@ -167,6 +162,12 @@ async def explore(req: ExploreRequest):
             logger.warning("explore demand %s: %s", hs6, exc)
     elif product:
         notes.append("No HS code could be resolved for that product name — pick a code with the HS finder for duty and demand figures.")
+    if hs6 and (resolution or {}).get("via", "").startswith(("ai", "web")):
+        label = resolution.get("canonical") or product
+        src = "web search" if "web" in resolution["via"] else "the Brain's classifier"
+        notes.append(f"\"{product}\" was identified as {label} and classified under HS {hs6} by {src}"
+                     + (f" — {resolution['note'].rstrip('. ')}" if resolution.get("note") else "")
+                     + ". Confirm the 8-digit national code with your customs broker before filing.")
 
     market = d_name or (region_meta or {}).get("name")
     buyers = await _buyer_section(d_name, [hs6] if hs6 else [], "") if d_name else None
@@ -174,7 +175,9 @@ async def explore(req: ExploreRequest):
     news = await _news_section(d_name) if d_name else []
 
     request_ctx = {"kind": kind, "origin": o_name or origin or None, "destination": d_name or destination or None,
-                   "product": product or None, "hs6": hs6, "region": (region_meta or {}).get("name") or req.region}
+                   "product": product or None, "productCanonical": (resolution or {}).get("canonical"),
+                   "hs6": hs6, "hsDescription": (resolution or {}).get("description"),
+                   "region": (region_meta or {}).get("name") or req.region}
     data_ctx = {"duty": duty, "demand": demand, "buyers": buyers, "expos": expos[:4], "news": news[:4],
                 "regionCountries": region_countries or None, "notes": notes}
     narrative = await _narrative({"request": request_ctx, "data": data_ctx})
@@ -202,11 +205,14 @@ async def explore(req: ExploreRequest):
     sources = [{"name": "World Bank WITS / UNCTAD TRAINS", "for": "applied & preferential tariffs"} if duty else None,
                {"name": (demand or {}).get("source") or "OEC World (CEPII BACI)", "for": "import demand"} if demand else None,
                {"name": "Vametra AI Buyer Intelligence (official registries)", "for": "verified buyer counts"} if buyers else None,
+               {"name": "Vametra AI Brain classifier" + (" + web search" if "web" in (resolution or {}).get("via", "") else ""),
+                "for": f"HS classification of \"{product}\""} if hs6 and (resolution or {}).get("via", "").startswith(("ai", "web")) else None,
                {"name": "Vametra AI Brain (LLM)", "for": "narrative — verify procedures with the authority"}]
     report = {
         "kind": kind, "title": titles[kind][0], "h1": titles[kind][1],
         "origin": o_name or origin or None, "destination": d_name or destination or None,
-        "product": product or None, "hs6": hs6, "region": (region_meta or {}).get("name"),
+        "product": product or None, "hs6": hs6, "hsResolution": resolution or None,
+        "region": (region_meta or {}).get("name"),
         "regionCountries": region_countries or None,
         "duty": duty, "demand": demand, "buyers": buyers, "expos": expos, "news": news,
         "narrative": narrative, "faqs": narrative.get("faqs") or [], "notes": notes,

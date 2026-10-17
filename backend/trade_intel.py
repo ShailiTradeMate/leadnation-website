@@ -343,8 +343,14 @@ async def status():
 
 
 @router.get("/hs-search")
-async def hs_search_route(q: str = Query("", min_length=0), limit: int = 10):
-    return {"results": await hs_search(q, limit)}
+async def hs_search_route(q: str = Query("", min_length=0), limit: int = 10, ai: bool = True):
+    """Directory search; when nothing matches, the Brain classifies the name (local names,
+    regional spellings, typos) and returns the validated HS6 code."""
+    rows = await hs_search(q, limit)
+    if rows or not ai:
+        return {"results": rows}
+    import hs_resolver
+    return {"results": await hs_resolver.search(q, limit)}
 
 
 @router.get("/stats")

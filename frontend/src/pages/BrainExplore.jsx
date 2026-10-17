@@ -72,6 +72,17 @@ export default function BrainExplore() {
 
         {r && (
           <>
+            {r.hsResolution?.hs6 && (
+              <div data-testid="explore-classification" className="mb-4 glass rounded-2xl px-4 py-3 text-[12px] text-slate-300 flex flex-wrap items-center gap-x-2 gap-y-1">
+                <Brain size={14} weight="duotone" className="text-cyan-300" />
+                <span className="text-slate-400">Classified by the Brain:</span>
+                <span className="text-white font-medium">{r.hsResolution.canonical || r.product}</span>
+                <span className="text-slate-500">→</span>
+                <Link to={`/tools/hsn-finder?q=${r.hsResolution.hs6}`} className="text-cyan-300 hover:underline">HS {r.hsResolution.hs6}</Link>
+                {r.hsResolution.description && <span className="text-slate-400">· {r.hsResolution.description}</span>}
+                {String(r.hsResolution.via || "").includes("web") && <span className="text-[10px] font-mono-display uppercase tracking-widest text-violet-300">web-verified</span>}
+              </div>
+            )}
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="explore-kv">
               <KV label="Applied import duty" accent testId="explore-kv-duty"
                 value={duty?.importDuty ? `${duty.importDuty.rate}% ${duty.importDuty.type} (${duty.importDuty.year})` : "Not in WITS"} />
