@@ -20,20 +20,35 @@ const FIELD = {
   region: { label: "Region", ph: "Europe · Middle East · Asia-Pacific · Americas · Africa" },
 };
 
+const MEM_KEY = "vametra.explore";
+const MEM_FIELDS = ["origin", "destination", "product", "hs", "industry", "region"];
+/** What the user typed last time — so switching tabs or pages never asks for the same lane twice. */
+export function loadExploreMemory() {
+  try { return JSON.parse(localStorage.getItem(MEM_KEY) || "{}"); } catch { return {}; }
+}
+export function saveExploreMemory(v) {
+  try {
+    const next = { ...loadExploreMemory(), ...Object.fromEntries(MEM_FIELDS.filter((k) => v[k] !== undefined).map((k) => [k, v[k]])) };
+    localStorage.setItem(MEM_KEY, JSON.stringify(next));
+  } catch { /* storage unavailable */ }
+}
+
 export function exploreUrl(kind, v) {
-  const q = new URLSearchParams({ kind, ...Object.fromEntries(Object.entries(v).filter(([, x]) => x)) });
+  const fields = KIND_META[kind]?.fields || MEM_FIELDS;
+  const q = new URLSearchParams({ kind, ...Object.fromEntries(Object.entries(v).filter(([k, x]) => x && fields.includes(k))) });
   return `/brain/explore?${q.toString()}`;
 }
 
 /** Form used on the index/detail pages and at the top of /brain/explore. */
 export function BrainExploreForm({ kind, defaults = {}, onSubmit, testIdPrefix = "explore", compact = false }) {
-  const [v, setV] = useState({ origin: kind === "corridor" || kind === "guide" ? "India" : "", ...defaults });
+  const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, x]) => x));
+  const [v, setV] = useState({ origin: kind === "corridor" || kind === "guide" ? "India" : "", ...loadExploreMemory(), ...clean(defaults) });
   const [countries, setCountries] = useState([]);
   useEffect(() => { fetchLaneCountries().then(setCountries); }, []);
-  useEffect(() => { setV((s) => ({ ...s, ...defaults })); }, [kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setV((s) => ({ ...s, ...loadExploreMemory(), ...clean(defaults) })); }, [kind]); // eslint-disable-line react-hooks/exhaustive-deps
   const fields = KIND_META[kind]?.fields || [];
-  const set = (k) => (e) => setV((s) => ({ ...s, [k]: e.target.value }));
-  const submit = (e) => { e.preventDefault(); onSubmit(v); };
+  const set = (k) => (e) => setV((s) => { const n = { ...s, [k]: e.target.value }; saveExploreMemory(n); return n; });
+  const submit = (e) => { e.preventDefault(); saveExploreMemory(v); onSubmit(v); };
   return (
     <form onSubmit={submit} data-testid={`${testIdPrefix}-form`} className={`grid gap-3 ${compact ? "sm:grid-cols-2" : "sm:grid-cols-2 lg:grid-cols-4"}`}>
       <datalist id="explore-countries">{countries.map((c) => <option key={c.code} value={c.name} />)}</datalist>

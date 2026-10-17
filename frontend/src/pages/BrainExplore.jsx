@@ -5,7 +5,7 @@ import SEO from "@/components/SEO";
 import { SectionLabel } from "@/components/PageHero";
 import { Card, ChipList } from "@/components/ToolShell";
 import { PageFaq } from "@/components/PageFaq";
-import { BrainExploreForm, KIND_META, exploreUrl } from "@/components/BrainExplore";
+import { BrainExploreForm, KIND_META, exploreUrl, saveExploreMemory } from "@/components/BrainExplore";
 import { api } from "@/lib/api";
 
 const money = (v) => (v == null ? "—" : v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : v >= 1e6 ? `$${(v / 1e6).toFixed(0)}M` : `$${(v / 1e3).toFixed(0)}K`);
@@ -27,6 +27,7 @@ export default function BrainExplore() {
   const [err, setErr] = useState("");
 
   useEffect(() => {
+    if (hasQuery) saveExploreMemory(params);
     if (!hasQuery) { setState("idle"); setR(null); return; }
     let live = true;
     setState("loading"); setErr("");
