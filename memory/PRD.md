@@ -148,3 +148,11 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Removed every CTA button from the service-request email (no "Open admin"); deleted the legacy admin_service_request template so only the combined mail can fire.
 - Requester email now appears in the Contact block, in the closing line and in CC; profile block widened to read db.users -> do_users_cache -> profiles (account name/email, customer ID, mobile, role, plan, email verified, verification status, company on file, location, products, member since) with empty rows dropped.
 - NOTE: production still serves the pre-change build — a republish is required for the new email to go out live.
+
+
+## 2026-06 Service request email v3 (identity fix)
+- ROOT CAUSE of mismatched "Vametra profile" block: it was looked up by the email TYPED in the form, not the logged-in account; plus `profiles` collection holds stale data (pending/importer) vs `do_users_cache` (approved/exporter).
+- Fix: POST /api/service-request now takes `optional_user` (Firebase bearer token, already sent by lib/api.js) and resolves the account from `do_users_cache` by uid. Request doc stores userUid / accountEmail / customerId (ready for sub-admin/CA allocation).
+- Email is admin-only (no CC), reply-to = typed email, no buttons. Blocks: Request, Submitted details (typed form), Vametra account (Logged-in as / Customer ID / KYC status / Plan — only reliable fields; guests show "Submitted as guest"). Removed mobile/role/email-verified/member-since/profiles data.
+- Verified: logged in as vaibhav@leadnation.app while typing krivajexim@gmail.com → stored accountEmail vaibhav@leadnation.app, customerId 00009; guest path 200.
+- NEXT (user-stated): allocate landed service requests in admin portal to Sub-admins and CAs.

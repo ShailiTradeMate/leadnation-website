@@ -5,6 +5,7 @@ from typing import List, Optional, Any
 from datetime import datetime, timezone
 import uuid, io, csv, logging
 from core import db, require_admin, ADMIN_TOKEN
+from firebase_auth import optional_user
 
 router = APIRouter()
 
@@ -269,12 +270,20 @@ class ServiceRequest(BaseModel):
 
 
 @router.post("/service-request")
-async def submit_service_request(payload: ServiceRequest):
+async def submit_service_request(payload: ServiceRequest, user: Optional[dict] = Depends(optional_user)):
     doc = payload.model_dump()
     doc["id"] = str(uuid.uuid4())
     doc["status"] = "new"
     doc["assignedCa"] = None
     doc["createdAt"] = datetime.now(timezone.utc).isoformat()
+    # Link the request to the logged-in account (not the typed email) so admin sees the real customer.
+    account = {}
+    if user:
+        account = await db.do_users_cache.find_one({"uid": user.get("uid")}, {"_id": 0}) \
+            or await db.do_users_cache.find_one({"email": (user.get("email") or "").lower()}, {"_id": 0}) or {}
+        doc["userUid"] = user.get("uid")
+        doc["accountEmail"] = account.get("email") or user.get("email")
+        doc["customerId"] = account.get("customer_id")
     await db.service_requests.insert_one(doc)
     # also save in leads
     lead = {"id": str(uuid.uuid4()), "name": payload.name, "email": payload.email, "phone": payload.phone, "country": payload.country,
@@ -283,36 +292,24 @@ async def submit_service_request(payload: ServiceRequest):
     await db.leads.insert_one(lead)
     svc = SERVICES_DB.get(payload.service) or {}
     service_label = svc.get("name") or payload.service.replace("-", " ").title()
-    email_lc = str(payload.email).lower()
-    account = await db.users.find_one({"email": email_lc}, {"_id": 0}) \
-        or await db.do_users_cache.find_one({"email": email_lc}, {"_id": 0}) or {}
-    profile = await db.profiles.find_one({"email": email_lc}, {"_id": 0}) or {}
-    profile_rows = None
-    if account or profile:
-        company = (profile.get("company_details") or {})
+    if user:
+        kyc = str(account.get("kyc_status") or account.get("verification_status") or "pending")
         profile_rows = [
-            ("Account name", account.get("full_name") or profile.get("name")),
-            ("Account email", account.get("email") or profile.get("email") or email_lc),
-            ("Customer ID", account.get("customer_id") or profile.get("customer_id")),
-            ("Registered mobile", account.get("mobile_number") or account.get("mobile") or profile.get("mobile")),
-            ("Role", account.get("user_role") or profile.get("role")),
-            ("Plan", account.get("subscription_status") or "free"),
-            ("Email verified", "Yes" if account.get("is_email_verified") else "No"),
-            ("Verification", account.get("verification_status") or profile.get("verification_status")),
-            ("Company on file", company.get("company_name") or company.get("legal_name")),
-            ("Location", " · ".join([x for x in [profile.get("city"), profile.get("state"), profile.get("country")] if x])),
-            ("Products", ", ".join((profile.get("products_selling") or profile.get("products") or [])[:6])),
-            ("Member since", str(account.get("created_at") or profile.get("created_at") or "")[:10]),
+            ("Logged-in as", doc.get("accountEmail")),
+            ("Customer ID", account.get("customer_id")),
+            ("KYC status", kyc),
+            ("Plan", account.get("subscription_status")),
         ]
         profile_rows = [(k, v) for k, v in profile_rows if v]
+    else:
+        profile_rows = [("Account", "Submitted as guest (not logged in)")]
     from emailer import send, ADMIN_EMAIL
-    # One email for everyone: admin in To, requester in CC, replies go to the requester.
-    await send("service_request", ADMIN_EMAIL or str(payload.email), {
+    await send("service_request", ADMIN_EMAIL, {
         "service": service_label, "requestId": doc["id"], "submittedAt": doc["createdAt"][:19].replace("T", " ") + " UTC",
         "name": payload.name, "email": str(payload.email), "phone": payload.phone,
         "company": payload.company, "country": payload.country, "message": payload.message,
         "profileRows": profile_rows,
-    }, cc=[str(payload.email)], reply_to=str(payload.email))
+    }, reply_to=str(payload.email))
     return {"ok": True, "id": doc["id"]}
 
 
