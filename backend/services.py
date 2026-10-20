@@ -283,18 +283,28 @@ async def submit_service_request(payload: ServiceRequest):
     await db.leads.insert_one(lead)
     svc = SERVICES_DB.get(payload.service) or {}
     service_label = svc.get("name") or payload.service.replace("-", " ").title()
-    user = await db.users.find_one({"email": str(payload.email).lower()}, {"_id": 0})
+    email_lc = str(payload.email).lower()
+    account = await db.users.find_one({"email": email_lc}, {"_id": 0}) \
+        or await db.do_users_cache.find_one({"email": email_lc}, {"_id": 0}) or {}
+    profile = await db.profiles.find_one({"email": email_lc}, {"_id": 0}) or {}
     profile_rows = None
-    if user:
+    if account or profile:
+        company = (profile.get("company_details") or {})
         profile_rows = [
-            ("Account", user.get("full_name") or "—"),
-            ("Customer ID", user.get("customer_id")),
-            ("Registered mobile", user.get("mobile_number")),
-            ("Plan", user.get("subscription_status") or "free"),
-            ("Email verified", "Yes" if user.get("is_email_verified") else "No"),
-            ("KYC", user.get("kyc_status") or "—"),
-            ("Member since", str(user.get("created_at") or "")[:10]),
+            ("Account name", account.get("full_name") or profile.get("name")),
+            ("Account email", account.get("email") or profile.get("email") or email_lc),
+            ("Customer ID", account.get("customer_id") or profile.get("customer_id")),
+            ("Registered mobile", account.get("mobile_number") or account.get("mobile") or profile.get("mobile")),
+            ("Role", account.get("user_role") or profile.get("role")),
+            ("Plan", account.get("subscription_status") or "free"),
+            ("Email verified", "Yes" if account.get("is_email_verified") else "No"),
+            ("Verification", account.get("verification_status") or profile.get("verification_status")),
+            ("Company on file", company.get("company_name") or company.get("legal_name")),
+            ("Location", " · ".join([x for x in [profile.get("city"), profile.get("state"), profile.get("country")] if x])),
+            ("Products", ", ".join((profile.get("products_selling") or profile.get("products") or [])[:6])),
+            ("Member since", str(account.get("created_at") or profile.get("created_at") or "")[:10]),
         ]
+        profile_rows = [(k, v) for k, v in profile_rows if v]
     from emailer import send, ADMIN_EMAIL
     # One email for everyone: admin in To, requester in CC, replies go to the requester.
     await send("service_request", ADMIN_EMAIL or str(payload.email), {

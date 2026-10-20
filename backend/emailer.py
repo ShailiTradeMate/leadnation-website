@@ -452,12 +452,6 @@ BUILDERS = {
         f"<p>A new lead just came in:</p><p><b>{c.get('name','')}</b><br/>"
         f"{c.get('email','')} · {c.get('phone','')}<br/>Country: {c.get('country','')} · Source: {c.get('source','')}</p>",
         "View leads", f"{SITE}/admin-cms")),
-    "admin_service_request": lambda c: ("[Vametra AI] New service request", _shell(
-        "New service request",
-        f"<p>A new service request was submitted:</p><p><b>{c.get('service','')}</b><br/>"
-        f"{c.get('name','')} · {c.get('email','')} · {c.get('phone','')}<br/>Country: {c.get('country','')}</p>",
-        "View requests", f"{SITE}/admin-cms")),
-
     # ---- Service request: one email to admin, user in CC ----
     "service_request": lambda c: (f"Vametra Service Request · {c.get('service','')}", _shell(
         f"Service request · {c.get('service','')}",
@@ -467,8 +461,8 @@ BUILDERS = {
         f"{_rows('Request', [('Service', c.get('service')), ('Request ID', c.get('requestId')), ('Submitted', c.get('submittedAt')), ('Notes', c.get('message') or '—')])}"
         f"{_rows('Contact', [('Name', c.get('name')), ('Email', c.get('email')), ('Phone', c.get('phone')), ('Company', c.get('company') or '—'), ('Country', c.get('country'))])}"
         f"{_rows('Vametra profile', c.get('profileRows') or [('Account', 'No Vametra account found for this email yet')])}"
-        f"<p style=\"margin-top:18px;\">{c.get('name','')} is in copy on this email — replying here reaches both the team and the requester.</p>",
-        "Chat on WhatsApp", "https://wa.me/918237161088")),
+        f"<p style=\"margin-top:18px;\">{c.get('name','')} ({c.get('email','')}) is in copy on this email — "
+        f"replying here reaches both the Vametra AI team and the requester.</p>")),
 }
 
 

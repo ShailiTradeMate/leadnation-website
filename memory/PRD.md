@@ -143,3 +143,8 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Body carries the full request (service, request ID, submitted time, notes), contact details (name, email, phone, company, country) and the Vametra profile block (customer ID, registered mobile, plan, email-verified, KYC, member since) when the email matches an account; CTA is WhatsApp so it suits both recipients.
 - emailer.send() gained cc/reply_to support and a shared _rows() detail renderer; Services.jsx success note now tells the user a copy was emailed to them.
 - Verified: live Resend send returned an id; endpoint returns ok for both catalogue and non-catalogue service slugs.
+
+## 2026-06 Service request email v2
+- Removed every CTA button from the service-request email (no "Open admin"); deleted the legacy admin_service_request template so only the combined mail can fire.
+- Requester email now appears in the Contact block, in the closing line and in CC; profile block widened to read db.users -> do_users_cache -> profiles (account name/email, customer ID, mobile, role, plan, email verified, verification status, company on file, location, products, member since) with empty rows dropped.
+- NOTE: production still serves the pre-change build — a republish is required for the new email to go out live.
