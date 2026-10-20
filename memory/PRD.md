@@ -171,3 +171,6 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 ## 2026-06 Entity picker + documents note
 - company-registration has `entityOptions`; Services.jsx shows a required <select data-testid=service-entity> only when present. ServiceRequest model has optional `entity`; stored on the request, shown as "Entity type" in the admin email and under Service in Admin > Service Requests.
 - Documents card shows reassurance note (data-testid service-documents-note): "Missing a document? No problem..." on every service page.
+
+## BACKLOG (user-requested, 2026-06) — REMIND USER after marketing part + service-request part are done
+- Service Requests tab: dedicated "Allocate" button/flow for pending requests; categorise sub-admins as **CA** vs **Associate**; include all current and future sub-admins in allocation lists.
