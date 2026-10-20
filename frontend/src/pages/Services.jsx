@@ -181,7 +181,7 @@ export default function ServiceDetail() {
           <div className="glass-strong rounded-3xl p-6 sticky top-24">
             <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">Get started</div>
             <h2 className="font-display font-bold text-2xl mt-1">Request {s.name}</h2>
-            <p className="text-xs text-slate-400 mt-1">A Vametra AI CA will reach you within 4 working hours.</p>
+            <p className="text-xs text-slate-400 mt-1">A Vametra AI CA will reach you within 12–24 working hours.</p>
             {!submitted ? (
               <form onSubmit={submit} className="mt-5 space-y-3">
                 {s.entityOptions?.length > 0 && (
@@ -205,6 +205,7 @@ export default function ServiceDetail() {
                 <textarea data-testid="service-message" rows={3} placeholder="Anything specific?" value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   className="w-full glass rounded-xl px-4 py-3 outline-none placeholder:text-slate-500 text-sm" />
+                <p data-testid="service-pay-later-note" className="text-xs text-emerald-300 font-semibold">Pay when your document is ready — no advance payment.</p>
                 <button data-testid="service-submit" className="btn-primary w-full justify-center">Submit request <PaperPlaneTilt size={14} weight="bold" /></button>
                 {err && <div className="text-rose-300 text-sm">{err}</div>}
               </form>
