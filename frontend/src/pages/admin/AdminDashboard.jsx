@@ -432,7 +432,7 @@ function ServiceRequests() {
           {items.map((it) => (
             <tr key={it.id} className="border-t border-white/5">
               <td className="px-4 py-3 text-xs text-slate-400">{(it.createdAt || "").slice(0, 16).replace("T", " ")}</td>
-              <td className="px-4 py-3 text-xs text-cyan-300 font-mono-display">{it.service}</td>
+              <td className="px-4 py-3 text-xs text-cyan-300 font-mono-display"><div>{it.service}</div>{it.entity && <div className="text-slate-400 mt-0.5">{it.entity}</div>}</td>
               <td className="px-4 py-3">{it.name}</td>
               <td className="px-4 py-3 text-xs"><div>{it.email}</div><div className="text-slate-500">{it.phone}</div></td>
               <td className="px-4 py-3">

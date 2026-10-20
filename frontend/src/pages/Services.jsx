@@ -71,14 +71,14 @@ export default function ServiceDetail() {
   const [s, setS] = useState(null);
   const [nf, setNf] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
-  const [form, setForm] = useState({ service: slug, name: "", email: "", phone: "", country: "India", company: "", message: "" });
+  const [form, setForm] = useState({ service: slug, name: "", email: "", phone: "", country: "India", company: "", entity: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
   const [err, setErr] = useState("");
 
   useEffect(() => {
     setS(null); setNf(false); setSubmitted(false);
     loadEntity(`/service/${slug}`, setS, () => setNf(true));
-    setForm((f) => ({ ...f, service: slug }));
+    setForm((f) => ({ ...f, service: slug, entity: "" }));
   }, [slug]);
 
   const submit = async (e) => {
@@ -158,6 +158,9 @@ export default function ServiceDetail() {
             ) : (
               <ul className="mt-3 grid sm:grid-cols-2 gap-2 text-sm">{s.documents.map((d, i) => <li key={i} className="glass rounded-xl px-3 py-2">{d}</li>)}</ul>
             )}
+            <p data-testid="service-documents-note" className="mt-4 text-xs text-slate-400 leading-relaxed">
+              <span className="text-emerald-300 font-semibold">Missing a document? No problem.</span> Submit your request — your Vametra AI CA will guide you on anything that is missing.
+            </p>
           </Card>
           <Card title="Frequently asked">
             <ul className="mt-3 divide-y divide-white/5">
@@ -181,6 +184,13 @@ export default function ServiceDetail() {
             <p className="text-xs text-slate-400 mt-1">A Vametra AI CA will reach you within 4 working hours.</p>
             {!submitted ? (
               <form onSubmit={submit} className="mt-5 space-y-3">
+                {s.entityOptions?.length > 0 && (
+                  <select data-testid="service-entity" required value={form.entity || ""} onChange={(e) => setForm({ ...form, entity: e.target.value })}
+                    className="w-full glass rounded-xl px-4 py-3 outline-none text-sm bg-transparent" style={{ color: form.entity ? undefined : "#64748b" }}>
+                    <option value="" disabled className="bg-[#0a0f24] text-slate-400">Select entity type *</option>
+                    {s.entityOptions.map((o) => <option key={o} value={o} className="bg-[#0a0f24] text-white">{o}</option>)}
+                  </select>
+                )}
                 {[
                   ["name", "Full name", true],
                   ["email", "Email", true, "email"],

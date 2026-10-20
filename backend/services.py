@@ -79,6 +79,7 @@ SERVICES_DB = {
                 "Address proof of directors (bank statement / utility bill, < 2 months old)", "Registered office proof + owner NOC",
                 "MOA & AOA (drafted by us)", "Nominee consent — Form INC-3 (OPC only)"]},
         ],
+        "entityOptions": ["Shop Act (Sole Proprietorship)", "LLP", "Private Limited", "OPC (One Person Company)", "Not sure — help me choose"],
         "process": ["Free 30-min strategy call to choose entity", "Name reservation (RUN / SPICe+ Part A) with MCA — not needed for Shop Act", "Documents collection & e-signing", "Shop Act licence in 1–3 days · LLP / Pvt Ltd incorporation certificate within 7–10 days"],
         "faqs": [
             {"q": "Which entity is best for exporters?", "a": "For most SME exporters: LLP or Pvt Ltd. We'll guide you in the strategy call."},
@@ -297,6 +298,7 @@ class ServiceRequest(BaseModel):
     phone: Optional[str] = None
     country: Optional[str] = "India"
     company: Optional[str] = None
+    entity: Optional[str] = None
     message: Optional[str] = None
 
 
@@ -338,7 +340,7 @@ async def submit_service_request(payload: ServiceRequest, user: Optional[dict] =
     await send("service_request", ADMIN_EMAIL, {
         "service": service_label, "requestId": doc["id"], "submittedAt": doc["createdAt"][:19].replace("T", " ") + " UTC",
         "name": payload.name, "email": str(payload.email), "phone": payload.phone,
-        "company": payload.company, "country": payload.country, "message": payload.message,
+        "company": payload.company, "country": payload.country, "message": payload.message, "entity": payload.entity,
         "profileRows": profile_rows,
     }, reply_to=str(payload.email))
     return {"ok": True, "id": doc["id"]}

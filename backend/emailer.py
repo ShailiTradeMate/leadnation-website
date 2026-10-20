@@ -457,7 +457,7 @@ BUILDERS = {
         f"Service request · {c.get('service','')}",
         f"<p>Hello Vametra AI team,</p>"
         f"<p><b>{c.get('name','')}</b> ({c.get('email','')}) has requested <b>{c.get('service','')}</b>.</p>"
-        f"{_rows('Request', [('Service', c.get('service')), ('Request ID', c.get('requestId')), ('Submitted', c.get('submittedAt')), ('Notes', c.get('message') or '—')])}"
+        f"{_rows('Request', [('Service', c.get('service'))] + ([('Entity type', c.get('entity'))] if c.get('entity') else []) + [('Request ID', c.get('requestId')), ('Submitted', c.get('submittedAt')), ('Notes', c.get('message') or '—')])}"
         f"{_rows('Submitted details', [('Name', c.get('name')), ('Email', c.get('email')), ('Phone', c.get('phone')), ('Company', c.get('company') or '—'), ('Country', c.get('country'))])}"
         f"{_rows('Vametra account', c.get('profileRows') or [])}"
         f"<p style=\"margin-top:18px;\">Reply to this email to reach the requester at {c.get('email','')}.</p>")),

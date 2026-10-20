@@ -167,3 +167,7 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 ## 2026-06 Services page cleanup
 - Removed "Process flow" card + "Process steps" answer-row from every service detail page (backend `process` arrays kept but unused).
 - FAQs: removed every government-fee question/answer (IEC ₹500, Udyam free). Each govt-documentation service now has one positive "What does the Vametra AI fee include?" FAQ framed as a single all-inclusive fee (government + professional charges covered).
+
+## 2026-06 Entity picker + documents note
+- company-registration has `entityOptions`; Services.jsx shows a required <select data-testid=service-entity> only when present. ServiceRequest model has optional `entity`; stored on the request, shown as "Entity type" in the admin email and under Service in Admin > Service Requests.
+- Documents card shows reassurance note (data-testid service-documents-note): "Missing a document? No problem..." on every service page.
