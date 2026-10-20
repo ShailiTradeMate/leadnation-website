@@ -63,6 +63,18 @@ def _shell(title: str, body_html: str, cta_label: str = "", cta_url: str = "") -
 </table></td></tr></table></body></html>"""
 
 
+def _rows(heading: str, pairs) -> str:
+    """Labelled detail block used by request emails."""
+    cells = "".join(
+        f'<tr><td style="padding:4px 12px 4px 0;color:#7e8ea8;font-size:12px;white-space:nowrap;vertical-align:top;">{label}</td>'
+        f'<td style="padding:4px 0;color:#e6edf8;font-size:13px;">{value if value not in (None, "") else "—"}</td></tr>'
+        for label, value in pairs)
+    return (f'<div style="margin:18px 0 0 0;"><div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;'
+            f'color:#00C2FF;margin-bottom:6px;">{heading}</div>'
+            f'<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;">{cells}</table></div>')
+
+
+
 def _amount_label(amount, currency):
     try:
         amount = float(amount)
@@ -445,11 +457,24 @@ BUILDERS = {
         f"<p>A new service request was submitted:</p><p><b>{c.get('service','')}</b><br/>"
         f"{c.get('name','')} · {c.get('email','')} · {c.get('phone','')}<br/>Country: {c.get('country','')}</p>",
         "View requests", f"{SITE}/admin-cms")),
+
+    # ---- Service request: one email to admin, user in CC ----
+    "service_request": lambda c: (f"Vametra Service Request · {c.get('service','')}", _shell(
+        f"Service request · {c.get('service','')}",
+        f"<p>Hello Vametra AI team,</p>"
+        f"<p><b>{c.get('name','')}</b> has requested <b>{c.get('service','')}</b>. "
+        f"A Vametra AI specialist will reply to this email within 4 working hours.</p>"
+        f"{_rows('Request', [('Service', c.get('service')), ('Request ID', c.get('requestId')), ('Submitted', c.get('submittedAt')), ('Notes', c.get('message') or '—')])}"
+        f"{_rows('Contact', [('Name', c.get('name')), ('Email', c.get('email')), ('Phone', c.get('phone')), ('Company', c.get('company') or '—'), ('Country', c.get('country'))])}"
+        f"{_rows('Vametra profile', c.get('profileRows') or [('Account', 'No Vametra account found for this email yet')])}"
+        f"<p style=\"margin-top:18px;\">{c.get('name','')} is in copy on this email — replying here reaches both the team and the requester.</p>",
+        "Chat on WhatsApp", "https://wa.me/918237161088")),
 }
 
 
 # ---------------- Core send ----------------
-async def send(kind: str, to_email: Optional[str], ctx: dict = None):
+async def send(kind: str, to_email: Optional[str], ctx: dict = None,
+               cc: Optional[list] = None, reply_to: Optional[str] = None):
     """Fire-and-forget branded email. Fails soft (never raises)."""
     ctx = ctx or {}
     if not to_email:
@@ -462,10 +487,14 @@ async def send(kind: str, to_email: Optional[str], ctx: dict = None):
         logging.warning("Email template %s failed: %s", kind, exc)
         return {"sent": False, "error": str(exc)}
     if not RESEND_API_KEY:
-        logging.info("[email:mock] %s -> %s (%s)", kind, to_email, subject)
+        logging.info("[email:mock] %s -> %s cc=%s (%s)", kind, to_email, cc or [], subject)
         return {"sent": False, "mocked": True, "reason": "RESEND_API_KEY not set"}
     try:
         params = {"from": SENDER_EMAIL, "to": [to_email], "subject": subject, "html": html}
+        if cc:
+            params["cc"] = [e for e in cc if e and e != to_email]
+        if reply_to:
+            params["reply_to"] = reply_to
         res = await asyncio.to_thread(resend.Emails.send, params)
         return {"sent": True, "id": (res or {}).get("id")}
     except Exception as exc:

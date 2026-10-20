@@ -281,10 +281,28 @@ async def submit_service_request(payload: ServiceRequest):
             "source": f"service:{payload.service}", "message": payload.message,
             "createdAt": datetime.now(timezone.utc).isoformat()}
     await db.leads.insert_one(lead)
-    from emailer import notify_admin
-    await notify_admin("admin_service_request", {
-        "service": payload.service, "name": payload.name, "email": payload.email,
-        "phone": payload.phone, "country": payload.country})
+    svc = SERVICES_DB.get(payload.service) or {}
+    service_label = svc.get("name") or payload.service.replace("-", " ").title()
+    user = await db.users.find_one({"email": str(payload.email).lower()}, {"_id": 0})
+    profile_rows = None
+    if user:
+        profile_rows = [
+            ("Account", user.get("full_name") or "—"),
+            ("Customer ID", user.get("customer_id")),
+            ("Registered mobile", user.get("mobile_number")),
+            ("Plan", user.get("subscription_status") or "free"),
+            ("Email verified", "Yes" if user.get("is_email_verified") else "No"),
+            ("KYC", user.get("kyc_status") or "—"),
+            ("Member since", str(user.get("created_at") or "")[:10]),
+        ]
+    from emailer import send, ADMIN_EMAIL
+    # One email for everyone: admin in To, requester in CC, replies go to the requester.
+    await send("service_request", ADMIN_EMAIL or str(payload.email), {
+        "service": service_label, "requestId": doc["id"], "submittedAt": doc["createdAt"][:19].replace("T", " ") + " UTC",
+        "name": payload.name, "email": str(payload.email), "phone": payload.phone,
+        "company": payload.company, "country": payload.country, "message": payload.message,
+        "profileRows": profile_rows,
+    }, cc=[str(payload.email)], reply_to=str(payload.email))
     return {"ok": True, "id": doc["id"]}
 
 

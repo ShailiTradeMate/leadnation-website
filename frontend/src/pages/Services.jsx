@@ -198,7 +198,7 @@ export default function ServiceDetail() {
             ) : (
               <div data-testid="service-success" className="mt-5 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30">
                 <div className="text-emerald-300 font-display font-bold">Request received ✓</div>
-                <p className="text-sm text-slate-300 mt-2">A Vametra AI CA will reach out shortly. You can also reach us instantly on WhatsApp.</p>
+                <p className="text-sm text-slate-300 mt-2">A copy of your request has been emailed to you, with our team in the loop — just reply to that email to add anything. A Vametra AI CA will reach out shortly, or chat with us instantly on WhatsApp.</p>
                 <a href="https://wa.me/918237161088" target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Chat on WhatsApp</a>
               </div>
             )}

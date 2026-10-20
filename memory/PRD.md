@@ -137,3 +137,9 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - New Mongo collection hs_aliases: every resolved product name (the query, the canonical name and each alias the classifier returned) is stored, so repeats like bhindi/bhindis/ladies finger answer from memory (~0.7s) with no AI call.
 - Plural/possessive-insensitive normalisation; derived names only fill gaps (never overwrite a proven mapping); seeded at boot from the published product catalogue (39 names).
 - Classifier accuracy guards added: raw-form default (no frozen/dried/prepared line unless the user said so), prepared-chapter guard (16-21), residual "miscellaneous/n.e.c." heading fallback. Verified: okra/bhindi 070999, brinjal 070930, tinda 070993, pomegranate 081090, frozen okra 071080, mango pulp 200899.
+
+## 2026-06 Service request email (single combined mail)
+- POST /api/service-request now sends ONE email: To admin@vametra.com, CC the requester, reply-to the requester, subject "Vametra Service Request · {Service}".
+- Body carries the full request (service, request ID, submitted time, notes), contact details (name, email, phone, company, country) and the Vametra profile block (customer ID, registered mobile, plan, email-verified, KYC, member since) when the email matches an account; CTA is WhatsApp so it suits both recipients.
+- emailer.send() gained cc/reply_to support and a shared _rows() detail renderer; Services.jsx success note now tells the user a copy was emailed to them.
+- Verified: live Resend send returned an id; endpoint returns ok for both catalogue and non-catalogue service slugs.
