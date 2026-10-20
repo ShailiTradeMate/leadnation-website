@@ -163,3 +163,7 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - NEW service `udyam-registration` — Udyam (MSME) Registration, priceFrom INR 999 (editable via admin service rates), SEO entry in seoTitles.js, auto-included in sitemap/search.
 - Services.jsx success message no longer claims a copy was emailed to the user (admin-only mail).
 
+
+## 2026-06 Services page cleanup
+- Removed "Process flow" card + "Process steps" answer-row from every service detail page (backend `process` arrays kept but unused).
+- FAQs: removed every government-fee question/answer (IEC ₹500, Udyam free). Each govt-documentation service now has one positive "What does the Vametra AI fee include?" FAQ framed as a single all-inclusive fee (government + professional charges covered).

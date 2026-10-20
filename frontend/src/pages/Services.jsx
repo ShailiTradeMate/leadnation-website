@@ -10,7 +10,7 @@ import { SERVICE_SEO } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
 import { api } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
-import { ArrowRight, CheckCircle, FileText, Wrench, PaperPlaneTilt, CaretDown, Briefcase } from "@phosphor-icons/react";
+import { ArrowRight, CheckCircle, FileText, PaperPlaneTilt, CaretDown, Briefcase } from "@phosphor-icons/react";
 
 export function ServicesHub() {
   const [list, setList] = useState([]);
@@ -159,16 +159,6 @@ export default function ServiceDetail() {
               <ul className="mt-3 grid sm:grid-cols-2 gap-2 text-sm">{s.documents.map((d, i) => <li key={i} className="glass rounded-xl px-3 py-2">{d}</li>)}</ul>
             )}
           </Card>
-          <Card title="Process flow" Icon={Wrench}>
-            <ol className="mt-3 space-y-3">
-              {s.process.map((p, i) => (
-                <li key={i} className="flex gap-3 items-start">
-                  <span className="w-7 h-7 shrink-0 rounded-full grid place-items-center bg-gradient-to-br from-cyan-500/30 to-violet-500/30 border border-white/10 text-xs font-mono-display tracking-widest">{String(i + 1).padStart(2, "0")}</span>
-                  <span className="text-sm pt-0.5">{p}</span>
-                </li>
-              ))}
-            </ol>
-          </Card>
           <Card title="Frequently asked">
             <ul className="mt-3 divide-y divide-white/5">
               {s.faqs.map((f, i) => (
@@ -224,7 +214,6 @@ export default function ServiceDetail() {
         rows={[
           { label: "Starts at", value: s.priceFrom },
           { label: "Documents listed", value: String(s.documentGroups?.length ? s.documentGroups.reduce((n, g) => n + g.items.length, 0) : (s.documents || []).length) },
-          { label: "Process steps", value: String((s.process || []).length) },
           { label: "Handled by", value: s.category === "Govt Documentation" ? "Certified CA" : "Certified trade consultant" },
         ]}
         source="Vametra AI Services; DGFT / GST / MCA requirements as published"

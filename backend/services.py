@@ -23,6 +23,7 @@ SERVICES_DB = {
         "faqs": [
             {"q": "Is RCMC mandatory?", "a": "Yes, to claim any DGFT export incentive you need a valid RCMC."},
             {"q": "How long is it valid?", "a": "5 years from the date of issue."},
+            {"q": "What does the Vametra AI fee include?", "a": "One all-inclusive fee — council selection, application filing, document follow-ups and certificate delivery, with government and professional charges covered. No hidden extras."},
             {"q": "Can Vametra AI help me apply?", "a": "Yes — we assign a dedicated CA from our compliance team to handle end-to-end."},
         ],
         "priceFrom": "INR 4,999",
@@ -39,6 +40,7 @@ SERVICES_DB = {
             {"q": "Do I need GST for exports?", "a": "Yes — exports are zero-rated, and you'll claim refund of input GST. Registration is essential."},
             {"q": "Can it be done online?", "a": "Yes. Vametra AI's CA team files online and tracks until GSTIN is issued."},
             {"q": "What's the timeline?", "a": "Usually 5–7 working days. We expedite via professional follow-ups."},
+            {"q": "What does the Vametra AI fee include?", "a": "One all-inclusive fee — document review, GST REG-01 filing, officer queries handled and GSTIN delivery, with government and professional charges covered."},
         ],
         "priceFrom": "INR 1,499",
     },
@@ -53,7 +55,7 @@ SERVICES_DB = {
         "faqs": [
             {"q": "How long does it take?", "a": "Typically 1–3 working days with our team. Some cases need Aadhaar OTP verification."},
             {"q": "Is annual renewal required?", "a": "No, lifetime validity. But you must update it annually on DGFT portal."},
-            {"q": "What's the cost?", "a": "Government fee INR 500 + Vametra AI professional fee."},
+            {"q": "What does the Vametra AI fee include?", "a": "One all-inclusive fee — ANF-2A filing, Aadhaar/DSC verification support and IEC certificate delivery, with government and professional charges covered. Lifetime validity, no renewal fee."},
         ],
         "priceFrom": "INR 1,999",
     },
@@ -80,7 +82,7 @@ SERVICES_DB = {
         "process": ["Free 30-min strategy call to choose entity", "Name reservation (RUN / SPICe+ Part A) with MCA — not needed for Shop Act", "Documents collection & e-signing", "Shop Act licence in 1–3 days · LLP / Pvt Ltd incorporation certificate within 7–10 days"],
         "faqs": [
             {"q": "Which entity is best for exporters?", "a": "For most SME exporters: LLP or Pvt Ltd. We'll guide you in the strategy call."},
-            {"q": "What is the cost?", "a": "Depends on entity — Shop Act from ₹2,499 · LLP from ₹6,999 · Pvt Ltd from ₹9,999. Includes government + professional fees."},
+            {"q": "What does the Vametra AI fee include?", "a": "One all-inclusive fee per entity — Shop Act from ₹2,499 · LLP from ₹6,999 · Pvt Ltd from ₹9,999 — covering name reservation, drafting, filing, government and professional charges. Your CA confirms the exact package on the strategy call."},
             {"q": "Do you also handle compliance?", "a": "Yes — annual ROC filing, ITR, GSTR — we offer a full retainer."},
         ],
         "priceFrom": "INR 2,499",
@@ -94,7 +96,7 @@ SERVICES_DB = {
         "documents": ["Aadhaar of proprietor / managing partner / director (Aadhaar-linked mobile for OTP)", "PAN of the business (and of the signatory)", "GSTIN (mandatory if your business is required to register for GST)", "Bank account number + IFSC", "Business address & date of commencement", "Main activity (manufacturing / services) & NIC codes", "Investment in plant & machinery and previous-year turnover (self-declared, auto-checked with ITR / GST)"],
         "process": ["Collect Aadhaar, PAN, GST & bank details", "File on udyamregistration.gov.in with Aadhaar OTP", "PAN / GST / ITR auto-validation by the portal", "Udyam Registration Number (URN) & certificate issued — usually same day"],
         "faqs": [
-            {"q": "Is there a government fee?", "a": "No — Udyam registration itself is free. You pay only Vametra AI's professional fee for end-to-end filing and classification advice."},
+            {"q": "What does the Vametra AI fee include?", "a": "One all-inclusive fee — correct Micro/Small/Medium classification, NIC code selection, Aadhaar-OTP filing, PAN/GST validation checks and your Udyam certificate delivered, usually the same day."},
             {"q": "Is it needed for exporters?", "a": "Not mandatory, but strongly recommended: many export promotion schemes, bank export-credit lines and MAI/trade-fair subsidies prioritise Udyam-registered MSMEs."},
             {"q": "Do I need GST first?", "a": "Only if your business is legally required to register for GST. Businesses exempt from GST can register with PAN alone."},
             {"q": "Already have Udyog Aadhaar (UAM)?", "a": "UAM has been replaced — we migrate it to Udyam so your benefits continue uninterrupted."},
