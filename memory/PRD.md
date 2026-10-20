@@ -156,3 +156,10 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Email is admin-only (no CC), reply-to = typed email, no buttons. Blocks: Request, Submitted details (typed form), Vametra account (Logged-in as / Customer ID / KYC status / Plan — only reliable fields; guests show "Submitted as guest"). Removed mobile/role/email-verified/member-since/profiles data.
 - Verified: logged in as vaibhav@leadnation.app while typing krivajexim@gmail.com → stored accountEmail vaibhav@leadnation.app, customerId 00009; guest path 200.
 - NEXT (user-stated): allocate landed service requests in admin portal to Sub-admins and CAs.
+
+## 2026-06 Services catalogue accuracy + Udyam
+- Company Registration: documents now grouped per entity via new `documentGroups` field (Shop Act / LLP / Pvt Ltd–OPC); Services.jsx renders groups (data-testid service-document-groups) with fallback to flat `documents`. Process steps clarified (RUN/SPICe+ not needed for Shop Act).
+- Tightened documents for RCMC, GST, IEC (constitution proof, NOC, DSC notes, ANF-2A(I) bank cert).
+- NEW service `udyam-registration` — Udyam (MSME) Registration, priceFrom INR 999 (editable via admin service rates), SEO entry in seoTitles.js, auto-included in sitemap/search.
+- Services.jsx success message no longer claims a copy was emailed to the user (admin-only mail).
+

@@ -18,7 +18,7 @@ SERVICES_DB = {
         "image": "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=80",
         "overview": "An RCMC certifies an exporter as a registered member of an Export Promotion Council (EPC) or Commodity Board. It's mandatory to claim DGFT export benefits (RoDTEP, MAI, etc.).",
         "benefits": ["Unlock DGFT export incentives", "Claim RoDTEP, MAI, RoSCTL scrips", "Get EPC support for trade fairs", "Recognised as a serious exporter"],
-        "documents": ["IEC certificate", "GST registration", "PAN card", "Cancelled cheque", "MOA / Partnership deed", "Bank certificate"],
+        "documents": ["IEC certificate", "GST registration certificate", "PAN of the business", "Business constitution proof (MOA / LLP agreement / partnership deed / Shop Act licence)", "Cancelled cheque or bank certificate", "Export turnover declaration (CA-certified, if any past exports)", "Digital signature (DSC) of authorised signatory"],
         "process": ["Choose the relevant EPC / Board", "Submit application + documents", "EPC verifies & issues certificate", "Receive RCMC within 7–10 days"],
         "faqs": [
             {"q": "Is RCMC mandatory?", "a": "Yes, to claim any DGFT export incentive you need a valid RCMC."},
@@ -33,7 +33,7 @@ SERVICES_DB = {
         "image": "https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80",
         "overview": "Goods & Services Tax (GST) registration is mandatory for businesses in India with turnover above the threshold or for any exporter claiming refund of input GST.",
         "benefits": ["Legally collect GST", "Claim Input Tax Credit", "Export with zero-rated GST (refund eligible)", "Open Current Account in business name"],
-        "documents": ["PAN card", "Aadhaar of proprietor / partners", "Business address proof", "Bank account proof", "Photographs"],
+        "documents": ["PAN of the business / proprietor", "Aadhaar of proprietor / partners / directors", "Business address proof (electricity bill or rent agreement + owner NOC)", "Bank account proof (cancelled cheque / statement)", "Passport-size photographs", "Business constitution proof (partnership deed / incorporation certificate, if not a proprietorship)", "DSC + authorisation letter (companies / LLPs)"],
         "process": ["Collect KYC documents", "Submit GST REG-01 online", "Verification by GST officer", "GSTIN issued within 7 days"],
         "faqs": [
             {"q": "Do I need GST for exports?", "a": "Yes — exports are zero-rated, and you'll claim refund of input GST. Registration is essential."},
@@ -48,7 +48,7 @@ SERVICES_DB = {
         "image": "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=1200&q=80",
         "overview": "The Import Export Code (IEC) issued by DGFT is the 10-digit identifier required for any cross-border trade transaction. It is a one-time, lifetime registration.",
         "benefits": ["Mandatory for any import/export", "Required to receive foreign currency", "Required for shipping bill / bill of entry", "Linked to RoDTEP & other incentives"],
-        "documents": ["PAN card", "Aadhaar of proprietor", "Address proof (utility bill)", "Bank certificate / cancelled cheque", "Digital signature (if applicable)"],
+        "documents": ["PAN of the business / proprietor", "Aadhaar of proprietor / authorised signatory (Aadhaar-linked mobile for OTP)", "Business address proof (utility bill / rent agreement + NOC)", "Cancelled cheque or bank certificate (ANF-2A(I))", "Business constitution proof (partnership deed / incorporation certificate, if applicable)", "DSC (optional — Aadhaar e-sign works for most applicants)"],
         "process": ["Collect KYC documents", "File ANF-2A online on DGFT portal", "Pay government fees", "Receive IEC certificate by email"],
         "faqs": [
             {"q": "How long does it take?", "a": "Typically 1–3 working days with our team. Some cases need Aadhaar OTP verification."},
@@ -63,14 +63,43 @@ SERVICES_DB = {
         "image": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
         "overview": "We help you choose and register the right business entity — sole proprietorship (Shop & Establishment), LLP, OPC or Private Limited — based on your scale, funding plans and compliance comfort.",
         "benefits": ["Limited liability protection", "Easier to raise funding", "Tax planning advantages", "Brand & contract credibility"],
-        "documents": ["DIN / DSC for directors", "PAN + Aadhaar of directors", "Registered office address proof", "MOA / AOA drafting (Pvt Ltd)", "Partnership deed (LLP)"],
-        "process": ["Free 30-min strategy call to choose entity", "Name reservation with MCA", "Documents collection & e-signing", "Incorporation certificate within 7–10 days"],
+        "documents": ["PAN + Aadhaar of proprietor / partners / directors", "Registered office address proof + owner NOC", "Passport-size photographs"],
+        "documentGroups": [
+            {"title": "Shop Act (Sole Proprietorship · Shop & Establishment)", "items": [
+                "PAN + Aadhaar of proprietor", "Passport-size photograph", "Shop / office address proof (electricity bill or rent agreement + owner NOC)",
+                "Business name & nature of business", "Number of employees (if any)"]},
+            {"title": "LLP (Limited Liability Partnership)", "items": [
+                "DSC of designated partners", "DIN / DPIN of designated partners", "PAN + Aadhaar of all partners",
+                "Address proof of partners (bank statement / utility bill, < 2 months old)", "Registered office proof + owner NOC",
+                "LLP Agreement (drafted and filed within 30 days of incorporation)"]},
+            {"title": "Private Limited / OPC", "items": [
+                "DSC of all directors", "DIN of directors", "PAN + Aadhaar of directors and shareholders",
+                "Address proof of directors (bank statement / utility bill, < 2 months old)", "Registered office proof + owner NOC",
+                "MOA & AOA (drafted by us)", "Nominee consent — Form INC-3 (OPC only)"]},
+        ],
+        "process": ["Free 30-min strategy call to choose entity", "Name reservation (RUN / SPICe+ Part A) with MCA — not needed for Shop Act", "Documents collection & e-signing", "Shop Act licence in 1–3 days · LLP / Pvt Ltd incorporation certificate within 7–10 days"],
         "faqs": [
             {"q": "Which entity is best for exporters?", "a": "For most SME exporters: LLP or Pvt Ltd. We'll guide you in the strategy call."},
             {"q": "What is the cost?", "a": "Depends on entity — Shop Act from ₹2,499 · LLP from ₹6,999 · Pvt Ltd from ₹9,999. Includes government + professional fees."},
             {"q": "Do you also handle compliance?", "a": "Yes — annual ROC filing, ITR, GSTR — we offer a full retainer."},
         ],
         "priceFrom": "INR 2,499",
+    },
+    "udyam-registration": {
+        "slug": "udyam-registration", "category": "Govt Documentation", "name": "Udyam (MSME) Registration",
+        "tagline": "Udyam Registration Number · Unlock MSME benefits, tenders and collateral-free credit.",
+        "image": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&w=1200&q=80",
+        "overview": "Udyam Registration is the Government of India's free, paperless MSME registration on udyamregistration.gov.in. It classifies your business as Micro, Small or Medium based on investment and turnover and is the gateway to every MSME scheme — priority-sector lending, delayed-payment protection and tender exemptions.",
+        "benefits": ["Collateral-free loans under CGTMSE & priority-sector lending", "Protection against delayed payments (MSMED Act, 45-day rule)", "EMD / tender-fee exemptions in government procurement", "Subsidies on patents, ISO certification & electricity (state-wise)", "Easier access to export promotion schemes & trade-fair support", "Lifetime validity — no renewal, only annual self-update"],
+        "documents": ["Aadhaar of proprietor / managing partner / director (Aadhaar-linked mobile for OTP)", "PAN of the business (and of the signatory)", "GSTIN (mandatory if your business is required to register for GST)", "Bank account number + IFSC", "Business address & date of commencement", "Main activity (manufacturing / services) & NIC codes", "Investment in plant & machinery and previous-year turnover (self-declared, auto-checked with ITR / GST)"],
+        "process": ["Collect Aadhaar, PAN, GST & bank details", "File on udyamregistration.gov.in with Aadhaar OTP", "PAN / GST / ITR auto-validation by the portal", "Udyam Registration Number (URN) & certificate issued — usually same day"],
+        "faqs": [
+            {"q": "Is there a government fee?", "a": "No — Udyam registration itself is free. You pay only Vametra AI's professional fee for end-to-end filing and classification advice."},
+            {"q": "Is it needed for exporters?", "a": "Not mandatory, but strongly recommended: many export promotion schemes, bank export-credit lines and MAI/trade-fair subsidies prioritise Udyam-registered MSMEs."},
+            {"q": "Do I need GST first?", "a": "Only if your business is legally required to register for GST. Businesses exempt from GST can register with PAN alone."},
+            {"q": "Already have Udyog Aadhaar (UAM)?", "a": "UAM has been replaced — we migrate it to Udyam so your benefits continue uninterrupted."},
+        ],
+        "priceFrom": "INR 999",
     },
     "business-website": {
         "slug": "business-website", "category": "Govt Documentation", "name": "Business Website (Import–Export)",

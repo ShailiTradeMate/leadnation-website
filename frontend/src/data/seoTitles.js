@@ -6,6 +6,7 @@ export const SERVICE_SEO = {
   "rcmc-registration": { kw: "rcmc certificate apply online", title: `RCMC Certificate Apply Online: Council & Docs | ${B}`, h1: "RCMC certificate apply online — which council, what documents" },
   "gst-registration": { kw: "gst for exporters", title: `GST for Exporters: LUT, Refunds, Registration | ${B}`, h1: "GST for exporters — LUT, zero-rated supply and refunds" },
   "company-registration": { kw: "company registration for export business", title: `Company Registration for Export Business India | ${B}`, h1: "Company registration for export business — structure to IEC" },
+  "udyam-registration": { kw: "udyam registration for exporters", title: `Udyam MSME Registration for Exporters: Docs, Benefits | ${B}`, h1: "Udyam registration for exporters — documents, benefits and process" },
   "business-website": { kw: "export business website", title: `Export Business Website: Build to Win Buyers | ${B}`, h1: "Export business website that buyers trust" },
   "export-consulting": { kw: "export consultant india", title: "Export Consultant India: Data-Backed Market Entry | Vametra", h1: "Export consultant India — data-backed market entry" },
   "import-consulting": { kw: "import consultant india", title: "Import Consultant India: Duty, Sourcing, Clearance | Vametra", h1: "Import consultant India — duty, sourcing and clearance" },

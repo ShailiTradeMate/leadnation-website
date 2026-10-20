@@ -145,7 +145,20 @@ export default function ServiceDetail() {
         <div className="lg:col-span-7 space-y-5">
           <Card title="Service overview" Icon={Briefcase}><p className="mt-3 text-slate-300 leading-relaxed">{s.overview}</p></Card>
           <Card title="Key benefits"><ul className="mt-3 space-y-2 text-sm">{s.benefits.map((b, i) => <li key={i} className="flex gap-2"><CheckCircle size={16} weight="fill" className="text-cyan-300 mt-0.5" />{b}</li>)}</ul></Card>
-          <Card title="Documents required" Icon={FileText}><ul className="mt-3 grid sm:grid-cols-2 gap-2 text-sm">{s.documents.map((d, i) => <li key={i} className="glass rounded-xl px-3 py-2">{d}</li>)}</ul></Card>
+          <Card title="Documents required" Icon={FileText}>
+            {s.documentGroups?.length ? (
+              <div className="mt-3 space-y-5" data-testid="service-document-groups">
+                {s.documentGroups.map((g, gi) => (
+                  <div key={gi} data-testid={`service-document-group-${gi}`}>
+                    <div className="text-xs font-bold tracking-[0.18em] uppercase text-cyan-300 mb-2">{g.title}</div>
+                    <ul className="grid sm:grid-cols-2 gap-2 text-sm">{g.items.map((d, i) => <li key={i} className="glass rounded-xl px-3 py-2">{d}</li>)}</ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ul className="mt-3 grid sm:grid-cols-2 gap-2 text-sm">{s.documents.map((d, i) => <li key={i} className="glass rounded-xl px-3 py-2">{d}</li>)}</ul>
+            )}
+          </Card>
           <Card title="Process flow" Icon={Wrench}>
             <ol className="mt-3 space-y-3">
               {s.process.map((p, i) => (
@@ -198,7 +211,7 @@ export default function ServiceDetail() {
             ) : (
               <div data-testid="service-success" className="mt-5 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30">
                 <div className="text-emerald-300 font-display font-bold">Request received ✓</div>
-                <p className="text-sm text-slate-300 mt-2">A copy of your request has been emailed to you, with our team in the loop — just reply to that email to add anything. A Vametra AI CA will reach out shortly, or chat with us instantly on WhatsApp.</p>
+                <p className="text-sm text-slate-300 mt-2">Our team has received your request and will reach out on the email and phone you provided. A Vametra AI CA will contact you shortly, or chat with us instantly on WhatsApp.</p>
                 <a href="https://wa.me/918237161088" target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Chat on WhatsApp</a>
               </div>
             )}
@@ -210,7 +223,7 @@ export default function ServiceDetail() {
         answer={s.overview}
         rows={[
           { label: "Starts at", value: s.priceFrom },
-          { label: "Documents listed", value: String((s.documents || []).length) },
+          { label: "Documents listed", value: String(s.documentGroups?.length ? s.documentGroups.reduce((n, g) => n + g.items.length, 0) : (s.documents || []).length) },
           { label: "Process steps", value: String((s.process || []).length) },
           { label: "Handled by", value: s.category === "Govt Documentation" ? "Certified CA" : "Certified trade consultant" },
         ]}
