@@ -452,16 +452,34 @@ BUILDERS = {
         f"<p>A new lead just came in:</p><p><b>{c.get('name','')}</b><br/>"
         f"{c.get('email','')} · {c.get('phone','')}<br/>Country: {c.get('country','')} · Source: {c.get('source','')}</p>",
         "View leads", f"{SITE}/admin-cms")),
+}
+
+
+def _service_request_body(c: dict, greeting: bool = True) -> str:
+    return (
+        (f"<p>Hello Vametra AI team,</p>" if greeting else "")
+        + f"<p><b>{c.get('name','')}</b> ({c.get('email','')}) has requested <b>{c.get('service','')}</b>.</p>"
+        f"{_rows('Request', [('Service', c.get('service'))] + ([('Entity type', c.get('entity'))] if c.get('entity') else []) + [('Request ID', c.get('requestId')), ('Submitted', c.get('submittedAt')), ('Notes', c.get('message') or '—')])}"
+        f"{_rows('Submitted details', [('Name', c.get('name')), ('Email', c.get('email')), ('Phone', c.get('phone')), ('Company', c.get('company') or '—'), ('Country', c.get('country'))])}"
+        f"{_rows('Vametra account', c.get('profileRows') or [])}")
+
+
+BUILDERS.update({
     # ---- Service request: one email to admin only ----
     "service_request": lambda c: (f"Vametra Service Request · {c.get('service','')}", _shell(
         f"Service request · {c.get('service','')}",
-        f"<p>Hello Vametra AI team,</p>"
-        f"<p><b>{c.get('name','')}</b> ({c.get('email','')}) has requested <b>{c.get('service','')}</b>.</p>"
-        f"{_rows('Request', [('Service', c.get('service'))] + ([('Entity type', c.get('entity'))] if c.get('entity') else []) + [('Request ID', c.get('requestId')), ('Submitted', c.get('submittedAt')), ('Notes', c.get('message') or '—')])}"
-        f"{_rows('Submitted details', [('Name', c.get('name')), ('Email', c.get('email')), ('Phone', c.get('phone')), ('Company', c.get('company') or '—'), ('Country', c.get('country'))])}"
-        f"{_rows('Vametra account', c.get('profileRows') or [])}"
-        f"<p style=\"margin-top:18px;\">Reply to this email to reach the requester at {c.get('email','')}.</p>")),
-}
+        _service_request_body(c)
+        + f"<p style=\"margin-top:18px;\">Reply to this email to reach the requester at {c.get('email','')}.</p>")),
+    # ---- Allocation: same email + Allocation block, sent to the CA (customer + admin in CC) ----
+    "service_allocation": lambda c: (f"Vametra Service Request · {c.get('service','')} · Allocated to Vametra CA", _shell(
+        f"Allocated to Vametra CA · {c.get('service','')}",
+        f"<p>Hello <b>{c.get('caName') or 'CA'}</b>,</p>"
+        f"<p>This service request has been allocated to you by Vametra AI. The customer and admin@vametra.com are in copy.</p>"
+        f"{_rows('Allocation', [('Allocated CA', c.get('caName')), ('CA email', c.get('caEmail')), ('Allocated on', c.get('allocatedAt')), ('Allocated by', c.get('allocatedBy'))] + ([('Note from admin', c.get('note'))] if c.get('note') else []))}"
+        + _service_request_body(c, greeting=False)
+        + f"<p style=\"margin-top:18px;\">Contact the customer directly: "
+        f"<a href=\"mailto:{c.get('email','')}?subject=Vametra%20Service%20Request%20%C2%B7%20{c.get('requestId','')}\" style=\"color:#00C2FF;\">{c.get('email','')}</a></p>")),
+})
 
 
 # ---------------- Core send ----------------

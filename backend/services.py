@@ -336,6 +336,9 @@ async def submit_service_request(payload: ServiceRequest, user: Optional[dict] =
         profile_rows = [(k, v) for k, v in profile_rows if v]
     else:
         profile_rows = [("Account", "Submitted as guest (not logged in)")]
+    doc["profileRows"] = [list(r) for r in profile_rows]
+    doc["serviceLabel"] = service_label
+    await db.service_requests.update_one({"id": doc["id"]}, {"$set": {"profileRows": doc["profileRows"], "serviceLabel": service_label}})
     from emailer import send, ADMIN_EMAIL
     await send("service_request", ADMIN_EMAIL, {
         "service": service_label, "requestId": doc["id"], "submittedAt": doc["createdAt"][:19].replace("T", " ") + " UTC",

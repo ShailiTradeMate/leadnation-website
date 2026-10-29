@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { adminApi } from "@/lib/admin";
 import { toast } from "sonner";
 import { ResponsiveSelect } from "@/components/ui/responsive-select";
+import EmailCaModal from "@/pages/admin/EmailCaModal";
 
 export const CLOSED = ["completed", "cancelled"];
 const EXTERNAL = "__external__";
@@ -68,6 +69,7 @@ export default function ServiceRequestsManager() {
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({ statuses: ["new", "assigned", "in-progress", "completed", "cancelled"], cas: [] });
   const [f, setF] = useState({ q: "", status: "", ca: "", service: "" });
+  const [emailing, setEmailing] = useState(null);
   const reload = () => adminApi.get("/admin/service-requests").then((r) => setItems(r.data)).catch(() => toast.error("Could not load service requests"));
   useEffect(() => { reload(); adminApi.get("/admin/service-requests/ca-options").then((r) => setMeta(r.data)).catch(() => {}); }, []);
 
@@ -123,7 +125,7 @@ export default function ServiceRequestsManager() {
                   </td>
                   <td className="px-4 py-3"><CaCell it={it} meta={meta} disabled={closed} onSave={(p) => save(it.id, p)} /></td>
                   <td className="px-4 py-3">
-                    <button data-testid={`admin-sr-email-ca-${it.id}`} disabled={closed || !it.assignedCaEmail} title={closed ? "Completed/cancelled requests cannot be allocated" : (!it.assignedCaEmail ? "Add a CA email first" : "Email the CA")}
+                    <button data-testid={`admin-sr-email-ca-${it.id}`} disabled={closed} onClick={() => setEmailing(it)} title={closed ? "Completed/cancelled requests cannot be allocated" : "Email the CA"}
                       className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-500/30">
                       Email CA
                     </button>
@@ -136,6 +138,7 @@ export default function ServiceRequestsManager() {
           </tbody>
         </table>
       </div>
+      {emailing && <EmailCaModal item={emailing} onClose={() => setEmailing(null)} onSent={(upd) => setItems((xs) => xs.map((x) => (x.id === upd.id ? upd : x)))} />}
     </div>
   );
 }
