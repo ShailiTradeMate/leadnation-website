@@ -10,6 +10,7 @@ Backend admin.py
 - PUT /admin/service-requests/{id}: status, assignedCaId, assignedCa, assignedCaEmail, internalNote → updatedAt/updatedBy + history[] entry.
 - Guards: completed|cancelled ⇒ CA assignment rejected; assigning CA while new ⇒ assigned.
 - GET /admin/service-requests/ca-options ⇒ active sub_admins (id,name,email).
+- Assigned CA dropdown also offers "External CA…" ⇒ admin types CA name + email manually (assignedCaId = null, assignedCa/assignedCaEmail free text) — PatniCA is not permanent, so any CA can be used.
 UI AdminDashboard ServiceRequests
 - Row: Date | Service(+entity) | Name | Email/Phone | Status▾ | Assigned CA▾ | CA email (editable) | Email CA
 - Completed/Cancelled ⇒ CA controls + Email CA disabled, row visible. Toasts.
@@ -21,7 +22,8 @@ UI AdminDashboard ServiceRequests
 - Subject "Vametra Service Request · <Service> · Allocated to Vametra CA"; body = service_request template + Allocation block
   (CA name, allocated on/by, note, mailto:customer).
 - Success ⇒ emailActivity[] + caNotifiedAt + history; failure ⇒ error for retry.
-- UI: preview modal (To editable, CC locked chips, subject, rendered preview, note) ⇒ Send ▸; badge "CA notified ✓".
+- UI: preview modal — To (editable, prefilled from CA email), CC = locked chips (customer + admin@vametra.com) PLUS admin can add extra CC addresses (comma separated, validated); subject; rendered preview; note ⇒ Send ▸; badge "CA notified ✓".
+- Extra To/CC addresses are saved on the request (assignedCaEmail, extraCc[]) so they are reused next time.
 
 ## Phase 3 — Detail drawer (both CMSs)
 - Row click ⇒ drawer: request, customer, Vametra account, status+CA, Internal notes, History, Email activity; same controls; copy buttons.

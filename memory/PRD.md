@@ -174,3 +174,8 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 
 ## BACKLOG (user-requested, 2026-06) — REMIND USER after marketing part + service-request part are done
 - Service Requests tab: dedicated "Allocate" button/flow for pending requests; categorise sub-admins as **CA** vs **Associate**; include all current and future sub-admins in allocation lists.
+
+## 2026-06 Service-request allocation — PHASE 1 DONE (plan: SERVICE_REQUEST_ALLOCATION_PLAN.md)
+- backend/service_desk.py (new router; admin.py endpoints moved): STATUSES incl. Partial/Full payment received; PUT /admin/service-requests/{id} {status, assignedCaId, assignedCa, assignedCaEmail, internalNote, clearCa} with history[] + notes[] + updatedBy; completed/cancelled block CA allocation (400); assigning CA while new ⇒ assigned. GET /admin/service-requests/ca-options ⇒ active sub_admins.
+- frontend/src/pages/admin/ServiceRequestsManager.jsx (replaces inline ServiceRequests): filters (search/status/CA/service, Unassigned quick filter, no statuses hidden), CA dropdown (sub-admins + External CA… free text), editable CA email, Email CA button (disabled when closed / no email — wiring in Phase 2).
+- NEXT: Phase 2 email-ca endpoint + preview modal (To editable, locked CC customer+admin, extra CC).

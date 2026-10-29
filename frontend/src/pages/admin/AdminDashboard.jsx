@@ -16,6 +16,7 @@ import BuyersManager from "@/pages/admin/BuyersManager";
 import PaymentsManager from "@/pages/admin/PaymentsManager";
 import VerificationReview from "@/pages/admin/VerificationReview";
 import UsersManager from "@/pages/admin/UsersManager";
+import ServiceRequestsManager from "@/pages/admin/ServiceRequestsManager";
 import "@/admin-workflows.css";
 import { staffLogin, staffLogout, getStaffInfo, isStaff } from "@/lib/staffAuth";
 
@@ -168,7 +169,7 @@ export default function AdminDashboard() {
         {isMainAdmin && tab === "dashboard" && <Stats stats={stats} />}
         {isMainAdmin && tab === "cms" && <CmsManager />}
         {isMainAdmin && tab === "leads" && <Leads />}
-        {isMainAdmin && tab === "service-requests" && <ServiceRequests />}
+        {isMainAdmin && tab === "service-requests" && <ServiceRequestsManager />}
         {isMainAdmin && tab === "listings" && <EventListingsManager />}
         {isMainAdmin && tab === "trade-news" && <TradeNewsManager />}
         {isMainAdmin && tab === "events" && <Events />}
@@ -400,54 +401,6 @@ function Leads() {
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function ServiceRequests() {
-  const [items, setItems] = useState([]);
-  const reload = () => adminApi.get("/admin/service-requests").then((r) => setItems(r.data));
-  useEffect(() => { reload(); }, []);
-
-  const updateStatus = async (id, status) => {
-    await adminApi.put(`/admin/service-requests/${id}`, { status });
-    reload();
-  };
-  const assign = async (id, ca) => {
-    await adminApi.put(`/admin/service-requests/${id}`, { assignedCa: ca });
-    reload();
-  };
-
-  return (
-    <div className="glass-strong rounded-3xl overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400">
-          <tr>
-            <th className="text-left px-4 py-3">Date</th><th className="text-left px-4 py-3">Service</th>
-            <th className="text-left px-4 py-3">Name</th><th className="text-left px-4 py-3">Email / Phone</th>
-            <th className="text-left px-4 py-3">Status</th><th className="text-left px-4 py-3">Assigned CA</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((it) => (
-            <tr key={it.id} className="border-t border-white/5">
-              <td className="px-4 py-3 text-xs text-slate-400">{(it.createdAt || "").slice(0, 16).replace("T", " ")}</td>
-              <td className="px-4 py-3 text-xs text-cyan-300 font-mono-display"><div>{it.service}</div>{it.entity && <div className="text-slate-400 mt-0.5">{it.entity}</div>}</td>
-              <td className="px-4 py-3">{it.name}</td>
-              <td className="px-4 py-3 text-xs"><div>{it.email}</div><div className="text-slate-500">{it.phone}</div></td>
-              <td className="px-4 py-3">
-                <ResponsiveSelect data-testid={`admin-sr-status-${it.id}`} value={it.status || "new"} onChange={(e) => updateStatus(it.id, e.target.value)} className="glass rounded-lg px-2 py-1 text-xs">
-                  {["new", "assigned", "in-progress", "completed", "cancelled"].map((s) => <option key={s} value={s} className="bg-[#0a0f24]">{s}</option>)}
-                </ResponsiveSelect>
-              </td>
-              <td className="px-4 py-3">
-                <input data-testid={`admin-sr-ca-${it.id}`} defaultValue={it.assignedCa || ""} onBlur={(e) => e.target.value !== (it.assignedCa || "") && assign(it.id, e.target.value)} placeholder="CA name" className="glass rounded-lg px-2 py-1 text-xs w-40" />
-              </td>
-            </tr>
-          ))}
-          {items.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-500">No service requests yet.</td></tr>}
-        </tbody>
-      </table>
     </div>
   );
 }

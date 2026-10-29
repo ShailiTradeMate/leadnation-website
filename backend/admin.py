@@ -140,26 +140,6 @@ async def admin_leads_csv(token: str = Query(...)):
                              headers={"Content-Disposition": "attachment; filename=leads.csv"})
 
 
-@router.get("/admin/service-requests")
-async def admin_service_requests(_: bool = Depends(require_admin)):
-    items = await db.service_requests.find({}, {"_id": 0}).sort("createdAt", -1).to_list(2000)
-    return items
-
-
-class ServiceAssignRequest(BaseModel):
-    status: Optional[str] = None
-    assignedCa: Optional[str] = None
-    notes: Optional[str] = None
-
-
-@router.put("/admin/service-requests/{req_id}")
-async def admin_update_service_request(req_id: str, payload: ServiceAssignRequest, _: bool = Depends(require_admin)):
-    update = {k: v for k, v in payload.model_dump().items() if v is not None}
-    update["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    res = await db.service_requests.update_one({"id": req_id}, {"$set": update})
-    if res.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Request not found")
-    item = await db.service_requests.find_one({"id": req_id}, {"_id": 0})
-    return item
+# Service-request admin endpoints live in service_desk.py
 
 
