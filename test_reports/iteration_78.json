@@ -1,0 +1,37 @@
+{
+  "summary": "Service-request allocation (Phases 1+2) tested end-to-end. Backend: 15/15 pass (14 + 1 real send executed once with customer vaibhav.deshmane@vametra.com, To admin@vametra.com -> 200, providerId returned, caNotifiedAt/status assigned set). Frontend: login, Service Requests tab, all filters/count, 7-status select, CA select (PatniCA, QA UI Phase B, Sakshi, External CA…), CA email prefill, auto status->assigned, closed-row disabling, Unassigned only (14->12), Clear, search, Email CA modal (To prefilled, locked CC chips, subject, iframe preview incl. note, invalid To/extra CC errors, Send disabled on error, close) all work. ONE bug: no sonner <Toaster/> is mounted anywhere in the app, so the 'Saved' toast (and all toast.success/toast.error incl. 'Sent to …' and 'Save failed') never appears.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/service-request", "issue": "Response takes ~15s because it awaits the Resend admin notification (with 1.2s 429 retry) inline; one request timed out at 30s from the test client. Consider BackgroundTasks/asyncio.create_task for the email."},
+      {"endpoint": "general", "issue": "Intermittent first-request read timeout (>20s) on /api/admin/service-requests/ca-options once; subsequent calls 0.1s. Backend busy with background TED fetches. Flaky (1/3 runs)."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "App root (sonner)", "issue": "No <Toaster /> from '@/components/ui/sonner' is rendered anywhere (grep finds only the definition). ServiceRequestsManager 'Saved'/'Save failed' and EmailCaModal 'Sent to …' toasts are invisible; save errors give the user no feedback.", "selector": "[data-sonner-toast]", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Email CA modal", "issues": ["When the request has no assignedCaEmail, the modal opens with empty To and immediately shows a red 'Enter a valid CA email address' error before the user types — consider suppressing the error until To is non-empty."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter78_service_allocation.py", "/app/backend/tests/iter78_seed_ui.py", "/app/test_reports/pytest/iter78.xml"],
+  "action_items": [
+    "Mount <Toaster /> (from @/components/ui/sonner) once in App.js so 'Saved', 'Save failed', and 'Sent to …' toasts appear",
+    "Optional: move the service-request submission admin email to a background task to cut ~15s response time",
+    "Optional: hide email-ca-error while To is empty on modal open"
+  ],
+  "critical_code_review_comments": [
+    "service_desk.email_ca: if To equals admin@vametra.com, admin is filtered out of CC (expected) but lockedCc still lists it — UI chip shows admin although it's the To; cosmetic.",
+    "service_desk PUT: re-opening a completed request (status -> in-progress) is allowed without restriction; confirm this is intended.",
+    "emailer.ADMIN_EMAIL uses os.environ.get with '' default; if unset, locked CC silently drops admin — fail-fast would be safer.",
+    "CaCell email onBlur saves on every blur difference including invalid emails (no client/server email validation on assignedCaEmail in PUT)."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter78_service_allocation.py", "/app/backend/tests/iter78_seed_ui.py"],
+  "success_rate": {"backend": "100%", "frontend": "95% (toast missing)"},
+  "seed_data_creation": "Created TEST_iter78* service requests/leads (customer vaibhav.deshmane@vametra.com); all deleted after tests. One real allocation email sent (To admin@vametra.com, CC vaibhav.deshmane@vametra.com).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run `pytest backend/tests/test_iter78_service_allocation.py` (real send skipped unless ITER78_REAL_SEND=1 — DO NOT enable again). UI seed: `python backend/tests/iter78_seed_ui.py seed|clean`. ResponsiveSelect option testids: `{select-testid}-option-{encodeURIComponent(value)}`. Only open item: Toaster not mounted."
+}

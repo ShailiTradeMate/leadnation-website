@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import "@/index.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "@/components/ui/sonner";
 import { HelmetProvider } from "react-helmet-async";
 import Layout from "@/components/Layout";
 import CookieConsent from "@/components/CookieConsent";
@@ -189,6 +190,7 @@ function App() {
               </Suspense>
             </Layout>
             <CookieConsent />
+            <Toaster position="top-right" richColors />
           </ProjectProvider>
         </AuthProvider>
       </BrowserRouter>

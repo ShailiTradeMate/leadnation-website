@@ -179,3 +179,11 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - backend/service_desk.py (new router; admin.py endpoints moved): STATUSES incl. Partial/Full payment received; PUT /admin/service-requests/{id} {status, assignedCaId, assignedCa, assignedCaEmail, internalNote, clearCa} with history[] + notes[] + updatedBy; completed/cancelled block CA allocation (400); assigning CA while new ⇒ assigned. GET /admin/service-requests/ca-options ⇒ active sub_admins.
 - frontend/src/pages/admin/ServiceRequestsManager.jsx (replaces inline ServiceRequests): filters (search/status/CA/service, Unassigned quick filter, no statuses hidden), CA dropdown (sub-admins + External CA… free text), editable CA email, Email CA button (disabled when closed / no email — wiring in Phase 2).
 - NEXT: Phase 2 email-ca endpoint + preview modal (To editable, locked CC customer+admin, extra CC).
+
+## 2026-06 Allocation PHASE 2 DONE
+- POST /admin/service-requests/{id}/email-ca {to, extraCc[], note, dryRun}: dryRun returns {subject, html, to, cc, lockedCc}; real send via Resend template service_allocation (subject "Vametra Service Request · <Service> · Allocated to Vametra CA"), CC forced = customer + admin@vametra.com (+extra), reply-to customer; logs emailActivity[], caNotifiedAt, history; closed requests 400; send failure 400 (never 502 — proxy swallows it).
+- services.py stores profileRows + serviceLabel on each request so later emails reuse identical data (service_desk.request_email_ctx).
+- EmailCaModal.jsx: To editable, locked CC chips, extra CC, note, live iframe preview, Send ▸. Button in ServiceRequestsManager.
+- Fixed: no sonner <Toaster/> was mounted app-wide — added in App.js (toasts now show everywhere).
+- Tested: iteration_78.json 15/15 backend, frontend all pass; 1 real send OK.
+- NEXT: Phase 4 (sub-admin Service Requests tab) then Phase 3 (drawer), status-change customer emails.
