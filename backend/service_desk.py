@@ -130,7 +130,7 @@ def _clean_emails(xs) -> List[str]:
 
 @router.post("/admin/service-requests/{req_id}/email-ca")
 async def email_ca(req_id: str, payload: EmailCa, ident: dict = Depends(require_admin)):
-    from emailer import send, BUILDERS, ADMIN_EMAIL
+    from emailer import ADMIN_EMAIL
     item = await db.service_requests.find_one({"id": req_id}, {"_id": 0})
     if not item:
         raise HTTPException(status_code=404, detail="Request not found")
@@ -146,17 +146,23 @@ async def email_ca(req_id: str, payload: EmailCa, ident: dict = Depends(require_
     cc = _clean_emails(locked + payload.extraCc)
     cc = [e for e in cc if e != to]
     now, who = _now(), _who(ident)
+    return await _send_allocation(item, to, cc, locked, payload.note, who, now, payload.dryRun)
+
+
+async def _send_allocation(item, to, cc, locked, note, who, now, dry_run):
+    from emailer import send, BUILDERS
+    req_id = item["id"]
     ctx = request_email_ctx(item)
     ctx.update({"caName": item.get("assignedCa") or "Vametra CA", "caEmail": to, "allocatedAt": now[:16].replace("T", " ") + " UTC",
-                "allocatedBy": who, "note": (payload.note or "").strip()})
+                "allocatedBy": who, "note": (note or "").strip()})
     subject, html = BUILDERS["service_allocation"](ctx)
-    if payload.dryRun:
+    if dry_run:
         return {"subject": subject, "html": html, "to": to, "cc": cc, "lockedCc": locked}
     res = await send("service_allocation", to, ctx, cc=cc, reply_to=item.get("email"))
     if not res.get("sent"):
         raise HTTPException(status_code=400, detail=f"Email could not be sent: {res.get('error') or res.get('reason') or 'unknown error'}")
     activity = {"at": now, "by": who, "byName": "Vametra AI team", "role": "admin", "kind": "allocation", "to": to, "cc": cc, "subject": subject,
-                "note": (payload.note or "").strip() or None, "providerId": res.get("id")}
+                "note": (note or "").strip() or None, "providerId": res.get("id")}
     upd = {"caNotifiedAt": now, "updatedAt": now, "updatedBy": who, "assignedCaEmail": to}
     if not item.get("assignedCa"):
         upd["assignedCa"] = "Vametra CA"
@@ -212,3 +218,139 @@ async def admin_email_customer(req_id: str, payload: EmailCustomer, ident: dict 
     if not item:
         raise HTTPException(status_code=404, detail="Request not found")
     return await send_customer_message(item, payload.message, payload.extraCc, "Vametra AI team", ident.get("email"), "admin", payload.dryRun)
+
+
+# ---------------- Allocate (one step: assign + optional allocation email) ----------------
+class AllocateIn(BaseModel):
+    assignedCaId: Optional[str] = None
+    assignedCa: Optional[str] = None
+    assignedCaEmail: Optional[str] = None
+    note: Optional[str] = None
+    sendEmail: bool = True
+    extraCc: List[str] = []
+
+
+@router.post("/admin/service-requests/{req_id}/allocate")
+async def allocate(req_id: str, payload: AllocateIn, ident: dict = Depends(require_admin)):
+    from emailer import ADMIN_EMAIL
+    item = await db.service_requests.find_one({"id": req_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if item.get("status") in CLOSED:
+        raise HTTPException(status_code=400, detail="Completed or cancelled requests cannot be allocated to a CA")
+    if payload.assignedCaId:
+        sa = await db.sub_admins.find_one({"id": payload.assignedCaId}, {"_id": 0})
+        if not sa:
+            raise HTTPException(status_code=404, detail="Sub-admin not found")
+        ca_id, ca_name, ca_email = sa["id"], sa.get("name"), (payload.assignedCaEmail or sa.get("email") or "").strip().lower()
+    else:
+        ca_id, ca_name, ca_email = None, (payload.assignedCa or "").strip(), (payload.assignedCaEmail or "").strip().lower()
+        if not ca_name:
+            raise HTTPException(status_code=400, detail="Enter the CA / employee name")
+    if payload.sendEmail and not EMAIL_RE.match(ca_email):
+        raise HTTPException(status_code=400, detail="Enter a valid CA email address to send the allocation email")
+    now, who = _now(), _who(ident)
+    changes = [f"allocated to {ca_name}" + (f" <{ca_email}>" if ca_email else "")]
+    upd = {"assignedCaId": ca_id, "assignedCa": ca_name, "assignedCaEmail": ca_email or None, "allocatedAt": now, "allocatedBy": who,
+           "updatedAt": now, "updatedBy": who, "openedBy": []}
+    if (item.get("status") or "new") == "new":
+        upd["status"] = "assigned"
+        changes.append("status: new → assigned (auto)")
+    push = {"history": {"at": now, "by": who, "changes": changes}}
+    if payload.note and payload.note.strip():
+        push["notes"] = {"at": now, "by": who, "text": f"[allocation] {payload.note.strip()}"}
+    await db.service_requests.update_one({"id": req_id}, {"$set": upd, "$push": push})
+    item = await db.service_requests.find_one({"id": req_id}, {"_id": 0})
+    if payload.sendEmail:
+        bad = [x for x in payload.extraCc if x.strip() and not EMAIL_RE.match(x.strip().lower())]
+        if bad:
+            raise HTTPException(status_code=400, detail=f"Allocated, but invalid CC address: {', '.join(bad)}")
+        locked = _clean_emails([item.get("email"), ADMIN_EMAIL])
+        cc = [e for e in _clean_emails(locked + payload.extraCc) if e != ca_email]
+        return await _send_allocation(item, ca_email, cc, locked, payload.note, who, now, False)
+    return {"ok": True, "item": item}
+
+
+# ---------------- Staff (main admin + sub-admins) ----------------
+from subadmin import require_staff, has_perm  # noqa: E402
+
+
+async def _staff_item(req_id: str, ident: dict) -> dict:
+    item = await db.service_requests.find_one({"id": req_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if not ident.get("is_main") and item.get("assignedCaId") != ident.get("sid"):
+        raise HTTPException(status_code=403, detail="This request is not allocated to you")
+    return item
+
+
+def _staff_name(ident: dict) -> str:
+    return "Vametra AI team" if ident.get("is_main") else (ident.get("name") or "Vametra CA")
+
+
+@router.get("/staff/service-requests")
+async def staff_service_requests(ident: dict = Depends(require_staff)):
+    q = {} if ident.get("is_main") else {"assignedCaId": ident.get("sid")}
+    items = await db.service_requests.find(q, {"_id": 0}).sort("createdAt", -1).to_list(2000)
+    sid = ident.get("sid")
+    for it in items:
+        it["isNew"] = bool(sid) and sid not in (it.get("openedBy") or [])
+    return {"items": items, "statuses": STATUSES, "me": {"sid": sid, "name": ident.get("name"), "email": ident.get("email"), "isMain": bool(ident.get("is_main"))}}
+
+
+@router.get("/staff/service-requests/summary")
+async def staff_service_requests_summary(ident: dict = Depends(require_staff)):
+    q = {} if ident.get("is_main") else {"assignedCaId": ident.get("sid")}
+    items = await db.service_requests.find(q, {"_id": 0, "status": 1, "openedBy": 1, "assignedCaId": 1}).to_list(5000)
+    sid = ident.get("sid")
+    open_ = [i for i in items if (i.get("status") or "new") not in CLOSED]
+    return {"open": len(open_), "new": len([i for i in open_ if sid and sid not in (i.get("openedBy") or [])]),
+            "unassigned": len([i for i in open_ if not i.get("assignedCaId") and not i.get("assignedCa")])}
+
+
+@router.post("/staff/service-requests/{req_id}/open")
+async def staff_open(req_id: str, ident: dict = Depends(require_staff)):
+    await _staff_item(req_id, ident)
+    if ident.get("sid"):
+        await db.service_requests.update_one({"id": req_id}, {"$addToSet": {"openedBy": ident["sid"]}})
+    return {"ok": True}
+
+
+class StaffUpdate(BaseModel):
+    status: Optional[str] = None
+    internalNote: Optional[str] = None
+
+
+@router.put("/staff/service-requests/{req_id}")
+async def staff_update(req_id: str, payload: StaffUpdate, ident: dict = Depends(require_staff)):
+    if not has_perm(ident, "service_requests.update_status"):
+        raise HTTPException(status_code=403, detail="Not allowed")
+    item = await _staff_item(req_id, ident)
+    update, changes = {}, []
+    if payload.status is not None and payload.status != item.get("status"):
+        if payload.status not in STATUSES:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Allowed: {', '.join(STATUSES)}")
+        if not ident.get("is_main") and item.get("status") == "completed":
+            raise HTTPException(status_code=400, detail="Completed requests are final — ask the main admin to reopen")
+        update["status"] = payload.status
+        changes.append(f"status: {item.get('status') or 'new'} → {payload.status}")
+    if payload.internalNote and payload.internalNote.strip():
+        changes.append("internal note added")
+    if not changes:
+        return item
+    now, who = _now(), (ident.get("email") or _staff_name(ident))
+    update.update({"updatedAt": now, "updatedBy": who})
+    push = {"history": {"at": now, "by": who, "changes": changes}}
+    if payload.internalNote and payload.internalNote.strip():
+        push["notes"] = {"at": now, "by": who, "text": payload.internalNote.strip()}
+    await db.service_requests.update_one({"id": req_id}, {"$set": update, "$push": push})
+    return await db.service_requests.find_one({"id": req_id}, {"_id": 0})
+
+
+@router.post("/staff/service-requests/{req_id}/email-customer")
+async def staff_email_customer(req_id: str, payload: EmailCustomer, ident: dict = Depends(require_staff)):
+    if not has_perm(ident, "service_requests.email_customer"):
+        raise HTTPException(status_code=403, detail="Not allowed")
+    item = await _staff_item(req_id, ident)
+    role = "admin" if ident.get("is_main") else "CA"
+    return await send_customer_message(item, payload.message, payload.extraCc, _staff_name(ident), ident.get("email"), role, payload.dryRun)

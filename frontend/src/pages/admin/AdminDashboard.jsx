@@ -18,7 +18,7 @@ import VerificationReview from "@/pages/admin/VerificationReview";
 import UsersManager from "@/pages/admin/UsersManager";
 import ServiceRequestsManager from "@/pages/admin/ServiceRequestsManager";
 import "@/admin-workflows.css";
-import { staffLogin, staffLogout, getStaffInfo, isStaff } from "@/lib/staffAuth";
+import { staffLogin, staffLogout, getStaffInfo, isStaff, staffApi } from "@/lib/staffAuth";
 
 const COLLECTIONS = ["countries", "products", "corridors", "hsn_codes", "industries", "blog"];
 
@@ -105,11 +105,13 @@ export default function AdminDashboard() {
   const isMainAdmin = isAuthed && isAdmin;
   const [tab, setTab] = useState(isSubAdmin ? "users" : "dashboard");
   const [stats, setStats] = useState([]);
+  const [srBadge, setSrBadge] = useState(null);
 
   useEffect(() => {
     if (loading) return;
     if (!isMainAdmin && !isSubAdmin) { navigate("/admin-login"); return; }
     if (isMainAdmin) adminApi.get("/admin/collections").then((r) => setStats(r.data)).catch(() => {});
+    staffApi.get("/staff/service-requests/summary").then((r) => setSrBadge(r.data)).catch(() => {});
   }, [loading, isMainAdmin, isSubAdmin, navigate]);
 
   const logout = async () => {
@@ -133,7 +135,12 @@ export default function AdminDashboard() {
     { k: "buyers", l: "Verified Buyers", I: ShieldCheck },
     { k: "verifications", l: "Verifications", I: SealCheck },
   ];
-  const SUB_TABS = [{ k: "users", l: "Users", I: Users }];
+  const SUB_TABS = [{ k: "users", l: "Users", I: Users }, { k: "service-requests", l: "Service Requests", I: Briefcase }];
+  const badgeFor = (k) => {
+    if (k !== "service-requests" || !srBadge) return null;
+    const n = isSubAdmin ? srBadge.new : srBadge.unassigned;
+    return n > 0 ? <span data-testid="admin-tab-sr-badge" className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40">{n}</span> : null;
+  };
   const tabs = isSubAdmin ? SUB_TABS : MAIN_TABS;
 
   return (
@@ -153,7 +160,7 @@ export default function AdminDashboard() {
         {tabs.map((t) => (
           <button key={t.k} data-testid={`admin-tab-${t.k}`} onClick={() => setTab(t.k)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm whitespace-nowrap ${tab === t.k ? "tab-active text-white" : "text-slate-300 hover:bg-white/5"}`}>
-            <t.I size={14} weight="duotone" />{t.l}
+            <t.I size={14} weight="duotone" />{t.l}{badgeFor(t.k)}
           </button>
         ))}
         {isMainAdmin && (
@@ -169,7 +176,8 @@ export default function AdminDashboard() {
         {isMainAdmin && tab === "dashboard" && <Stats stats={stats} />}
         {isMainAdmin && tab === "cms" && <CmsManager />}
         {isMainAdmin && tab === "leads" && <Leads />}
-        {isMainAdmin && tab === "service-requests" && <ServiceRequestsManager />}
+        {isMainAdmin && tab === "service-requests" && <ServiceRequestsManager onSummary={setSrBadge} />}
+        {isSubAdmin && tab === "service-requests" && <ServiceRequestsManager mode="staff" onSummary={setSrBadge} />}
         {isMainAdmin && tab === "listings" && <EventListingsManager />}
         {isMainAdmin && tab === "trade-news" && <TradeNewsManager />}
         {isMainAdmin && tab === "events" && <Events />}

@@ -87,7 +87,7 @@ function Conversation({ item, activity, onSendMessage, closed }) {
   );
 }
 
-export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onSendMessage, caReadOnly = false, canEmailCa = true, extraActions = null }) {
+export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onAllocate, onSendMessage, caReadOnly = false, canEmailCa = true, statusLocked = false, extraActions = null }) {
   const [note, setNote] = useState("");
   const closed = CLOSED.includes(item.status);
   const history = [...(item.history || [])].reverse();
@@ -111,9 +111,10 @@ export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEm
           <Section title="Status & allocation" testid="sr-drawer-controls">
             <div className="grid sm:grid-cols-2 gap-3">
               <label className="text-xs text-slate-400">Status
-                <ResponsiveSelect data-testid="sr-drawer-status" value={item.status || "new"} onChange={(e) => onSave({ status: e.target.value })} className="glass rounded-lg px-2 py-1.5 text-sm w-full mt-1">
+                <ResponsiveSelect data-testid="sr-drawer-status" value={item.status || "new"} disabled={statusLocked} onChange={(e) => onSave({ status: e.target.value })} className="glass rounded-lg px-2 py-1.5 text-sm w-full mt-1 disabled:opacity-50">
                   {meta.statuses.map((s) => <option key={s} value={s} className="bg-[#0a0f24]">{s}</option>)}
                 </ResponsiveSelect>
+                {statusLocked && <div className="text-[11px] text-slate-500 mt-1">Completed is final — ask the main admin to reopen.</div>}
               </label>
               <div className="text-xs text-slate-400">Assigned CA
                 <div className="mt-1 text-sm text-slate-100" data-testid="sr-drawer-ca">{item.assignedCa || "— Unassigned —"}{item.assignedCaEmail ? <div className="text-xs text-slate-400">{item.assignedCaEmail}</div> : null}</div>
@@ -121,6 +122,12 @@ export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEm
               </div>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 items-center">
+              {onAllocate && (
+                <button data-testid="sr-drawer-allocate" disabled={closed} onClick={() => onAllocate(item)}
+                  className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-cyan-500 text-slate-950 hover:bg-cyan-400 disabled:opacity-40">
+                  {item.assignedCa ? "Re-allocate" : "Allocate"}
+                </button>
+              )}
               {canEmailCa && (
                 <button data-testid="sr-drawer-email-ca" disabled={closed} onClick={() => onEmailCa(item)}
                   className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 disabled:opacity-40 hover:bg-cyan-500/30 inline-flex items-center gap-1.5">

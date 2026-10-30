@@ -190,10 +190,14 @@ PERMISSIONS = {
         "users.view_all", "users.edit", "users.delete", "users.review_final",
         "users.review_recommend", "users.correction", "users.contact", "users.documents",
         "payments.view", "payments.grant", "allocate", "subadmins.manage", "signoff.view",
+        "service_requests.view_all", "service_requests.allocate", "service_requests.update_status",
+        "service_requests.email_customer", "service_requests.notes",
     },
     "sub_admin": {
         "users.view_assigned", "users.edit", "users.review_recommend", "users.correction",
         "users.contact", "users.documents", "payments.view",
+        "service_requests.view_assigned", "service_requests.update_status",
+        "service_requests.email_customer", "service_requests.notes",
     },
 }
 
