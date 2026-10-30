@@ -1,0 +1,36 @@
+{
+  "summary": "Phase 4 tested end-to-end. Backend: 15/15 pytest pass on final runs. Covers /allocate (sub-admin, external, invalid email, completed, no name, sub-admin forbidden), staff endpoints (scope, 403 on others, open/isNew/summary, status+note, completed is final, admin reopen, CA fields ignored, email-customer dryRun) and admin email-customer dryRun (subject, cc, escaping, blank message, bad CC). On the first run one /allocate call timed out after 20s (cold request); the next 2 full runs passed. Frontend: main-admin Allocate modal, Re-allocate, disabled buttons on completed rows, unassigned badge, drawer and conversation composer all pass. Sub-admin tabs, intro, scoped rows, NEW badge, 'You' column, drawer restrictions, notes, Saved toast and completed lock all pass. One real send was made: a PatniCA message to vaibhav.deshmane@vametra.com through the sub-admin UI. It succeeded with CC admin@vametra.com and patnica@vametra.com and appeared in the thread as 'PatniCA · CA'.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/admin/service-requests/{id}/allocate", "issue": "With sendEmail=true the allocation is saved to the DB before the CC check and before the Resend send. If the extra CC is invalid or the send fails, the API returns 400 but the request is still allocated. The modal only shows the error and does not call onDone, so the row stays stale until reload. Validate extraCc before the update_one, or refresh the row on error."},
+      {"endpoint": "POST /api/admin/service-requests/{id}/allocate", "issue": "Flaky: 1 timeout in 3 runs on the first request of the suite (no response within 20s). Later runs took about 1s. Likely a cold Firebase verify; not reproduced."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ServiceRequestsManager (staff)", "issue": "The NEW badge also shows on completed or cancelled rows that were never opened (e.g. TESTUI79C, Phase1 Test aed3900f). The tab badge only counts open requests, so the row badges and the tab count disagree. Consider hiding NEW on closed rows.", "selector": "[data-testid^=sr-new-badge-]", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Conversation thread", "issues": ["Older allocation activity entries have no byName, so the header shows 'admin@vametra.com · allocation' instead of 'Vametra AI team · admin'. Cosmetic only."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_iter79_allocate_staff_sr.py", "/app/test_reports/pytest/pytest_iter79.xml"],
+  "action_items": [
+    "Optional: in /allocate, validate extraCc before persisting the allocation; on a send failure, reload or update the row in AllocateModal",
+    "Optional: hide the NEW badge on closed rows in staff mode"
+  ],
+  "critical_code_review_comments": [
+    "service_desk.allocate is not atomic: the allocation is persisted, then a 400 is returned for an invalid CC or a send failure. The user sees 'failed', but the request is already allocated.",
+    "Frontend unassigned count uses !assignedCa; backend summary uses !assignedCaId && !assignedCa. Equivalent today, but keep them in sync.",
+    "Re-allocate opens with 'Send allocation email' checked by default, so an admin who only fixes the CA name will re-send the email unless they uncheck it. Confirm this is intended.",
+    "subadmin.py is 816 lines (over the 700-line guideline); consider splitting."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter79_allocate_staff_sr.py"],
+  "success_rate": {"backend": "100% (15/15 on reruns; 1 flaky timeout on first run)", "frontend": "100% of requested flows"},
+  "seed_data_creation": "Tests insert TEST_iter79_* and TESTUI79A/B/C service_requests directly into Mongo (customer test_ui79@example.com). All are deleted at the end. The vaibhav.deshmane@vametra.com request 03f5ded3 is still allocated to PatniCA, status in-progress. One real email sent: a PatniCA message on 03f5ded3.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Seed service requests directly in Mongo with example.com emails to avoid submission emails. ResponsiveSelect options use the testid <select-testid>-option-<encodeURIComponent(value)>; the external option value is __external__. PatniCA sid is 2531d3f2c6494e66bef934e7518bf421 and Sakshi sid is 94bafa279b3848f4b39f6399b99d1f0e. The 03f5ded3 conversation now has 3 activity entries."
+}

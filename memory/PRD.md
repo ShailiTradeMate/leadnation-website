@@ -198,3 +198,10 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - POST /admin/service-requests/{id}/email-customer {message, extraCc, dryRun}.
 - Drawer "Conversation with customer": chat bubbles (customer request first, then allocation + message emails), composer + extra CC + Send email. Inbound customer replies are NOT captured (go to Reply-To inbox) — backlog: Resend inbound webhook to pull replies into thread.
 - Verified dryRun/400/real send + UI.
+
+## 2026-06 Allocation PHASE 4 DONE + Allocate button (iteration_79: 15/15 backend, frontend all pass)
+- Allocate: POST /admin/service-requests/{id}/allocate {assignedCaId | assignedCa+assignedCaEmail, note, sendEmail, extraCc} — assign + optional allocation email in one step; resets openedBy. AllocateModal.jsx; "Allocate"/"Re-allocate" button in row + drawer.
+- Staff endpoints (require_staff; sub-admin scope assignedCaId==sid, 403 otherwise): GET /staff/service-requests {items(isNew), statuses, me}, GET /staff/service-requests/summary {open,new,unassigned}, POST /staff/service-requests/{id}/open, PUT /staff/service-requests/{id} {status, internalNote} (completed final for sub-admin), POST /staff/service-requests/{id}/email-customer (sender = CA name, role CA, Reply-To CA, CC admin + CA).
+- PERMISSIONS extended (service_requests.*). ServiceRequestsManager mode="staff": no CA filter/controls, "You" column, NEW badge, Open · Email customer; drawer caReadOnly, statusLocked. SUB_TABS += Service Requests; tab badge (sub-admin: new count, main: unassigned count).
+- NOTE: Python scripts writing to /app files are blocked by harness — use search_replace/create_file.
+- Remaining from plan: status-change customer email (Partial/Full payment/Completed) with Notify toggle; inbound reply capture (backlog). BACKLOG reminder: CA/Associate categorisation.
