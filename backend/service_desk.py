@@ -155,7 +155,8 @@ async def email_ca(req_id: str, payload: EmailCa, ident: dict = Depends(require_
     res = await send("service_allocation", to, ctx, cc=cc, reply_to=item.get("email"))
     if not res.get("sent"):
         raise HTTPException(status_code=400, detail=f"Email could not be sent: {res.get('error') or res.get('reason') or 'unknown error'}")
-    activity = {"at": now, "by": who, "kind": "allocation", "to": to, "cc": cc, "subject": subject, "providerId": res.get("id")}
+    activity = {"at": now, "by": who, "byName": "Vametra AI team", "role": "admin", "kind": "allocation", "to": to, "cc": cc, "subject": subject,
+                "note": (payload.note or "").strip() or None, "providerId": res.get("id")}
     upd = {"caNotifiedAt": now, "updatedAt": now, "updatedBy": who, "assignedCaEmail": to}
     if not item.get("assignedCa"):
         upd["assignedCa"] = "Vametra CA"
@@ -164,3 +165,50 @@ async def email_ca(req_id: str, payload: EmailCa, ident: dict = Depends(require_
     await db.service_requests.update_one({"id": req_id}, {"$set": upd, "$push": {
         "emailActivity": activity, "history": {"at": now, "by": who, "changes": [f"allocation email sent to {to} (cc {', '.join(cc)})"]}}})
     return {"ok": True, "to": to, "cc": cc, "item": await db.service_requests.find_one({"id": req_id}, {"_id": 0})}
+
+
+class EmailCustomer(BaseModel):
+    message: str
+    extraCc: List[str] = []
+    dryRun: bool = False
+
+
+async def send_customer_message(item: dict, message: str, extra_cc: List[str], sender_name: str, sender_email: Optional[str],
+                                sender_role: str, dry_run: bool = False):
+    """Shared by main admin and (Phase 4) sub-admins: emails the customer using the service-request template."""
+    from emailer import send, BUILDERS, ADMIN_EMAIL
+    message = (message or "").strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Write a message first")
+    bad = [x for x in extra_cc if x.strip() and not EMAIL_RE.match(x.strip().lower())]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"Invalid CC address: {', '.join(bad)}")
+    to = (item.get("email") or "").strip().lower()
+    if not EMAIL_RE.match(to):
+        raise HTTPException(status_code=400, detail="This request has no valid customer email")
+    locked = _clean_emails([ADMIN_EMAIL, item.get("assignedCaEmail")])
+    cc = [e for e in _clean_emails(locked + extra_cc) if e != to]
+    now = _now()
+    ctx = request_email_ctx(item)
+    ctx.update({"senderName": sender_name, "senderRole": sender_role, "senderEmail": sender_email, "messageText": message,
+                "sentAt": now[:16].replace("T", " ") + " UTC", "caName": item.get("assignedCa")})
+    subject, html = BUILDERS["service_message"](ctx)
+    if dry_run:
+        return {"subject": subject, "html": html, "to": to, "cc": cc, "lockedCc": locked}
+    res = await send("service_message", to, ctx, cc=cc, reply_to=sender_email or ADMIN_EMAIL)
+    if not res.get("sent"):
+        raise HTTPException(status_code=400, detail=f"Email could not be sent: {res.get('error') or res.get('reason') or 'unknown error'}")
+    who = sender_email or sender_name
+    activity = {"at": now, "by": who, "byName": sender_name, "role": sender_role, "kind": "message", "to": to, "cc": cc,
+                "subject": subject, "text": message, "providerId": res.get("id")}
+    await db.service_requests.update_one({"id": item["id"]}, {"$set": {"updatedAt": now, "updatedBy": who, "lastMessageAt": now}, "$push": {
+        "emailActivity": activity, "history": {"at": now, "by": who, "changes": [f"message emailed to customer (cc {', '.join(cc) or '—'})"]}}})
+    return {"ok": True, "to": to, "cc": cc, "item": await db.service_requests.find_one({"id": item["id"]}, {"_id": 0})}
+
+
+@router.post("/admin/service-requests/{req_id}/email-customer")
+async def admin_email_customer(req_id: str, payload: EmailCustomer, ident: dict = Depends(require_admin)):
+    item = await db.service_requests.find_one({"id": req_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(status_code=404, detail="Request not found")
+    return await send_customer_message(item, payload.message, payload.extraCc, "Vametra AI team", ident.get("email"), "admin", payload.dryRun)

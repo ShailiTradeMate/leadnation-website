@@ -192,3 +192,9 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - frontend/src/pages/admin/ServiceRequestDrawer.jsx (shared, props: item, meta, onSave, onEmailCa, caReadOnly, canEmailCa, extraActions — ready for sub-admin reuse in Phase 4). Sections: Status & allocation (status select, CA, Email CA, CA notified), Request, Customer (copy email), Vametra account (profileRows), Internal notes (add → PUT internalNote), Email activity, History timeline. Mobile-safe.
 - ServiceRequestsManager: row click opens drawer (control cells stopPropagation). Verified desktop + 390px.
 - NEXT: Phase 4 sub-admin Service Requests tab (reuse drawer with caReadOnly + Email customer action), then status-change customer emails.
+
+## 2026-06 Conversation (email chat) in drawer DONE
+- service_desk.send_customer_message(item, message, extra_cc, sender_name, sender_email, sender_role, dry_run) — SHARED for admin + Phase 4 sub-admins. To=customer, CC forced admin@vametra.com + assigned CA email (+extra), Reply-To=sender. Template emailer BUILDERS["service_message"] (same subject "… · Allocated to Vametra CA" so inboxes thread; message block HTML-escaped + full request body). emailActivity entry kind=message with text/byName/role; history + lastMessageAt.
+- POST /admin/service-requests/{id}/email-customer {message, extraCc, dryRun}.
+- Drawer "Conversation with customer": chat bubbles (customer request first, then allocation + message emails), composer + extra CC + Send email. Inbound customer replies are NOT captured (go to Reply-To inbox) — backlog: Resend inbound webhook to pull replies into thread.
+- Verified dryRun/400/real send + UI.

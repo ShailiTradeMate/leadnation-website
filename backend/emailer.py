@@ -479,7 +479,20 @@ BUILDERS.update({
         + _service_request_body(c, greeting=False)
         + f"<p style=\"margin-top:18px;\">Contact the customer directly: "
         f"<a href=\"mailto:{c.get('email','')}?subject=Vametra%20Service%20Request%20%C2%B7%20{c.get('requestId','')}\" style=\"color:#00C2FF;\">{c.get('email','')}</a></p>")),
+    # ---- Message to customer (admin or CA) — same template + message block; same subject so inboxes thread it ----
+    "service_message": lambda c: (f"Vametra Service Request · {c.get('service','')} · Allocated to Vametra CA", _shell(
+        f"Message about your {c.get('service','')} request",
+        f"<p>Hello <b>{c.get('name','')}</b>,</p>"
+        f"<p>You have a new message from <b>{c.get('senderName') or 'Vametra AI'}</b>"
+        f"{' (your Vametra CA)' if c.get('senderRole') == 'CA' else ''} about your service request. Simply reply to this email to continue the conversation.</p>"
+        f"<div style=\"margin:18px 0;padding:16px 18px;border-left:3px solid #00C2FF;background:#0f1631;border-radius:0 12px 12px 0;white-space:pre-wrap;line-height:1.6;\">{_esc(c.get('messageText',''))}</div>"
+        f"<p style=\"color:#8b95b5;font-size:12px;\">Sent {c.get('sentAt','')}" + (f" · Your CA: {c.get('caName')}" if c.get('caName') else "") + "</p>"
+        + _service_request_body(c, greeting=False))),
 })
+
+
+def _esc(s: str) -> str:
+    return (s or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
 # ---------------- Core send ----------------

@@ -144,7 +144,12 @@ export default function ServiceRequestsManager() {
       {emailing && <EmailCaModal item={emailing} onClose={() => setEmailing(null)} onSent={(upd) => setItems((xs) => xs.map((x) => (x.id === upd.id ? upd : x)))} />}
       {openId && items.find((x) => x.id === openId) && (
         <ServiceRequestDrawer item={items.find((x) => x.id === openId)} meta={meta} onClose={() => setOpenId(null)}
-          onSave={(p) => save(openId, p)} onEmailCa={(it) => setEmailing(it)} />
+          onSave={(p) => save(openId, p)} onEmailCa={(it) => setEmailing(it)}
+          onSendMessage={async (body) => {
+            const r = await adminApi.post(`/admin/service-requests/${openId}/email-customer`, body);
+            setItems((xs) => xs.map((x) => (x.id === openId ? r.data.item : x)));
+            toast.success(`Emailed ${r.data.to}${r.data.cc.length ? ` · CC ${r.data.cc.join(", ")}` : ""}`);
+          }} />
       )}
     </div>
   );

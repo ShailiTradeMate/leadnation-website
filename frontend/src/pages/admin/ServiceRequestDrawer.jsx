@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { X, Copy, EnvelopeSimple } from "@phosphor-icons/react";
+import { X, Copy, EnvelopeSimple, PaperPlaneRight } from "@phosphor-icons/react";
 import { ResponsiveSelect } from "@/components/ui/responsive-select";
 
 const CLOSED = ["completed", "cancelled"];
@@ -32,11 +32,66 @@ function CopyBtn({ value, label }) {
   );
 }
 
-export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, caReadOnly = false, canEmailCa = true, extraActions = null }) {
+function Conversation({ item, activity, onSendMessage, closed }) {
+  const [msg, setMsg] = useState("");
+  const [cc, setCc] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const endRef = useRef(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "nearest" }); }, [activity.length]);
+  const send = async () => {
+    if (!msg.trim()) return;
+    setBusy(true); setErr("");
+    try {
+      await onSendMessage({ message: msg.trim(), extraCc: cc.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean) });
+      setMsg(""); setCc("");
+    } catch (e) { setErr(e?.response?.data?.detail || "Send failed — please retry"); }
+    finally { setBusy(false); }
+  };
+  return (
+    <Section title={`Conversation with customer (${activity.length})`} testid="sr-drawer-conversation">
+      <div className="text-[11px] text-slate-500 mb-3">Every email sent from this console appears here. Customer replies arrive in the sender's inbox (Reply-To).</div>
+      <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1" data-testid="sr-conversation-thread">
+        <div className="flex justify-start"><div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white/[0.05] px-3 py-2 text-sm">
+          <div className="text-[10px] font-mono-display tracking-wider text-emerald-300 mb-1">{item.name} · customer</div>
+          <div className="text-slate-100 whitespace-pre-wrap">Requested <b>{item.serviceLabel || item.service}</b>{item.entity ? ` (${item.entity})` : ""}.{item.message ? `\n${item.message}` : ""}</div>
+          <div className="text-[10px] text-slate-500 mt-1">{fmt(item.createdAt)}</div>
+        </div></div>
+        {activity.map((a, i) => (
+          <div key={i} className="flex justify-end" data-testid={`sr-conversation-msg-${i}`}>
+            <div className={`max-w-[85%] rounded-2xl rounded-tr-sm px-3 py-2 text-sm ${a.kind === "message" ? "bg-cyan-500/15 border border-cyan-400/20" : "bg-white/[0.04] border border-white/10"}`}>
+              <div className="text-[10px] font-mono-display tracking-wider text-cyan-300 mb-1">{a.byName || a.by} · {a.role || a.kind}</div>
+              {a.kind === "message"
+                ? <div className="text-slate-100 whitespace-pre-wrap">{a.text}</div>
+                : <div className="text-slate-300">Allocation email sent to <b>{a.to}</b>{a.note ? ` — "${a.note}"` : ""}</div>}
+              <div className="text-[10px] text-slate-500 mt-1">{fmt(a.at)} · to {a.to}{a.cc?.length ? ` · cc ${a.cc.join(", ")}` : ""}</div>
+            </div>
+          </div>
+        ))}
+        <div ref={endRef} />
+      </div>
+      <div className="mt-3 space-y-2">
+        <textarea data-testid="sr-message-input" rows={3} value={msg} onChange={(e) => setMsg(e.target.value)}
+          placeholder={`Write to ${item.name} — sent as an email on the same thread, CC admin@vametra.com${item.assignedCaEmail ? " + CA" : ""}`}
+          className="glass rounded-xl px-3 py-2 text-sm w-full" />
+        <div className="flex gap-2 items-center">
+          <input data-testid="sr-message-cc" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="Extra CC (optional)" className="glass rounded-lg px-3 py-2 text-xs flex-1" />
+          <button data-testid="sr-message-send" onClick={send} disabled={busy || !msg.trim()}
+            className="rounded-lg px-4 py-2 text-xs font-semibold bg-cyan-500 text-slate-950 hover:bg-cyan-400 disabled:opacity-40 inline-flex items-center gap-1.5">
+            {busy ? "Sending…" : "Send email"} <PaperPlaneRight size={13} weight="bold" />
+          </button>
+        </div>
+        {err && <div data-testid="sr-message-error" className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">{err}</div>}
+      </div>
+    </Section>
+  );
+}
+
+export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onSendMessage, caReadOnly = false, canEmailCa = true, extraActions = null }) {
   const [note, setNote] = useState("");
   const closed = CLOSED.includes(item.status);
   const history = [...(item.history || [])].reverse();
-  const activity = [...(item.emailActivity || [])].reverse();
+  const activity = item.emailActivity || [];
   const notes = [...(item.notes || [])].reverse();
   const addNote = async () => { if (!note.trim()) return; await onSave({ internalNote: note.trim() }); setNote(""); };
 
@@ -101,18 +156,7 @@ export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEm
             </ul>
           </Section>
 
-          <Section title={`Email activity (${activity.length})`} testid="sr-drawer-activity">
-            <ul className="space-y-2">
-              {activity.map((a, i) => (
-                <li key={i} className="text-sm rounded-xl bg-white/[0.04] px-3 py-2">
-                  <div className="text-slate-100">{a.subject}</div>
-                  <div className="text-xs text-slate-400 mt-0.5">To {a.to}{a.cc?.length ? ` · CC ${a.cc.join(", ")}` : ""}</div>
-                  <div className="text-[11px] text-slate-500 mt-0.5">{fmt(a.at)} · {a.by} · {a.kind}</div>
-                </li>
-              ))}
-              {activity.length === 0 && <li className="text-xs text-slate-500">No emails sent from the console yet.</li>}
-            </ul>
-          </Section>
+          <Conversation item={item} activity={activity} onSendMessage={onSendMessage} closed={closed} />
 
           <Section title={`History (${history.length})`} testid="sr-drawer-history">
             <ol className="relative border-l border-white/10 ml-1 space-y-3">
