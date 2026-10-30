@@ -38,7 +38,10 @@ def _who(ident: dict) -> str:
 
 @router.get("/admin/service-requests")
 async def admin_service_requests(_: dict = Depends(require_admin)):
-    return await db.service_requests.find({}, {"_id": 0}).sort("createdAt", -1).to_list(2000)
+    items = await db.service_requests.find({}, {"_id": 0}).sort("createdAt", -1).to_list(2000)
+    for it in items:
+        it["hasUnreadReply"] = "admin" in (it.get("unreadFor") or [])
+    return items
 
 
 @router.get("/admin/service-requests/ca-options")
@@ -293,26 +296,32 @@ async def staff_service_requests(ident: dict = Depends(require_staff)):
     q = {} if ident.get("is_main") else {"assignedCaId": ident.get("sid")}
     items = await db.service_requests.find(q, {"_id": 0}).sort("createdAt", -1).to_list(2000)
     sid = ident.get("sid")
+    viewer = sid or "admin"
     for it in items:
         it["isNew"] = bool(sid) and sid not in (it.get("openedBy") or [])
+        it["hasUnreadReply"] = viewer in (it.get("unreadFor") or [])
     return {"items": items, "statuses": STATUSES, "me": {"sid": sid, "name": ident.get("name"), "email": ident.get("email"), "isMain": bool(ident.get("is_main"))}}
 
 
 @router.get("/staff/service-requests/summary")
 async def staff_service_requests_summary(ident: dict = Depends(require_staff)):
     q = {} if ident.get("is_main") else {"assignedCaId": ident.get("sid")}
-    items = await db.service_requests.find(q, {"_id": 0, "status": 1, "openedBy": 1, "assignedCaId": 1}).to_list(5000)
+    items = await db.service_requests.find(q, {"_id": 0, "status": 1, "openedBy": 1, "assignedCaId": 1, "assignedCa": 1, "unreadFor": 1}).to_list(5000)
     sid = ident.get("sid")
+    viewer = sid or "admin"
     open_ = [i for i in items if (i.get("status") or "new") not in CLOSED]
     return {"open": len(open_), "new": len([i for i in open_ if sid and sid not in (i.get("openedBy") or [])]),
-            "unassigned": len([i for i in open_ if not i.get("assignedCaId") and not i.get("assignedCa")])}
+            "unassigned": len([i for i in open_ if not i.get("assignedCaId") and not i.get("assignedCa")]),
+            "unreadReplies": len([i for i in items if viewer in (i.get("unreadFor") or [])])}
 
 
 @router.post("/staff/service-requests/{req_id}/open")
 async def staff_open(req_id: str, ident: dict = Depends(require_staff)):
     await _staff_item(req_id, ident)
     if ident.get("sid"):
-        await db.service_requests.update_one({"id": req_id}, {"$addToSet": {"openedBy": ident["sid"]}})
+        await db.service_requests.update_one({"id": req_id}, {"$addToSet": {"openedBy": ident["sid"]}, "$pull": {"unreadFor": ident["sid"]}})
+    else:
+        await db.service_requests.update_one({"id": req_id}, {"$pull": {"unreadFor": "admin"}})
     return {"ok": True}
 
 
@@ -354,3 +363,22 @@ async def staff_email_customer(req_id: str, payload: EmailCustomer, ident: dict 
     item = await _staff_item(req_id, ident)
     role = "admin" if ident.get("is_main") else "CA"
     return await send_customer_message(item, payload.message, payload.extraCc, _staff_name(ident), ident.get("email"), role, payload.dryRun)
+
+
+# ---------------- Inbound replies (IMAP poller) ----------------
+@router.post("/admin/service-requests/{req_id}/seen")
+async def admin_seen(req_id: str, _: dict = Depends(require_admin)):
+    await db.service_requests.update_one({"id": req_id}, {"$pull": {"unreadFor": "admin"}})
+    return {"ok": True}
+
+
+@router.get("/admin/service-requests/inbox/status")
+async def inbox_status(_: dict = Depends(require_admin)):
+    import mail_inbox
+    return await mail_inbox.status()
+
+
+@router.post("/staff/service-requests/inbox/poll")
+async def inbox_poll(ident: dict = Depends(require_staff)):
+    import mail_inbox
+    return await mail_inbox.poll_once()

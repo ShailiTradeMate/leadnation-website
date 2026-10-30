@@ -79,6 +79,8 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
   const [emailing, setEmailing] = useState(null);
   const [allocating, setAllocating] = useState(null);
   const [openId, setOpenId] = useState(null);
+  const [seenIds, setSeenIds] = useState(() => new Set());
+  const unread = (it) => Boolean(it.hasUnreadReply) && !seenIds.has(it.id);
 
   const reload = () => http.get(base).then((r) => {
     if (staff) { setItems(r.data.items); setMe(r.data.me); setMeta((m) => ({ ...m, statuses: r.data.statuses })); }
@@ -92,8 +94,9 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
   useEffect(() => {
     if (!onSummary) return;
     const open = items.filter((i) => !CLOSED.includes(i.status));
-    onSummary({ open: open.length, new: open.filter((i) => i.isNew).length, unassigned: open.filter((i) => !i.assignedCa).length });
-  }, [items, onSummary]);
+    onSummary({ open: open.length, new: open.filter((i) => i.isNew).length, unassigned: open.filter((i) => !i.assignedCa).length, unreadReplies: items.filter(unread).length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, onSummary, seenIds]);
 
   const replace = (upd) => setItems((xs) => xs.map((x) => (x.id === upd.id ? { ...upd, isNew: false } : x)));
   const save = async (id, patch) => {
@@ -109,7 +112,18 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
   };
   const openRow = (it) => {
     setOpenId(it.id);
-    if (staff && it.isNew) { http.post(`${base}/${it.id}/open`).catch(() => {}); replace({ ...it }); }
+    setSeenIds((s) => new Set(s).add(it.id));
+    if (staff) { http.post(`${base}/${it.id}/open`).catch(() => {}); }
+    else if (it.hasUnreadReply) { adminApi.post(`/admin/service-requests/${it.id}/seen`).catch(() => {}); }
+    if (it.isNew) replace({ ...it });
+  };
+  const checkReplies = async () => {
+    try {
+      const r = await staffApi.post("/staff/service-requests/inbox/poll");
+      if (r.data.ok === false) { toast.error(r.data.reason || "Mailbox not configured"); return; }
+      toast.success(r.data.matched ? `${r.data.matched} new repl${r.data.matched === 1 ? "y" : "ies"} added` : "No new replies");
+      if (r.data.matched) await reload();
+    } catch (e) { toast.error(e?.response?.data?.detail || "Could not check the mailbox"); }
   };
   const sendMessage = async (id, body) => {
     const r = await http.post(`${base}/${id}/email-customer`, body);
@@ -157,6 +171,12 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
                   <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
                     {(it.createdAt || "").slice(0, 16).replace("T", " ")}
                     {it.isNew && <span data-testid={`sr-new-badge-${it.id}`} className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40">NEW</span>}
+                    {unread(it) && (
+                      <span data-testid={`sr-reply-badge-${it.id}`} className="ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/50">
+                        <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" /></span>
+                        {it.lastReplyRole === "customer" ? "Customer replied" : `${it.lastReplyRole || "New"} reply`}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-xs text-cyan-300 font-mono-display"><div>{it.service}</div>{it.entity && <div className="text-slate-400 mt-0.5">{it.entity}</div>}</td>
                   <td className="px-4 py-3">{it.name}{it.customerId && <div className="text-[10px] text-slate-500 font-mono-display">ID {it.customerId}</div>}</td>
@@ -201,7 +221,7 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
         <ServiceRequestDrawer item={current} meta={meta} onClose={() => setOpenId(null)}
           onSave={(p) => save(openId, p)} onEmailCa={(it) => setEmailing(it)} onAllocate={staff ? null : (it) => setAllocating(it)}
           caReadOnly={staff} canEmailCa={!staff} statusLocked={staff && !me?.isMain && current.status === "completed"}
-          onSendMessage={(body) => sendMessage(openId, body)} />
+          onSendMessage={(body) => sendMessage(openId, body)} onCheckReplies={checkReplies} />
       )}
     </div>
   );

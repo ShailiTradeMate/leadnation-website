@@ -66,6 +66,11 @@ logger = logging.getLogger(__name__)
 async def _startup():
     init_firebase()
     try:
+        import mail_inbox
+        asyncio.get_event_loop().create_task(mail_inbox.run_forever())
+    except Exception as exc:
+        logging.warning("Mail inbox poller init failed: %s", exc)
+    try:
         storage.init_storage()
     except Exception as exc:
         logging.warning("Storage init failed: %s", exc)

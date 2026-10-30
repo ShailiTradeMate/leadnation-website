@@ -140,7 +140,17 @@ export default function AdminDashboard() {
   const badgeFor = (k) => {
     if (k !== "service-requests" || !srBadge) return null;
     const n = isSubAdmin ? srBadge.new : srBadge.unassigned;
-    return n > 0 ? <span data-testid="admin-tab-sr-badge" className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40">{n}</span> : null;
+    const r = srBadge.unreadReplies || 0;
+    return (
+      <>
+        {n > 0 && <span data-testid="admin-tab-sr-badge" className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40">{n}</span>}
+        {r > 0 && (
+          <span data-testid="admin-tab-sr-reply-badge" title={`${r} unread customer repl${r === 1 ? "y" : "ies"}`} className="ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/50">
+            <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400" /></span>{r}
+          </span>
+        )}
+      </>
+    );
   };
   const tabs = isSubAdmin ? SUB_TABS : MAIN_TABS;
 

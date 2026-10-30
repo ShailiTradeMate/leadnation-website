@@ -461,7 +461,8 @@ def _service_request_body(c: dict, greeting: bool = True) -> str:
         + f"<p><b>{c.get('name','')}</b> ({c.get('email','')}) has requested <b>{c.get('service','')}</b>.</p>"
         f"{_rows('Request', [('Service', c.get('service'))] + ([('Entity type', c.get('entity'))] if c.get('entity') else []) + [('Request ID', c.get('requestId')), ('Submitted', c.get('submittedAt')), ('Notes', c.get('message') or '—')])}"
         f"{_rows('Submitted details', [('Name', c.get('name')), ('Email', c.get('email')), ('Phone', c.get('phone')), ('Company', c.get('company') or '—'), ('Country', c.get('country'))])}"
-        f"{_rows('Vametra account', c.get('profileRows') or [])}")
+        f"{_rows('Vametra account', c.get('profileRows') or [])}"
+        f"<p style=\"color:#5b6485;font-size:11px;margin-top:14px;\">Ref: SR-{c.get('requestId','')} · Please keep this reference in your reply.</p>")
 
 
 BUILDERS.update({
@@ -487,6 +488,14 @@ BUILDERS.update({
         f"{' (your Vametra CA)' if c.get('senderRole') == 'CA' else ''} about your service request. Simply reply to this email to continue the conversation.</p>"
         f"<div style=\"margin:18px 0;padding:16px 18px;border-left:3px solid #00C2FF;background:#0f1631;border-radius:0 12px 12px 0;white-space:pre-wrap;line-height:1.6;\">{_esc(c.get('messageText',''))}</div>"
         f"<p style=\"color:#8b95b5;font-size:12px;\">Sent {c.get('sentAt','')}" + (f" · Your CA: {c.get('caName')}" if c.get('caName') else "") + "</p>"
+        + _service_request_body(c, greeting=False))),
+    # ---- Customer replied without CA/admin on the thread → copy to them ----
+    "service_reply_forward": lambda c: (f"Vametra Service Request · {c.get('service','')} · Allocated to Vametra CA", _shell(
+        f"Customer reply · {c.get('service','')}",
+        f"<p>Hello Vametra team,</p>"
+        f"<p><b>{c.get('name','')}</b> ({c.get('email','')}) replied to the service-request thread but you were not on the email. Here is the reply:</p>"
+        f"<div style=\"margin:18px 0;padding:16px 18px;border-left:3px solid #22c55e;background:#0f1631;border-radius:0 12px 12px 0;white-space:pre-wrap;line-height:1.6;\">{_esc(c.get('messageText',''))}</div>"
+        f"<p style=\"color:#8b95b5;font-size:12px;\">Received {c.get('sentAt','')} · Reply to this email to answer the customer directly.</p>"
         + _service_request_body(c, greeting=False))),
 })
 

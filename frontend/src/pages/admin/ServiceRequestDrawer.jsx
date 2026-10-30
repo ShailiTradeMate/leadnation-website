@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { X, Copy, EnvelopeSimple, PaperPlaneRight } from "@phosphor-icons/react";
+import { X, Copy, EnvelopeSimple, PaperPlaneRight, ArrowsClockwise } from "@phosphor-icons/react";
 import { ResponsiveSelect } from "@/components/ui/responsive-select";
 
 const CLOSED = ["completed", "cancelled"];
@@ -32,10 +32,11 @@ function CopyBtn({ value, label }) {
   );
 }
 
-function Conversation({ item, activity, onSendMessage, closed }) {
+function Conversation({ item, activity, onSendMessage, onCheckReplies, closed }) {
   const [msg, setMsg] = useState("");
   const [cc, setCc] = useState("");
   const [busy, setBusy] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [err, setErr] = useState("");
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "nearest" }); }, [activity.length]);
@@ -50,24 +51,38 @@ function Conversation({ item, activity, onSendMessage, closed }) {
   };
   return (
     <Section title={`Conversation with customer (${activity.length})`} testid="sr-drawer-conversation">
-      <div className="text-[11px] text-slate-500 mb-3">Every email sent from this console appears here. Customer replies arrive in the sender's inbox (Reply-To).</div>
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="text-[11px] text-slate-500">Emails sent from here and replies received in admin@vametra.com both appear in this thread (replies are picked up every ~2 minutes).</div>
+        {onCheckReplies && (
+          <button data-testid="sr-check-replies" disabled={checking} onClick={async () => { setChecking(true); try { await onCheckReplies(); } finally { setChecking(false); } }}
+            className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold border border-white/10 text-slate-300 hover:bg-white/5 disabled:opacity-50 inline-flex items-center gap-1">
+            <ArrowsClockwise size={12} className={checking ? "animate-spin" : ""} /> {checking ? "Checking…" : "Check for replies"}
+          </button>
+        )}
+      </div>
       <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1" data-testid="sr-conversation-thread">
         <div className="flex justify-start"><div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white/[0.05] px-3 py-2 text-sm">
           <div className="text-[10px] font-mono-display tracking-wider text-emerald-300 mb-1">{item.name} · customer</div>
           <div className="text-slate-100 whitespace-pre-wrap">Requested <b>{item.serviceLabel || item.service}</b>{item.entity ? ` (${item.entity})` : ""}.{item.message ? `\n${item.message}` : ""}</div>
           <div className="text-[10px] text-slate-500 mt-1">{fmt(item.createdAt)}</div>
         </div></div>
-        {activity.map((a, i) => (
-          <div key={i} className="flex justify-end" data-testid={`sr-conversation-msg-${i}`}>
-            <div className={`max-w-[85%] rounded-2xl rounded-tr-sm px-3 py-2 text-sm ${a.kind === "message" ? "bg-cyan-500/15 border border-cyan-400/20" : "bg-white/[0.04] border border-white/10"}`}>
-              <div className="text-[10px] font-mono-display tracking-wider text-cyan-300 mb-1">{a.byName || a.by} · {a.role || a.kind}</div>
-              {a.kind === "message"
-                ? <div className="text-slate-100 whitespace-pre-wrap">{a.text}</div>
-                : <div className="text-slate-300">Allocation email sent to <b>{a.to}</b>{a.note ? ` — "${a.note}"` : ""}</div>}
-              <div className="text-[10px] text-slate-500 mt-1">{fmt(a.at)} · to {a.to}{a.cc?.length ? ` · cc ${a.cc.join(", ")}` : ""}</div>
+        {activity.map((a, i) => {
+          const inbound = a.kind === "inbound";
+          const left = inbound && a.role === "customer";
+          const tone = left ? "bg-emerald-500/15 border border-emerald-400/30 rounded-tl-sm" : inbound ? "bg-violet-500/15 border border-violet-400/30 rounded-tr-sm" : a.kind === "message" ? "bg-cyan-500/15 border border-cyan-400/20 rounded-tr-sm" : "bg-white/[0.04] border border-white/10 rounded-tr-sm";
+          const who = left ? "text-emerald-300" : inbound ? "text-violet-300" : "text-cyan-300";
+          return (
+            <div key={i} className={`flex ${left ? "justify-start" : "justify-end"}`} data-testid={`sr-conversation-msg-${i}`}>
+              <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${tone}`}>
+                <div className={`text-[10px] font-mono-display tracking-wider mb-1 ${who}`}>{a.byName || a.by} · {a.role || a.kind}{inbound ? " · replied by email" : ""}</div>
+                {a.kind === "allocation"
+                  ? <div className="text-slate-300">Allocation email sent to <b>{a.to}</b>{a.note ? ` — "${a.note}"` : ""}</div>
+                  : <div className="text-slate-100 whitespace-pre-wrap">{a.text}</div>}
+                <div className="text-[10px] text-slate-500 mt-1">{fmt(a.at)}{inbound ? "" : ` · to ${a.to}`}{a.cc?.length ? ` · cc ${a.cc.join(", ")}` : ""}{a.forwardedTo?.length ? ` · forwarded to ${a.forwardedTo.join(", ")}` : ""}</div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
         <div ref={endRef} />
       </div>
       <div className="mt-3 space-y-2">
@@ -87,7 +102,7 @@ function Conversation({ item, activity, onSendMessage, closed }) {
   );
 }
 
-export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onAllocate, onSendMessage, caReadOnly = false, canEmailCa = true, statusLocked = false, extraActions = null }) {
+export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onAllocate, onSendMessage, onCheckReplies, caReadOnly = false, canEmailCa = true, statusLocked = false, extraActions = null }) {
   const [note, setNote] = useState("");
   const closed = CLOSED.includes(item.status);
   const history = [...(item.history || [])].reverse();
@@ -163,7 +178,7 @@ export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEm
             </ul>
           </Section>
 
-          <Conversation item={item} activity={activity} onSendMessage={onSendMessage} closed={closed} />
+          <Conversation item={item} activity={activity} onSendMessage={onSendMessage} onCheckReplies={onCheckReplies} closed={closed} />
 
           <Section title={`History (${history.length})`} testid="sr-drawer-history">
             <ol className="relative border-l border-white/10 ml-1 space-y-3">
