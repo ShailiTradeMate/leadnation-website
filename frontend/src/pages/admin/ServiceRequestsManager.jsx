@@ -3,6 +3,7 @@ import { adminApi } from "@/lib/admin";
 import { toast } from "sonner";
 import { ResponsiveSelect } from "@/components/ui/responsive-select";
 import EmailCaModal from "@/pages/admin/EmailCaModal";
+import ServiceRequestDrawer from "@/pages/admin/ServiceRequestDrawer";
 
 export const CLOSED = ["completed", "cancelled"];
 const EXTERNAL = "__external__";
@@ -70,6 +71,7 @@ export default function ServiceRequestsManager() {
   const [meta, setMeta] = useState({ statuses: ["new", "assigned", "in-progress", "completed", "cancelled"], cas: [] });
   const [f, setF] = useState({ q: "", status: "", ca: "", service: "" });
   const [emailing, setEmailing] = useState(null);
+  const [openId, setOpenId] = useState(null);
   const reload = () => adminApi.get("/admin/service-requests").then((r) => setItems(r.data)).catch(() => toast.error("Could not load service requests"));
   useEffect(() => { reload(); adminApi.get("/admin/service-requests/ca-options").then((r) => setMeta(r.data)).catch(() => {}); }, []);
 
@@ -78,6 +80,7 @@ export default function ServiceRequestsManager() {
       const r = await adminApi.put(`/admin/service-requests/${id}`, patch);
       setItems((xs) => xs.map((x) => (x.id === id ? r.data : x)));
       toast.success("Saved");
+      return r.data;
     } catch (e) {
       toast.error(e?.response?.data?.detail || "Save failed");
       reload();
@@ -113,18 +116,18 @@ export default function ServiceRequestsManager() {
             {shown.map((it) => {
               const closed = CLOSED.includes(it.status);
               return (
-                <tr key={it.id} data-testid={`admin-sr-row-${it.id}`} className={`border-t border-white/5 align-top ${closed ? "opacity-70" : ""}`}>
+                <tr key={it.id} data-testid={`admin-sr-row-${it.id}`} onClick={() => setOpenId(it.id)} title="Open request" className={`border-t border-white/5 align-top cursor-pointer hover:bg-white/[0.03] ${closed ? "opacity-70" : ""}`}>
                   <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{(it.createdAt || "").slice(0, 16).replace("T", " ")}</td>
                   <td className="px-4 py-3 text-xs text-cyan-300 font-mono-display"><div>{it.service}</div>{it.entity && <div className="text-slate-400 mt-0.5">{it.entity}</div>}</td>
                   <td className="px-4 py-3">{it.name}{it.customerId && <div className="text-[10px] text-slate-500 font-mono-display">ID {it.customerId}</div>}</td>
                   <td className="px-4 py-3 text-xs"><div>{it.email}</div><div className="text-slate-500">{it.phone}</div></td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <ResponsiveSelect data-testid={`admin-sr-status-${it.id}`} value={it.status || "new"} onChange={(e) => save(it.id, { status: e.target.value })} className="glass rounded-lg px-2 py-1 text-xs">
                       {meta.statuses.map((s) => <option key={s} value={s} className="bg-[#0a0f24]">{s}</option>)}
                     </ResponsiveSelect>
                   </td>
-                  <td className="px-4 py-3"><CaCell it={it} meta={meta} disabled={closed} onSave={(p) => save(it.id, p)} /></td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><CaCell it={it} meta={meta} disabled={closed} onSave={(p) => save(it.id, p)} /></td>
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                     <button data-testid={`admin-sr-email-ca-${it.id}`} disabled={closed} onClick={() => setEmailing(it)} title={closed ? "Completed/cancelled requests cannot be allocated" : "Email the CA"}
                       className="rounded-lg px-3 py-1.5 text-xs font-semibold bg-cyan-500/20 border border-cyan-400/40 text-cyan-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-cyan-500/30">
                       Email CA
@@ -139,6 +142,10 @@ export default function ServiceRequestsManager() {
         </table>
       </div>
       {emailing && <EmailCaModal item={emailing} onClose={() => setEmailing(null)} onSent={(upd) => setItems((xs) => xs.map((x) => (x.id === upd.id ? upd : x)))} />}
+      {openId && items.find((x) => x.id === openId) && (
+        <ServiceRequestDrawer item={items.find((x) => x.id === openId)} meta={meta} onClose={() => setOpenId(null)}
+          onSave={(p) => save(openId, p)} onEmailCa={(it) => setEmailing(it)} />
+      )}
     </div>
   );
 }

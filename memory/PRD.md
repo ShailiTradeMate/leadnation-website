@@ -187,3 +187,8 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Fixed: no sonner <Toaster/> was mounted app-wide — added in App.js (toasts now show everywhere).
 - Tested: iteration_78.json 15/15 backend, frontend all pass; 1 real send OK.
 - NEXT: Phase 4 (sub-admin Service Requests tab) then Phase 3 (drawer), status-change customer emails.
+
+## 2026-06 Allocation PHASE 3 DONE
+- frontend/src/pages/admin/ServiceRequestDrawer.jsx (shared, props: item, meta, onSave, onEmailCa, caReadOnly, canEmailCa, extraActions — ready for sub-admin reuse in Phase 4). Sections: Status & allocation (status select, CA, Email CA, CA notified), Request, Customer (copy email), Vametra account (profileRows), Internal notes (add → PUT internalNote), Email activity, History timeline. Mobile-safe.
+- ServiceRequestsManager: row click opens drawer (control cells stopPropagation). Verified desktop + 390px.
+- NEXT: Phase 4 sub-admin Service Requests tab (reuse drawer with caReadOnly + Email customer action), then status-change customer emails.
