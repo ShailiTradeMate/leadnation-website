@@ -54,7 +54,7 @@ function CaCell({ it, meta, onSave, disabled }) {
     <div className="flex flex-col gap-1 min-w-[170px]">
       <ResponsiveSelect data-testid={`admin-sr-ca-${it.id}`} value={mode} disabled={disabled} onChange={(e) => pick(e.target.value)} className={inp}>
         <option value="" className="bg-[#0a0f24]">— Unassigned —</option>
-        {meta.cas.map((c) => <option key={c.id} value={c.id} className="bg-[#0a0f24]">{c.name}</option>)}
+        {meta.cas.map((c) => <option key={c.id} value={c.id} className="bg-[#0a0f24]">{c.name}{c.category && c.category !== "Uncategorised" ? ` (${c.category})` : ""}</option>)}
         <option value={EXTERNAL} className="bg-[#0a0f24]">External CA…</option>
       </ResponsiveSelect>
       {mode === EXTERNAL && (

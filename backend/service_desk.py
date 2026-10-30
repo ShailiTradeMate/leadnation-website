@@ -44,9 +44,9 @@ async def admin_service_requests(_: dict = Depends(require_admin)):
 @router.get("/admin/service-requests/ca-options")
 async def ca_options(_: dict = Depends(require_admin)):
     out = []
-    async for sa in db.sub_admins.find({"active": {"$ne": False}}, {"_id": 0, "id": 1, "name": 1, "email": 1}):
-        out.append({"id": sa["id"], "name": sa.get("name"), "email": sa.get("email")})
-    out.sort(key=lambda x: (x.get("name") or "").lower())
+    async for sa in db.sub_admins.find({"active": {"$ne": False}}, {"_id": 0, "id": 1, "name": 1, "email": 1, "category": 1}):
+        out.append({"id": sa["id"], "name": sa.get("name"), "email": sa.get("email"), "category": sa.get("category") or "Uncategorised"})
+    out.sort(key=lambda x: (x["category"] != "CA", x["category"] != "Associate", (x.get("name") or "").lower()))
     return {"statuses": STATUSES, "cas": out}
 
 

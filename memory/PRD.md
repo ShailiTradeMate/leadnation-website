@@ -173,7 +173,7 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - Documents card shows reassurance note (data-testid service-documents-note): "Missing a document? No problem..." on every service page.
 
 ## BACKLOG (user-requested, 2026-06) — REMIND USER after marketing part + service-request part are done
-- Service Requests tab: dedicated "Allocate" button/flow for pending requests; categorise sub-admins as **CA** vs **Associate**; include all current and future sub-admins in allocation lists.
+- DONE 2026-06: Allocate button + CA/Associate categories.
 
 ## 2026-06 Service-request allocation — PHASE 1 DONE (plan: SERVICE_REQUEST_ALLOCATION_PLAN.md)
 - backend/service_desk.py (new router; admin.py endpoints moved): STATUSES incl. Partial/Full payment received; PUT /admin/service-requests/{id} {status, assignedCaId, assignedCa, assignedCaEmail, internalNote, clearCa} with history[] + notes[] + updatedBy; completed/cancelled block CA allocation (400); assigning CA while new ⇒ assigned. GET /admin/service-requests/ca-options ⇒ active sub_admins.
@@ -205,3 +205,7 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - PERMISSIONS extended (service_requests.*). ServiceRequestsManager mode="staff": no CA filter/controls, "You" column, NEW badge, Open · Email customer; drawer caReadOnly, statusLocked. SUB_TABS += Service Requests; tab badge (sub-admin: new count, main: unassigned count).
 - NOTE: Python scripts writing to /app files are blocked by harness — use search_replace/create_file.
 - Remaining from plan: status-change customer email (Partial/Full payment/Completed) with Notify toggle; inbound reply capture (backlog). BACKLOG reminder: CA/Associate categorisation.
+
+## 2026-06 Sub-admin management moved to Dashboard + CA/Associate categories (BACKLOG ITEM DONE)
+- backend/subadmin.py: CreateSub.category (CA|Associate, required valid), SubPatch.category; list returns category + service_requests_open. ca-options returns category (sorted CA, Associate, Uncategorised).
+- frontend SubAdminsManager.jsx rendered on Dashboard tab (create with CA/Associate toggle, list with category badge, Set category select, active toggle). AllocatePanel (Users tab) no longer creates sub-admins (hint text). AllocateModal options prefixed "CA · name · email"; row CA dropdown shows "(CA)/(Associate)". PatniCA=CA, Sakshi=Associate set in DB.

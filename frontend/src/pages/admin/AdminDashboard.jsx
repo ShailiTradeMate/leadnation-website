@@ -17,6 +17,7 @@ import PaymentsManager from "@/pages/admin/PaymentsManager";
 import VerificationReview from "@/pages/admin/VerificationReview";
 import UsersManager from "@/pages/admin/UsersManager";
 import ServiceRequestsManager from "@/pages/admin/ServiceRequestsManager";
+import SubAdminsManager from "@/pages/admin/SubAdminsManager";
 import "@/admin-workflows.css";
 import { staffLogin, staffLogout, getStaffInfo, isStaff, staffApi } from "@/lib/staffAuth";
 
@@ -173,7 +174,7 @@ export default function AdminDashboard() {
 
       <div className="mt-6">
         {tab === "users" && <UsersManager />}
-        {isMainAdmin && tab === "dashboard" && <Stats stats={stats} />}
+        {isMainAdmin && tab === "dashboard" && <><Stats stats={stats} /><SubAdminsManager /></>}
         {isMainAdmin && tab === "cms" && <CmsManager />}
         {isMainAdmin && tab === "leads" && <Leads />}
         {isMainAdmin && tab === "service-requests" && <ServiceRequestsManager onSummary={setSrBadge} />}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { staffApi } from "@/lib/staffAuth";
-import { X, UserPlus, Users, CheckCircle, Circle, ToggleLeft, ToggleRight, PaperPlaneTilt, Prohibit, WarningCircle } from "@phosphor-icons/react";
+import { X, Users, CheckCircle, Circle, PaperPlaneTilt, Prohibit, WarningCircle } from "@phosphor-icons/react";
 
 export default function AllocatePanel({ onClose, onAllocated }) {
   const [subs, setSubs] = useState([]);
@@ -12,7 +12,6 @@ export default function AllocatePanel({ onClose, onAllocated }) {
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
 
   const load = async () => {
     setLoading(true); setErr("");
@@ -61,27 +60,6 @@ export default function AllocatePanel({ onClose, onAllocated }) {
       await load();
       onAllocated && onAllocated();
     } catch (e) { setErr(e?.response?.data?.detail || "Allocation failed."); }
-    finally { setBusy(""); }
-  };
-
-  const createSub = async (e) => {
-    e.preventDefault();
-    setBusy("create"); setErr(""); setMsg("");
-    try {
-      await staffApi.post("/admin/subadmins", form);
-      setMsg(`Sub-admin ${form.email} created.`);
-      setForm({ name: "", email: "", password: "" });
-      await load();
-    } catch (e2) { setErr(e2?.response?.data?.detail || "Could not create sub-admin."); }
-    finally { setBusy(""); }
-  };
-
-  const toggleActive = async (s) => {
-    setBusy(`toggle-${s.id}`); setErr("");
-    try {
-      await staffApi.patch(`/admin/subadmins/${s.id}`, { active: !s.active });
-      await load();
-    } catch (e) { setErr(e?.response?.data?.detail || "Update failed."); }
     finally { setBusy(""); }
   };
 
@@ -166,7 +144,7 @@ export default function AllocatePanel({ onClose, onAllocated }) {
         <div className="mt-6">
           <div className="text-sm font-semibold">3. Distribute to sub-admins</div>
           <div className="mt-3 space-y-2">
-            {activeSubs.length === 0 && !loading && <div className="text-sm text-slate-400">No active sub-admins. Create one below.</div>}
+            {activeSubs.length === 0 && !loading && <div className="text-sm text-slate-400">No active sub-admins. Create one from the Dashboard tab.</div>}
             {activeSubs.map((s) => (
               <button key={s.id} type="button" data-testid={`allocate-select-${s.id}`} onClick={() => toggleSel(s.id)}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left ${selected[s.id] ? "border-cyan-400/50 bg-cyan-400/10" : "border-white/10 bg-white/5"}`}>
@@ -174,6 +152,7 @@ export default function AllocatePanel({ onClose, onAllocated }) {
                   {selected[s.id] ? <CheckCircle size={18} weight="fill" className="text-cyan-300" /> : <Circle size={18} className="text-slate-500" />}
                   <span>
                     <span className="text-sm font-medium">{s.name}</span>
+                    {s.category && <span className="text-[10px] uppercase ml-2 px-1.5 py-0.5 rounded-full border border-white/15 text-slate-300">{s.category}</span>}
                     <span className="text-xs text-slate-400 ml-2">{s.email}</span>
                   </span>
                 </span>
@@ -189,42 +168,7 @@ export default function AllocatePanel({ onClose, onAllocated }) {
         </div>
 
         <div className="h-px bg-white/10 my-7" />
-
-        {/* Manage access */}
-        <div>
-          <div className="flex items-center gap-2 text-sm font-semibold"><UserPlus size={16} className="text-cyan-300" /> Create sub-admin</div>
-          <form onSubmit={createSub} className="mt-3 grid sm:grid-cols-3 gap-3">
-            <input data-testid="subadmin-name" required placeholder="Name" value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })} className="glass rounded-xl px-3 py-2.5 text-sm outline-none" />
-            <input data-testid="subadmin-email" required type="email" placeholder="Email" value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })} className="glass rounded-xl px-3 py-2.5 text-sm outline-none" />
-            <input data-testid="subadmin-password" required type="text" placeholder="Password (min 6)" value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })} className="glass rounded-xl px-3 py-2.5 text-sm outline-none" />
-            <button data-testid="subadmin-create" disabled={busy === "create"} className="btn-ghost sm:col-span-3 justify-center disabled:opacity-50">
-              {busy === "create" ? "Creating…" : "Create sub-admin account"}
-            </button>
-          </form>
-
-          <div className="mt-5 space-y-2">
-            <div className="text-xs uppercase tracking-widest text-slate-500">All sub-admins</div>
-            {subs.map((s) => (
-              <div key={s.id} data-testid={`subadmin-row-${s.id}`} className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10">
-                <div>
-                  <span className="text-sm font-medium">{s.name}</span>
-                  <span className="text-xs text-slate-400 ml-2">{s.email}</span>
-                  <span className={`text-[10px] uppercase ml-2 px-2 py-0.5 rounded-full ${s.active ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-500/20 text-slate-400"}`}>
-                    {s.active ? "Active" : "Inactive"}
-                  </span>
-                </div>
-                <button data-testid={`subadmin-toggle-${s.id}`} onClick={() => toggleActive(s)} disabled={busy === `toggle-${s.id}`}
-                  className="text-slate-300 hover:text-white flex items-center gap-1.5 text-xs">
-                  {s.active ? <ToggleRight size={22} weight="fill" className="text-emerald-400" /> : <ToggleLeft size={22} className="text-slate-500" />}
-                  {s.active ? "Deactivate" : "Activate"}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
+        <p className="text-xs text-slate-400" data-testid="allocate-manage-hint">Sub-admin accounts (CAs &amp; Associates) are created and managed from the <b>Dashboard</b> tab.</p>
       </div>
     </div>
   );

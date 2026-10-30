@@ -51,7 +51,9 @@ export default function AllocateModal({ item, meta, onClose, onDone }) {
           <label className="block text-xs text-slate-400">CA / employee
             <ResponsiveSelect data-testid="allocate-ca" value={pick} onChange={(e) => choose(e.target.value)} className={inp}>
               <option value="" className="bg-[#0a0f24]">— Select —</option>
-              {meta.cas.map((c) => <option key={c.id} value={c.id} className="bg-[#0a0f24]">{c.name}{c.email ? ` · ${c.email}` : ""}</option>)}
+              {["CA", "Associate", "Uncategorised"].flatMap((cat) => meta.cas.filter((c) => (c.category || "Uncategorised") === cat).map((c) => (
+                <option key={c.id} value={c.id} data-display-label={`${c.name} (${cat})`} className="bg-[#0a0f24]">{cat} · {c.name}{c.email ? ` · ${c.email}` : ""}</option>
+              )))}
               <option value={EXTERNAL} className="bg-[#0a0f24]">External CA / employee (type details)</option>
             </ResponsiveSelect>
           </label>

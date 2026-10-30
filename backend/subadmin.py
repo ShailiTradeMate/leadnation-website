@@ -487,8 +487,10 @@ async def list_subadmins(admin: dict = Depends(require_main_admin)):
     async for sa in SUBADMINS.find({}):
         pending = await SUBS.count_documents({"assigned_to": sa["id"], "status": "needs_review"})
         out.append({"id": sa["id"], "name": sa.get("name"), "email": sa.get("email"),
-                    "username": sa.get("username"), "active": sa.get("active", True),
-                    "created_at": sa.get("created_at"), "assigned_pending": pending})
+                    "username": sa.get("username"), "active": sa.get("active", True), "category": sa.get("category"),
+                    "created_at": sa.get("created_at"), "assigned_pending": pending,
+                    "service_requests_open": await db.service_requests.count_documents(
+                        {"assignedCaId": sa["id"], "status": {"$nin": ["completed", "cancelled"]}})})
     out.sort(key=lambda x: str(x.get("created_at") or ""))
     return {"subadmins": out}
 
@@ -497,6 +499,10 @@ class CreateSub(BaseModel):
     name: str
     email: str
     password: str
+    category: str = "CA"
+
+
+SUB_CATEGORIES = ("CA", "Associate")
 
 
 @router.post("/admin/subadmins")
@@ -506,6 +512,8 @@ async def create_subadmin(body: CreateSub, admin: dict = Depends(require_main_ad
         raise HTTPException(400, "A valid email is required.")
     if len((body.password or "")) < 6:
         raise HTTPException(400, "Password must be at least 6 characters.")
+    if body.category not in SUB_CATEGORIES:
+        raise HTTPException(400, "Category must be CA or Associate.")
     if await SUBADMINS.find_one({"email": email}):
         raise HTTPException(409, "A sub-admin with this email already exists.")
     sid = uuid.uuid4().hex
@@ -513,16 +521,17 @@ async def create_subadmin(body: CreateSub, admin: dict = Depends(require_main_ad
     await SUBADMINS.insert_one({
         "_id": sid, "id": sid, "name": (body.name or "").strip() or username,
         "username": username, "email": email, "password_hash": _hash(body.password),
-        "role": "sub_admin", "active": True, "created_at": _now(),
+        "role": "sub_admin", "category": body.category, "active": True, "created_at": _now(),
         "created_by": admin.get("email") or "main_admin",
     })
-    return {"ok": True, "id": sid, "email": email}
+    return {"ok": True, "id": sid, "email": email, "category": body.category}
 
 
 class SubPatch(BaseModel):
     active: Optional[bool] = None
     name: Optional[str] = None
     password: Optional[str] = None
+    category: Optional[str] = None
 
 
 @router.patch("/admin/subadmins/{sid}")
@@ -532,6 +541,10 @@ async def update_subadmin(sid: str, body: SubPatch, admin: dict = Depends(requir
         upd["active"] = body.active
     if body.name:
         upd["name"] = body.name.strip()
+    if body.category is not None:
+        if body.category not in SUB_CATEGORIES:
+            raise HTTPException(400, "Category must be CA or Associate.")
+        upd["category"] = body.category
     if body.password:
         if len(body.password) < 6:
             raise HTTPException(400, "Password must be at least 6 characters.")
