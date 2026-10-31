@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { staffApi } from "@/lib/staffAuth";
 import { toast } from "sonner";
-import { UserPlus, ToggleLeft, ToggleRight, Briefcase, IdentificationBadge } from "@phosphor-icons/react";
+import { UserPlus, ToggleLeft, ToggleRight, Briefcase, IdentificationBadge, PencilSimple } from "@phosphor-icons/react";
+import SubAdminEditModal from "@/pages/admin/SubAdminEditModal";
 
 const CATS = ["CA", "Associate"];
 const catStyle = (c) => c === "CA" ? "bg-cyan-500/20 text-cyan-200 border-cyan-400/40" : c === "Associate" ? "bg-violet-500/20 text-violet-200 border-violet-400/40" : "bg-amber-400/15 text-amber-200 border-amber-400/40";
@@ -10,6 +11,7 @@ export default function SubAdminsManager() {
   const [subs, setSubs] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", password: "", category: "CA" });
   const [busy, setBusy] = useState("");
+  const [editing, setEditing] = useState(null);
   const load = () => staffApi.get("/admin/subadmins").then((r) => setSubs(r.data.subadmins || [])).catch(() => toast.error("Could not load sub-admins"));
   useEffect(() => { load(); }, []);
 
@@ -29,6 +31,12 @@ export default function SubAdminsManager() {
     try { await staffApi.patch(`/admin/subadmins/${s.id}`, body); toast.success(ok); load(); }
     catch (err) { toast.error(err?.response?.data?.detail || "Update failed"); }
     finally { setBusy(""); }
+  };
+  const saveEdit = async (s, body) => { await staffApi.patch(`/admin/subadmins/${s.id}`, body); toast.success(`${body.name || s.name} updated`); load(); };
+  const remove = async (s) => {
+    const r = await staffApi.delete(`/admin/subadmins/${s.id}`);
+    toast.success(`${s.name} deleted${r.data.released_requests ? ` · ${r.data.released_requests} request(s) released for re-allocation` : ""}`);
+    load();
   };
 
   const inp = "glass rounded-xl px-3 py-2.5 text-sm outline-none";
@@ -70,6 +78,8 @@ export default function SubAdminsManager() {
                 <option value="" disabled className="bg-[#0a0f24]">Set category</option>
                 {CATS.map((c) => <option key={c} value={c} className="bg-[#0a0f24]">{c}</option>)}
               </select>
+              <button data-testid={`subadmin-edit-${s.id}`} title="Edit name, email, password, category" onClick={() => setEditing(s)}
+                className="rounded-lg p-1.5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/5"><PencilSimple size={14} /></button>
               <button data-testid={`subadmin-toggle-${s.id}`} onClick={() => patch(s, { active: !s.active }, s.active ? "Deactivated" : "Activated")} disabled={busy === s.id}
                 className="text-slate-300 hover:text-white flex items-center gap-1 text-xs">
                 {s.active ? <ToggleRight size={22} weight="fill" className="text-emerald-400" /> : <ToggleLeft size={22} className="text-slate-500" />}
@@ -79,6 +89,7 @@ export default function SubAdminsManager() {
         ))}
         {subs.length === 0 && <div className="text-sm text-slate-400">No sub-admins yet.</div>}
       </div>
+      {editing && <SubAdminEditModal sub={editing} onClose={() => setEditing(null)} onSave={(body) => saveEdit(editing, body)} onDelete={() => remove(editing)} />}
     </div>
   );
 }

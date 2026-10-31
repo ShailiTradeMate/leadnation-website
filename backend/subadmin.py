@@ -530,6 +530,7 @@ async def create_subadmin(body: CreateSub, admin: dict = Depends(require_main_ad
 class SubPatch(BaseModel):
     active: Optional[bool] = None
     name: Optional[str] = None
+    email: Optional[str] = None
     password: Optional[str] = None
     category: Optional[str] = None
 
@@ -541,6 +542,14 @@ async def update_subadmin(sid: str, body: SubPatch, admin: dict = Depends(requir
         upd["active"] = body.active
     if body.name:
         upd["name"] = body.name.strip()
+    if body.email is not None:
+        email = body.email.strip().lower()
+        if not email or "@" not in email:
+            raise HTTPException(400, "A valid email is required.")
+        if await SUBADMINS.find_one({"email": email, "id": {"$ne": sid}}):
+            raise HTTPException(409, "Another sub-admin already uses this email.")
+        upd["email"] = email
+        upd["username"] = email.split("@")[0]
     if body.category is not None:
         if body.category not in SUB_CATEGORIES:
             raise HTTPException(400, "Category must be CA or Associate.")
@@ -551,10 +560,31 @@ async def update_subadmin(sid: str, body: SubPatch, admin: dict = Depends(requir
         upd["password_hash"] = _hash(body.password)
     if not upd:
         raise HTTPException(400, "Nothing to update.")
+    upd["updated_at"], upd["updated_by"] = _now(), admin.get("email") or "main_admin"
     res = await SUBADMINS.update_one({"id": sid}, {"$set": upd})
     if res.matched_count == 0:
         raise HTTPException(404, "Sub-admin not found.")
+    if "name" in upd or "email" in upd:
+        sa = await SUBADMINS.find_one({"id": sid})
+        await SUBS.update_many({"assigned_to": sid}, {"$set": {"assigned_to_name": sa.get("name")}})
+        await db.service_requests.update_many({"assignedCaId": sid}, {"$set": {"assignedCa": sa.get("name"), "assignedCaEmail": sa.get("email")}})
     return {"ok": True}
+
+
+@router.delete("/admin/subadmins/{sid}")
+async def delete_subadmin(sid: str, admin: dict = Depends(require_main_admin)):
+    sa = await SUBADMINS.find_one({"id": sid})
+    if not sa:
+        raise HTTPException(404, "Sub-admin not found.")
+    now, who = _now(), admin.get("email") or "main_admin"
+    subs = await SUBS.update_many({"assigned_to": sid}, {"$set": {"assigned_to": None, "assigned_to_name": None}})
+    reqs = await db.service_requests.update_many(
+        {"assignedCaId": sid},
+        {"$set": {"assignedCaId": None, "assignedCa": None, "assignedCaEmail": None, "updatedAt": now, "updatedBy": who},
+         "$push": {"history": {"at": now, "by": who, "changes": [f"CA/Associate '{sa.get('name')}' deleted — request released for re-allocation"]}}})
+    await SUBADMINS.delete_one({"id": sid})
+    log.info("[subadmin] %s deleted %s (%s)", who, sa.get("email"), sid)
+    return {"ok": True, "released_requests": reqs.modified_count, "released_verifications": subs.modified_count}
 
 
 # ---------------- Allocation ----------------
