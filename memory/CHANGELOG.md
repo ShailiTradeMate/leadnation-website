@@ -392,3 +392,40 @@ tests), frontend 100%, zero issues raised. tests/test_iter69_seo_hs_export.py.
 - Attributed the shell to the managed Cloudflare pre-render worker (cache/quota/route depth)
   because it has no Cloudflare visibility. The real cause was our own cold-cache latency.
   Lesson: profile the API per product before escalating to the platform.
+
+## 2026-10-31 — Sitemap collapsed to 165 URLs in production (RCA + guard)
+
+**Symptom (owner GSC screenshot, 31 Oct):** both sitemaps "Success" but only **165 discovered
+pages**, down from **975 on 10 Oct**. Preview serves 975 at the same moment.
+
+**RCA (verified by live curls, prod vs preview):**
+- Missing in prod: 784 `/export/{product}/to/{country}`, 413 `/api/answers/html/*`, 5
+  `/regions/{slug}`. Those pages still render 200 in prod — they are *excluded from the sitemap*
+  by the indexability gate `score >= 70 AND duty AND demand`.
+- `GET /api/seo/matrix` in prod: `indexable: 0`, every row `dataScore 70`, `countryImportsUSD: null`
+  → the **demand pillar (30 pts) is missing**, so every row lands exactly 0 points short.
+- `GET /api/trade-intel/stats?hs=330741` → prod `ok:false "No trade data found"`, preview `ok:true`.
+  So the keyless **OEC World** fetch (`trade_intel._oec_stats`, api-v2.oec.world) fails **only from
+  production**. Emergent support KB: deployed pods share an outbound egress IP pool; free keyless
+  APIs get 429/blocked from it. Preview uses a different NAT IP, which is why it still works.
+- Amplifier: the APScheduler warm job runs `matrix(force=True)` daily at 02:30 UTC and
+  **overwrote the good `seo_matrix_cache` snapshot with all-indexable:false rows** during the
+  outage → the sitemap shrank silently and stayed shrunk.
+
+**Fix shipped (`backend/seo_pages.py::matrix`):** a rebuild that yields **0 indexable rows never
+overwrites** a previous good snapshot; it logs and returns the old snapshot with `stale: True`.
+Verified with `/tmp/guard_outage.py` (all five data pillars patched to None):
+BEFORE 440 rows/392 indexable → rebuild returned `stale=True, indexable=392` → cache unchanged,
+timestamp unchanged. Sitemap still 975 after the run.
+
+**Still open (not fixable from the pod):**
+- Prod egress to api-v2.oec.world. Deployer agent returned BLOCKED — deploy job
+  `22864485-5793-4acd-98e6-32508017aff4` "does not resolve to a v3 deployment", so no prod logs,
+  no in-pod egress test, no prod Mongo read. Support ticket to support@emergent.sh required.
+- The guard cannot help prod *now*: its cache is already all-false, so prod needs **one successful
+  rebuild** before it has a snapshot worth protecting.
+- Durable route around the shared-IP problem: set **`COMTRADE_API_KEY`** (free, keyed, per-account
+  quota — comtradedeveloper.un.org). `trade_intel.trade_stats` already prefers Comtrade when
+  present and falls back to OEC, so the demand pillar stops depending on the shared egress IP.
+  Note `importer_table()` (per-country import value/rank) is still OEC-only — a Comtrade key fixes
+  the gate and the sitemap, not the per-country figure.
