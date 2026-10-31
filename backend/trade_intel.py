@@ -293,7 +293,9 @@ async def _comtrade_imports(cx, hs6: str):
     if not years:
         return None, None
     best = max(len(r) for r in years.values())
-    year = max(y for y, r in years.items() if len(r) >= 0.85 * best)
+    # 0.95: a newer year only wins if it is genuinely as complete — 85% let a visibly partial
+    # year (e.g. 124 reporters vs 145) replace a full one and understate every figure.
+    year = max(y for y, r in years.items() if len(r) >= 0.95 * best)
     return years[year], year
 
 

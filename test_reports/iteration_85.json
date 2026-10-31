@@ -1,0 +1,22 @@
+{
+  "summary": "Backend-only test of the Comtrade fallback speed fix (sequential year-2 first, early stop at 140 reporters) and the new stats force path. Everything requested passed. tests_oec_breaker.py printed PASS on both runs, about 20s apart: run 1 took 13.7s, 6.4s and 3.8s, with 0.23s cached. Run 2 took 13.7s, 7.2s and 4.6s, with 0.23s cached. No 'HTTP 429' appeared in the script output or the backend logs. With OEC patched to fail, a counting wrapper on _comtrade_call showed exactly ONE Comtrade fetch, year 2024 with 145 rows, for trade_stats plus importer_detail on cold 330741. Germany was 7,787,059.83 and year 2024, not 2025. Synthetic tests confirmed the 85% rule, the early stop and the skip past a failed year. force=true refreshed both stats:{hs} and imptable:{hs} (refreshedAt moved and the source went from UN Comtrade to OEC) for 330741, 300490 and 090111. Regressions also passed: the sitemap returned 200 with 975 locs in 2.6s, including /export/, /api/answers/html/ and the /regions hubs. status showed oecSkippedUntil null and comtradeEnabled true. matrix showed 5/5 indexable with no stale flag. page-data agarbatti/germany showed indexable true, dataScore 100 and an OEC source. stats 330741 showed oec with a 3-point trend. tests_comtrade_fallback.py and tests_sitemap_timeout.py both printed PASS. All touched HS codes were put back on OEC through the live server with force=true.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "trade_intel._comtrade_imports", "issue": "The 85% completeness threshold is borderline. For 330741, 2025 has 124 rows and 0.85*145 = 123.25, so 2025 (incomplete, Germany about 10.33M) would be chosen over 2024 whenever both years are fetched. 2024 is chosen today only because the early stop at 140 rows skips fetching 2025. Any HS code whose year-2 has fewer than 140 rows but whose year-1 is partial and within 85% will pick the partial newer year. Suggest raising the threshold to about 0.9-0.95, or preferring year-2 unless year-1 has at least as many rows as year-2."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/tests/test_iter85_comtrade_speed.py", "/app/memory/tests_oec_breaker.py", "/app/memory/tests_comtrade_fallback.py", "/app/memory/tests_sitemap_timeout.py"],
+  "action_items": ["Optional: tighten the 85% year-completeness rule in _comtrade_imports (see the minor issue)."],
+  "critical_code_review_comments": [
+    "In stats_route, force=true calls importer_table(force=True) and then trade_stats(force=True). When OEC is down, trade_stats falls back to _comtrade_stats -> importer_table (not forced), which reads the table just refreshed, so it is still one Comtrade fetch. OK.",
+    "In importer_table, when OEC is down the fallback is cached for the full CACHE_TTL_DAYS. force=true is now the documented way out. A shorter TTL for Comtrade-sourced tables would make this self-healing."
+  ],
+  "updated_files": ["/app/tests/test_iter85_comtrade_speed.py"],
+  "success_rate": {"backend": "100%", "frontend": "not tested (backend only)"},
+  "seed_data_creation": "None. The caches for 330741, 300490 and 090111 were rewritten during the fallback tests and then restored to OEC with ?force=true.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run python scripts from /app/backend as the working directory. Do not create files under /app/backend. The Comtrade free tier gives 429 on concurrent requests; none were seen this iteration. After any OEC-patched test, restore with GET /api/trade-intel/stats?hs=X&force=true. That call refreshes both stats and imptable in about 1.5s when OEC is reachable."
+}

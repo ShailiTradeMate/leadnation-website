@@ -482,3 +482,25 @@ Shipped in response:
   **Not live in production until the next deploy.**
 - Testing agent iteration 83: 9/9 pass (sitemap 975 in 4.9s, no duplicates, egress-check 403
   without token and no key leakage, Comtrade fallback still PASS).
+
+### Circuit breaker for the blocked data source (31 Oct, pre-publish)
+Production can reach **UN Comtrade and WITS** but **not OEC** (`/api/trade-intel/stats` returned
+`ok:true, sourceKey:"comtrade"` once the key landed). The remaining damage was latency: every page
+build still tried OEC first and waited out the full httpx timeout before falling back, which is why
+Googlebot measured 12.6s TTFB on `/export/agarbatti/to/bangladesh` and a 60s timeout on
+`/api/answers/html/export/agarbatti` — the cause of "Discovered – currently not indexed" (887 pages).
+
+- `trade_intel`: OEC client timeouts 20s/30s → **8s**, and a **circuit breaker** — one failure parks
+  OEC for 10 minutes (`_oec_down()`, `OEC_COOLDOWN_MIN`), exposed as `oecSkippedUntil` on
+  `/api/trade-intel/status`.
+- `_comtrade_stats()` now derives from the cached `importer_table()` → **one** multi-MB Comtrade
+  fetch per HS code instead of one per caller (exporters are empty in fallback mode, by design).
+- `_comtrade_imports()` tries **year-2 first** and stops at 140 reporters — normally a single
+  fetch, and sequential because the free tier answers concurrent full-table requests with HTTP 429.
+  Completeness threshold raised 85% → **95%** so a partial newer year can't understate the figures.
+- `/api/trade-intel/stats?force=true` now also refreshes `imptable:{hs}`, so Comtrade-sourced
+  tables can be put back on OEC once egress is fixed (they otherwise sat for 14 days).
+
+Measured with OEC simulated blocked: first call 13.7s (8s of it is the call that trips the breaker),
+later cold HS codes 3.8–7.2s, repeat call **0.23s**, no 429s. Testing agent iterations 84 and 85 both
+pass, including exactly one Comtrade fetch per cold HS code and the correct (complete) year.
