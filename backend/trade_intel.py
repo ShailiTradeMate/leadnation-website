@@ -17,7 +17,7 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 import httpx
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
 from core import db
 
@@ -478,3 +478,31 @@ async def importer_detail(hs6: str, country_name: str):
             "countryImportsUSD": (row or {}).get("value"),
             "countryShare": (row or {}).get("share"),
             "countryRank": (row or {}).get("rank")}
+
+
+@router.get("/egress-check")
+async def egress_check(x_admin_token: str = Header(default=None)):
+    """Admin: what can this pod actually reach? Deployed pods share an outbound IP, so a data
+    source can work in preview and be blocked in production. Returns status/latency per host."""
+    if x_admin_token != os.environ.get("ADMIN_TOKEN", ""):
+        raise HTTPException(status_code=403, detail="admin only")
+    targets = {
+        "oec": f"{OEC_BASE}/members?cube={OEC_CUBE}&level=HS6",
+        "comtrade": (f"{COMTRADE_BASE}?cmdCode=330741&flowCode=M&partnerCode=0"
+                     f"&period={_now().year - 2}&includeDesc=true"),
+        "control_wits": "https://wits.worldbank.org/API/V1/SDMX/V21/rest/dataflow/WBG_WITS",
+    }
+    out = {}
+    for name, url in targets.items():
+        started = _now()
+        headers = {"Ocp-Apim-Subscription-Key": COMTRADE_KEY} if name == "comtrade" else {}
+        try:
+            async with httpx.AsyncClient(timeout=25, follow_redirects=True) as cx:
+                r = await cx.get(url, headers=headers)
+            out[name] = {"status": r.status_code, "bytes": len(r.content),
+                         "seconds": round((_now() - started).total_seconds(), 2),
+                         "body": r.text[:160] if r.status_code != 200 else None}
+        except Exception as exc:
+            out[name] = {"status": None, "error": f"{type(exc).__name__}: {exc}",
+                         "seconds": round((_now() - started).total_seconds(), 2)}
+    return {"comtradeKeySet": bool(COMTRADE_KEY), "checkedAt": _now().isoformat(), "targets": out}

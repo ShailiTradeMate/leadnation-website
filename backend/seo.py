@@ -191,8 +191,21 @@ async def _answer_routes():
 async def sitemap_xml():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     lastmods = await _lastmod_map()
-    urls = (all_public_urls() + await _event_routes() + await _product_country_routes()
-            + await _region_routes() + await _answer_routes())
+
+    async def section(coro, label):
+        """A cold or failing data source must never hang the sitemap — Googlebot would get a
+        gateway error instead of a valid file."""
+        try:
+            return await asyncio.wait_for(coro, timeout=20)
+        except Exception as exc:
+            logger.warning("sitemap section %s skipped: %s", label, exc)
+            return []
+
+    urls = (all_public_urls()
+            + await section(_event_routes(), "expo")
+            + await section(_product_country_routes(), "product-country")
+            + await section(_region_routes(), "regions")
+            + await section(_answer_routes(), "answers"))
     rows = "".join(
         f"<url><loc>{SITE}{loc}</loc><lastmod>{lastmods.get(loc, today)}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>"
