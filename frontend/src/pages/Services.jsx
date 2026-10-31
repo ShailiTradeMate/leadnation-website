@@ -205,7 +205,7 @@ export default function ServiceDetail() {
                 <textarea data-testid="service-message" rows={3} placeholder="Anything specific?" value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
                   className="w-full glass rounded-xl px-4 py-3 outline-none placeholder:text-slate-500 text-sm" />
-                <p data-testid="service-pay-later-note" className="text-xs text-emerald-300 font-semibold">Pay when your document is ready — no advance payment.</p>
+                <p data-testid="service-pay-later-note" className="text-xs text-emerald-300 font-semibold">Pay only half now — the other half once your document is ready.</p>
                 <button data-testid="service-submit" className="btn-primary w-full justify-center">Submit request <PaperPlaneTilt size={14} weight="bold" /></button>
                 {err && <div className="text-rose-300 text-sm">{err}</div>}
               </form>
