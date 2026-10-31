@@ -593,6 +593,18 @@ async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
             tasks.append(row(ps, p, cs, c, demand))
     out = [r for r in await asyncio.gather(*tasks, return_exceptions=False)]
     out.sort(key=lambda r: (-r["dataScore"], -(r["countryImportsUSD"] or 0)))
+    # A trade-data outage makes every row fail the gate; never let that overwrite a good
+    # snapshot — it would silently drop ~800 URLs from the live sitemap.
+    if not any(r["indexable"] for r in out):
+        prev = await db.seo_matrix_cache.find_one({"_id": cache_id})
+        prev_rows = [r for r in (prev or {}).get("rows", []) if r.get("indexable")]
+        if prev_rows:
+            logger.warning("SEO matrix rebuild had 0 indexable rows (trade data unavailable) — "
+                           "keeping previous snapshot of %s indexable rows from %s",
+                           len(prev_rows), prev.get("at"))
+            rows = [r for r in prev["rows"] if r["dataScore"] >= min_score][:limit]
+            return {"count": len(rows), "indexable": sum(1 for r in rows if r["indexable"]),
+                    "cachedAt": prev.get("at"), "stale": True, "rows": rows}
     await db.seo_matrix_cache.replace_one(
         {"_id": cache_id},
         {"_id": cache_id, "rows": out, "at": datetime.now(timezone.utc).isoformat()}, upsert=True)
