@@ -1,0 +1,31 @@
+{
+  "summary": "Backend-only verification of the Comtrade keyed fallback and sitemap/SEO regressions. Outage simulation script /app/memory/tests_comtrade_fallback.py printed PASS (sourceKey comtrade, world 309.4M USD, 12 importers; Germany countryImportsUSD 10.33M rank 7/124; demand pillar has world+country values). Comtrade numbers are not inflated (top importer Malaysia 43.8M vs OEC 39.3M; Germany 10.3M vs OEC 12.95M), no duplicate countries in 124-row table, canonical names used ('United States'). Preview cache restored to OEC (stats + imptable 330741 = OEC 2024, 199 countries). HTTP regression pytest 10/10 passed: status comtradeEnabled true; stats 330741/300490/090111 ok with sourceKey oec, 12 importers, trend; sitemap 975 <loc> incl. /export/, /api/answers/html/export/ and 5 /regions hubs; matrix?limit=5 indexable 5, no stale; page-data agarbatti/germany indexable score 100, plus pharmaceuticals/portugal, indian-spices/italy, basmati-rice/israel with worldImportsUSD, countryImportsUSD, trend. No files were created under /app/backend; no force matrix rebuild; admin endpoints not called.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "trade_intel._comtrade_stats / _comtrade_importer_table", "issue": "Year selection takes the first non-empty year (now-1 = 2025), which is partially reported: 124 reporters for 2025 vs 145 for 2024 for HS 330741. Qatar and Bahrain report 2024 but not 2025, so in fallback mode their countryImportsUSD/rank are null and the world total is understated (309M vs OEC 406M). Fix: pick the year with the most reporters (or use now-2 when now-1 has fewer than ~90% of now-2's reporters)."},
+      {"endpoint": "Comtrade fallback coverage", "issue": "United Arab Emirates, Vietnam, Russia, Bangladesh and Sri Lanka don't report to Comtrade in 2024 or 2025, so countryImportsUSD is null for those guides during an OEC outage. The indexability gate uses only worldImportsUSD, so the sitemap is not affected, but those pages lose their country figure. Optional: use mirror data (partner flows from exporter reports) for non-reporters."},
+      {"endpoint": "trade_intel._comtrade_stats", "issue": "trend is always [] in fallback mode, so guide pages show no trend chart during an OEC outage. Acceptable, but could be filled from the multi-year calls that are already made."},
+      {"endpoint": "/api/trade-intel/stats?hs=300490", "issue": "Cached result still returns comtradeEnabled:false (cached before the key was loaded). It is a stored field rather than computed per request. Cosmetic; it clears after the TTL or with force=true."},
+      {"endpoint": "seo_pages.py lines ~531 and ~866", "issue": "The demand source attribution is hardcoded as 'OEC World (CEPII BACI / UN Comtrade)' even when the data came from Comtrade. Use the source stored with the cached data instead."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/tests/test_iter82_comtrade_regression.py", "/app/test_reports/pytest/iter82_comtrade.xml", "/app/memory/tests_comtrade_fallback.py"],
+  "action_items": [
+    "Comtrade year selection: prefer the most complete year instead of the first non-empty one (2025 is partial).",
+    "Optional: label the demand source from the actual cached source in seo_pages region/matrix metadata.",
+    "Optional: compute comtradeEnabled live in trade_stats responses instead of caching it."
+  ],
+  "critical_code_review_comments": [
+    "Aggregate-row filter (motCode 0, partner2Code 0, customsCode C00) plus max-per-reporter de-dup works; values match OEC magnitude.",
+    "_m49_name falls back to Comtrade reporterDesc for codes not in duty_engine (e.g. 'Rep. of Moldova', 'Dominican Rep.', 'China, Hong Kong SAR'). This is fine for the app's own countries, but those names differ from OEC naming in the table.",
+    "A Comtrade-sourced cache entry is kept for the full CACHE_TTL_DAYS even after OEC recovers. Consider a shorter TTL for comtrade-sourced entries."
+  ],
+  "updated_files": ["/app/tests/test_iter82_comtrade_regression.py"],
+  "success_rate": {"backend": "100% (10/10 pytest + fallback script PASS)", "frontend": "not tested (backend only)"},
+  "seed_data_creation": "None. The trade_cache docs stats:330741 and imptable:330741 were temporarily overwritten by the fallback simulation and then restored to OEC with force=True.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Regression file: /app/tests/test_iter82_comtrade_regression.py (runs in about 8s, HTTP only). Do not create files in /app/backend (hot reload). Do not call /api/seo/matrix?force=true. Comtrade free tier is rate limited; this run used about 5 Comtrade calls."
+}

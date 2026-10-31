@@ -259,23 +259,33 @@ async def _comtrade_call(cx, flow, hs6, year):
             and (d.get("customsCode") or "C00") == "C00"]
 
 
+async def _comtrade_imports(cx, hs6: str):
+    """The newest year that is substantially complete. The latest year is usually only partly
+    reported, which understates the world total and leaves countries null; the oldest is complete
+    but stale — so take the most recent year within 85% of the best reporter count."""
+    years = {}
+    for y in (_now().year - 1, _now().year - 2, _now().year - 3):
+        rows = await _comtrade_call(cx, "M", hs6, y)
+        if rows:
+            years[y] = rows
+        if len(rows or []) >= 150:
+            break  # a full year of reporters — no need to look further back
+    if not years:
+        return None, None
+    best = max(len(r) for r in years.values())
+    year = max(y for y, r in years.items() if len(r) >= 0.85 * best)
+    return years[year], year
+
+
 async def _comtrade_stats(hs6: str):
     if not COMTRADE_KEY:
         return None
-    this_year = _now().year
-    candidates = [this_year - 1, this_year - 2, this_year - 3]
     try:
         async with httpx.AsyncClient(timeout=25) as cx:
-            imp = exp = None
-            used_year = None
-            for y in candidates:
-                imp = await _comtrade_call(cx, "M", hs6, y)
-                if imp:
-                    used_year = y
-                    exp = await _comtrade_call(cx, "X", hs6, y) or []
-                    break
+            imp, used_year = await _comtrade_imports(cx, hs6)
             if not imp or used_year is None:
                 return None
+            exp = await _comtrade_call(cx, "X", hs6, used_year) or []
     except Exception as exc:
         logging.warning("Comtrade stats failed for %s: %s", hs6, exc)
         return None
@@ -392,11 +402,8 @@ async def _comtrade_importer_table(hs6: str):
         return None
     try:
         async with httpx.AsyncClient(timeout=60) as cx:
-            for y in (_now().year - 1, _now().year - 2, _now().year - 3):
-                rows = await _comtrade_call(cx, "M", hs6, y)
-                if rows:
-                    break
-            else:
+            rows, y = await _comtrade_imports(cx, hs6)
+            if not rows:
                 return None
     except Exception as exc:
         logging.warning("Comtrade importer table failed for %s: %s", hs6, exc)

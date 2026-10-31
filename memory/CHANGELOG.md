@@ -429,3 +429,34 @@ timestamp unchanged. Sitemap still 975 after the run.
   present and falls back to OEC, so the demand pillar stops depending on the shared egress IP.
   Note `importer_table()` (per-country import value/rank) is still OEC-only — a Comtrade key fixes
   the gate and the sitemap, not the per-country figure.
+
+### Follow-up (same day) — UN Comtrade keyed fallback wired in
+Owner created a free UN Comtrade subscription and saved `COMTRADE_API_KEY` (the exposed
+screenshot key was regenerated first). `/api/trade-intel/status` now reports
+`comtradeEnabled: true`.
+
+Fixes in `backend/trade_intel.py` (the existing Comtrade path had never run, and was broken):
+- `_comtrade_call` dropped `reporterCode="all"` — the API now rejects it with HTTP 400
+  ("The field reporterCode is invalid"); omitting the param returns every reporter.
+- Comtrade returns one row per mode-of-transport / customs procedure / 2nd partner (Germany alone
+  = 468 rows). Now filtered to the aggregate row only (`motCode 0, partner2Code 0, customsCode C00`)
+  and de-duplicated per reporter — without this the country total was ~8x inflated.
+- `_m49_name()` maps Comtrade `reporterCode` (M49, same numbering as `duty_engine.COUNTRIES`) to
+  the app's canonical names, so "United States" not "USA" and `importer_detail` matching works.
+- New `_comtrade_importer_table()`; `importer_table()` falls back to it when OEC returns nothing,
+  so per-country import value + world rank survive an outage too.
+- `_comtrade_imports()` picks the newest year within 85% of the best reporter count (2025 is only
+  ~124 reporters vs 145 for 2024 — picking the latest year understated the world total).
+- `trade_stats` keeps **OEC as primary** and calls Comtrade **only when OEC fails**, so figures
+  stay on one source (OEC also carries the trend + full importer table) and the free per-account
+  quota is only spent during an outage.
+
+Verified (`/app/memory/tests_comtrade_fallback.py`, OEC patched to fail): stats fall back to
+`sourceKey: comtrade`, world $331.7M 2024/145 reporters, Germany $7.79M rank 16, demand pillar
+returns both world and country values -> pages stay indexable. Testing agent iteration 82: 10/10
+HTTP regressions pass, sitemap still 975 URLs, matrix indexable with no stale flag, OEC still
+primary with trend intact. Known gap: UAE, Vietnam, Russia, Bangladesh and Sri Lanka don't report
+to Comtrade, so their country figure is blank during an OEC outage (the sitemap gate only needs the
+world total, so indexability is unaffected).
+
+**Production still needs a deploy + one successful matrix warm** before GSC recovers.
