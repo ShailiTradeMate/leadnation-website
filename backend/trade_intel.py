@@ -227,14 +227,36 @@ async def _oec_stats(hs6: str):
 
 
 # ---------------- UN Comtrade source (key) ----------------
+_M49_NAME: dict = {}
+
+
+def _m49_name(code, fallback: str) -> str:
+    """Comtrade reporterCode is M49 — same numbering as the duty engine, so we can speak the
+    country names the rest of the app matches on ('United States', not 'USA')."""
+    global _M49_NAME
+    if not _M49_NAME:
+        try:
+            import duty_engine
+            _M49_NAME = {c.lstrip("0"): n for c, n in duty_engine.COUNTRIES}
+        except Exception:
+            _M49_NAME = {"-": "-"}
+    return _M49_NAME.get(str(code).lstrip("0"), fallback)
+
+
 async def _comtrade_call(cx, flow, hs6, year):
+    # Omitting reporterCode returns every reporter; passing "all" is rejected with HTTP 400.
     params = {"cmdCode": hs6, "flowCode": flow, "partnerCode": 0,
-              "period": year, "reporterCode": "all", "includeDesc": "true"}
+              "period": year, "includeDesc": "true"}
     r = await cx.get(COMTRADE_BASE, params=params,
                      headers={"Ocp-Apim-Subscription-Key": COMTRADE_KEY})
     if r.status_code != 200:
+        logging.warning("Comtrade %s %s/%s -> HTTP %s", flow, hs6, year, r.status_code)
         return None
-    return r.json().get("data", [])
+    # Each reporter repeats per mode of transport / customs procedure / 2nd partner — keep only
+    # the aggregate row, otherwise the country total is inflated several times over.
+    return [d for d in (r.json().get("data") or [])
+            if not d.get("motCode") and not d.get("partner2Code")
+            and (d.get("customsCode") or "C00") == "C00"]
 
 
 async def _comtrade_stats(hs6: str):
@@ -259,8 +281,14 @@ async def _comtrade_stats(hs6: str):
         return None
 
     def rows_to_top(rows):
-        clean = [{"country": r.get("reporterDesc"), "value": round(r.get("primaryValue") or 0, 2)}
-                 for r in rows if (r.get("primaryValue") or 0) > 0 and r.get("reporterDesc") not in (None, "World")]
+        agg = {}
+        for r in rows or []:
+            val = r.get("primaryValue") or 0
+            name = _m49_name(r.get("reporterCode"), r.get("reporterDesc"))
+            if val <= 0 or not name or name == "World":
+                continue
+            agg[name] = max(agg.get(name, 0), round(val, 2))
+        clean = [{"country": n, "value": v} for n, v in agg.items()]
         clean.sort(key=lambda x: x["value"], reverse=True)
         return clean
 
@@ -282,7 +310,7 @@ async def _comtrade_stats(hs6: str):
     }
 
 
-# ---------------- Orchestration: freshest source wins ----------------
+# ---------------- Orchestration: OEC primary, keyed Comtrade as fallback ----------------
 async def trade_stats(hs: str, force: bool = False):
     hs6 = _norm_hs(hs)
     if len(hs6) < 6:
@@ -295,14 +323,12 @@ async def trade_stats(hs: str, force: bool = False):
             return cached["result"]
 
     oec = await _oec_stats(hs6)
-    comtrade = await _comtrade_stats(hs6)
+    # Comtrade is the keyed stand-in: only called when the keyless OEC endpoint fails, so the
+    # free per-account quota is spent only when it is actually needed.
+    comtrade = None if oec else await _comtrade_stats(hs6)
 
     sourcesAvailable = [s for s, ok in (("oec", bool(oec)), ("comtrade", bool(comtrade))) if ok]
-    chosen = None
-    if oec and comtrade:
-        chosen = comtrade if comtrade["year"] >= oec["year"] else oec
-    else:
-        chosen = comtrade or oec
+    chosen = oec or comtrade
 
     if not chosen:
         return {"ok": False, "hsCode": hs6,
@@ -359,6 +385,38 @@ async def stats_route(hs: str = Query(...), force: bool = False):
 
 
 # ---------------- Full importer table (country-level detail for SEO pages) ----------------
+async def _comtrade_importer_table(hs6: str):
+    """Same shape as the OEC table, from the keyed Comtrade API — used when OEC is unreachable
+    (deployed pods share an outbound IP, so the keyless OEC endpoint can be throttled)."""
+    if not COMTRADE_KEY:
+        return None
+    try:
+        async with httpx.AsyncClient(timeout=60) as cx:
+            for y in (_now().year - 1, _now().year - 2, _now().year - 3):
+                rows = await _comtrade_call(cx, "M", hs6, y)
+                if rows:
+                    break
+            else:
+                return None
+    except Exception as exc:
+        logging.warning("Comtrade importer table failed for %s: %s", hs6, exc)
+        return None
+    agg = {}
+    for r in rows:
+        val = r.get("primaryValue") or 0
+        name = _m49_name(r.get("reporterCode"), r.get("reporterDesc"))
+        if val > 0 and name and name != "World":
+            agg[name] = max(agg.get(name, 0), round(val, 2))
+    clean = sorted(({"country": n, "value": v} for n, v in agg.items()),
+                   key=lambda r: -r["value"])
+    total = sum(r["value"] for r in clean)
+    for i, r in enumerate(clean, 1):
+        r["rank"] = i
+        r["share"] = round(100 * r["value"] / total, 2) if total else 0
+    return {"year": y, "total": total, "count": len(clean), "rows": clean,
+            "source": "UN Comtrade"}
+
+
 async def importer_table(hs6: str, force: bool = False):
     """Every importing country for the latest year, cached. Lets a page show its own
     country's real import value and world rank instead of only a global top-N."""
@@ -371,16 +429,23 @@ async def importer_table(hs6: str, force: bool = False):
         cached = await CACHE.find_one({"_id": cache_id})
         if cached and (_now() - datetime.fromisoformat(cached["refreshedAt"])).days < CACHE_TTL_DAYS:
             return cached["result"]
+    rows = None
     try:
         async with httpx.AsyncClient(timeout=30, follow_redirects=True) as cx:
             years = await _oec_query(cx, "Year", meta["id"])
-            if not years:
-                return None
-            latest = max(int(r["Year"]) for r in years)
-            rows = await _oec_query(cx, "Importer Country", meta["id"], latest)
+            if years:
+                latest = max(int(r["Year"]) for r in years)
+                rows = await _oec_query(cx, "Importer Country", meta["id"], latest)
     except Exception as exc:
         logging.warning("OEC importer table failed for %s: %s", hs6, exc)
-        return None
+    if not rows:
+        result = await _comtrade_importer_table(hs6)
+        if not result:
+            return None
+        await CACHE.replace_one({"_id": cache_id},
+                                {"_id": cache_id, "result": result,
+                                 "refreshedAt": _now().isoformat()}, upsert=True)
+        return result
     clean = [{"country": r.get("Importer Country"), "value": round(r.get("Trade Value") or 0, 2)}
              for r in rows if (r.get("Trade Value") or 0) > 0]
     clean.sort(key=lambda r: -r["value"])
