@@ -243,3 +243,5 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - `PATCH /api/admin/subadmins/{sid}` now accepts name, email (unique, lower-cased, username re-derived), password (bcrypt, ≥6), category, active; name/email changes propagate to allocated verification submissions (`assigned_to_name`) and service requests (`assignedCa`, `assignedCaEmail`).
 - `DELETE /api/admin/subadmins/{sid}` (main admin only) deletes the account and releases their service requests (assignedCaId/assignedCa/assignedCaEmail → null + history line) and verification allocations for re-allocation; returns released counts.
 - UI: pencil button per row (`subadmin-edit-<id>`) opens `SubAdminEditModal.jsx` (name, login email, new password, CA/Associate, Active/Inactive, Save; "Delete account" → inline confirm `subadmin-delete-yes`). Verified via curl + screenshot; preview-DB leftover QA sub-admins removed.
+
+> 31 Oct 2026 — see CHANGELOG.md for the sitemap 165-vs-975 RCA, the UN Comtrade keyed fallback, the sitemap section timeouts and the new /api/trade-intel/egress-check diagnostic. Production outbound egress to third-party APIs is still blocked; support ticket pending.

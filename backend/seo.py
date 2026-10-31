@@ -190,22 +190,25 @@ async def _answer_routes():
 @router.get("/sitemap.xml")
 async def sitemap_xml():
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    lastmods = await _lastmod_map()
 
-    async def section(coro, label):
+    async def section(coro, label, timeout=15):
         """A cold or failing data source must never hang the sitemap — Googlebot would get a
         gateway error instead of a valid file."""
         try:
-            return await asyncio.wait_for(coro, timeout=20)
+            return await asyncio.wait_for(coro, timeout=timeout)
         except Exception as exc:
-            logger.warning("sitemap section %s skipped: %s", label, exc)
+            logger.warning("sitemap section %s skipped: %r", label, exc)
             return []
 
-    urls = (all_public_urls()
-            + await section(_event_routes(), "expo")
-            + await section(_product_country_routes(), "product-country")
-            + await section(_region_routes(), "regions")
-            + await section(_answer_routes(), "answers"))
+    # Concurrent, so the worst case is one timeout (15s) rather than the sum of them.
+    lastmods, events, matrix_rows, regions, answers = await asyncio.gather(
+        section(_lastmod_map(), "lastmod", 8),
+        section(_event_routes(), "expo"),
+        section(_product_country_routes(), "product-country"),
+        section(_region_routes(), "regions"),
+        section(_answer_routes(), "answers"))
+    lastmods = lastmods or {}
+    urls = all_public_urls() + events + matrix_rows + regions + answers
     rows = "".join(
         f"<url><loc>{SITE}{loc}</loc><lastmod>{lastmods.get(loc, today)}</lastmod>"
         f"<changefreq>{freq}</changefreq><priority>{pri}</priority></url>"

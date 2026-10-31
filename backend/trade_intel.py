@@ -488,8 +488,8 @@ async def egress_check(x_admin_token: str = Header(default=None)):
         raise HTTPException(status_code=403, detail="admin only")
     targets = {
         "oec": f"{OEC_BASE}/members?cube={OEC_CUBE}&level=HS6",
-        "comtrade": (f"{COMTRADE_BASE}?cmdCode=330741&flowCode=M&partnerCode=0"
-                     f"&period={_now().year - 2}&includeDesc=true"),
+        "comtrade": (f"{COMTRADE_BASE}?cmdCode=330741&flowCode=M&partnerCode=0&reporterCode=842"
+                     f"&period={_now().year - 2}&includeDesc=false"),
         "control_wits": "https://wits.worldbank.org/API/V1/SDMX/V21/rest/dataflow/WBG_WITS",
     }
     out = {}

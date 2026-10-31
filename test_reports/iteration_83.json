@@ -1,0 +1,30 @@
+{
+  "summary": "Iteration 83 backend-only test on PREVIEW. Pytest suite /app/tests/test_iter83_sitemap_egress.py passed 9/9: GET /api/sitemap.xml returned 200 in 4.9s with 975 <loc> entries and 0 duplicates. Every entry has lastmod, changefreq and priority. There are 784 /export/{p}/to/{c} URLs, 413 /api/answers/html/ URLs and all 5 /regions/* hubs (europe, middle-east, asia-pacific, americas, africa). egress-check returns 403 with no token or a wrong token. With the admin token it returns comtradeKeySet:true and status 200 for oec (0.45s), comtrade (2.7s) and control_wits (0.37s), and the key does not appear in the response. Regression passed: status ok/comtradeEnabled; stats hs=330741 ok, sourceKey oec, 12 importers, 3-point trend; matrix?limit=5 gives indexable 5 with no stale flag; agarbatti/germany is indexable with dataScore 100 and a populated demand section. tests_comtrade_fallback.py printed PASS. Timeout check (seo._region_routes patched to sleep 60s, run twice): sitemap_xml() returned a valid urlset in 26.0s and 26.2s with 962 locs (975 minus the 5 region hubs and 8 product hubs). /export and /api/answers URLs were present, the slow section's sentinel URL was absent and the 'sitemap section regions skipped' warning was logged. My script prints FAIL only because 26s is just over the ~25s limit from the request: about 6s for the other sections plus the full 20s timeout. The behaviour itself is correct. The preview trade cache was restored to OEC and re-checked: page-data demand source is OEC World again.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/sitemap.xml (seo.sitemap_xml)", "issue": "Sections are awaited one after another, each with its own 20s wait_for, and _lastmod_map() has no timeout at all. Worst case is 4x20s = 80s plus the Mongo lookup. That is above a typical gateway/Cloudflare limit of about 60s, so if several sources are cold or slow at once (likely in prod, where egress is blocked) the original 520/timeout can still happen. Suggest running the sections with asyncio.gather and keeping an overall budget of about 25s, and wrapping _lastmod_map too."},
+      {"endpoint": "/api/sitemap.xml", "issue": "The timeout warning logs an empty reason ('sitemap section regions skipped: ') because str(asyncio.TimeoutError()) is ''. Log type(exc).__name__ or repr(exc) so prod logs are useful."},
+      {"endpoint": "/api/trade-intel/egress-check", "issue": "The Comtrade probe downloads about 4.2MB (all reporters, includeDesc=true) on every call and uses the rate-limited free quota. A smaller query, e.g. one reporter or includeDesc=false, would still prove reachability. Also, ADMIN_TOKEN falls back to '' here but to the hardcoded 'leadnation-admin-2026' in seo.py, so admin auth defaults are inconsistent."},
+      {"endpoint": "restore-cache one-liner from the review request", "issue": "It runs two separate asyncio.run() calls. The second one (importer_table) fails with 'RuntimeError: Event loop is closed' because the Motor/httpx client is tied to the first loop. I restored the cache with both calls inside a single asyncio.run, and the cache is now OEC."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/tests/test_iter83_sitemap_egress.py", "/app/test_reports/pytest/iter83.xml", "/app/memory/iter83_sitemap_timeout_check.py"],
+  "action_items": [
+    "Optional hardening: run the sitemap sections concurrently with an overall budget below the gateway timeout, and put a timeout on _lastmod_map",
+    "Log repr(exc) in the sitemap section() helper",
+    "Make the Comtrade egress probe lighter",
+    "Production egress is still blocked; not testable from preview. Run GET /api/trade-intel/egress-check on vametra.com with the admin token to get evidence for the support ticket"
+  ],
+  "critical_code_review_comments": [
+    "seo.sitemap_xml: sequential awaits multiply the per-section timeout. Use gather plus a total deadline.",
+    "seo.py admin checks use os.environ.get('ADMIN_TOKEN', 'leadnation-admin-2026'), a hardcoded default credential. Remove the default."
+  ],
+  "updated_files": ["/app/tests/test_iter83_sitemap_egress.py", "/app/memory/iter83_sitemap_timeout_check.py"],
+  "success_rate": {"backend": "100% functional (9/9 pytest + fallback PASS; timeout behaviour correct, 26s vs the ~25s target)", "frontend": "not tested (backend only)"},
+  "seed_data_creation": "None. The trade cache for HS 330741 was force-refreshed back to OEC after the fallback test.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Nothing was written under /app/backend and matrix?force=true was not called. The timeout script lives in /app/memory and runs in about 26s. Preview egress to OEC, Comtrade and WITS is all 200. If you restore the cache, use a single asyncio.run containing both calls."
+}

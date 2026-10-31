@@ -460,3 +460,25 @@ to Comtrade, so their country figure is blank during an OEC outage (the sitemap 
 world total, so indexability is unaffected).
 
 **Production still needs a deploy + one successful matrix warm** before GSC recovers.
+
+### Post-deploy check (31 Oct, after owner redeployed)
+- Prod `/api/trade-intel/status` → `comtradeEnabled: true` (key reached production).
+- Prod `/api/trade-intel/stats?hs=330741&force=true` → still `ok:false`. The new code falls back to
+  UN Comtrade (**different host**, `comtradeapi.un.org`, keyed) and that returns nothing too →
+  production cannot reach *either* third-party host. So this is **not** provider-specific
+  throttling of the keyless OEC endpoint; it looks like broader outbound egress blocking.
+- Prod `/api/sitemap.xml` began returning **Cloudflare 520 / hanging >45s** while `/`, `/buyers`
+  and other API routes stayed 200 — consistent with the boot warm job plus outbound calls hanging
+  until timeout.
+
+Shipped in response:
+- `seo.sitemap_xml()` now runs every dynamic section **concurrently**, each under
+  `asyncio.wait_for` (15s; lastmod 8s), and omits a section that is cold or failing instead of
+  hanging. Verified with `/app/memory/tests_sitemap_timeout.py`: healthy = 975 locs; with two
+  sections hanging it still returns a valid urlset (549 locs) in **15.0s** instead of never.
+- New admin-only `GET /api/trade-intel/egress-check` (X-Admin-Token) probes OEC, UN Comtrade and a
+  WITS control host from inside the pod and returns status/bytes/latency/error per host — the exact
+  evidence the Emergent support ticket needs. Preview: all three 200 (0.55s / 1.43s / 0.66s).
+  **Not live in production until the next deploy.**
+- Testing agent iteration 83: 9/9 pass (sitemap 975 in 4.9s, no duplicates, egress-check 403
+  without token and no key leakage, Comtrade fallback still PASS).
