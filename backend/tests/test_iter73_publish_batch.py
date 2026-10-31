@@ -4,7 +4,7 @@ import re
 import pytest
 import requests
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://leadnation-build.preview.emergentagent.com").rstrip("/")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://vametra-whatsapp--5yd7gle9.preview.emergentagent.com").rstrip("/")
 ADMIN_TOKEN = "leadnation-admin-2026"
 TIMEOUT = 180
 

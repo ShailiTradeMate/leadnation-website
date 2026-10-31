@@ -1,5 +1,5 @@
 {
-  "base": "https://leadnation-build.preview.emergentagent.com/api",
+  "base": "https://vametra-whatsapp--5yd7gle9.preview.emergentagent.com/api",
   "checks": [
     {
       "name": "GET /buyers/search returns buyers",
