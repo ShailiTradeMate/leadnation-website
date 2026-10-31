@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, timezone
 import re
@@ -411,9 +411,11 @@ async def _send_with_files(item: dict, message: str, extra_cc: List[str], files:
         if total > MAX_ATTACH_BYTES:
             raise HTTPException(status_code=400, detail="Attachments exceed 8 MB in total")
         fid = _uuid.uuid4().hex
+        token = _uuid.uuid4().hex + _uuid.uuid4().hex
         await db.service_files.insert_one({"id": fid, "requestId": item["id"], "filename": f.filename, "contentType": f.content_type or "application/octet-stream",
-                                           "size": len(data), "data": base64.b64encode(data).decode(), "uploadedAt": _now(), "by": sender_email or sender_name})
-        stored.append({"id": fid, "filename": f.filename, "size": len(data)})
+                                           "size": len(data), "data": base64.b64encode(data).decode(), "uploadedAt": _now(), "by": sender_email or sender_name,
+                                           "shareToken": token})
+        stored.append({"id": fid, "filename": f.filename, "size": len(data), "shareToken": token})
         payload.append({"filename": f.filename, "content": data})
     message = (message or "").strip() or ("Please find the attached document(s)." if payload else "")
     if not message:
@@ -462,3 +464,46 @@ async def staff_download_file(req_id: str, file_id: str, ident: dict = Depends(r
         raise HTTPException(status_code=404, detail="File not found")
     return Response(content=base64.b64decode(doc["data"]), media_type=doc.get("contentType") or "application/octet-stream",
                     headers={"Content-Disposition": f'attachment; filename="{doc["filename"]}"'})
+
+
+SHARE_DAYS = 30
+
+
+@router.get("/files/shared/{token}")
+async def shared_file(token: str):
+    """Tokenised link sent to the customer on WhatsApp — no login needed, expires after 30 days."""
+    doc = await db.service_files.find_one({"shareToken": token}, {"_id": 0}) if len(token) >= 32 else None
+    if not doc:
+        raise HTTPException(status_code=404, detail="This document link is invalid or has expired")
+    age = datetime.now(timezone.utc) - datetime.fromisoformat(doc["uploadedAt"])
+    if age.days >= SHARE_DAYS:
+        raise HTTPException(status_code=410, detail="This document link has expired — please ask your CA to resend it")
+    return Response(content=base64.b64decode(doc["data"]), media_type=doc.get("contentType") or "application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="{doc["filename"]}"'})
+
+
+# ---------------- WhatsApp: customer clicks + CA hand-off ----------------
+@router.get("/staff/service-requests/{req_id}/whatsapp-clicks")
+async def staff_whatsapp_clicks(req_id: str, ident: dict = Depends(require_staff)):
+    from wa_templates import click_filter
+    item = await _staff_item(req_id, ident)
+    rows = await db.wa_clicks.find(click_filter(item), {"_id": 0}).sort("at", -1).to_list(50)
+    return {"items": rows}
+
+
+class WaShared(BaseModel):
+    activityIndex: int
+
+
+@router.post("/staff/service-requests/{req_id}/whatsapp-shared")
+async def staff_whatsapp_shared(req_id: str, payload: WaShared, ident: dict = Depends(require_staff)):
+    item = await _staff_item(req_id, ident)
+    acts = item.get("emailActivity") or []
+    if not 0 <= payload.activityIndex < len(acts):
+        raise HTTPException(status_code=404, detail="Message not found")
+    now, who = _now(), (ident.get("email") or _staff_name(ident))
+    n = len(acts[payload.activityIndex].get("attachments") or [])
+    await db.service_requests.update_one({"id": req_id}, {
+        "$set": {f"emailActivity.{payload.activityIndex}.whatsappSharedAt": now, f"emailActivity.{payload.activityIndex}.whatsappSharedBy": who, "updatedAt": now, "updatedBy": who},
+        "$push": {"history": {"at": now, "by": who, "changes": [f"message{' + ' + str(n) + ' document(s)' if n else ''} sent to customer on WhatsApp"]}}})
+    return {"ok": True, "item": await db.service_requests.find_one({"id": req_id}, {"_id": 0})}

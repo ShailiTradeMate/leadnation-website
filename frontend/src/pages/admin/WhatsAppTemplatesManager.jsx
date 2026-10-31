@@ -4,6 +4,7 @@ import { WhatsappLogo, FloppyDisk, ArrowCounterClockwise } from "@phosphor-icons
 
 export default function WhatsAppTemplatesManager() {
   const [items, setItems] = useState([]);
+  const [clicks, setClicks] = useState([]);
   const [placeholders, setPlaceholders] = useState([]);
   const [drafts, setDrafts] = useState({});
   const [saving, setSaving] = useState("");
@@ -15,8 +16,9 @@ export default function WhatsAppTemplatesManager() {
       setPlaceholders(r.data.placeholders || []);
       setDrafts(Object.fromEntries((r.data.items || []).map((i) => [i.key, i.template])));
     });
+  const loadClicks = () => adminApi.get("/admin/whatsapp-clicks?limit=50").then((r) => setClicks(r.data.items || [])).catch(() => {});
 
-  useEffect(() => { load().catch(() => setMsg("Could not load templates.")); }, []);
+  useEffect(() => { load().catch(() => setMsg("Could not load templates.")); loadClicks(); }, []);
 
   const save = async (key) => {
     setSaving(key); setMsg("");
@@ -50,6 +52,34 @@ export default function WhatsAppTemplatesManager() {
         </div>
         <p className="text-xs text-slate-500 mt-2">A detail line is dropped automatically when we don't have that value; name and mobile stay as blanks for signed-out visitors to fill.</p>
         {msg && <div data-testid="wa-templates-msg" className="mt-3 text-sm text-emerald-300">{msg}</div>}
+      </div>
+
+      <div className="mt-5 glass rounded-3xl p-5" data-testid="wa-clicks-panel">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <div className="font-display font-bold">Recent WhatsApp clicks ({clicks.length})</div>
+            <div className="text-xs text-slate-400 mt-0.5">Every tap on a WhatsApp button across the website, with the customer it belongs to. Clicks are also shown inside the matching service-request drawer.</div>
+          </div>
+          <button data-testid="wa-clicks-refresh" onClick={loadClicks} className="btn-ghost !py-2 !px-3 text-xs">Refresh</button>
+        </div>
+        {clicks.length === 0 ? <div className="text-xs text-slate-500 mt-3" data-testid="wa-clicks-empty">No clicks recorded yet.</div> : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-xs min-w-[760px]">
+              <thead className="text-[10px] font-mono-display tracking-widest uppercase text-slate-400"><tr><th className="text-left py-2 pr-3">When (UTC)</th><th className="text-left py-2 pr-3">Entry point</th><th className="text-left py-2 pr-3">Customer</th><th className="text-left py-2 pr-3">Contact</th><th className="text-left py-2">Page</th></tr></thead>
+              <tbody>
+                {clicks.map((c, i) => (
+                  <tr key={c.id} data-testid={`wa-click-row-${i}`} className="border-t border-white/5 align-top">
+                    <td className="py-2 pr-3 text-slate-400 whitespace-nowrap">{(c.at || "").slice(0, 16).replace("T", " ")}</td>
+                    <td className="py-2 pr-3 text-slate-100">{c.label}{c.service ? <div className="text-slate-500">{c.service}</div> : null}{c.requestId ? <div className="text-slate-500 font-mono-display">req {c.requestId.slice(0, 8)}…</div> : null}</td>
+                    <td className="py-2 pr-3">{c.name || <span className="text-slate-500">—</span>}{c.customerId ? <div className="text-slate-500 font-mono-display">ID {c.customerId}</div> : <div className="text-slate-600">{c.signedIn ? "" : "signed out"}</div>}</td>
+                    <td className="py-2 pr-3 text-slate-300">{c.email || ""}{c.phone ? <div className="text-slate-500">{c.phone}</div> : null}</td>
+                    <td className="py-2 text-slate-400 break-all">{c.page}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="mt-5 grid gap-4">

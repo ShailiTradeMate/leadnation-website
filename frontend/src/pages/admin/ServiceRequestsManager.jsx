@@ -138,7 +138,13 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
     }
     replace(r.data.item);
     toast.success(`Emailed ${r.data.to}${r.data.cc.length ? ` · CC ${r.data.cc.join(", ")}` : ""}`);
+    return r.data.item;
   };
+  const whatsappShared = async (id, activityIndex) => {
+    const r = await staffApi.post(`/staff/service-requests/${id}/whatsapp-shared`, { activityIndex });
+    replace(r.data.item);
+  };
+  const loadWaClicks = (id) => staffApi.get(`/staff/service-requests/${id}/whatsapp-clicks`).then((r) => r.data.items || []);
   const downloadFile = async (id, f) => {
     try {
       const r = await staffApi.get(`/staff/service-requests/${id}/files/${f.id}`, { responseType: "blob" });
@@ -188,6 +194,7 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
                   <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">
                     {(it.createdAt || "").slice(0, 16).replace("T", " ")}
                     {it.isNew && <span data-testid={`sr-new-badge-${it.id}`} className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40">NEW</span>}
+                    {it.lastWhatsAppAt && <span data-testid={`sr-wa-badge-${it.id}`} title={`Customer tapped WhatsApp ${it.lastWhatsAppAt.slice(0, 16).replace("T", " ")} UTC`} className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold bg-[#25D366]/15 text-[#8ff0b4] border border-[#25D366]/40">WhatsApp</span>}
                     {unread(it) && (
                       <span data-testid={`sr-reply-badge-${it.id}`} className="ml-2 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-200 border border-emerald-400/50">
                         <span className="relative flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" /></span>
@@ -238,7 +245,9 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
         <ServiceRequestDrawer item={current} meta={meta} onClose={() => setOpenId(null)}
           onSave={(p) => save(openId, p)} onEmailCa={(it) => setEmailing(it)} onAllocate={staff ? null : (it) => setAllocating(it)}
           caReadOnly={staff} canEmailCa={!staff} statusLocked={staff && !me?.isMain && current.status === "completed"}
-          onSendMessage={(body) => sendMessage(openId, body)} onCheckReplies={checkReplies} onDownloadFile={(f) => downloadFile(openId, f)} />
+          onSendMessage={(body) => sendMessage(openId, body)} onCheckReplies={checkReplies} onDownloadFile={(f) => downloadFile(openId, f)}
+          onWhatsAppShared={(idx) => whatsappShared(openId, idx)} loadWaClicks={() => loadWaClicks(openId)}
+          senderName={staff && me && !me.isMain ? (me.name || me.email) : "Vametra AI team"} />
       )}
     </div>
   );

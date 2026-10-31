@@ -1,10 +1,51 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { X, Copy, EnvelopeSimple, PaperPlaneRight, ArrowsClockwise, Paperclip } from "@phosphor-icons/react";
+import { X, Copy, EnvelopeSimple, PaperPlaneRight, ArrowsClockwise, Paperclip, WhatsappLogo } from "@phosphor-icons/react";
 import { ResponsiveSelect } from "@/components/ui/responsive-select";
+import { loadWaTemplates, renderWaMessage, normalizePhone, waLinkTo, WA_DEFAULTS } from "@/lib/whatsapp";
 
 const CLOSED = ["completed", "cancelled"];
 const fmt = (s) => (s || "").slice(0, 16).replace("T", " ");
+const shareUrl = (f) => `${process.env.REACT_APP_BACKEND_URL}/api/files/shared/${f.shareToken}`;
+
+// Builds the CA → customer WhatsApp link for one outbound chat message (text + document links).
+export function caWhatsAppLink(item, activity, templates, senderName) {
+  const phone = normalizePhone(item.phone);
+  if (!phone) return "";
+  const docs = (activity.attachments || []).filter((f) => f.shareToken).map((f) => `• ${f.filename}\n  ${shareUrl(f)}`).join("\n");
+  const documents = docs ? `Documents for you\n${docs}` : "";
+  const msg = renderWaMessage(templates.ca_message || WA_DEFAULTS.ca_message, {
+    name: item.name, ca_name: activity.byName || senderName || "Vametra AI team", service: item.serviceLabel || item.service,
+    request_id: item.id, message: activity.text || "", documents, email: item.email,
+  });
+  return waLinkTo(phone, msg);
+}
+
+function WaActivity({ loadClicks, requestId }) {
+  const [rows, setRows] = useState(null);
+  const [open, setOpen] = useState(null);
+  useEffect(() => { setRows(null); loadClicks().then(setRows).catch(() => setRows([])); }, [requestId]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <Section title={`WhatsApp activity by customer (${rows?.length ?? "…"})`} testid="sr-drawer-whatsapp">
+      <div className="text-[11px] text-slate-500 mb-2">Every time this customer taps a WhatsApp button on the website it is recorded here — check WhatsApp for their message.</div>
+      {rows && rows.length === 0 && <div className="text-xs text-slate-500" data-testid="sr-wa-empty">No WhatsApp clicks recorded for this customer yet.</div>}
+      <ul className="space-y-1.5">
+        {(rows || []).map((c, i) => (
+          <li key={c.id} data-testid={`sr-wa-click-${i}`} className="rounded-xl bg-[#25D366]/10 border border-[#25D366]/25 px-3 py-2 text-sm">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="text-slate-100 inline-flex items-center gap-1.5"><WhatsappLogo size={14} weight="fill" className="text-[#25D366]" /> {c.label}{c.requestId === requestId ? " · this request" : ""}</div>
+                <div className="text-[11px] text-slate-400 break-all">{fmt(c.at)} · {c.page}{c.signedIn ? "" : " · signed out"}</div>
+              </div>
+              {c.message && <button data-testid={`sr-wa-click-toggle-${i}`} onClick={() => setOpen(open === i ? null : i)} className="shrink-0 text-[11px] text-cyan-300 hover:text-cyan-200">{open === i ? "hide" : "message"}</button>}
+            </div>
+            {open === i && <pre className="mt-2 text-[11px] text-slate-300 whitespace-pre-wrap font-sans bg-black/20 rounded-lg p-2">{c.message}</pre>}
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
 
 function Section({ title, children, testid }) {
   return (
@@ -32,7 +73,7 @@ function CopyBtn({ value, label }) {
   );
 }
 
-function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, onDownloadFile }) {
+function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, onDownloadFile, onWhatsAppShared, senderName }) {
   const [msg, setMsg] = useState("");
   const [cc, setCc] = useState("");
   const [files, setFiles] = useState([]);
@@ -40,14 +81,27 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, o
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [err, setErr] = useState("");
+  const [templates, setTemplates] = useState(WA_DEFAULTS);
+  const customerWa = normalizePhone(item.phone);
+  const [alsoWa, setAlsoWa] = useState(Boolean(customerWa));
   const endRef = useRef(null);
+  useEffect(() => { loadWaTemplates().then(setTemplates); }, []);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "nearest" }); }, [activity.length]);
+  const openWa = (idx, act) => {
+    const url = caWhatsAppLink(item, act, templates, senderName);
+    if (!url) { toast.error("Customer phone number is missing or invalid"); return; }
+    const w = window.open(url, "_blank", "noopener");
+    if (!w) toast.message("Pop-up blocked — tap the WhatsApp button on the message to open it.");
+    onWhatsAppShared && onWhatsAppShared(idx).catch(() => {});
+  };
   const send = async () => {
     if (!msg.trim() && files.length === 0) return;
     setBusy(true); setErr("");
     try {
-      await onSendMessage({ message: msg.trim(), extraCc: cc.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean), files });
+      const updated = await onSendMessage({ message: msg.trim(), extraCc: cc.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean), files });
       setMsg(""); setCc(""); setFiles([]);
+      const acts = updated?.emailActivity || [];
+      if (alsoWa && customerWa && acts.length) openWa(acts.length - 1, acts[acts.length - 1]);
     } catch (e) { setErr(e?.response?.data?.detail || "Send failed — please retry"); }
     finally { setBusy(false); }
   };
@@ -60,7 +114,7 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, o
   return (
     <Section title={`Conversation with customer (${activity.length})`} testid="sr-drawer-conversation">
       <div className="flex items-start justify-between gap-3 mb-3">
-        <div className="text-[11px] text-slate-500">Emails sent from here and replies received in admin@vametra.com both appear in this thread (replies are picked up every ~2 minutes).</div>
+        <div className="text-[11px] text-slate-500">Emails sent from here and replies received in admin@vametra.com both appear in this thread (replies are picked up every ~2 minutes). Each message can also be pushed to the customer's WhatsApp with secure document links.</div>
         {onCheckReplies && (
           <button data-testid="sr-check-replies" disabled={checking} onClick={async () => { setChecking(true); try { await onCheckReplies(); } finally { setChecking(false); } }}
             className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold border border-white/10 text-slate-300 hover:bg-white/5 disabled:opacity-50 inline-flex items-center gap-1">
@@ -97,6 +151,16 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, o
                   </div>
                 )}
                 <div className="text-[10px] text-slate-500 mt-1">{fmt(a.at)}{inbound ? "" : ` · to ${a.to}`}{a.cc?.length ? ` · cc ${a.cc.join(", ")}` : ""}{a.forwardedTo?.length ? ` · forwarded to ${a.forwardedTo.join(", ")}` : ""}</div>
+                {a.kind === "message" && (
+                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                    <button type="button" data-testid={`sr-wa-send-${i}`} disabled={!customerWa} title={customerWa ? `Open WhatsApp to ${item.phone} with this message${a.attachments?.length ? " and document links" : ""}` : "No valid customer phone"}
+                      onClick={() => openWa(i, a)}
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-semibold bg-[#25D366]/15 border border-[#25D366]/40 text-[#8ff0b4] hover:bg-[#25D366]/25 disabled:opacity-40">
+                      <WhatsappLogo size={12} weight="fill" /> {a.whatsappSharedAt ? "Resend on WhatsApp" : "Send on WhatsApp"}
+                    </button>
+                    {a.whatsappSharedAt && <span data-testid={`sr-wa-shared-${i}`} className="text-[10px] text-[#8ff0b4]">Sent on WhatsApp ✓ {fmt(a.whatsappSharedAt)}</span>}
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -125,16 +189,21 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, o
           <input data-testid="sr-message-cc" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="Extra CC (optional)" className="glass rounded-lg px-3 py-2 text-xs flex-1" />
           <button data-testid="sr-message-send" onClick={send} disabled={busy || (!msg.trim() && files.length === 0)}
             className="rounded-lg px-4 py-2 text-xs font-semibold bg-cyan-500 text-slate-950 hover:bg-cyan-400 disabled:opacity-40 inline-flex items-center gap-1.5">
-            {busy ? "Sending…" : "Send email"} <PaperPlaneRight size={13} weight="bold" />
+            {busy ? "Sending…" : alsoWa && customerWa ? "Send email + WhatsApp" : "Send email"} <PaperPlaneRight size={13} weight="bold" />
           </button>
         </div>
+        <label className={`inline-flex items-center gap-2 text-[11px] ${customerWa ? "text-slate-300" : "text-slate-500"}`} data-testid="sr-wa-toggle-label">
+          <input type="checkbox" data-testid="sr-wa-toggle" checked={alsoWa && Boolean(customerWa)} disabled={!customerWa} onChange={(e) => setAlsoWa(e.target.checked)} className="accent-[#25D366]" />
+          <WhatsappLogo size={13} weight="fill" className="text-[#25D366]" />
+          {customerWa ? <>Also open WhatsApp to <span className="font-mono-display text-slate-100">{item.phone}</span> with this message and secure document links (valid 30 days)</> : "Customer phone missing or invalid — WhatsApp hand-off unavailable"}
+        </label>
         {err && <div data-testid="sr-message-error" className="text-xs text-rose-300 bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">{err}</div>}
       </div>
     </Section>
   );
 }
 
-export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onAllocate, onSendMessage, onCheckReplies, onDownloadFile, caReadOnly = false, canEmailCa = true, statusLocked = false, extraActions = null }) {
+export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onAllocate, onSendMessage, onCheckReplies, onDownloadFile, onWhatsAppShared, loadWaClicks, senderName, caReadOnly = false, canEmailCa = true, statusLocked = false, extraActions = null }) {
   const [note, setNote] = useState("");
   const closed = CLOSED.includes(item.status);
   const history = [...(item.history || [])].reverse();
@@ -210,7 +279,9 @@ export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEm
             </ul>
           </Section>
 
-          <Conversation item={item} activity={activity} onSendMessage={onSendMessage} onCheckReplies={onCheckReplies} closed={closed} onDownloadFile={onDownloadFile} />
+          <Conversation item={item} activity={activity} onSendMessage={onSendMessage} onCheckReplies={onCheckReplies} closed={closed} onDownloadFile={onDownloadFile} onWhatsAppShared={onWhatsAppShared} senderName={senderName} />
+
+          {loadWaClicks && <WaActivity loadClicks={loadWaClicks} requestId={item.id} />}
 
           <Section title={`History (${history.length})`} testid="sr-drawer-history">
             <ol className="relative border-l border-white/10 ml-1 space-y-3">

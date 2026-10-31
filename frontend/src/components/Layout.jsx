@@ -9,6 +9,7 @@ import { useLocation } from "react-router-dom";
 import { SettingsProvider, useSettings } from "@/lib/SettingsContext";
 import { Wrench } from "@phosphor-icons/react";
 import { isSearchBot } from "@/lib/crawler";
+import { useWaClickLogging } from "@/lib/whatsapp";
 
 function Maintenance({ message }) {
   return (
@@ -30,6 +31,7 @@ function Shell({ children }) {
   const isAdmin = pathname.startsWith("/admin");
   const maintenance = settings.maintenance && !isAdmin;
   const bot = isSearchBot();
+  useWaClickLogging(!isAdmin && !bot);
 
   if (maintenance) {
     return (
