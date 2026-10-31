@@ -10,6 +10,7 @@ import { SERVICE_SEO } from "@/data/seoTitles";
 import { AnswerFirst } from "@/components/AnswerFirst";
 import { api } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
+import { useWhatsApp } from "@/lib/whatsapp";
 import { ArrowRight, CheckCircle, FileText, PaperPlaneTilt, CaretDown, Briefcase } from "@phosphor-icons/react";
 
 export function ServicesHub() {
@@ -73,7 +74,9 @@ export default function ServiceDetail() {
   const [openFaq, setOpenFaq] = useState(0);
   const [form, setForm] = useState({ service: slug, name: "", email: "", phone: "", country: "India", company: "", entity: "", message: "" });
   const [submitted, setSubmitted] = useState(false);
+  const [requestId, setRequestId] = useState("");
   const [err, setErr] = useState("");
+  const { waLink } = useWhatsApp();
 
   useEffect(() => {
     setS(null); setNf(false); setSubmitted(false);
@@ -85,7 +88,8 @@ export default function ServiceDetail() {
     e.preventDefault();
     setErr("");
     try {
-      await api.post("/service-request", form);
+      const { data } = await api.post("/service-request", form);
+      setRequestId(data?.id || "");
       trackEvent("service_request_submitted", { service: slug });
       setSubmitted(true);
     } catch (_) { setErr("Could not submit — try WhatsApp."); }
@@ -208,12 +212,14 @@ export default function ServiceDetail() {
                 <p data-testid="service-pay-later-note" className="text-xs text-emerald-300 font-semibold">Pay only half now — the other half once your document is ready.</p>
                 <button data-testid="service-submit" className="btn-primary w-full justify-center">Submit request <PaperPlaneTilt size={14} weight="bold" /></button>
                 {err && <div className="text-rose-300 text-sm">{err}</div>}
+                <a href={waLink("service_enquiry", { service: s.name })} data-testid="service-whatsapp-enquiry" target="_blank" rel="noopener noreferrer"
+                  className="block text-center text-xs text-emerald-300 hover:underline">Prefer WhatsApp? Chat with us about {s.name}</a>
               </form>
             ) : (
               <div data-testid="service-success" className="mt-5 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30">
                 <div className="text-emerald-300 font-display font-bold">Request received ✓</div>
                 <p className="text-sm text-slate-300 mt-2">Our team has received your request and will reach out on the email and phone you provided. A Vametra AI CA will contact you shortly, or chat with us instantly on WhatsApp.</p>
-                <a href="https://wa.me/918275869112" target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Chat on WhatsApp</a>
+                <a href={waLink("service_request", { service: s.name, request_id: requestId })} data-testid="service-whatsapp" target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Chat on WhatsApp</a>
               </div>
             )}
           </div>

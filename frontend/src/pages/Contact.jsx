@@ -5,6 +5,7 @@ import SEO from "@/components/SEO";
 import { CONTACT } from "@/data/contact";
 import { createLead } from "@/lib/api";
 import { trackEvent } from "@/lib/analytics";
+import { useWhatsApp } from "@/lib/whatsapp";
 import {
   EnvelopeSimple,
   WhatsappLogo,
@@ -16,6 +17,7 @@ import {
 } from "@phosphor-icons/react";
 
 export default function Contact() {
+  const { waLink } = useWhatsApp();
   const [form, setForm] = useState({ name: "", email: "", phone: "", country: "", message: "" });
   const [status, setStatus] = useState("idle"); // idle | submitting | done | error
   const [errorMsg, setErrorMsg] = useState("");
@@ -35,7 +37,7 @@ export default function Contact() {
     }
   };
 
-  const waHref = `https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}`;
+  const waHref = waLink("contact");
   const mapSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${CONTACT.lng - 0.01}%2C${CONTACT.lat - 0.005}%2C${CONTACT.lng + 0.01}%2C${CONTACT.lat + 0.005}&layer=mapnik&marker=${CONTACT.lat}%2C${CONTACT.lng}`;
 
   return (

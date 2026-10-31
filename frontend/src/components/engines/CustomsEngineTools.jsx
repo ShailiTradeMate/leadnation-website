@@ -5,6 +5,7 @@ import { COUNTRY_OPTIONS } from "@/data/geo";
 import { api } from "@/lib/api";
 import { LaneCountrySelect } from "@/components/LaneCountrySelect";
 import { BrainNextSteps } from "@/components/BrainNextSteps";
+import { useWhatsApp } from "@/lib/whatsapp";
 import {
   ShieldCheck, Cube, Gift, Users, FileText, ArrowSquareOut, Brain, MagnifyingGlass, CircleNotch,
   ChartLineUp, TrendUp, TrendDown, Globe, Scales, ArrowRight, Truck, Coins, Lightning, Stack, Printer, ChartBar,
@@ -274,6 +275,7 @@ export function BenefitsTool() {
 
 /* ---------------- CHA Directory ---------------- */
 export function ChaDirectory() {
+  const { waLink } = useWhatsApp();
   const [port, setPort] = useState("");
   const [data, setData] = useState(null);
   const run = async () => { const { data } = await api.get("/customs/cha-directory", { params: { port } }); setData(data); };
@@ -291,7 +293,7 @@ export function ChaDirectory() {
               <div className="flex items-center justify-between"><div className="font-display font-bold">{c.name}</div>{c.verified && <ShieldCheck size={18} weight="fill" className="text-cyan-300" />}</div>
               <div className="text-xs text-slate-400 mt-1">{c.port} · {c.city}</div>
               <div className="text-sm mt-2">{c.services}</div>
-              <a href={`https://wa.me/918275869112?text=${encodeURIComponent(`Hi Vametra AI, connect me with CHA: ${c.name} (${c.port}).`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 text-xs mt-3 inline-flex justify-center">Connect via WhatsApp</a>
+              <a href={waLink("cha_connect", { cha: c.name, port: c.port })} data-testid={`chas-whatsapp-${i}`} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 text-xs mt-3 inline-flex justify-center">Connect via WhatsApp</a>
             </div>
           ))}
         </div>

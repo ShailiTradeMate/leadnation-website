@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "@phosphor-icons/react";
+import { useWhatsApp } from "@/lib/whatsapp";
 
 export function Crumbs({ items }) {
   return (
@@ -41,6 +42,7 @@ export function ToolShell({ label, title, sub, children, testIdPrefix = "tool" }
 }
 
 export function CTARow({ testIdPrefix = "cta" }) {
+  const { waLink } = useWhatsApp();
   return (
     <div className="mt-8 flex flex-wrap gap-3">
       <Link to="/signup" data-testid={`${testIdPrefix}-create`} className="btn-primary">
@@ -48,7 +50,7 @@ export function CTARow({ testIdPrefix = "cta" }) {
       </Link>
       <Link to="/tools" data-testid={`${testIdPrefix}-tools`} className="btn-ghost">Explore all tools</Link>
       <a
-        href="https://wa.me/918275869112"
+        href={waLink("tool_help", { tool: (typeof document !== "undefined" ? document.title.split("·")[0].trim() : "") || "Vametra AI trade tool" })}
         target="_blank" rel="noopener noreferrer"
         data-testid={`${testIdPrefix}-whatsapp`}
         className="btn-ghost"

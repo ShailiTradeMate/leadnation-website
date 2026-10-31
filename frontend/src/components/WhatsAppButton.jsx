@@ -1,12 +1,11 @@
 import React from "react";
-import { CONTACT } from "@/data/contact";
 import { WhatsappLogo } from "@phosphor-icons/react";
 import { trackEvent } from "@/lib/analytics";
+import { useWhatsApp } from "@/lib/whatsapp";
 
 export default function WhatsAppButton() {
-  const href = `https://wa.me/${CONTACT.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
-    "Hi Vametra AI team, I'd like to know more about the app."
-  )}`;
+  const { waLink } = useWhatsApp();
+  const href = waLink("general");
   return (
     <a
       href={href}

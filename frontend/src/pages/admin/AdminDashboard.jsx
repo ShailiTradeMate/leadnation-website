@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
 import SEO from "@/components/SEO";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck, Bell,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck, Bell, WhatsappLogo,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
 import { authApi } from "@/lib/authApi";
@@ -18,6 +18,7 @@ import VerificationReview from "@/pages/admin/VerificationReview";
 import UsersManager from "@/pages/admin/UsersManager";
 import ServiceRequestsManager from "@/pages/admin/ServiceRequestsManager";
 import SubAdminsManager from "@/pages/admin/SubAdminsManager";
+import WhatsAppTemplatesManager from "@/pages/admin/WhatsAppTemplatesManager";
 import "@/admin-workflows.css";
 import { staffLogin, staffLogout, getStaffInfo, isStaff, staffApi } from "@/lib/staffAuth";
 
@@ -135,6 +136,7 @@ export default function AdminDashboard() {
     { k: "payments", l: "Payments", I: CurrencyCircleDollar },
     { k: "buyers", l: "Verified Buyers", I: ShieldCheck },
     { k: "verifications", l: "Verifications", I: SealCheck },
+    { k: "whatsapp", l: "WhatsApp", I: WhatsappLogo },
   ];
   const SUB_TABS = [{ k: "users", l: "Users", I: Users }, { k: "service-requests", l: "Service Requests", I: Briefcase }];
   const badgeFor = (k) => {
@@ -202,6 +204,7 @@ export default function AdminDashboard() {
         {isMainAdmin && tab === "payments" && <PaymentsManager />}
         {isMainAdmin && tab === "buyers" && <BuyersManager />}
         {isMainAdmin && tab === "verifications" && <VerificationReview />}
+        {isMainAdmin && tab === "whatsapp" && <WhatsAppTemplatesManager />}
       </div>
     </section>
   );

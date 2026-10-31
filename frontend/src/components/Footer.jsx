@@ -5,8 +5,10 @@ import { openCookiePreferences } from "@/lib/analytics";
 import { InstagramLogo, LinkedinLogo, WhatsappLogo, EnvelopeSimple, MapPin, Lightning, Calculator } from "@phosphor-icons/react";
 import { LogoMark } from "./Nav";
 import { TAGLINE } from "@/lib/brand";
+import { useWhatsApp } from "@/lib/whatsapp";
 
 export default function Footer() {
+  const { waLink } = useWhatsApp();
   return (
     <footer className="relative mt-32 border-t border-white/5 bg-[#04050f]">
       <div className="max-w-7xl mx-auto px-6 sm:px-10 py-16 grid lg:grid-cols-4 gap-12">
@@ -87,7 +89,7 @@ export default function Footer() {
             </li>
             <li className="flex items-start gap-2">
               <WhatsappLogo size={16} className="mt-1 text-cyan-300" />
-              <a href={`https://wa.me/${CONTACT.whatsapp.replace(/\D/g,"")}`} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-whatsapp">{CONTACT.whatsappDisplay}</a>
+              <a href={waLink("general")} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-whatsapp">{CONTACT.whatsappDisplay}</a>
             </li>
             <li className="flex items-start gap-2">
               <InstagramLogo size={16} className="mt-1 text-cyan-300" />

@@ -6,8 +6,10 @@ import DownloadCTA from "@/components/DownloadCTA";
 import SEO from "@/components/SEO";
 import { api } from "@/lib/api";
 import { SealCheck, Lock, ArrowRight } from "@phosphor-icons/react";
+import { useWhatsApp } from "@/lib/whatsapp";
 
 export default function Suppliers() {
+  const { waLink } = useWhatsApp();
   const [data, setData] = useState(null);
   const [q, setQ] = useState("");
   const [country, setCountry] = useState("");
@@ -49,7 +51,8 @@ export default function Suppliers() {
                   <div className="text-xs text-slate-400 mt-1">{s.city} · {s.country}</div>
                   <div className="mt-3 text-sm">{s.products}</div>
                   <div className="text-[10px] font-mono-display tracking-widest uppercase text-slate-500 mt-2">{s.category}</div>
-                  <a href={`https://wa.me/918275869112?text=${encodeURIComponent(`Hi Vametra AI, please connect me with supplier: ${s.company} (${s.products}).`)}`}
+                  <a href={waLink("supplier_connect", { company: s.company, product: s.products })}
+                    data-testid={`suppliers-whatsapp-${i}`}
                     target="_blank" rel="noopener noreferrer"
                     className="btn-ghost !py-2 text-xs mt-4 inline-flex justify-center">Connect with supplier</a>
                 </div>
