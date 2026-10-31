@@ -225,3 +225,10 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 
 ## 2026-06 Nav verification badge
 - Nav header now fetches /api/verify/state for authed users: shows 'Verified' pill (data-testid=nav-verified) when verification_status==verified, otherwise 'Get Verified' link (nav-get-verified). Mobile menu label matches. Verified live in preview for both states.
+
+## 2026-10-31 WhatsApp message templates (admin-editable)
+- backend/wa_templates.py: 7 templates (general, service_request, service_enquiry, contact, supplier_connect, cha_connect, tool_help) written in the CUSTOMER's voice with {{name}} {{customer_id}} {{phone}} {{email}} {{service}} {{request_id}} {{company}} {{product}} {{tool}} {{cha}} {{port}} {{page}}. Public GET /api/whatsapp/templates; admin GET/PUT /api/admin/whatsapp-templates[/{key}] + POST .../reset (overrides stored in db.wa_templates, defaults in code).
+- frontend/src/lib/whatsapp.js: useWhatsApp() -> waLink(key, vars). Identity auto-filled from AuthContext (name, customer_id, email, mobile). renderWaMessage drops detail lines we cannot fill, but keeps ______ blanks for name/mobile so signed-out visitors fill them (user choice).
+- Wired: WhatsAppButton (floating), Footer, Contact card, Services enquiry + success card (service name + request ID + form name/phone/email), Suppliers, CHA directory, ToolShell CTARow (explicit `tool` prop).
+- Admin UI: new "WhatsApp" tab in /admin-cms -> WhatsAppTemplatesManager.jsx (edit, save, reset-to-default, placeholder chips).
+- Tested: backend 7/7 pytest (tests/test_wa_templates_iter80.py), admin save/reset reflected on the public links, signed-in prefill (Name/ID 00001/email), signed-out blanks, service success link carries request ID. Note: /suppliers redirects to / and the CHA directory tool is not mounted, so those two entry points are coded but not reachable on the live site today.

@@ -70,7 +70,7 @@ export function useWhatsApp() {
     name: user.full_name || profile.name || "",
     customer_id: user.customer_id || "",
     email: user.email || profile.email || "",
-    phone: profile.mobile || profile.phone || "",
+    phone: profile.mobile || profile.phone || user.mobile || user.phone || "",
   };
 
   const waMessage = (key, vars = {}) =>

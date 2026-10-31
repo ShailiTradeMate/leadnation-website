@@ -212,14 +212,14 @@ export default function ServiceDetail() {
                 <p data-testid="service-pay-later-note" className="text-xs text-emerald-300 font-semibold">Pay only half now — the other half once your document is ready.</p>
                 <button data-testid="service-submit" className="btn-primary w-full justify-center">Submit request <PaperPlaneTilt size={14} weight="bold" /></button>
                 {err && <div className="text-rose-300 text-sm">{err}</div>}
-                <a href={waLink("service_enquiry", { service: s.name })} data-testid="service-whatsapp-enquiry" target="_blank" rel="noopener noreferrer"
+                <a href={waLink("service_enquiry", { service: s.name, name: form.name, phone: form.phone, email: form.email })} data-testid="service-whatsapp-enquiry" target="_blank" rel="noopener noreferrer"
                   className="block text-center text-xs text-emerald-300 hover:underline">Prefer WhatsApp? Chat with us about {s.name}</a>
               </form>
             ) : (
               <div data-testid="service-success" className="mt-5 p-5 rounded-2xl bg-emerald-500/10 border border-emerald-400/30">
                 <div className="text-emerald-300 font-display font-bold">Request received ✓</div>
                 <p className="text-sm text-slate-300 mt-2">Our team has received your request and will reach out on the email and phone you provided. A Vametra AI CA will contact you shortly, or chat with us instantly on WhatsApp.</p>
-                <a href={waLink("service_request", { service: s.name, request_id: requestId })} data-testid="service-whatsapp" target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Chat on WhatsApp</a>
+                <a href={waLink("service_request", { service: s.name, request_id: requestId, name: form.name, phone: form.phone, email: form.email })} data-testid="service-whatsapp" target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 w-full justify-center">Chat on WhatsApp</a>
               </div>
             )}
           </div>

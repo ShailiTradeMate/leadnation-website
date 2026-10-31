@@ -41,7 +41,7 @@ export function ToolShell({ label, title, sub, children, testIdPrefix = "tool" }
   );
 }
 
-export function CTARow({ testIdPrefix = "cta" }) {
+export function CTARow({ testIdPrefix = "cta", tool }) {
   const { waLink } = useWhatsApp();
   return (
     <div className="mt-8 flex flex-wrap gap-3">
@@ -50,7 +50,7 @@ export function CTARow({ testIdPrefix = "cta" }) {
       </Link>
       <Link to="/tools" data-testid={`${testIdPrefix}-tools`} className="btn-ghost">Explore all tools</Link>
       <a
-        href={waLink("tool_help", { tool: (typeof document !== "undefined" ? document.title.split("·")[0].trim() : "") || "Vametra AI trade tool" })}
+        href={waLink("tool_help", { tool: tool || "Vametra AI trade tool" })}
         target="_blank" rel="noopener noreferrer"
         data-testid={`${testIdPrefix}-whatsapp`}
         className="btn-ghost"

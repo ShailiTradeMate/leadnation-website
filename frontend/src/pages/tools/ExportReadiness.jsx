@@ -130,7 +130,7 @@ export default function ExportReadiness() {
                   ))}
                 </ul>
               </div>
-              <CTARow testIdPrefix="er-cta" />
+              <CTARow testIdPrefix="er-cta" tool="Export Readiness Score tool" />
             </div>
           )}
           {step === 3 && result && (

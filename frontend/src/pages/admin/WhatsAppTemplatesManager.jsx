@@ -61,7 +61,7 @@ export default function WhatsAppTemplatesManager() {
                 <div className="text-xs text-slate-400 mt-0.5">{it.where} · <code className="text-slate-500">{it.key}</code></div>
               </div>
               <div className="flex items-center gap-2">
-                {it.customized && <span className="text-[10px] uppercase tracking-widest text-amber-200 bg-amber-400/15 border border-amber-400/30 rounded-full px-2 py-1">Customised</span>}
+                {it.customized && <span data-testid={`wa-template-customized-${it.key}`} className="text-[10px] uppercase tracking-widest text-amber-200 bg-amber-400/15 border border-amber-400/30 rounded-full px-2 py-1">Customised</span>}
                 <button data-testid={`wa-template-save-${it.key}`} disabled={saving === it.key || drafts[it.key] === it.template}
                   onClick={() => save(it.key)} className="btn-primary !py-2 !px-3 text-xs disabled:opacity-40">
                   <FloppyDisk size={13} weight="bold" /> Save
