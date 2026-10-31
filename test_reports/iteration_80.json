@@ -1,0 +1,42 @@
+{
+  "summary": "Iter80: Tested WhatsApp click logging + CA→customer WhatsApp hand-off end-to-end (backend pytest + Playwright as guest, Sub-Admin Sakshi and Main Admin). The core features work: clicks are logged and matched to the request by requestId, phone and email; sub-admin access is limited to allocated requests; the 64-hex share links work without login; whatsapp-shared works; wa.me pre-fill text is correct; the admin clicks panel and the ca_message template save/reset work. One real UI bug: a false 'Pop-up blocked' toast appears every time WhatsApp opens. Also found: X-Admin-Token is not accepted on /api/staff/*, which contradicts the review note. Resend rejects @example.com recipients, so tests use delivered@resend.dev.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/staff/service-requests/{id}/whatsapp-clicks (all /api/staff/*)", "issue": "The legacy X-Admin-Token header returns 401 'Admin or sub-admin access required'. require_staff/staff_identity only accepts a Firebase Bearer or a staff JWT. This contradicts the review note ('accepted by require_staff as main'). Main-admin Firebase Bearer works. Either add the fallback or fix the docs/test_credentials."},
+      {"endpoint": "POST /api/whatsapp/clicks", "issue": "The lastWhatsAppAt update ($or on requestId/customerId/email/accountEmail) does not match by phone. A click matched only by phoneKey shows in the drawer, but the request row never gets the green sr-wa-badge. click_filter and the badge logic disagree."},
+      {"endpoint": "POST /api/whatsapp/clicks", "issue": "Public and unauthenticated, with no rate limit. Any caller can send any requestId/email/phone, which adds fake click rows to a customer's drawer and bumps lastWhatsAppAt. Consider rate limiting and/or only setting lastWhatsAppAt for signed-in users."},
+      {"endpoint": "GET /api/whatsapp/templates", "issue": "Flaky: one 30s read timeout in 1 of 2 suite runs (~50% of runs in this small sample). Immediate curls afterwards took 0.35s, so background jobs probably blocked the event loop for a moment."},
+      {"endpoint": "POST /api/staff/service-requests/{id}/email-customer-files", "issue": "ENV: Resend rejects @example.com recipients ('Invalid `to` field'), so the request returns 400 and the files are rolled back. Works with delivered@resend.dev."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "ServiceRequestDrawer.jsx openWa()", "issue": "window.open(url, '_blank', 'noopener') always returns null, because that is the spec behaviour when 'noopener' is set. So the 'Pop-up blocked — tap the WhatsApp button…' toast shows on EVERY successful WhatsApp open: both the per-message button and the 'Send email + WhatsApp' flow (reproduced twice; the popup did open). Fix: open without the noopener feature and set w.opener = null, or drop the toast check.", "selector": "[data-testid^='sr-wa-send-'], [data-testid='sr-message-send']", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [
+      {"flow": "Send email + WhatsApp", "issue": "window.open runs after the await on the email upload/send. On slow sends (>~5s) real browsers can lose the user gesture and block the popup. onWhatsAppShared is still called, so the message is marked 'Sent on WhatsApp ✓' even when nothing opened. Consider marking it shared only on an explicit user click.", "affected_selectors": ["[data-testid='sr-message-send']", "[data-testid^='sr-wa-shared-']"]}
+    ],
+    "design_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_iter80_wa_clicks_handoff.py", "/app/backend/tests/iter80_cleanup.py", "/app/test_reports/pytest/pytest_iter80.xml"],
+  "action_items": [
+    "Fix the false 'Pop-up blocked' toast in ServiceRequestDrawer openWa(): window.open with 'noopener' returns null.",
+    "Decide on X-Admin-Token for require_staff: either add the legacy fallback or correct the docs.",
+    "Include a phoneKey match when setting service_requests.lastWhatsAppAt in log_click (e.g. store a phoneKey on service_requests), so the badge agrees with the drawer list.",
+    "Consider rate limiting /api/whatsapp/clicks and checking requestId values that come from the public."
+  ],
+  "critical_code_review_comments": [
+    "shared_file: Content-Disposition puts the raw filename inside quotes; a filename containing quotes or non-ASCII characters can break the header. Use RFC 5987 filename*=UTF-8''.",
+    "shared_file: datetime.fromisoformat(doc['uploadedAt']) assumes a tz-aware ISO value. Manually inserted docs without a timezone would raise a TypeError (500).",
+    "Guest clicks with no identity (name/phone/email all null, e.g. /contact as a signed-out visitor) are logged but can never be matched to a request. This is expected but worth noting for CA expectations.",
+    "Files are stored base64 inside the Mongo service_files docs (up to 8 MB each). Watch the 16 MB document limit and storage growth."
+  ],
+  "updated_files": ["/app/backend/tests/test_iter80_wa_clicks_handoff.py", "/app/backend/tests/iter80_cleanup.py"],
+  "success_rate": {"backend": "90% (9/10; only failure is the X-Admin-Token on require_staff expectation; 1 flaky timeout passed on retry)", "frontend": "95% (all flows work; false pop-up-blocked toast)"},
+  "seed_data_creation": "3 QA service requests (name 'QA Customer'), leads, 2 service_files and 14 wa_clicks were created and then ALL deleted via iter80_cleanup.py. The ca_message template was edited and reset to Default (no override left).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Use delivered@resend.dev as the customer email so Resend accepts it. /api/staff/* needs a Firebase main-admin Bearer (mint via identitytoolkit signInWithPassword) or a Sakshi X-Staff-Token; X-Admin-Token is not accepted there. Main-admin browser login (admin@vametra.com or 00001) WORKS in preview. Popups resolve to api.whatsapp.com/send?phone=…&text=…. Run iter80_cleanup.py after tests.",
+  "test_credentials": "From /app/memory/test_credentials.md: admin@vametra.com / 00001 / Shiv@12345; sakshi@vametra.com / Shiv@12345"
+}

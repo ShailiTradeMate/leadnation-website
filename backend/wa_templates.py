@@ -179,6 +179,8 @@ async def log_click(payload: WaClick, user: Optional[dict] = Depends(optional_us
         ors.append({"customerId": doc["customerId"]})
     if email:
         ors += [{"email": email}, {"accountEmail": email}]
+    if len(doc["phoneKey"]) == 10:
+        ors.append({"phone": {"$regex": r"\D*".join(doc["phoneKey"]) + r"\D*$"}})
     if ors:
         await db.service_requests.update_many({"$or": ors}, {"$set": {"lastWhatsAppAt": doc["at"]}})
     return {"ok": True, "id": doc["id"]}

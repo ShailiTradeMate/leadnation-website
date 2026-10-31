@@ -90,8 +90,8 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, o
   const openWa = (idx, act) => {
     const url = caWhatsAppLink(item, act, templates, senderName);
     if (!url) { toast.error("Customer phone number is missing or invalid"); return; }
-    const w = window.open(url, "_blank", "noopener");
-    if (!w) toast.message("Pop-up blocked — tap the WhatsApp button on the message to open it.");
+    const w = window.open(url, "_blank");
+    if (w) w.opener = null; else toast.message("Pop-up blocked — tap the WhatsApp button on the message to open it.");
     onWhatsAppShared && onWhatsAppShared(idx).catch(() => {});
   };
   const send = async () => {
