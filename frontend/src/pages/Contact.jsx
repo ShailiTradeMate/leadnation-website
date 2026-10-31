@@ -48,7 +48,7 @@ export default function Contact() {
       />
       <PageHero
         testIdPrefix="contact"
-        label="Contact · Create Account"
+        label="Contact · Reach Out"
         title="Let's put your trade on autopilot."
         sub="Reach the Vametra AI team on email, WhatsApp or Instagram — we usually reply within a few hours."
       />
@@ -57,9 +57,9 @@ export default function Contact() {
         {/* Form */}
         <form onSubmit={onSubmit} className="glass-strong rounded-3xl p-7 sm:p-9 space-y-4">
           <div className="text-xs font-mono-display tracking-[0.3em] uppercase text-cyan-300">
-            Create an account / Reach out
+            Reach out
           </div>
-          <h2 className="font-display font-extrabold text-2xl sm:text-3xl">Start your trade journey</h2>
+          <h2 className="font-display font-extrabold text-2xl sm:text-3xl">Tell us how we can help</h2>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <Input label="Full name" value={form.name} onChange={(v) => setForm({ ...form, name: v })} required testId="contact-name" />
@@ -74,7 +74,7 @@ export default function Contact() {
             className="btn-primary w-full justify-center"
             disabled={status === "submitting"}
           >
-            {status === "submitting" ? "Sending…" : <>Create my account <PaperPlaneTilt size={16} weight="bold" /></>}
+            {status === "submitting" ? "Sending…" : <>Submit my request <PaperPlaneTilt size={16} weight="bold" /></>}
           </button>
 
           {status === "done" && (
