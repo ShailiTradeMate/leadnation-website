@@ -280,15 +280,16 @@ async def _comtrade_call(cx, flow, hs6, year):
 
 async def _comtrade_imports(cx, hs6: str):
     """The newest year that is substantially complete. The latest year is usually only partly
-    reported, which understates the world total and leaves countries null; the oldest is complete
-    but stale — so take the most recent year within 85% of the best reporter count."""
+    reported, which understates the world total and leaves countries null — so try the year
+    before it first (normally complete) and stop there. Sequential on purpose: the free tier
+    answers concurrent full-table requests with HTTP 429."""
     years = {}
-    for y in (_now().year - 1, _now().year - 2, _now().year - 3):
+    for y in (_now().year - 2, _now().year - 1, _now().year - 3):
         rows = await _comtrade_call(cx, "M", hs6, y)
         if rows:
             years[y] = rows
-        if len(rows or []) >= 140:
-            break  # enough reporters for a representative year — don't pay for more
+            if len(rows) >= 140:
+                break  # a complete year — no need to pay for another multi-MB fetch
     if not years:
         return None, None
     best = max(len(r) for r in years.values())
@@ -389,6 +390,8 @@ async def hs_search_route(q: str = Query("", min_length=0), limit: int = 10, ai:
 
 @router.get("/stats")
 async def stats_route(hs: str = Query(...), force: bool = False):
+    if force:
+        await importer_table(hs, force=True)  # the country-level table feeds the page demand too
     return await trade_stats(hs, force=force)
 
 
@@ -399,7 +402,7 @@ async def _comtrade_importer_table(hs6: str):
     if not COMTRADE_KEY:
         return None
     try:
-        async with httpx.AsyncClient(timeout=60) as cx:
+        async with httpx.AsyncClient(timeout=25) as cx:
             rows, y = await _comtrade_imports(cx, hs6)
             if not rows:
                 return None

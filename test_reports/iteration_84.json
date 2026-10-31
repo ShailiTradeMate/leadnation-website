@@ -1,0 +1,33 @@
+{
+  "summary": "Iteration 84, backend only, preview only. The circuit breaker works: one simulated OEC hang opens it, the 'OEC unreachable ... skipping it for 10 min' warning is logged exactly once per process, and later calls skip OEC. The shared Comtrade fetch works: Comtrade is called once per year for the importer table and never again for stats, and the second trade_stats call is served from cache in about 0.24s. The Comtrade figures are correct. The healthy path still prefers OEC, oecSkippedUntil is null, and all regressions pass (24/24 pytest, 975-loc sitemap, both earlier guard scripts print PASS, egress-check is OK). The one failure is /app/memory/tests_oec_breaker.py, which failed 2 out of 2 runs (timings [15.8, 8.3, 8.3]s and [14.9, 8.1, 6.8]s against the <6s requirement). The breaker is not the cause. Each UN Comtrade full-table call takes 4-9s from preview, and _comtrade_imports runs up to 3 of them one after another.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "trade_intel._comtrade_imports / importer_table (fallback path)", "issue": "Breaker guard script FAILS in 2/2 runs. Calls 2 and 3 take 6.8-8.3s against the <6s limit. The breaker is open and OEC is skipped, so all of this time is UN Comtrade latency. Measured for 300490: 2025 gave 125 reporters in 8.64s, then 2024 gave 148 reporters in 4.56s (early stop). The year fetches are sequential, so on a cold cache a fallback page still takes about 7-13s TTFB, plus 8s for the one request that trips the breaker. That is better than before but still slow for Googlebot.", "priority": "HIGH"}
+    ],
+    "minor": [
+      {"endpoint": "/app/memory/tests_oec_breaker.py", "issue": "Line 28 is a no-op assertion ('... or True'). The script never asserts sourceKey=='comtrade', a non-null Germany value, or that the warning is logged once. These were checked manually here and all held."},
+      {"endpoint": "/api/trade-intel/stats?force=true", "issue": "This only refreshes stats:{hs}. The imptable:{hs} cache, which feeds importer_detail, the page demand pillar and the sitemap/matrix data, has no HTTP force path. A Comtrade-sourced importer table therefore stays for 14 days after OEC recovers. The tester restored imptable via importer_table(hs, force=True) in a fresh process."},
+      {"endpoint": "_comtrade_imports", "issue": "The early stop at 140 reporters skips the 85% comparison. Example: the newest year has 140 reporters and the previous year has 170. 140/170 is 82%, below the 85% rule, but the partial newest year is still chosen. Edge case only."},
+      {"endpoint": "_comtrade_importer_table", "issue": "Uses httpx timeout=60 for each of up to 3 sequential calls, so the worst-case fallback page build is unbounded at about 180s. Consider a smaller timeout or an overall asyncio.wait_for."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/tests/test_iter84_oec_breaker.py", "/app/tests/iter84_breaker_probe.py", "/app/tests/iter84_restore_oec.py", "/app/tests/iter84_cache_peek.py", "/app/tests/test_iter83_sitemap_egress.py", "/app/tests/test_iter82_comtrade_regression.py", "/app/test_reports/pytest/iter84_results.xml"],
+  "action_items": [
+    "Make the Comtrade fallback fast enough for the <6s guard. Options: fetch the candidate years concurrently with asyncio.gather (cost is max latency instead of the sum), and/or try year-2 first, since it is usually complete and the early stop would then often need only 1 call. Also cap the fallback with asyncio.wait_for or a smaller timeout.",
+    "Fix the no-op assertion on line 28 of tests_oec_breaker.py. Add asserts for sourceKey=='comtrade' and a non-null Germany value.",
+    "Add an admin or force path that refreshes imptable:{hs} (e.g. pass force through to importer_table on /stats?force=true), so Comtrade-sourced tables can be put back to OEC once production egress is fixed."
+  ],
+  "critical_code_review_comments": [
+    "The breaker is per-process and not locked. With concurrent requests (the sitemap uses gather), every request already waiting on OEC when the first one fails still burns its own 8s. This is acceptable, but the warning can then be logged more than once under concurrency.",
+    "_oec_stats only opens the breaker on exceptions. An HTTP 4xx/5xx with a JSON body and no 'data' key returns None and does not open the breaker, so OEC throttling with JSON errors is retried on every call.",
+    "When OEC is down, trade_stats caches the Comtrade result (no trend, no exporters) for 14 days, so pages keep showing reduced data well after OEC recovers."
+  ],
+  "updated_files": ["/app/tests/test_iter84_oec_breaker.py", "/app/tests/iter84_breaker_probe.py", "/app/tests/iter84_restore_oec.py", "/app/tests/iter84_cache_peek.py"],
+  "success_rate": {"backend": "~93% (24/24 pytest and 2/2 earlier guard scripts pass; the breaker guard fails on its latency assertion, while its functional assertions pass)", "frontend": "not tested (backend only)"},
+  "seed_data_creation": "None. Caches stats:/imptable: for 330741, 300490 and 090111 were cleared by the guard scripts and restored to OEC (sourceKey oec, 3-point trend, 12 exporters, OEC importer tables of 199/225/211 countries) via a fresh-process force refresh. Verified afterwards.",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run the scripts from /app/backend. Do not create files in /app/backend; the iter84 helpers live in /app/tests. After any OEC-patched script, restore with `cd /app/backend && python3 /app/tests/iter84_restore_oec.py 330741 300490 090111` (forces both stats and imptable through healthy OEC), then check with iter84_cache_peek.py. Fallback numbers measured: 300490 Comtrade 2024 gave 148 reporters, US 79.5B vs OEC 75.6B. 330741 Comtrade 2025 gave 124 reporters, world 309M vs OEC 406M, Malaysia top in both. No duplicate countries, US name is canonical, full-table shares sum to 99.9-100. topExporters=[] in fallback mode is expected. Keep Comtrade calls few.",
+  "rca of the issue": "tests_oec_breaker.py fails because of upstream UN Comtrade latency, not because of the breaker. Reproduce: cd /app/backend && python3 /app/memory/tests_oec_breaker.py, which prints [~15, ~8, ~7]s. Per-call timing with /app/tests/iter84_breaker_probe.py shows each Comtrade multi-MB call takes 4.5-8.6s and _comtrade_imports issues them one after another (newest year first, usually partial, so a second call is almost always needed). Fix: parallelise the year fetches, or start from the most-likely-complete year, and bound the total time."
+}
