@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { X, Copy, EnvelopeSimple, PaperPlaneRight, ArrowsClockwise } from "@phosphor-icons/react";
+import { X, Copy, EnvelopeSimple, PaperPlaneRight, ArrowsClockwise, Paperclip } from "@phosphor-icons/react";
 import { ResponsiveSelect } from "@/components/ui/responsive-select";
 
 const CLOSED = ["completed", "cancelled"];
@@ -32,22 +32,30 @@ function CopyBtn({ value, label }) {
   );
 }
 
-function Conversation({ item, activity, onSendMessage, onCheckReplies, closed }) {
+function Conversation({ item, activity, onSendMessage, onCheckReplies, closed, onDownloadFile }) {
   const [msg, setMsg] = useState("");
   const [cc, setCc] = useState("");
+  const [files, setFiles] = useState([]);
+  const fileRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [checking, setChecking] = useState(false);
   const [err, setErr] = useState("");
   const endRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "nearest" }); }, [activity.length]);
   const send = async () => {
-    if (!msg.trim()) return;
+    if (!msg.trim() && files.length === 0) return;
     setBusy(true); setErr("");
     try {
-      await onSendMessage({ message: msg.trim(), extraCc: cc.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean) });
-      setMsg(""); setCc("");
+      await onSendMessage({ message: msg.trim(), extraCc: cc.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean), files });
+      setMsg(""); setCc(""); setFiles([]);
     } catch (e) { setErr(e?.response?.data?.detail || "Send failed — please retry"); }
     finally { setBusy(false); }
+  };
+  const addFiles = (list) => {
+    const next = [...files, ...Array.from(list || [])];
+    const total = next.reduce((n, f) => n + f.size, 0);
+    if (total > 8 * 1024 * 1024) { setErr("Attachments exceed 8 MB in total"); return; }
+    setErr(""); setFiles(next);
   };
   return (
     <Section title={`Conversation with customer (${activity.length})`} testid="sr-drawer-conversation">
@@ -78,6 +86,16 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed })
                 {a.kind === "allocation"
                   ? <div className="text-slate-300">Allocation email sent to <b>{a.to}</b>{a.note ? ` — "${a.note}"` : ""}</div>
                   : <div className="text-slate-100 whitespace-pre-wrap">{a.text}</div>}
+                {a.attachments?.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5" data-testid={`sr-conversation-files-${i}`}>
+                    {a.attachments.map((f) => (
+                      <button key={f.id} type="button" data-testid={`sr-file-${f.id}`} onClick={() => onDownloadFile && onDownloadFile(f)}
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] bg-white/10 hover:bg-white/15 border border-white/10 text-slate-100">
+                        <Paperclip size={12} /> {f.filename} <span className="text-slate-400">({Math.max(1, Math.round(f.size / 1024))} KB)</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="text-[10px] text-slate-500 mt-1">{fmt(a.at)}{inbound ? "" : ` · to ${a.to}`}{a.cc?.length ? ` · cc ${a.cc.join(", ")}` : ""}{a.forwardedTo?.length ? ` · forwarded to ${a.forwardedTo.join(", ")}` : ""}</div>
               </div>
             </div>
@@ -89,9 +107,23 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed })
         <textarea data-testid="sr-message-input" rows={3} value={msg} onChange={(e) => setMsg(e.target.value)}
           placeholder={`Write to ${item.name} — sent as an email on the same thread, CC admin@vametra.com${item.assignedCaEmail ? " + CA" : ""}`}
           className="glass rounded-xl px-3 py-2 text-sm w-full" />
+        {files.length > 0 && (
+          <div className="flex flex-wrap gap-1.5" data-testid="sr-message-files">
+            {files.map((f, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] bg-cyan-500/10 border border-cyan-400/30 text-cyan-100">
+                <Paperclip size={12} /> {f.name} <span className="text-slate-400">({Math.max(1, Math.round(f.size / 1024))} KB)</span>
+                <button data-testid={`sr-message-file-remove-${i}`} onClick={() => setFiles(files.filter((_, j) => j !== i))} className="ml-1 text-slate-400 hover:text-white"><X size={11} /></button>
+              </span>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2 items-center">
+          <input ref={fileRef} data-testid="sr-message-file-input" type="file" multiple className="hidden" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,.zip,.txt,.csv"
+            onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+          <button data-testid="sr-message-attach" type="button" title="Attach documents (PDF, images, Word, Excel · max 8 MB)" onClick={() => fileRef.current?.click()}
+            className="rounded-lg p-2 border border-white/10 text-slate-300 hover:bg-white/5 hover:text-white"><Paperclip size={16} /></button>
           <input data-testid="sr-message-cc" value={cc} onChange={(e) => setCc(e.target.value)} placeholder="Extra CC (optional)" className="glass rounded-lg px-3 py-2 text-xs flex-1" />
-          <button data-testid="sr-message-send" onClick={send} disabled={busy || !msg.trim()}
+          <button data-testid="sr-message-send" onClick={send} disabled={busy || (!msg.trim() && files.length === 0)}
             className="rounded-lg px-4 py-2 text-xs font-semibold bg-cyan-500 text-slate-950 hover:bg-cyan-400 disabled:opacity-40 inline-flex items-center gap-1.5">
             {busy ? "Sending…" : "Send email"} <PaperPlaneRight size={13} weight="bold" />
           </button>
@@ -102,7 +134,7 @@ function Conversation({ item, activity, onSendMessage, onCheckReplies, closed })
   );
 }
 
-export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onAllocate, onSendMessage, onCheckReplies, caReadOnly = false, canEmailCa = true, statusLocked = false, extraActions = null }) {
+export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEmailCa, onAllocate, onSendMessage, onCheckReplies, onDownloadFile, caReadOnly = false, canEmailCa = true, statusLocked = false, extraActions = null }) {
   const [note, setNote] = useState("");
   const closed = CLOSED.includes(item.status);
   const history = [...(item.history || [])].reverse();
@@ -178,7 +210,7 @@ export default function ServiceRequestDrawer({ item, meta, onClose, onSave, onEm
             </ul>
           </Section>
 
-          <Conversation item={item} activity={activity} onSendMessage={onSendMessage} onCheckReplies={onCheckReplies} closed={closed} />
+          <Conversation item={item} activity={activity} onSendMessage={onSendMessage} onCheckReplies={onCheckReplies} closed={closed} onDownloadFile={onDownloadFile} />
 
           <Section title={`History (${history.length})`} testid="sr-drawer-history">
             <ol className="relative border-l border-white/10 ml-1 space-y-3">

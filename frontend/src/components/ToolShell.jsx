@@ -48,7 +48,7 @@ export function CTARow({ testIdPrefix = "cta" }) {
       </Link>
       <Link to="/tools" data-testid={`${testIdPrefix}-tools`} className="btn-ghost">Explore all tools</Link>
       <a
-        href="https://wa.me/918237161088"
+        href="https://wa.me/918275869112"
         target="_blank" rel="noopener noreferrer"
         data-testid={`${testIdPrefix}-whatsapp`}
         className="btn-ghost"

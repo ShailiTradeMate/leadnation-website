@@ -146,8 +146,10 @@ async def ingest_message(raw: bytes) -> Optional[str]:
         return None
     sender = parseaddr(_hdr(msg, "From"))[1].lower()
     from emailer import SENDER_EMAIL
-    if sender and sender == (SENDER_EMAIL or "").lower():
-        return None  # our own outbound copies
+    own_sender = parseaddr(SENDER_EMAIL or "")[1].lower()
+    is_reply = bool(msg.get("In-Reply-To") or msg.get("References"))
+    if sender and sender == own_sender and not is_reply:
+        return None  # our own outbound copies (CC to admin) — only real replies count
     body = _body_text(msg)
     item = await _match_request(msg, body)
     if not item:

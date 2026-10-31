@@ -94,7 +94,7 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
   useEffect(() => {
     if (!onSummary) return;
     const open = items.filter((i) => !CLOSED.includes(i.status));
-    onSummary({ open: open.length, new: open.filter((i) => i.isNew).length, unassigned: open.filter((i) => !i.assignedCa).length, unreadReplies: items.filter(unread).length });
+    onSummary((prev) => ({ ...(prev || {}), open: open.length, new: open.filter((i) => i.isNew).length, unassigned: open.filter((i) => !i.assignedCa).length, unreadReplies: items.filter(unread).length }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, onSummary, seenIds]);
 
@@ -126,9 +126,26 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
     } catch (e) { toast.error(e?.response?.data?.detail || "Could not check the mailbox"); }
   };
   const sendMessage = async (id, body) => {
-    const r = await http.post(`${base}/${id}/email-customer`, body);
+    let r;
+    if (body.files?.length) {
+      const fd = new FormData();
+      fd.append("message", body.message || "");
+      fd.append("extraCc", (body.extraCc || []).join(","));
+      body.files.forEach((f) => fd.append("files", f));
+      r = await staffApi.post(`/staff/service-requests/${id}/email-customer-files`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+    } else {
+      r = await http.post(`${base}/${id}/email-customer`, { message: body.message, extraCc: body.extraCc });
+    }
     replace(r.data.item);
     toast.success(`Emailed ${r.data.to}${r.data.cc.length ? ` · CC ${r.data.cc.join(", ")}` : ""}`);
+  };
+  const downloadFile = async (id, f) => {
+    try {
+      const r = await staffApi.get(`/staff/service-requests/${id}/files/${f.id}`, { responseType: "blob" });
+      const url = URL.createObjectURL(r.data);
+      const a = document.createElement("a"); a.href = url; a.download = f.filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } catch { toast.error("Could not download the file"); }
   };
 
   const services = useMemo(() => [...new Set(items.map((i) => i.service).filter(Boolean))].sort(), [items]);
@@ -221,7 +238,7 @@ export default function ServiceRequestsManager({ mode = "admin", onSummary }) {
         <ServiceRequestDrawer item={current} meta={meta} onClose={() => setOpenId(null)}
           onSave={(p) => save(openId, p)} onEmailCa={(it) => setEmailing(it)} onAllocate={staff ? null : (it) => setAllocating(it)}
           caReadOnly={staff} canEmailCa={!staff} statusLocked={staff && !me?.isMain && current.status === "completed"}
-          onSendMessage={(body) => sendMessage(openId, body)} onCheckReplies={checkReplies} />
+          onSendMessage={(body) => sendMessage(openId, body)} onCheckReplies={checkReplies} onDownloadFile={(f) => downloadFile(openId, f)} />
       )}
     </div>
   );

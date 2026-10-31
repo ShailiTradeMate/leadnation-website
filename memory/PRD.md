@@ -216,3 +216,9 @@ Owner approved proceeding with a site-wide mobile dropdown repair, comprehensive
 - UI: pulsing "Customer replied" badge on row + green pulsing tab badge; inbound bubbles (customer left/green, CA/admin violet) in Conversation; "Check for replies" button. Verified with synthetic ingest (tests/manual_inbox_ingest.py) + UI.
 - PROD NOTE: live ADMIN_EMAIL secret was admin@leadnation.app (seen in CC) — user to set admin@vametra.com via secrets card.
 - 2026-06: GMAIL_IMAP_USER/GMAIL_APP_PASSWORD saved; IMAP login verified (status configured, no error, baseline uid set). Awaiting first real customer reply to confirm end-to-end.
+
+## 2026-06 Sub-admin Users badge · chat attachments · new WhatsApp number
+- summary.usersPending (sub-admin: verification_submissions needs_review assigned_to=sid; main: all needs_review) → amber badge on Users tab (AdminDashboard badgeFor); summary refetched on tab change.
+- Attachments: POST /staff/service-requests/{id}/email-customer-files (multipart message, extraCc, files[]; ≤8MB total; ext whitelist) → stored base64 in db.service_files, emailed via Resend attachments, emailActivity.attachments[]; GET /staff/service-requests/{id}/files/{fid} authenticated download. Composer paperclip (sr-message-attach / sr-message-file-input), chips, file buttons in thread (sr-file-{id}). emailer.send(attachments=[{filename, content bytes}]).
+- mail_inbox: skip own outbound copies (From == parsed SENDER_EMAIL and no In-Reply-To/References) — previously our CC copies were ingested as "admin replied". Cleaned the bad entry.
+- WhatsApp/phone updated everywhere to +91 8275869112 (wa.me/918275869112): contact.js, brand.js, index.html JSON-LD, Services/Suppliers/Contact pages, ToolShell, CustomsEngineTools, TradeIntelReport.

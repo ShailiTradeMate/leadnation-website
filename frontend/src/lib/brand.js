@@ -11,7 +11,7 @@ export const BRAND_ONE_LINER =
   "Vametra AI — the AI-powered Global Trade Intelligence platform. Customs duties, HS codes, FTAs, landed cost, expos, market data and trade news, with contact-verified buyers across 32 countries.";
 
 export const EMAIL = "admin@vametra.com";
-export const PHONE = "+91-8237161088";
+export const PHONE = "+91-8275869112";
 export const FOUNDED = "2026";
 export const FOUNDER = "Vaibhav Deshmane";
 export const HQ = "Savedi, Ahilyanagar, Maharashtra 414003, India";

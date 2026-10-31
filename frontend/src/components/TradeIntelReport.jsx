@@ -225,7 +225,7 @@ function ReportDoc({ data, preparedFor }) {
           <p className="text-[11px] text-slate-400 mt-2"><strong>Disclaimer:</strong> This report is for informational purposes only and does not constitute legal, financial or customs advice. Verify all duties, benefits and compliance requirements with the relevant authorities before transacting.</p>
           <div className="flex items-center justify-between mt-4 text-[11px] text-slate-500">
             <span>© {new Date().getFullYear()} Vametra AI · Global Trade Intelligence</span>
-            <span>vametra.com · +91 82371 61088</span>
+            <span>vametra.com · +91 82758 69112</span>
           </div>
         </section>
       </div>

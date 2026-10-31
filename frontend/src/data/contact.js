@@ -5,8 +5,8 @@ const li = social("linkedin");
 
 export const CONTACT = {
   email: EMAIL,
-  whatsapp: "+918237161088",
-  whatsappDisplay: "+91 82371 61088",
+  whatsapp: "+918275869112",
+  whatsappDisplay: "+91 82758 69112",
   address:
     "Savedi, Ahilyanagar, Maharashtra 414003, India",
   lat: 19.126793986535226,

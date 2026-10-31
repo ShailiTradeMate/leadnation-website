@@ -112,8 +112,8 @@ export default function AdminDashboard() {
     if (loading) return;
     if (!isMainAdmin && !isSubAdmin) { navigate("/admin-login"); return; }
     if (isMainAdmin) adminApi.get("/admin/collections").then((r) => setStats(r.data)).catch(() => {});
-    staffApi.get("/staff/service-requests/summary").then((r) => setSrBadge(r.data)).catch(() => {});
-  }, [loading, isMainAdmin, isSubAdmin, navigate]);
+    staffApi.get("/staff/service-requests/summary").then((r) => setSrBadge((p) => ({ ...(p || {}), ...r.data }))).catch(() => {});
+  }, [loading, isMainAdmin, isSubAdmin, navigate, tab]);
 
   const logout = async () => {
     staffLogout();
@@ -138,7 +138,12 @@ export default function AdminDashboard() {
   ];
   const SUB_TABS = [{ k: "users", l: "Users", I: Users }, { k: "service-requests", l: "Service Requests", I: Briefcase }];
   const badgeFor = (k) => {
-    if (k !== "service-requests" || !srBadge) return null;
+    if (!srBadge) return null;
+    if (k === "users") {
+      const u = srBadge.usersPending || 0;
+      return u > 0 ? <span data-testid="admin-tab-users-badge" title={isSubAdmin ? `${u} review request${u === 1 ? "" : "s"} allocated to you` : `${u} pending review${u === 1 ? "" : "s"}`} className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-amber-400/20 text-amber-200 border border-amber-400/40">{u}</span> : null;
+    }
+    if (k !== "service-requests") return null;
     const n = isSubAdmin ? srBadge.new : srBadge.unassigned;
     const r = srBadge.unreadReplies || 0;
     return (

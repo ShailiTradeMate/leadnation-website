@@ -487,7 +487,8 @@ BUILDERS.update({
         f"<p>You have a new message from <b>{c.get('senderName') or 'Vametra AI'}</b>"
         f"{' (your Vametra CA)' if c.get('senderRole') == 'CA' else ''} about your service request. Simply reply to this email to continue the conversation.</p>"
         f"<div style=\"margin:18px 0;padding:16px 18px;border-left:3px solid #00C2FF;background:#0f1631;border-radius:0 12px 12px 0;white-space:pre-wrap;line-height:1.6;\">{_esc(c.get('messageText',''))}</div>"
-        f"<p style=\"color:#8b95b5;font-size:12px;\">Sent {c.get('sentAt','')}" + (f" · Your CA: {c.get('caName')}" if c.get('caName') else "") + "</p>"
+        + (f"<p style=\"font-size:13px;\">📎 Attached: {_esc(', '.join(c.get('attachmentNames') or []))}</p>" if c.get('attachmentNames') else "")
+        + f"<p style=\"color:#8b95b5;font-size:12px;\">Sent {c.get('sentAt','')}" + (f" · Your CA: {c.get('caName')}" if c.get('caName') else "") + "</p>"
         + _service_request_body(c, greeting=False))),
     # ---- Customer replied without CA/admin on the thread → copy to them ----
     "service_reply_forward": lambda c: (f"Vametra Service Request · {c.get('service','')} · Allocated to Vametra CA", _shell(
@@ -506,8 +507,9 @@ def _esc(s: str) -> str:
 
 # ---------------- Core send ----------------
 async def send(kind: str, to_email: Optional[str], ctx: dict = None,
-               cc: Optional[list] = None, reply_to: Optional[str] = None):
-    """Fire-and-forget branded email. Fails soft (never raises)."""
+               cc: Optional[list] = None, reply_to: Optional[str] = None,
+               attachments: Optional[list] = None):
+    """Fire-and-forget branded email. Fails soft (never raises). attachments: [{filename, content(bytes)}]"""
     ctx = ctx or {}
     if not to_email:
         return {"sent": False, "reason": "no recipient"}
@@ -527,6 +529,8 @@ async def send(kind: str, to_email: Optional[str], ctx: dict = None,
             params["cc"] = [e for e in cc if e and e != to_email]
         if reply_to:
             params["reply_to"] = reply_to
+        if attachments:
+            params["attachments"] = [{"filename": a["filename"], "content": list(a["content"])} for a in attachments]
         res = await asyncio.to_thread(resend.Emails.send, params)
         return {"sent": True, "id": (res or {}).get("id")}
     except Exception as exc:

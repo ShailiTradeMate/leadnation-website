@@ -291,7 +291,7 @@ export function ChaDirectory() {
               <div className="flex items-center justify-between"><div className="font-display font-bold">{c.name}</div>{c.verified && <ShieldCheck size={18} weight="fill" className="text-cyan-300" />}</div>
               <div className="text-xs text-slate-400 mt-1">{c.port} · {c.city}</div>
               <div className="text-sm mt-2">{c.services}</div>
-              <a href={`https://wa.me/918237161088?text=${encodeURIComponent(`Hi Vametra AI, connect me with CHA: ${c.name} (${c.port}).`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 text-xs mt-3 inline-flex justify-center">Connect via WhatsApp</a>
+              <a href={`https://wa.me/918275869112?text=${encodeURIComponent(`Hi Vametra AI, connect me with CHA: ${c.name} (${c.port}).`)}`} target="_blank" rel="noopener noreferrer" className="btn-ghost !py-2 text-xs mt-3 inline-flex justify-center">Connect via WhatsApp</a>
             </div>
           ))}
         </div>

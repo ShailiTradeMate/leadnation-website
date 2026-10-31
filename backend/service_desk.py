@@ -310,9 +310,12 @@ async def staff_service_requests_summary(ident: dict = Depends(require_staff)):
     sid = ident.get("sid")
     viewer = sid or "admin"
     open_ = [i for i in items if (i.get("status") or "new") not in CLOSED]
+    users_q = {"status": "needs_review"} if ident.get("is_main") else {"status": "needs_review", "assigned_to": sid}
+    users_pending = await db.verification_submissions.count_documents(users_q)
     return {"open": len(open_), "new": len([i for i in open_ if sid and sid not in (i.get("openedBy") or [])]),
             "unassigned": len([i for i in open_ if not i.get("assignedCaId") and not i.get("assignedCa")]),
-            "unreadReplies": len([i for i in items if viewer in (i.get("unreadFor") or [])])}
+            "unreadReplies": len([i for i in items if viewer in (i.get("unreadFor") or [])]),
+            "usersPending": users_pending}
 
 
 @router.post("/staff/service-requests/{req_id}/open")
@@ -382,3 +385,80 @@ async def inbox_status(_: dict = Depends(require_admin)):
 async def inbox_poll(ident: dict = Depends(require_staff)):
     import mail_inbox
     return await mail_inbox.poll_once()
+
+
+# ---------------- Attachments in the conversation ----------------
+from fastapi import UploadFile, File, Form  # noqa: E402
+from fastapi.responses import Response  # noqa: E402
+import base64  # noqa: E402
+import uuid as _uuid  # noqa: E402
+
+MAX_ATTACH_BYTES = 8 * 1024 * 1024
+ALLOWED_EXT = {".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".txt", ".csv"}
+
+
+async def _send_with_files(item: dict, message: str, extra_cc: List[str], files: List[UploadFile], sender_name: str,
+                           sender_email: Optional[str], sender_role: str):
+    from emailer import send, BUILDERS, ADMIN_EMAIL
+    stored, payload = [], []
+    total = 0
+    for f in files:
+        data = await f.read()
+        ext = ("." + f.filename.rsplit(".", 1)[-1].lower()) if "." in (f.filename or "") else ""
+        if ext not in ALLOWED_EXT:
+            raise HTTPException(status_code=400, detail=f"File type not allowed: {f.filename}")
+        total += len(data)
+        if total > MAX_ATTACH_BYTES:
+            raise HTTPException(status_code=400, detail="Attachments exceed 8 MB in total")
+        fid = _uuid.uuid4().hex
+        await db.service_files.insert_one({"id": fid, "requestId": item["id"], "filename": f.filename, "contentType": f.content_type or "application/octet-stream",
+                                           "size": len(data), "data": base64.b64encode(data).decode(), "uploadedAt": _now(), "by": sender_email or sender_name})
+        stored.append({"id": fid, "filename": f.filename, "size": len(data)})
+        payload.append({"filename": f.filename, "content": data})
+    message = (message or "").strip() or ("Please find the attached document(s)." if payload else "")
+    if not message:
+        raise HTTPException(status_code=400, detail="Write a message or attach a file")
+    bad = [x for x in extra_cc if x.strip() and not EMAIL_RE.match(x.strip().lower())]
+    if bad:
+        raise HTTPException(status_code=400, detail=f"Invalid CC address: {', '.join(bad)}")
+    to = (item.get("email") or "").strip().lower()
+    if not EMAIL_RE.match(to):
+        raise HTTPException(status_code=400, detail="This request has no valid customer email")
+    locked = _clean_emails([ADMIN_EMAIL, item.get("assignedCaEmail")])
+    cc = [e for e in _clean_emails(locked + extra_cc) if e != to]
+    now = _now()
+    ctx = request_email_ctx(item)
+    ctx.update({"senderName": sender_name, "senderRole": sender_role, "senderEmail": sender_email, "messageText": message,
+                "sentAt": now[:16].replace("T", " ") + " UTC", "caName": item.get("assignedCa"), "attachmentNames": [s["filename"] for s in stored]})
+    subject, _ = BUILDERS["service_message"](ctx)
+    res = await send("service_message", to, ctx, cc=cc, reply_to=sender_email or ADMIN_EMAIL, attachments=payload or None)
+    if not res.get("sent"):
+        await db.service_files.delete_many({"id": {"$in": [s["id"] for s in stored]}})
+        raise HTTPException(status_code=400, detail=f"Email could not be sent: {res.get('error') or res.get('reason') or 'unknown error'}")
+    who = sender_email or sender_name
+    activity = {"at": now, "by": who, "byName": sender_name, "role": sender_role, "kind": "message", "to": to, "cc": cc,
+                "subject": subject, "text": message, "attachments": stored, "providerId": res.get("id")}
+    await db.service_requests.update_one({"id": item["id"]}, {"$set": {"updatedAt": now, "updatedBy": who, "lastMessageAt": now}, "$push": {
+        "emailActivity": activity, "history": {"at": now, "by": who, "changes": [f"message emailed to customer with {len(stored)} attachment(s)" if stored else "message emailed to customer"]}}})
+    return {"ok": True, "to": to, "cc": cc, "item": await db.service_requests.find_one({"id": item["id"]}, {"_id": 0})}
+
+
+@router.post("/staff/service-requests/{req_id}/email-customer-files")
+async def staff_email_customer_files(req_id: str, message: str = Form(""), extraCc: str = Form(""),
+                                     files: List[UploadFile] = File(default=[]), ident: dict = Depends(require_staff)):
+    if not has_perm(ident, "service_requests.email_customer"):
+        raise HTTPException(status_code=403, detail="Not allowed")
+    item = await _staff_item(req_id, ident)
+    role = "admin" if ident.get("is_main") else "CA"
+    cc = [x for x in re.split(r"[,;\s]+", extraCc or "") if x]
+    return await _send_with_files(item, message, cc, files, _staff_name(ident), ident.get("email"), role)
+
+
+@router.get("/staff/service-requests/{req_id}/files/{file_id}")
+async def staff_download_file(req_id: str, file_id: str, ident: dict = Depends(require_staff)):
+    await _staff_item(req_id, ident)
+    doc = await db.service_files.find_one({"id": file_id, "requestId": req_id}, {"_id": 0})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    return Response(content=base64.b64decode(doc["data"]), media_type=doc.get("contentType") or "application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="{doc["filename"]}"'})
