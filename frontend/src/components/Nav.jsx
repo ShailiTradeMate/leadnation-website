@@ -4,7 +4,7 @@ import {
   Globe, Compass, Newspaper, CalendarBlank, Phone, List, X,
   GraduationCap, Calculator, ChartLine, MapPin, CaretDown, Brain,
   Package, ArrowsLeftRight, BookOpen, ShoppingBag, UsersThree,
-  Briefcase, AddressBook, MagnifyingGlass, UserCircle, Tag, ShieldCheck, BellRinging,
+  Briefcase, AddressBook, MagnifyingGlass, UserCircle, Tag, ShieldCheck, SealCheck, BellRinging,
 } from "@phosphor-icons/react";
 import { trackEvent } from "@/lib/analytics";
 import { useSettings } from "@/lib/SettingsContext";
@@ -89,6 +89,12 @@ export default function Nav({ active = "/" }) {
   const navigate = useNavigate();
   const { settings } = useSettings();
   const { isAuthed } = useAuth();
+  const [vstatus, setVstatus] = React.useState(null);
+  useEffect(() => {
+    if (!isAuthed) { setVstatus(null); return; }
+    api.get("/verify/state").then((r) => setVstatus(r.data?.verification_status || "unverified")).catch(() => {});
+  }, [isAuthed, active]);
+  const isVerified = vstatus === "verified";
 
   const allowed = (to) => {
     const f = ROUTE_FEATURE[to];
@@ -100,7 +106,7 @@ export default function Nav({ active = "/" }) {
     .filter((m) => m.items.length > 0);
   const mobileLinks = [
     { to: isAuthed ? '/account' : '/login', label: isAuthed ? 'My account' : 'Sign in', icon: UserCircle },
-    ...(isAuthed ? [{ to: '/verify', label: 'Get Verified', icon: ShieldCheck }] : []),
+    ...(isAuthed ? [{ to: '/verify', label: isVerified ? 'Verified' : 'Get Verified', icon: ShieldCheck }] : []),
     ...primary, { to: "/contact", label: "Contact", icon: Phone },
   ];
 
@@ -184,8 +190,13 @@ export default function Nav({ active = "/" }) {
             <Link to="/search" data-testid="nav-search" aria-label="Search" className="hidden sm:grid place-items-center w-9 h-9 rounded-full hover:bg-white/5 text-slate-300 hover:text-white">
               <MagnifyingGlass size={16} weight="bold" />
             </Link>
-            {isAuthed && <Link to="/verify" data-testid="nav-get-verified"
-              className="!hidden md:!inline-flex items-center gap-1.5 btn-ghost !py-2 !px-4 text-[12px] !border-emerald-400/30 !text-emerald-200 hover:!bg-emerald-500/10"><ShieldCheck size={15} weight="fill" /> Get Verified</Link>}
+            {isAuthed && (isVerified ? (
+              <Link to="/verify" data-testid="nav-verified"
+                className="!hidden md:!inline-flex items-center gap-1.5 btn-ghost !py-2 !px-4 text-[12px] !border-emerald-400/40 !text-emerald-200 !bg-emerald-500/10 hover:!bg-emerald-500/15"><SealCheck size={15} weight="fill" /> Verified</Link>
+            ) : (
+              <Link to="/verify" data-testid="nav-get-verified"
+                className="!hidden md:!inline-flex items-center gap-1.5 btn-ghost !py-2 !px-4 text-[12px] !border-emerald-400/30 !text-emerald-200 hover:!bg-emerald-500/10"><ShieldCheck size={15} weight="fill" /> Get Verified</Link>
+            ))}
             <button data-testid="nav-cta-account" aria-label={isAuthed ? "My account" : "Sign in"} onClick={() => { navigate(isAuthed ? "/account" : "/login"); }}
               className="!hidden sm:!inline-flex btn-ghost !py-2 !px-4 text-[12px] gap-1.5"><UserCircle size={15} weight="duotone" />{isAuthed ? "Account" : "Sign in"}</button>
             <button data-testid="nav-cta-explore" onClick={() => { trackEvent("explore_platform_click", { location: "nav" }); navigate("/tools"); }}
