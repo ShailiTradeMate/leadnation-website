@@ -504,3 +504,33 @@ Googlebot measured 12.6s TTFB on `/export/agarbatti/to/bangladesh` and a 60s tim
 Measured with OEC simulated blocked: first call 13.7s (8s of it is the call that trips the breaker),
 later cold HS codes 3.8–7.2s, repeat call **0.23s**, no 429s. Testing agent iterations 84 and 85 both
 pass, including exactly one Comtrade fetch per cold HS code and the correct (complete) year.
+
+### 31 Oct 2026 (late) — real root cause of the 157-URL production sitemap
+Production egress is NOT the blocker any more: `/api/trade-intel/egress-check` and a forced
+`stats?hs=330741` both reach OEC from the prod pod. The deployer RCA
+(`/app/deployer-agent-docs/RCA_31100064-….MD`) + our own digging found four code problems:
+1. `seo_pages.matrix()` rebuilt the 440-row matrix INLINE on a cold cache → hung past the ~100s
+   edge timeout, so `seo_matrix_cache` was never written in prod and the sitemap sections
+   (product-country / regions / answers) timed out every time → 157 URLs.
+2. `duty_engine.start_scheduler()` ran `refresh_all()` **1 minute after every boot** and that did
+   `duty_cache.delete_many({})` — every redeploy wiped the WITS tariff cache, so export guides and
+   the matrix were cold again (this is also why Googlebot saw 12s+ pages).
+3. `_warm_matrix_cache` ran on both production replicas (tier_0, 250m CPU) at once.
+4. k8s probes hit `/health` → 404.
+Fixes (preview-tested, iteration_86 22/22 real passes):
+- `matrix()` is cache-only; cold/stale/partial cache → background `rebuild_matrix()` guarded by a
+  Mongo lease lock (`db.seo_locks`, 6-min lease renewed every flush) + per-process set; rows are
+  flushed every 40 completions and old rows are carried over so the published set never shrinks.
+- `POST /api/seo/matrix/rebuild` (admin, `?wait=true` optional), `GET /api/seo/warm-status.matrix`.
+- `POST /api/seo/cache-import` / `GET /api/seo/cache-export` (admin; whitelisted
+  seo_matrix_cache / seo_page_cache / duty_cache / trade_cache) + `/app/memory/seed_prod_caches.py`
+  to seed a cold production DB from preview right after publish.
+- `duty_engine.refresh_if_due()` every 12h: only when 7 days elapsed, only prunes entries past TTL.
+  Manual admin refresh still does the full wipe. WITS client timeout 20s → 12s.
+- `/health` + `/api/health`; egress-check uses `core.ADMIN_TOKEN` (prod has no ADMIN_TOKEN env →
+  default value; user should set a real ADMIN_TOKEN secret in production).
+- Prod DB is `vametra-whatsapp-test_database` (platform-managed, persistent, different from preview
+  Atlas `leadnation` by design) — caches there are cold until seeded/warmed.
+Preview full rebuild measured: 440 rows / 392 indexable in 1632s with a partly cold duty cache.
+NEXT: publish → run `python3 /app/memory/seed_prod_caches.py https://vametra.com <token>` →
+verify prod sitemap ≈975 → testing agent against production → GSC "Validate fix".

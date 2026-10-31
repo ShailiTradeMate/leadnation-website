@@ -1,0 +1,33 @@
+{
+  "summary": "Backend-only test of the SEO matrix/sitemap resilience fixes, run against the external preview URL. 24 pytest cases: 22 passed on the first run. The 2 failures were not code bugs. (a) The first /api/health call timed out because creating the new test file under /app/backend/tests made uvicorn --reload restart the backend at 21:59:42. Every /api/health call after that returned 200 {ok:true} in about 0.1s. (b) The external GET /health returns the React index.html, because the preview ingress sends any path without /api to the frontend. The backend itself returns 200 {ok:true} on localhost:8001/health and /api/health. Verified: sitemap.xml returns 200 in 4.1s with 975 <loc>, no duplicates, and includes /export/../to/.., /regions/.. and /api/answers/html/.. URLs. Matrix limit=5 returns in 0.36s with partial:false before the rebuild. min_score=70 gives 392 indexable. warm-status returns 403 without a token; with a token, before the rebuild it showed rows 440, indexable 392, partial false, buildingHere false, lockUntil null. matrix/rebuild returns 403 with no token or a wrong token; with the token it returns {ok:true, started:true} in under 5s, and right after that buildingHere is true and lockUntil is set. A second call with wait=true returns quickly with {ok:false, skipped:'already building on this replica'}. During the build, sitemap still has 975 URLs and the matrix stays fast (0.36s, partial/stale/building true, still 440 rows / 392 indexable carried over). cache-export returns 403 with no token, 400 for users, and 200 for duty_cache with string _id (total 880). cache-import returned written:2 and re-import is idempotent (export unchanged afterwards); users gives 400, wrong token gives 403. egress-check returns 403 with no token; with the token oec, comtrade and control_wits all return status 200. trade-intel/status returns ok:true, comtradeEnabled:true, oecSkippedUntil:null. stats?hs=330741 returns ok:true with sourceKey oec in 0.34s. page-data for rows[0] and for agarbatti/bangladesh returns 200. Fix (2) was also seen working live: after the accidental reload, refresh_if_due did not wipe the cache (duty_cache stayed at 880 and no 'Duty & Benefits data refreshed' log line after boot). A background matrix rebuild started at about 22:00 UTC is still running (about 25 minutes, by design).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /health (external URL)", "issue": "In preview the ingress sends /health to the frontend, which returns HTML. The backend route itself works (localhost:8001/health gives 200 {ok:true}). Make sure the prod k8s probe hits the pod port 8001 directly; if it goes through the ingress, use /api/health."},
+      {"endpoint": "seo_pages.rebuild_matrix final flush", "issue": "The guard that keeps the previous snapshot only applies when a rebuild has 0 indexable rows. A partial outage (for example WITS failing for half the rows) can still shrink the published sitemap set on the final flush. Consider keeping the previous snapshot when the indexable count falls well below the previous count (e.g. more than 20%)."},
+      {"endpoint": "seo_pages.rebuild_matrix", "issue": "asyncio.gather(*tasks) runs without return_exceptions. One row raising in _duty_section, _buyer_section, _expo_section or _news_section aborts the whole build, leaving a partial:true doc behind; the next GET /matrix then reschedules the full ~25 minute build."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_seo_matrix_resilience_iter86.py", "/app/test_reports/pytest/pytest_iter86.xml"],
+  "action_items": [
+    "Optional: confirm the production liveness/readiness probes target the pod's port 8001 at /health (or /api/health if they go through the ingress).",
+    "Optional: guard the final matrix flush against a large drop in indexable rows, not only a drop to zero.",
+    "Optional: use asyncio.gather(..., return_exceptions=True) or a try/except per row in rebuild_matrix.",
+    "Optional: make admin checks consistent. warm_status, warm-pages, warm-prerender, refresh-all and seo.py lines 243/259 still use os.environ.get('ADMIN_TOKEN', 'leadnation-admin-2026'), as does core.py line 19. That hardcoded fallback token is a security risk if the env var is ever missing."
+  ],
+  "critical_code_review_comments": [
+    "duty_engine.py is correct: start_scheduler schedules refresh_if_due (runs when 7 days have passed since lastRefresh), and refresh_all(force=False) deletes only entries whose 'at' is older than CACHE_TTL_DAYS. Only manual force=True does a blanket delete_many({}).",
+    "_acquire_matrix_lock fails open (returns True) on a Mongo exception. That is acceptable for availability, but both replicas could build at once if Mongo errors.",
+    "The lock lease is 6 minutes, renewed every 40-row flush (about 2.5 minutes per 40 rows at the observed pace), so the margin is fine.",
+    "While a partial doc exists, every GET /matrix calls _schedule_matrix_rebuild. That is harmless (it skips via the single-flight set or the lock) but creates a task per request.",
+    "cache_export stringifies _id. duty_cache _ids are already strings, but importing a collection that uses ObjectId _ids would create duplicates with string _ids. jsonable_encoder also turns datetime fields into strings."
+  ],
+  "updated_files": ["/app/backend/tests/test_seo_matrix_resilience_iter86.py (new test file; creating it triggered one uvicorn reload at 21:59:42 UTC, before any rebuild was running)"],
+  "success_rate": {"backend": "100% of the requested functionality (22/24 raw; the 2 failures were the reload timing and the preview routing of /health)", "frontend": "not tested"},
+  "seed_data_creation": "None. The 2 duty_cache docs were re-imported unchanged.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Run TestZRebuild last: it starts a ~25 minute background rebuild, and while it runs the matrix shows partial:true, so TestMatrix and TestWarmStatus fail by design. Do not create or edit files under /app/backend while a rebuild is running, because uvicorn --reload would kill it. External /health goes to the frontend in preview.",
+  "test_credentials": "Uses ADMIN_TOKEN from /app/backend/.env as the X-Admin-Token header."
+}
