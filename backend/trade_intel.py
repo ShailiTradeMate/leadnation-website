@@ -35,6 +35,23 @@ HS_MAP_COLL = db.trade_hs_map
 CACHE_TTL_DAYS = 14
 TOP_N = 12
 
+# Circuit breaker: when OEC is unreachable (blocked egress IP in production), every page build
+# would otherwise burn the full httpx timeout before falling back. One failure parks OEC for a
+# few minutes so the keyed source answers immediately.
+OEC_COOLDOWN_MIN = 10
+_OEC_DOWN_UNTIL = None
+
+
+def _oec_down() -> bool:
+    return _OEC_DOWN_UNTIL is not None and _now() < _OEC_DOWN_UNTIL
+
+
+def _mark_oec_down(exc):
+    global _OEC_DOWN_UNTIL
+    _OEC_DOWN_UNTIL = _now() + timedelta(minutes=OEC_COOLDOWN_MIN)
+    logging.warning("OEC unreachable (%r) — skipping it for %s min, using UN Comtrade",
+                    exc, OEC_COOLDOWN_MIN)
+
 _HS_MAP: dict = {}  # "330741" -> {"id": 6330741, "desc": "Agarbatti..."}
 
 
@@ -186,13 +203,15 @@ async def _oec_query(cx, drilldowns, hs_id, year=None):
 
 
 async def _oec_stats(hs6: str):
+    if _oec_down():
+        return None
     mp = await _load_hs_map()
     meta = mp.get(hs6)
     if not meta:
         return None
     hs_id, desc = meta["id"], meta["desc"]
     try:
-        async with httpx.AsyncClient(timeout=20) as cx:
+        async with httpx.AsyncClient(timeout=8) as cx:
             trend_rows = await _oec_query(cx, "Year", hs_id)
             if not trend_rows:
                 return None
@@ -204,7 +223,7 @@ async def _oec_stats(hs6: str):
             imp = await _oec_query(cx, "Importer Country", hs_id, latest)
             exp = await _oec_query(cx, "Exporter Country", hs_id, latest)
     except Exception as exc:
-        logging.warning("OEC stats failed for %s: %s", hs6, exc)
+        _mark_oec_down(exc)
         return None
 
     def top(rows, label):
@@ -268,8 +287,8 @@ async def _comtrade_imports(cx, hs6: str):
         rows = await _comtrade_call(cx, "M", hs6, y)
         if rows:
             years[y] = rows
-        if len(rows or []) >= 150:
-            break  # a full year of reporters — no need to look further back
+        if len(rows or []) >= 140:
+            break  # enough reporters for a representative year — don't pay for more
     if not years:
         return None, None
     best = max(len(r) for r in years.values())
@@ -278,44 +297,22 @@ async def _comtrade_imports(cx, hs6: str):
 
 
 async def _comtrade_stats(hs6: str):
+    """Reuses the cached Comtrade importer table instead of re-downloading it — one multi-MB
+    fetch per HS code, not one per caller. Exporters are skipped in fallback mode."""
     if not COMTRADE_KEY:
         return None
-    try:
-        async with httpx.AsyncClient(timeout=25) as cx:
-            imp, used_year = await _comtrade_imports(cx, hs6)
-            if not imp or used_year is None:
-                return None
-            exp = await _comtrade_call(cx, "X", hs6, used_year) or []
-    except Exception as exc:
-        logging.warning("Comtrade stats failed for %s: %s", hs6, exc)
+    table = await importer_table(hs6)
+    if not table or table.get("source") != "UN Comtrade" or not table.get("rows"):
         return None
-
-    def rows_to_top(rows):
-        agg = {}
-        for r in rows or []:
-            val = r.get("primaryValue") or 0
-            name = _m49_name(r.get("reporterCode"), r.get("reporterDesc"))
-            if val <= 0 or not name or name == "World":
-                continue
-            agg[name] = max(agg.get(name, 0), round(val, 2))
-        clean = [{"country": n, "value": v} for n, v in agg.items()]
-        clean.sort(key=lambda x: x["value"], reverse=True)
-        return clean
-
-    importers = rows_to_top(imp)
-    exporters = rows_to_top(exp or [])
-    total = sum(i["value"] for i in importers)
-    for i in importers:
-        i["share"] = round(100 * i["value"] / total, 1) if total else 0
-
     return {
         "source": "UN Comtrade",
         "sourceKey": "comtrade",
-        "year": used_year,
+        "year": table["year"],
         "description": "",
-        "totalWorldTradeUSD": round(total, 2),
-        "topImporters": importers[:TOP_N],
-        "topExporters": exporters[:TOP_N],
+        "totalWorldTradeUSD": round(table["total"], 2),
+        "topImporters": [{"country": r["country"], "value": r["value"],
+                          "share": round(r["share"], 1)} for r in table["rows"][:TOP_N]],
+        "topExporters": [],
         "trend": [],
     }
 
@@ -375,7 +372,8 @@ async def trade_stats(hs: str, force: bool = False):
 async def status():
     mp = await _load_hs_map()
     return {"ok": True, "comtradeEnabled": bool(COMTRADE_KEY),
-            "alwaysOn": "OEC World", "hsCodesIndexed": len(mp)}
+            "alwaysOn": "OEC World", "hsCodesIndexed": len(mp),
+            "oecSkippedUntil": _OEC_DOWN_UNTIL.isoformat() if _oec_down() else None}
 
 
 @router.get("/hs-search")
@@ -438,13 +436,14 @@ async def importer_table(hs6: str, force: bool = False):
             return cached["result"]
     rows = None
     try:
-        async with httpx.AsyncClient(timeout=30, follow_redirects=True) as cx:
-            years = await _oec_query(cx, "Year", meta["id"])
-            if years:
-                latest = max(int(r["Year"]) for r in years)
-                rows = await _oec_query(cx, "Importer Country", meta["id"], latest)
+        if not _oec_down():
+            async with httpx.AsyncClient(timeout=8, follow_redirects=True) as cx:
+                years = await _oec_query(cx, "Year", meta["id"])
+                if years:
+                    latest = max(int(r["Year"]) for r in years)
+                    rows = await _oec_query(cx, "Importer Country", meta["id"], latest)
     except Exception as exc:
-        logging.warning("OEC importer table failed for %s: %s", hs6, exc)
+        _mark_oec_down(exc)
     if not rows:
         result = await _comtrade_importer_table(hs6)
         if not result:
