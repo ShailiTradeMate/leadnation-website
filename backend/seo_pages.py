@@ -19,8 +19,9 @@ import logging
 from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi.encoders import jsonable_encoder
 
-from core import db
+from core import db, ADMIN_TOKEN
 import duty_engine
 import trade_intel
 
@@ -497,6 +498,13 @@ async def warm_status(x_admin_token: str = Header(default=None)):
     out["pageCache"] = {"entries": len(ages), "expected": len(PRODUCTS) * len(COUNTRIES),
                         "oldestHours": round(max(ages) / 3600, 1) if ages else None,
                         "staleOverTtl": sum(1 for a in ages if a >= PAGE_CACHE_TTL)}
+    m = await db.seo_matrix_cache.find_one({"_id": "matrix:all:all"})
+    lock = await db.seo_locks.find_one({"_id": "lock:matrix:all:all"})
+    out["matrix"] = {"cachedAt": (m or {}).get("at"), "rows": len((m or {}).get("rows", [])),
+                     "indexable": sum(1 for r in (m or {}).get("rows", []) if r.get("indexable")),
+                     "partial": bool((m or {}).get("partial")),
+                     "buildingHere": "matrix:all:all" in _matrix_building,
+                     "lockUntil": (lock or {}).get("until")}
     return out
 
 
@@ -538,25 +546,94 @@ async def facts():
     return data
 
 
-@router.get("/matrix")
-async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
-                 region: str = None, limit: int = 400, force: bool = False):
-    """Score every allowed product x country combination — drives publishing decisions
-    and feeds the sitemap (only indexable rows are ever submitted). Cached 24h."""
-    import asyncio
-    if not isinstance(min_score, int):  # called directly (warmers, cold-cache fallbacks)
-        min_score = 0
-    cache_id = f"matrix:{product or 'all'}:{region or 'all'}"
-    if not force:
-        cached = await db.seo_matrix_cache.find_one({"_id": cache_id})
-        if cached and (datetime.now(timezone.utc)
-                       - datetime.fromisoformat(cached["at"])).total_seconds() < 86400:
-            rows = [r for r in cached["rows"] if r["dataScore"] >= min_score][:limit]
-            return {"count": len(rows), "indexable": sum(1 for r in rows if r["indexable"]),
-                    "cachedAt": cached["at"], "rows": rows}
+MATRIX_TTL = 86400
+MATRIX_LOCK_MINUTES = 6  # short lease, renewed every flush — a dead builder frees it fast
+_matrix_building: set = set()
 
-    prods = [product] if product else list(PRODUCTS)
+
+def _matrix_age(doc) -> float:
+    return (datetime.now(timezone.utc) - datetime.fromisoformat(doc["at"])).total_seconds()
+
+
+def _matrix_payload(doc, min_score: int, limit: int, **extra):
+    rows = [r for r in doc["rows"] if r["dataScore"] >= min_score][:limit]
+    return {"count": len(rows), "indexable": sum(1 for r in rows if r["indexable"]),
+            "cachedAt": doc["at"], "partial": bool(doc.get("partial")), "rows": rows, **extra}
+
+
+async def _acquire_matrix_lock(cache_id: str) -> bool:
+    """Cross-replica lease: production runs 2 pods and both used to rebuild at boot."""
+    now = datetime.now(timezone.utc)
+    try:
+        res = await db.seo_locks.find_one_and_update(
+            {"_id": f"lock:{cache_id}",
+             "$or": [{"until": {"$exists": False}}, {"until": {"$lt": now.isoformat()}}]},
+            {"$set": {"until": (now + timedelta(minutes=MATRIX_LOCK_MINUTES)).isoformat()}},
+            upsert=False)
+        if res is None:
+            exists = await db.seo_locks.find_one({"_id": f"lock:{cache_id}"})
+            if exists:
+                return False
+            await db.seo_locks.insert_one(
+                {"_id": f"lock:{cache_id}",
+                 "until": (now + timedelta(minutes=MATRIX_LOCK_MINUTES)).isoformat()})
+        return True
+    except Exception as exc:
+        logger.warning("matrix lock %s: %s", cache_id, exc)
+        return True
+
+
+async def _renew_matrix_lock(cache_id: str):
+    try:
+        await db.seo_locks.update_one(
+            {"_id": f"lock:{cache_id}"},
+            {"$set": {"until": (datetime.now(timezone.utc)
+                                + timedelta(minutes=MATRIX_LOCK_MINUTES)).isoformat()}})
+    except Exception:
+        pass
+
+
+async def _release_matrix_lock(cache_id: str):
+    try:
+        await db.seo_locks.delete_one({"_id": f"lock:{cache_id}"})
+    except Exception:
+        pass
+
+
+async def rebuild_matrix(product: str = None, region: str = None) -> dict:
+    """Full recompute of the product x country matrix, persisted incrementally so a pod
+    restart or a severed request never throws away the rows already scored."""
+    cache_id = f"matrix:{product or 'all'}:{region or 'all'}"
+    if cache_id in _matrix_building:
+        return {"ok": False, "skipped": "already building on this replica"}
+    if not await _acquire_matrix_lock(cache_id):
+        return {"ok": False, "skipped": "another replica holds the build lock"}
+    _matrix_building.add(cache_id)
+    started = datetime.now(timezone.utc)
+    prev = await db.seo_matrix_cache.find_one({"_id": cache_id})
+    prev_rows = [r for r in (prev or {}).get("rows", []) if r.get("indexable")]
     sem = asyncio.Semaphore(8)
+    done: list = []
+
+    async def flush(final: bool):
+        done_urls = {r["url"] for r in done}
+        rows = list(done)
+        if not final:  # never shrink the published set mid-build — carry the old rows over
+            rows += [r for r in (prev or {}).get("rows", []) if r.get("url") not in done_urls]
+            await _renew_matrix_lock(cache_id)
+        rows.sort(key=lambda r: (-r["dataScore"], -(r["countryImportsUSD"] or 0)))
+        if not any(r["indexable"] for r in rows):
+            if final and prev_rows:
+                # A trade-data outage makes every row fail the gate; never let that overwrite
+                # a good snapshot — it would silently drop ~800 URLs from the live sitemap.
+                logger.warning("SEO matrix rebuild had 0 indexable rows (trade data unavailable)"
+                               " — keeping previous snapshot of %s indexable rows from %s",
+                               len(prev_rows), prev.get("at"))
+            return
+        await db.seo_matrix_cache.replace_one(
+            {"_id": cache_id},
+            {"_id": cache_id, "rows": rows, "at": datetime.now(timezone.utc).isoformat(),
+             "partial": not final, "builtRows": len(rows)}, upsert=True)
 
     async def row(ps, p, cs, c, demand):
         async with sem:
@@ -571,7 +648,7 @@ async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
                 except Exception:
                     d_country = None
             score = _score(duty, demand, buyers, expos, news)
-            return {
+            done.append({
                 "url": f"/export/{ps}/to/{cs}", "product": ps, "country": cs,
                 "region": c["region"], "dataScore": score,
                 "indexable": bool(score >= INDEX_THRESHOLD and duty and demand),
@@ -579,37 +656,111 @@ async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
                 "countryImportsUSD": (d_country or {}).get("countryImportsUSD"),
                 "countryRank": (d_country or {}).get("countryRank"),
                 "buyers": (buyers or {}).get("total", 0),
-            }
+            })
+            if len(done) % 40 == 0:
+                await flush(final=False)
 
-    tasks = []
-    for ps in prods:
-        p = PRODUCTS.get(ps)
-        if not p:
-            continue
-        demand = await _demand_section(p["primaryHs"], "")
-        for cs, c in COUNTRIES.items():
-            if (region and c["region"] != region) or c["code"] == INDIA:
+    try:
+        tasks = []
+        for ps in ([product] if product else list(PRODUCTS)):
+            p = PRODUCTS.get(ps)
+            if not p:
                 continue
-            tasks.append(row(ps, p, cs, c, demand))
-    out = [r for r in await asyncio.gather(*tasks, return_exceptions=False)]
-    out.sort(key=lambda r: (-r["dataScore"], -(r["countryImportsUSD"] or 0)))
-    # A trade-data outage makes every row fail the gate; never let that overwrite a good
-    # snapshot — it would silently drop ~800 URLs from the live sitemap.
-    if not any(r["indexable"] for r in out):
-        prev = await db.seo_matrix_cache.find_one({"_id": cache_id})
-        prev_rows = [r for r in (prev or {}).get("rows", []) if r.get("indexable")]
-        if prev_rows:
-            logger.warning("SEO matrix rebuild had 0 indexable rows (trade data unavailable) — "
-                           "keeping previous snapshot of %s indexable rows from %s",
-                           len(prev_rows), prev.get("at"))
-            rows = [r for r in prev["rows"] if r["dataScore"] >= min_score][:limit]
-            return {"count": len(rows), "indexable": sum(1 for r in rows if r["indexable"]),
-                    "cachedAt": prev.get("at"), "stale": True, "rows": rows}
-    await db.seo_matrix_cache.replace_one(
-        {"_id": cache_id},
-        {"_id": cache_id, "rows": out, "at": datetime.now(timezone.utc).isoformat()}, upsert=True)
-    rows = [r for r in out if r["dataScore"] >= min_score][:limit]
-    return {"count": len(rows), "indexable": sum(1 for r in rows if r["indexable"]), "rows": rows}
+            demand = await _demand_section(p["primaryHs"], "")
+            for cs, c in COUNTRIES.items():
+                if (region and c["region"] != region) or c["code"] == INDIA:
+                    continue
+                tasks.append(row(ps, p, cs, c, demand))
+        await asyncio.gather(*tasks)
+        await flush(final=True)
+        secs = round((datetime.now(timezone.utc) - started).total_seconds(), 1)
+        logger.info("SEO matrix %s rebuilt: %s rows, %s indexable in %ss", cache_id, len(done),
+                    sum(1 for r in done if r["indexable"]), secs)
+        return {"ok": True, "rows": len(done), "indexable": sum(1 for r in done if r["indexable"]),
+                "seconds": secs}
+    finally:
+        _matrix_building.discard(cache_id)
+        await _release_matrix_lock(cache_id)
+
+
+def _schedule_matrix_rebuild(product=None, region=None):
+    try:
+        asyncio.get_running_loop().create_task(rebuild_matrix(product, region))
+    except RuntimeError:
+        pass
+
+
+@router.get("/matrix")
+async def matrix(min_score: int = Query(0, ge=0, le=100), product: str = None,
+                 region: str = None, limit: int = 400, force: bool = False):
+    """Score every allowed product x country combination — drives publishing decisions
+    and feeds the sitemap (only indexable rows are ever submitted). Served from the 24h
+    cache only; a cold or stale cache is rebuilt in the background (a cold rebuild is
+    440 rows of tariff + trade lookups and far exceeds any edge/proxy timeout)."""
+    if not isinstance(min_score, int):  # called directly (warmers, cold-cache fallbacks)
+        min_score = 0
+    cache_id = f"matrix:{product or 'all'}:{region or 'all'}"
+    if force:
+        report = await rebuild_matrix(product, region)
+        if not report.get("ok"):
+            return {"count": 0, "indexable": 0, "rows": [], **report}
+    cached = await db.seo_matrix_cache.find_one({"_id": cache_id})
+    if cached and not cached.get("partial") and _matrix_age(cached) < MATRIX_TTL:
+        return _matrix_payload(cached, min_score, limit)
+    if not force:
+        _schedule_matrix_rebuild(product, region)
+    if cached:  # stale or partial but real — serve it rather than block
+        return _matrix_payload(cached, min_score, limit, stale=True, building=True)
+    return {"count": 0, "indexable": 0, "rows": [], "building": True}
+
+
+@router.post("/matrix/rebuild")
+async def matrix_rebuild_now(x_admin_token: str = Header(default=None), wait: bool = False):
+    """Admin: start a matrix rebuild on this replica (background unless wait=true)."""
+    if x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="admin only")
+    if wait:
+        return await rebuild_matrix()
+    _schedule_matrix_rebuild()
+    return {"ok": True, "started": True}
+
+
+IMPORTABLE_CACHES = ("seo_matrix_cache", "seo_page_cache", "duty_cache", "trade_cache")
+
+
+@router.post("/cache-import")
+async def cache_import(payload: dict, x_admin_token: str = Header(default=None)):
+    """Admin: seed a cold deployment's SEO caches from a warm one (same schema, same code)
+    so the sitemap and export guides are complete minutes after a DB switch, not hours."""
+    if x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="admin only")
+    coll = payload.get("collection")
+    docs = payload.get("docs") or []
+    if coll not in IMPORTABLE_CACHES or not isinstance(docs, list):
+        raise HTTPException(status_code=400, detail="collection must be one of %s" % (IMPORTABLE_CACHES,))
+    written = 0
+    for doc in docs:
+        if not isinstance(doc, dict) or "_id" not in doc:
+            continue
+        await db[coll].replace_one({"_id": doc["_id"]}, doc, upsert=True)
+        written += 1
+    return {"ok": True, "collection": coll, "written": written}
+
+
+@router.get("/cache-export")
+async def cache_export(collection: str, skip: int = 0, limit: int = 50,
+                       x_admin_token: str = Header(default=None)):
+    """Admin: page through a cache collection (feeds /cache-import on another deployment)."""
+    if x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="admin only")
+    if collection not in IMPORTABLE_CACHES:
+        raise HTTPException(status_code=400, detail="collection must be one of %s" % (IMPORTABLE_CACHES,))
+    docs = await db[collection].find({}).skip(skip).limit(min(limit, 100)).to_list(100)
+    for d in docs:
+        d["_id"] = str(d["_id"])
+    total = await db[collection].count_documents({})
+    return {"collection": collection, "total": total, "skip": skip,
+            "docs": jsonable_encoder(docs)}
 
 
 @router.post("/warm-pages")
@@ -889,7 +1040,8 @@ async def _approved_rows():
     cached = await db.seo_matrix_cache.find_one({"_id": "matrix:all:all"})
     if not cached:
         built = await matrix(limit=1000)
-        return [r for r in built["rows"] if r["indexable"]], built["generatedAt"]
+        return ([r for r in built["rows"] if r["indexable"]],
+                built.get("cachedAt") or datetime.now(timezone.utc).isoformat())
     return [r for r in cached["rows"] if r.get("indexable")], cached["at"]
 
 

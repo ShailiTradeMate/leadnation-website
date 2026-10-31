@@ -112,7 +112,7 @@ async def _wits_obs(reporter, partner, hs6):
     """Return (rate%, tariffType, year) for the latest year with data, or None."""
     this_year = _now().year
     years = [this_year - y for y in range(2, 8)]  # WITS lags ~2yr; cap window for latency
-    async with _wits_gate(), httpx.AsyncClient(timeout=20) as cx:
+    async with _wits_gate(), httpx.AsyncClient(timeout=12) as cx:
         for yr in years:
             url = f"{WITS_BASE}/reporter/{reporter}/partner/{partner}/product/{hs6}/year/{yr}/datatype/reported"
             try:
@@ -236,10 +236,15 @@ async def get_meta():
     return doc
 
 
-async def refresh_all():
-    """Weekly job + manual: clear stale tariff cache, reseed RoDTEP, restamp."""
+async def refresh_all(force: bool = True):
+    """Weekly job + manual: drop tariff entries past their TTL, reseed RoDTEP, restamp.
+    Never a blanket wipe on the schedule — it used to empty the WITS cache 1 min after
+    every boot, so each redeploy made the export guides and sitemap cold again."""
     try:
-        await CACHE.delete_many({})
+        if force:
+            await CACHE.delete_many({})
+        else:
+            await CACHE.delete_many({"at": {"$lt": (_now() - timedelta(days=CACHE_TTL_DAYS)).isoformat()}})
         await seed_rodtep(force=True)
         stamp = {"lastRefresh": _now().isoformat(),
                  "nextRefresh": (_now() + timedelta(days=REFRESH_DAYS)).isoformat(),
@@ -252,6 +257,14 @@ async def refresh_all():
         return await get_meta()
 
 
+async def refresh_if_due():
+    meta = await get_meta()
+    last = meta.get("lastRefresh")
+    if last and (_now() - datetime.fromisoformat(last)).days < REFRESH_DAYS:
+        return meta
+    return await refresh_all(force=False)
+
+
 _scheduler = None
 
 
@@ -262,7 +275,7 @@ def start_scheduler():
     try:
         from apscheduler.schedulers.asyncio import AsyncIOScheduler
         _scheduler = AsyncIOScheduler(timezone="UTC")
-        _scheduler.add_job(refresh_all, "interval", days=REFRESH_DAYS, id="duty_refresh",
+        _scheduler.add_job(refresh_if_due, "interval", hours=12, id="duty_refresh",
                            next_run_time=_now() + timedelta(minutes=1))
         try:
             import event_listings

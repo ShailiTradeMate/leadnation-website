@@ -49,6 +49,12 @@ api_router.include_router(vbie_admin.notif_router)
 
 app.include_router(api_router)
 
+
+@app.get("/health")
+@app.get("/api/health")
+async def health():
+    return {"ok": True}
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

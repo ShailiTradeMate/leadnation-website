@@ -19,7 +19,7 @@ from datetime import datetime, timezone, timedelta
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Query
 
-from core import db
+from core import db, ADMIN_TOKEN
 
 router = APIRouter(prefix="/trade-intel")
 
@@ -488,7 +488,7 @@ async def importer_detail(hs6: str, country_name: str):
 async def egress_check(x_admin_token: str = Header(default=None)):
     """Admin: what can this pod actually reach? Deployed pods share an outbound IP, so a data
     source can work in preview and be blocked in production. Returns status/latency per host."""
-    if x_admin_token != os.environ.get("ADMIN_TOKEN", ""):
+    if x_admin_token != ADMIN_TOKEN:
         raise HTTPException(status_code=403, detail="admin only")
     targets = {
         "oec": f"{OEC_BASE}/members?cube={OEC_CUBE}&level=HS6",

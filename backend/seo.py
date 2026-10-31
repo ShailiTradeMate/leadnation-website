@@ -343,8 +343,8 @@ async def _warm_matrix_cache():
     """Keep the product x country matrix cache fresh so region hubs never build on a user request."""
     try:
         import seo_pages
-        out = await seo_pages.matrix(limit=1000, force=True)
-        logger.info("SEO matrix cache warmed: %s rows, %s indexable", out["count"], out["indexable"])
+        out = await seo_pages.rebuild_matrix()
+        logger.info("SEO matrix cache warmed: %s", out)
     except Exception as exc:
         logger.warning("SEO matrix warm failed: %s", exc)
 
