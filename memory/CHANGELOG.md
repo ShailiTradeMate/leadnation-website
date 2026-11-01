@@ -534,3 +534,22 @@ Fixes (preview-tested, iteration_86 22/22 real passes):
 Preview full rebuild measured: 440 rows / 392 indexable in 1632s with a partly cold duty cache.
 NEXT: publish → run `python3 /app/memory/seed_prod_caches.py https://vametra.com <token>` →
 verify prod sitemap ≈975 → testing agent against production → GSC "Validate fix".
+
+### 1 Nov 2026 — support's four requested changes (iteration_87: 14/14 pass)
+Support confirmed: no egress block; OEC had been returning **403** to prod (they adjusted outbound
+routing — effective after next publish); Comtrade key landed in prod only at 19:21 UTC 31 Oct; both
+Starter-tier replicas (250m CPU / 512MB) **OOM-restarted ~3 min after the last publish** and health
+probes failed for minutes; a constant stream of repeated WITS 404/307 lookups ate the allowance.
+- `trade_intel._oec_query`: status checked before `.json()`; non-200 raises with status + body
+  head → callers trip the 10-min breaker and fall back to Comtrade.
+- `duty_engine._wits_obs`: `follow_redirects=True` (307s were silently treated as "no data"),
+  timeout 12s; negative results already cached 7 days; boot-time wipe removed (31 Oct).
+- `server._startup` → `init_firebase()` only; everything else in `_deferred_startup()` task. Health
+  answers 200 within 1s of boot.
+- `/api/sitemap.xml` served from `db.seo_sitemap_cache` (headers `X-Sitemap-Urls`, `X-Sitemap-Built`),
+  refreshed every 6h (+1 min after boot, after matrix rebuilds, `POST /api/sitemap/refresh` admin);
+  a rebuild with <90% of the cached URL count is rejected so a timed-out section can never shrink it.
+- `_warm_matrix_cache` → `rebuild_matrix(if_stale=True)` (no rebuild when cache <24h and complete);
+  page warm guarded by the same cross-replica lock ("pagewarm").
+Still to do after publish: seed prod caches (`seed_prod_caches.py`), run egress-check, send output
+to support, upgrade tier from Starter (support: "do both"), set ADMIN_TOKEN secret in prod.

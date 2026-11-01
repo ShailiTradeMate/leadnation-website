@@ -1,0 +1,30 @@
+{
+  "summary": "Backend-only test of the 4 production-stability changes (OEC status check, WITS caching/redirects, deferred startup, cached sitemap) plus iter86 matrix regression. 14/14 pytest tests passed against the external URL. Backend not restarted; no rebuild/refresh-all/duty-refresh triggered. Sitemap: 3 GET calls in 1.30s/0.55s/0.31s, X-Sitemap-Urls=975, X-Sitemap-Built present, 975 unique <loc> (784 export/to, 10 regions, 413 api/answers/html). POST /api/sitemap/refresh: 403 without token or with a wrong token; with token -> {ok:true,count:975} in 4.8s, and X-Sitemap-Built moved from 07:16:56 to 07:18:19. /api/health and localhost:8001/health return 200 {ok:true} in <1s. Seeded data still served: trade-intel/status hsCodesIndexed=5606; seo/matrix?limit=3 returns 3 rows in 0.30s; page-data/agarbatti/bangladesh 200; duty/meta lastRefresh=2026-10-31T21:23. trade-intel/stats?hs=330741 -> ok, sourceKey=oec, 0.30s. warm-status matrix: rows=440, indexable=392, partial=false. Rebuild without token -> 403. Note: /api/content/blog in the request does not exist (404). The blog route is /api/blog, which returns 200 with a list.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/sitemap.xml (cold path)", "issue": "When there is no cached document, the cold-build response sets only X-Sitemap-Urls and leaves out X-Sitemap-Built. The fallback live build sets neither header."},
+      {"endpoint": "POST /api/sitemap/refresh", "issue": "When the 90% guard rejects a smaller build, the response is {ok:true, kept, rejected} with no 'count' key, and only cached.at is bumped. X-Sitemap-Built then looks fresh even though the XML was not rebuilt. Consider a separate checkedAt field."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/test_reports/test_prod_stability_iter87.py", "/app/test_reports/pytest/pytest_iter87.xml"],
+  "action_items": [
+    "Optional: add X-Sitemap-Built to the cold-path sitemap response",
+    "Optional: in wits_tariff, do not cache None for 7 days when every year failed with network exceptions (transient errors). Only cache real 404/NoRecordsFound results.",
+    "Optional: remove the hardcoded ADMIN_TOKEN fallback 'leadnation-admin-2026' in seo.py sitemap_refresh (os.environ.get default)"
+  ],
+  "critical_code_review_comments": [
+    "trade_intel._oec_query: confirmed. Raises RuntimeError with the HTTP status and r.text[:120] when status != 200. Both _oec_stats (line ~230) and importer_table (line ~455) catch it and call _mark_oec_down, then fall back to Comtrade. Minor inconsistency: _oec_stats uses httpx.AsyncClient(timeout=8) without follow_redirects, while importer_table sets follow_redirects=True.",
+    "duty_engine._wits_obs: confirmed. Uses httpx.AsyncClient(timeout=12, follow_redirects=True) inside _wits_gate. wits_tariff caches None for CACHE_TTL_DAYS=7. Caveat: request exceptions/timeouts are swallowed with 'continue', so a transient WITS outage is also cached as None for 7 days.",
+    "server._startup: confirmed. Calls only init_firebase() and asyncio.create_task(_deferred_startup()). The deferred task sleeps 2s, then wraps every seed and scheduler step in its own try/except. The task handle is not stored, so in theory it can be garbage-collected (Python docs recommend keeping a reference). Low risk.",
+    "seo.sitemap_xml: confirmed. Serves from db.seo_sitemap_cache and starts a background refresh after SITEMAP_TTL (6h). refresh_sitemap_cache keeps the cached copy when the new build has < 90% of its URLs. _sitemap_building is per-process (2 replicas can build at once; acceptable). The scheduler adds a sitemap-refresh cron every 6h plus a boot job.",
+    "seo.sitemap_refresh: os.environ.get('ADMIN_TOKEN', 'leadnation-admin-2026') hardcodes a default secret."
+  ],
+  "updated_files": ["/app/test_reports/test_prod_stability_iter87.py"],
+  "success_rate": {"backend": "100% (14/14)", "frontend": "not tested (backend only)"},
+  "seed_data_creation": "None. Only one admin sitemap refresh was triggered (sitemap cache rewritten with the same 975 URLs).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Test file is at /app/test_reports/test_prod_stability_iter87.py; it lives outside /app/backend so uvicorn --reload does not restart. Run it with: cd /tmp && python -m pytest /app/test_reports/test_prod_stability_iter87.py -v -p no:cacheprovider. The blog endpoint is /api/blog (not /api/content/blog). Do not trigger the matrix rebuild with the token (it takes about 25 min)."
+}
