@@ -112,7 +112,7 @@ async def _wits_obs(reporter, partner, hs6):
     """Return (rate%, tariffType, year) for the latest year with data, or None."""
     this_year = _now().year
     years = [this_year - y for y in range(2, 8)]  # WITS lags ~2yr; cap window for latency
-    async with _wits_gate(), httpx.AsyncClient(timeout=12) as cx:
+    async with _wits_gate(), httpx.AsyncClient(timeout=12, follow_redirects=True) as cx:
         for yr in years:
             url = f"{WITS_BASE}/reporter/{reporter}/partner/{partner}/product/{hs6}/year/{yr}/datatype/reported"
             try:

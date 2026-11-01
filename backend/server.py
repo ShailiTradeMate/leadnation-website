@@ -70,7 +70,14 @@ logger = logging.getLogger(__name__)
 
 @app.on_event("startup")
 async def _startup():
+    """Only what requests need immediately; seeding, engines and schedulers run in the
+    background so the pod answers health probes within seconds of boot."""
     init_firebase()
+    asyncio.create_task(_deferred_startup())
+
+
+async def _deferred_startup():
+    await asyncio.sleep(2)
     try:
         import mail_inbox
         asyncio.get_event_loop().create_task(mail_inbox.run_forever())

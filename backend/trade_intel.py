@@ -199,6 +199,10 @@ async def _oec_query(cx, drilldowns, hs_id, year=None):
     if year:
         params["Year"] = year
     r = await cx.get(f"{OEC_BASE}/data.jsonrecords", params=params)
+    if r.status_code != 200:
+        # OEC answers blocked/overloaded callers with 403/5xx HTML — surface the real status
+        # instead of a JSON decode error, and let the caller trip the breaker / fall back.
+        raise RuntimeError(f"OEC HTTP {r.status_code} for HS6 {hs_id} {drilldowns}: {r.text[:120]!r}")
     return r.json().get("data", [])
 
 

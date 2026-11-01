@@ -600,10 +600,14 @@ async def _release_matrix_lock(cache_id: str):
         pass
 
 
-async def rebuild_matrix(product: str = None, region: str = None) -> dict:
+async def rebuild_matrix(product: str = None, region: str = None, if_stale: bool = False) -> dict:
     """Full recompute of the product x country matrix, persisted incrementally so a pod
     restart or a severed request never throws away the rows already scored."""
     cache_id = f"matrix:{product or 'all'}:{region or 'all'}"
+    if if_stale:
+        cur = await db.seo_matrix_cache.find_one({"_id": cache_id}, {"rows": 0})
+        if cur and not cur.get("partial") and _matrix_age(cur) < MATRIX_TTL:
+            return {"ok": True, "skipped": "cache fresh", "cachedAt": cur["at"]}
     if cache_id in _matrix_building:
         return {"ok": False, "skipped": "already building on this replica"}
     if not await _acquire_matrix_lock(cache_id):

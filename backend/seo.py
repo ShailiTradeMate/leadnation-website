@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 import httpx
 from fastapi import APIRouter, Header, HTTPException
 from fastapi.responses import Response, PlainTextResponse
+from core import db
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["seo"])
@@ -187,8 +188,11 @@ async def _answer_routes():
         return []
 
 
-@router.get("/sitemap.xml")
-async def sitemap_xml():
+SITEMAP_TTL = 6 * 3600
+_sitemap_building = False
+
+
+async def _build_sitemap_xml() -> tuple[str, int]:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     async def section(coro, label, timeout=15):
@@ -216,7 +220,63 @@ async def sitemap_xml():
     xml = ('<?xml version="1.0" encoding="UTF-8"?>'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
            f"{rows}</urlset>")
+    return xml, len(urls)
+
+
+async def refresh_sitemap_cache(reason: str = "scheduled") -> dict:
+    """Pre-build the sitemap document. A smaller result never replaces a bigger cached one —
+    a section that timed out must not shrink what Google sees."""
+    global _sitemap_building
+    if _sitemap_building:
+        return {"ok": False, "skipped": "building"}
+    _sitemap_building = True
+    try:
+        xml, count = await _build_sitemap_xml()
+        prev = await db.seo_sitemap_cache.find_one({"_id": "sitemap"}, {"xml": 0})
+        if prev and count < int(prev.get("count", 0) * 0.9):
+            logger.warning("sitemap rebuild (%s) has %s urls < cached %s — keeping cached copy",
+                           reason, count, prev["count"])
+            await db.seo_sitemap_cache.update_one(
+                {"_id": "sitemap"}, {"$set": {"at": datetime.now(timezone.utc).isoformat()}})
+            return {"ok": True, "kept": prev["count"], "rejected": count}
+        await db.seo_sitemap_cache.replace_one(
+            {"_id": "sitemap"},
+            {"_id": "sitemap", "xml": xml, "count": count,
+             "at": datetime.now(timezone.utc).isoformat()}, upsert=True)
+        logger.info("sitemap cache refreshed (%s): %s urls", reason, count)
+        return {"ok": True, "count": count}
+    finally:
+        _sitemap_building = False
+
+
+@router.get("/sitemap.xml")
+async def sitemap_xml():
+    """Served from the pre-built document; stale copies are refreshed in the background so
+    crawlers always get an instant, complete file."""
+    cached = await db.seo_sitemap_cache.find_one({"_id": "sitemap"})
+    if cached:
+        age = (datetime.now(timezone.utc) - datetime.fromisoformat(cached["at"])).total_seconds()
+        if age > SITEMAP_TTL and not _sitemap_building:
+            asyncio.get_running_loop().create_task(refresh_sitemap_cache("stale"))
+        return Response(content=cached["xml"], media_type="application/xml",
+                        headers={"X-Sitemap-Urls": str(cached.get("count", "")),
+                                 "X-Sitemap-Built": cached["at"]})
+    out = await refresh_sitemap_cache("cold")
+    cached = await db.seo_sitemap_cache.find_one({"_id": "sitemap"})
+    if cached:
+        return Response(content=cached["xml"], media_type="application/xml",
+                        headers={"X-Sitemap-Urls": str(cached.get("count", ""))})
+    xml, _ = await _build_sitemap_xml()  # another worker is building — serve a live copy once
+    logger.warning("sitemap served uncached: %s", out)
     return Response(content=xml, media_type="application/xml")
+
+
+@router.post("/sitemap/refresh")
+async def sitemap_refresh(x_admin_token: str = Header(default=None)):
+    import os
+    if x_admin_token != os.environ.get("ADMIN_TOKEN", "leadnation-admin-2026"):
+        raise HTTPException(status_code=403, detail="admin only")
+    return await refresh_sitemap_cache("admin")
 
 
 async def indexnow_submit(urls: list) -> dict:
@@ -343,23 +403,37 @@ async def _warm_matrix_cache():
     """Keep the product x country matrix cache fresh so region hubs never build on a user request."""
     try:
         import seo_pages
-        out = await seo_pages.rebuild_matrix()
+        out = await seo_pages.rebuild_matrix(if_stale=True)
         logger.info("SEO matrix cache warmed: %s", out)
+        if out.get("ok") and not out.get("skipped"):
+            await refresh_sitemap_cache("matrix-rebuilt")
     except Exception as exc:
         logger.warning("SEO matrix warm failed: %s", exc)
+
+
+async def _refresh_sitemap_job():
+    try:
+        await refresh_sitemap_cache("scheduled")
+    except Exception as exc:
+        logger.warning("sitemap cache refresh failed: %s", exc)
 
 
 async def _warm_page_cache():
     """Pre-build every guide payload. A cold tariff cache makes one guide take ~15s —
     far longer than the crawler pre-render worker waits — so this is what keeps
     Googlebot getting real HTML instead of the SPA shell."""
+    import seo_pages
+    if not await seo_pages._acquire_matrix_lock("pagewarm"):
+        logger.info("SEO page warm skipped: another replica is warming")
+        return
     try:
-        import seo_pages
         out = await seo_pages.warm_page_cache()
         logger.info("SEO page cache warmed: %s/%s built (%s fresh skipped, %s failed), %s indexable",
                     out["built"], out["total"], out["skippedFresh"], out["failed"], out["indexable"])
     except Exception as exc:
         logger.warning("SEO page warm failed: %s", exc)
+    finally:
+        await seo_pages._release_matrix_lock("pagewarm")
 
 
 async def _warm_prerender():
@@ -407,5 +481,10 @@ def start_seo_scheduler():
     _seo_sched.add_job(_boot_sweep,
                        DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=3)),
                        id="indexnow-boot", replace_existing=True)
+    _seo_sched.add_job(_refresh_sitemap_job, CronTrigger(hour="*/6", minute=20),
+                       id="sitemap-refresh", replace_existing=True)
+    _seo_sched.add_job(_refresh_sitemap_job,
+                       DateTrigger(run_date=datetime.now(timezone.utc) + timedelta(minutes=1)),
+                       id="sitemap-refresh-boot", replace_existing=True)
     _seo_sched.start()
     logger.info("IndexNow sweep scheduler started (weekly + boot warm-up)")
