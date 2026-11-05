@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { API } from "@/lib/api";
 import SEO from "@/components/SEO";
 import {
-  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck, Bell, WhatsappLogo,
+  Database, UserList, Users, Briefcase, ChartBar, SignOut, FloppyDisk, TrashSimple, Plus, X, FileCsv, Eye, Brain, SlidersHorizontal, CurrencyCircleDollar, CalendarCheck, Newspaper, Check, Star, Clock, ShieldCheck, SealCheck, Bell, Megaphone, WhatsappLogo,
 } from "@phosphor-icons/react";
 import { useSettings } from "@/lib/SettingsContext";
 import { authApi } from "@/lib/authApi";
@@ -19,6 +19,7 @@ import UsersManager from "@/pages/admin/UsersManager";
 import ServiceRequestsManager from "@/pages/admin/ServiceRequestsManager";
 import SubAdminsManager from "@/pages/admin/SubAdminsManager";
 import WhatsAppTemplatesManager from "@/pages/admin/WhatsAppTemplatesManager";
+import MarketingDashboard from "@/pages/admin/MarketingDashboard";
 import "@/admin-workflows.css";
 import { staffLogin, staffLogout, getStaffInfo, isStaff, staffApi } from "@/lib/staffAuth";
 
@@ -131,6 +132,7 @@ export default function AdminDashboard() {
     { k: "listings", l: "Event Listings", I: CalendarCheck },
     { k: "trade-news", l: "Trade News", I: Newspaper },
     { k: "events", l: "Web Analytics", I: Eye },
+    { k: "marketing", l: "Marketing", I: Megaphone },
     { k: "control-center", l: "Control Center", I: SlidersHorizontal },
     { k: "pricing", l: "Pricing", I: CurrencyCircleDollar },
     { k: "payments", l: "Payments", I: CurrencyCircleDollar },
@@ -199,6 +201,7 @@ export default function AdminDashboard() {
         {isMainAdmin && tab === "listings" && <EventListingsManager />}
         {isMainAdmin && tab === "trade-news" && <TradeNewsManager />}
         {isMainAdmin && tab === "events" && <Events />}
+        {isMainAdmin && tab === "marketing" && <MarketingDashboard />}
         {isMainAdmin && tab === "control-center" && <ControlCenter />}
         {isMainAdmin && tab === "pricing" && <PricingManager />}
         {isMainAdmin && tab === "payments" && <PaymentsManager />}
