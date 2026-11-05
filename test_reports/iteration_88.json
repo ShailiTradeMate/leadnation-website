@@ -1,0 +1,33 @@
+{
+  "summary": "Frontend-only Meta Pixel (1602236614404512) + consent gating + Facebook link testing via Playwright with desktop-Chrome UA override (add_init_script on navigator.userAgent) and interception of facebook.com/tr, googletagmanager.com, clarity.ms, fbevents.js. All 10 requested scenarios pass. Opt-in gating works (0 third-party requests before consent and after Reject). Accept All loads GTM, gtag, Clarity and fbevents, and sends exactly 1 PageView for '/' with no ViewContent. Full loads of /pricing, /contact and /about and SPA navigation to /contact, /tools, /services, /signup each send 1 PageView + 1 ViewContent (content_name/category correct). /legal/privacy and /account send a PageView only. WhatsApp clicks send exactly 1 Lead (contact row: location=contact; floating button: location=general). The contact form sends 1 Lead (source=contact-page), and the lead was persisted (GET /api/admin/leads). Signup sends exactly 1 CompleteRegistration (method=password) and redirects to /account. The disposable account was hard-deleted. Manage → marketing-only loads only the pixel (no GTM/Clarity). Facebook links in the footer, the Contact page and /about are correct with target=_blank. Mobile 390px has no horizontal overflow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Full page load /pricing right after consent (1st run)", "issue": "FLAKY: one run saw 2 ViewContent GET /tr requests for /pricing (same cd) with 1 PageView. Did not reproduce in 7 later full loads of /pricing, /contact and /about (always 1+1). fbq state eventCount=2. Code dedupe (lastPixelPath) looks correct, so the cause is probably a transport retry inside fbevents. Failure rate about 1 in 8 (12%).", "affected_selectors": []},
+      {"flow": "Meta automatic events", "issue": "fbevents autoConfig is on by default. Every button click (e.g. contact-submit, nav-cta-explore) sends an extra POST /tr with ev=SubscribedButtonClick, and the request carries button text/metadata. These are not duplicates of standard events, but they add noise and send more data. Consider fbq('set','autoConfig',false,PIXEL_ID) before fbq('init').", "affected_selectors": ["[data-testid='contact-submit']"]},
+      {"flow": "Custom events to pixel", "issue": "Events not in META_STANDARD are sent to Meta with trackCustom (e.g. explore_platform_click, ai_referral). This is intended by the code, but it goes beyond the 4 required events. Confirm this is wanted.", "affected_selectors": ["[data-testid='nav-cta-explore']"]}
+    ],
+    "design_issues": [
+      {"screen": "/contact hero", "issues": ["The subtitle still reads 'Reach the Vametra AI team on email, WhatsApp or Instagram' and does not mention Facebook (or LinkedIn)."]}
+    ]
+  },
+  "test_report_links": ["/tmp/pixel_cleanup.py"],
+  "action_items": [
+    "Consent revocation (GDPR): if a visitor accepts and later switches Marketing off via Cookie Preferences, applyConsent() never unloads or revokes. window.fbq stays live and trackEvent keeps sending Lead/custom events to Meta until a full reload. Use fbq('consent','revoke') / fbq('consent','grant') or guard fbq calls with getConsent().marketing. The same applies to gtag/clarity for analytics.",
+    "Optional: disable Meta autoConfig (SubscribedButtonClick auto events).",
+    "Optional: update the Contact hero subtitle to include Facebook.",
+    "Out of scope, seen during signup: the form default role 'exporter' (CompleteRegistration cd[role]=exporter) but /account showed an 'importer' badge and 'Set country' even though country=India was sent. POST /api/onboarding/register (DO) was called 3 times. Check role/country persistence on register."
+  ],
+  "critical_code_review_comments": [
+    "analytics.js: catLoaded flags are only ever set to true. There is no path for withdrawing consent within a session (see action item).",
+    "pixelPageView dedupes on pathname only, so query-only changes (/pricing?a -> /pricing?b) give no new PageView. This is acceptable but worth knowing.",
+    "trackEvent scrub() works: CompleteRegistration sent only method/role/country, and Lead sent location/page/source. No email, phone or name reached Meta."
+  ],
+  "updated_files": ["/app/memory/test_credentials.md"],
+  "success_rate": {"backend": "N/A (not requested)", "frontend": "100% of requested scenarios (10/10); 1 flaky duplicate ViewContent observed once"},
+  "seed_data_creation": "Contact lead pixeltest@example.com (id badfd5fa-2d2a-4716-9ac6-3821c39bf999) remains in the local leads collection because there is no delete endpoint. Disposable account pixeltest_1793881566@leadnation.test (customer_id 00022) was created and then hard-deleted via DO admin_v2 (mongo, firebase and firestore all deleted).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Pixel tests need a UA override (headless UA is excluded by crawler.js). The browser_automation tool works with page.add_init_script(\"Object.defineProperty(navigator,'userAgent',{get:()=>'<Chrome UA>'})\"). Set consent directly with localStorage ln_cookie_consent={essential,analytics,marketing,ts}. Meta admin_v2 hard-delete lives on the DO backend (https://leadnation-lfrhs.ondigitalocean.app/api) with an admin Firebase Bearer token; see /tmp/pixel_cleanup.py."
+}

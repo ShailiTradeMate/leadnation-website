@@ -559,3 +559,10 @@ vametra.com: /api/health 0.23s; sitemap.xml 975 URLs in 0.35s (cached doc); matr
 page cache 448/448; egress-check OEC 200 (0.33s) / Comtrade 200 / WITS 200; Googlebot-UA export,
 region, answers and matrix pages all 200 in <0.5s. GSC sitemaps show 975 discovered pages again.
 No cache seeding needed (seed_prod_caches.py kept for future cold DBs). Final reply sent to support.
+
+### 5 Nov 2026 — Meta Pixel 1602236614404512 live (iteration_88: 10/10 frontend scenarios pass)
+- `REACT_APP_META_PIXEL_ID` set in frontend/.env (public ID, ships with build like GA4/GTM IDs).
+- Pixel loads only after Marketing consent (existing CookieConsent, unchanged). Headless/bot UAs never load analytics (crawler.js) — testers must spoof a desktop UA.
+- analytics.js: `pixelPageView()` dedupes PageView per route (consent-time load + route effect); ViewContent on every page except `/`, `/legal/*`, `/admin/*`, `/auth`, `/account` (content_name=path, content_category=first segment); GA4 `send_page_view:false` (trackPageView sends page_view for every route incl. first → no GA4 double count); META_STANDARD = user_registered→CompleteRegistration, contact_form_submitted / service_request_submitted / whatsapp_click→Lead, subscription_started→Subscribe, payment_success→Purchase (removed user_login/trade_project_created→Lead, command_center_opened→ViewContent).
+- whatsapp.js global wa.me click logger now also fires `whatsapp_click` (location=waLink key); WhatsAppButton's own tracker removed (no double Lead).
+- Facebook page added to brand.js SOCIALS (→ Footer, Contact, About, schema sameAs) and backend seo_answers BRAND. Windsor.ai: monitoring playbook only (no code), per user.
