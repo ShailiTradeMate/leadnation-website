@@ -553,3 +553,9 @@ probes failed for minutes; a constant stream of repeated WITS 404/307 lookups at
   page warm guarded by the same cross-replica lock ("pagewarm").
 Still to do after publish: seed prod caches (`seed_prod_caches.py`), run egress-check, send output
 to support, upgrade tier from Starter (support: "do both"), set ADMIN_TOKEN secret in prod.
+
+### 5 Nov 2026 — production verified healthy after publish + tier upgrade
+vametra.com: /api/health 0.23s; sitemap.xml 975 URLs in 0.35s (cached doc); matrix 440/392 complete;
+page cache 448/448; egress-check OEC 200 (0.33s) / Comtrade 200 / WITS 200; Googlebot-UA export,
+region, answers and matrix pages all 200 in <0.5s. GSC sitemaps show 975 discovered pages again.
+No cache seeding needed (seed_prod_caches.py kept for future cold DBs). Final reply sent to support.

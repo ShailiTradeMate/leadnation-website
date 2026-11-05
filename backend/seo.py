@@ -249,7 +249,7 @@ async def refresh_sitemap_cache(reason: str = "scheduled") -> dict:
         _sitemap_building = False
 
 
-@router.get("/sitemap.xml")
+@router.api_route("/sitemap.xml", methods=["GET", "HEAD"])
 async def sitemap_xml():
     """Served from the pre-built document; stale copies are refreshed in the background so
     crawlers always get an instant, complete file."""
