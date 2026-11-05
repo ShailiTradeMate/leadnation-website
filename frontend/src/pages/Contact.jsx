@@ -12,6 +12,7 @@ import {
   MapPin,
   InstagramLogo,
   LinkedinLogo,
+  FacebookLogo,
   PaperPlaneTilt,
   CheckCircle,
 } from "@phosphor-icons/react";
@@ -106,6 +107,15 @@ export default function Contact() {
             external
             accent="#25D366"
             testId="contact-info-whatsapp"
+          />
+          <ContactRow
+            Icon={FacebookLogo}
+            label="Facebook"
+            value={CONTACT.facebook}
+            href={CONTACT.facebookUrl}
+            external
+            accent="#1877F2"
+            testId="contact-info-facebook"
           />
           <ContactRow
             Icon={InstagramLogo}

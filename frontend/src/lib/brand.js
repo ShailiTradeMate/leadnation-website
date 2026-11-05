@@ -21,6 +21,7 @@ export const TARIFF_COUNTRIES = 56;
 
 // key = stable id, order = display order. url is canonical. display = what users see.
 export const SOCIALS = [
+  { key: "facebook", label: "Facebook", handle: "Vametra AI", display: "Vametra AI on Facebook", url: "https://www.facebook.com/profile.php?id=61596122106027" },
   { key: "instagram", label: "Instagram", handle: "vametra_ai", display: "@vametra_ai", url: "https://www.instagram.com/vametra_ai/" },
   { key: "linkedin", label: "LinkedIn", handle: "vametra.com", display: "linkedin.com/company/vametra.com", url: "https://www.linkedin.com/company/vametra.com/" },
   // Future: add { key: "twitter", ... }, { key: "youtube", ... } here — everything else updates automatically.

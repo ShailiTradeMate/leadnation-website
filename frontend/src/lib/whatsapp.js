@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { trackEvent } from "@/lib/analytics";
 import { CONTACT } from "@/data/contact";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -115,6 +116,7 @@ export function useWaClickLogging(enabled = true) {
       try { message = new URL(href).searchParams.get("text") || ""; } catch (_) { /* ignore */ }
       const id = ref.current;
       const v = meta.vars || {};
+      trackEvent("whatsapp_click", { location: meta.key, page: window.location.pathname });
       postClick({
         key: meta.key, page: window.location.pathname + window.location.search, message,
         requestId: v.request_id || null, service: v.service || null,

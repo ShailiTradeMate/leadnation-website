@@ -499,6 +499,7 @@ BRAND = {
     "name": "Vametra AI", "legal": "Vametra AI Technologies Pvt Ltd", "founded": "2026",
     "founder": "Vaibhav Deshmane", "hq": "Savedi, Ahilyanagar, Maharashtra 414003, India",
     "email": "admin@vametra.com", "tagline": "Intelligence Beyond Borders",
+    "facebook": "https://www.facebook.com/profile.php?id=61596122106027",
     "instagram": "https://www.instagram.com/vametra_ai/",
     "linkedin": "https://www.linkedin.com/company/vametra.com/",
 }
@@ -521,7 +522,8 @@ def _about_doc():
           f"- Legal entity: {b['legal']}", f"- Founded: {b['founded']}", f"- Founder: {b['founder']}",
           f"- Headquarters: {b['hq']}", "- Area served: Worldwide", f"- Tagline: {b['tagline']}",
           f"- Website: {SITE}", f"- Contact: {b['email']}",
-          f"- Official Instagram: {b['instagram']}", f"- Official LinkedIn: {b['linkedin']}", "",
+          f"- Official Facebook: {b['facebook']}", f"- Official Instagram: {b['instagram']}",
+          f"- Official LinkedIn: {b['linkedin']}", "",
           "## Verified coverage (read from the live platform)", "",
           "- 5,606 HS codes indexed from WCO HS-2022",
           "- Applied and preferential tariffs for 56 reporting countries (World Bank WITS / UNCTAD TRAINS, HS6)",

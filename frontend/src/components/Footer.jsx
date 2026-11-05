@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { CONTACT } from "@/data/contact";
 import { openCookiePreferences } from "@/lib/analytics";
-import { InstagramLogo, LinkedinLogo, WhatsappLogo, EnvelopeSimple, MapPin, Lightning, Calculator } from "@phosphor-icons/react";
+import { FacebookLogo, InstagramLogo, LinkedinLogo, WhatsappLogo, EnvelopeSimple, MapPin, Lightning, Calculator } from "@phosphor-icons/react";
 import { LogoMark } from "./Nav";
 import { TAGLINE } from "@/lib/brand";
 import { useWhatsApp } from "@/lib/whatsapp";
@@ -90,6 +90,10 @@ export default function Footer() {
             <li className="flex items-start gap-2">
               <WhatsappLogo size={16} className="mt-1 text-cyan-300" />
               <a href={waLink("general")} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-whatsapp">{CONTACT.whatsappDisplay}</a>
+            </li>
+            <li className="flex items-start gap-2">
+              <FacebookLogo size={16} className="mt-1 text-cyan-300" />
+              <a href={CONTACT.facebookUrl} target="_blank" rel="noopener noreferrer" className="hover:text-cyan-300" data-testid="footer-facebook">{CONTACT.facebook}</a>
             </li>
             <li className="flex items-start gap-2">
               <InstagramLogo size={16} className="mt-1 text-cyan-300" />

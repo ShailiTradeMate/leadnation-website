@@ -2,6 +2,7 @@ import { social, EMAIL, PHONE } from "@/lib/brand";
 
 const ig = social("instagram");
 const li = social("linkedin");
+const fb = social("facebook");
 
 export const CONTACT = {
   email: EMAIL,
@@ -12,6 +13,8 @@ export const CONTACT = {
   lat: 19.126793986535226,
   lng: 74.7452378072622,
   phone: PHONE,
+  facebook: fb?.display,
+  facebookUrl: fb?.url,
   instagram: ig?.handle,
   instagramUrl: ig?.url,
   linkedin: li?.display,

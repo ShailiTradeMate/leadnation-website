@@ -49,7 +49,9 @@ function loadAnalyticsScripts() {
     window.dataLayer = window.dataLayer || [];
     window.gtag = function gtag() { window.dataLayer.push(arguments); };
     window.gtag("js", new Date());
-    window.gtag("config", GA4_ID, { send_page_view: true });
+    // page_view is sent by trackPageView on every route (incl. the first) — keep config silent
+    // so the initial load is not counted twice.
+    window.gtag("config", GA4_ID, { send_page_view: false });
   }
   if (CLARITY_ID) {
     (function (c, l, a, r, i, t, y) {
@@ -73,8 +75,33 @@ function loadMarketingScripts() {
       document,'script','https://connect.facebook.net/en_US/fbevents.js');
     /* eslint-enable */
     window.fbq("init", META_PIXEL_ID);
-    window.fbq("track", "PageView");
+    pixelPageView(window.location.pathname);
   }
+}
+
+// ── Meta Pixel page events ─────────────────────────────────────────────────
+// One PageView per route (deduped: consent-time load + route effect can both ask), plus
+// ViewContent on every content page except home, legal and admin.
+let lastPixelPath = null;
+
+export function isViewContentPath(path = "") {
+  if (!path || path === "/") return false;
+  return !/^\/(legal|admin|auth|account)(\/|$)/.test(path);
+}
+
+function pixelPageView(path) {
+  if (!window.fbq || lastPixelPath === path) return;
+  lastPixelPath = path;
+  try {
+    window.fbq("track", "PageView");
+    if (isViewContentPath(path)) {
+      window.fbq("track", "ViewContent", {
+        content_name: path,
+        content_category: path.split("/")[1] || "page",
+        content_type: "page",
+      });
+    }
+  } catch (_) {}
 }
 
 // Load only the services the visitor has consented to. Re-callable when consent changes.
@@ -167,11 +194,12 @@ export const EVENTS = {
 };
 
 // Map our events to Meta Pixel standard events (falls back to trackCustom).
+// Lead = a real enquiry only (contact form, service request, WhatsApp tap) — never a login.
 const META_STANDARD = {
   user_registered: "CompleteRegistration",
-  user_login: "Lead",
-  trade_project_created: "Lead",
-  command_center_opened: "ViewContent",
+  contact_form_submitted: "Lead",
+  service_request_submitted: "Lead",
+  whatsapp_click: "Lead",
   subscription_started: "Subscribe",
   payment_success: "Purchase",
 };
@@ -220,7 +248,7 @@ export function trackPageView(path) {
   const engine = aiReferral();
   const params = { page_path: path, ...(engine ? { ai_engine: engine } : {}) };
   try { window.gtag && window.gtag("event", "page_view", params); } catch (_) {}
-  try { window.fbq && window.fbq("track", "PageView"); } catch (_) {}
+  pixelPageView(path);
   try {
     api.post("/track", { name: "page_view", path, meta: engine ? { ai_engine: engine } : {} });
   } catch (_) {}
