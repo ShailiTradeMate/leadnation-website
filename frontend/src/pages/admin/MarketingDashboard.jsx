@@ -5,6 +5,7 @@ import {
   ChatCircleDots, Heart, ArrowSquareOut, WarningCircle, Target,
 } from "@phosphor-icons/react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import MetaAdsPanel from "@/pages/admin/MetaAdsPanel";
 
 const RANGES = [["last_7d", "7 days"], ["last_30d", "30 days"], ["last_90d", "90 days"]];
 const n = (v, d = 0) => (v == null ? "—" : Number(v).toLocaleString("en-IN", { maximumFractionDigits: d }));
@@ -123,6 +124,8 @@ export default function MarketingDashboard() {
           </div>
         </section>
       )}
+
+      <MetaAdsPanel range={range} />
 
       {fb && (
         <Channel id="facebook" title="Facebook Ads" icon={FacebookLogo} accent="#1877F2" hasData={fb.hasData} error={data.errors?.facebook}

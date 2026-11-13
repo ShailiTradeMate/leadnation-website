@@ -466,6 +466,22 @@ def _service_request_body(c: dict, greeting: bool = True) -> str:
 
 
 BUILDERS.update({
+    "meta_token_expiry": lambda c: (
+        f"[Vametra AI] Meta Ads token expires in {c.get('daysLeft')} day(s)", _shell(
+            "Renew the Meta Ads access token",
+            f"<p>Hi {c.get('name', 'Vaibhav')},</p>"
+            f"<p>The long-lived Meta Marketing API token used for ads reporting in Admin → Marketing "
+            f"expires on <strong>{c.get('expiresAt')}</strong> ({c.get('daysLeft')} day(s) left). "
+            f"After that the Facebook Ads panel and token-based reads go dark.</p>"
+            + _detail_table([("Ad account", c.get("adAccount")), ("Token type", c.get("type")),
+                             ("Expires", c.get("expiresAt")), ("Data access until", c.get("dataAccessExpiresAt"))])
+            + "<p style='margin-top:14px'><strong>How to renew (5 min):</strong> open Graph API Explorer → app "
+            "“Vametra Ads” → generate a new User token with ads_read / ads_management → save it as "
+            "META_ACCESS_TOKEN in the Emergent secrets card → ask the builder to run the token exchange.</p>",
+            "Open Graph API Explorer", "https://developers.facebook.com/tools/explorer")),
+})
+
+BUILDERS.update({
     # ---- Service request: one email to admin only ----
     "service_request": lambda c: (f"Vametra Service Request · {c.get('service','')}", _shell(
         f"Service request · {c.get('service','')}",

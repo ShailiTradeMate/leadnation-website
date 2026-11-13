@@ -130,3 +130,103 @@ async def insights(account_id: str, date_preset: str = "last_30d", _=Depends(req
     return await graph_get(f"act_{aid}/insights", {
         "fields": "campaign_id,campaign_name,impressions,reach,clicks,spend,ctr,cpm,actions,date_start,date_stop",
         "date_preset": date_preset, "level": "campaign", "limit": 100})
+
+
+# ---------------- Marketing-panel summary + expiry reminder ----------------
+PRESETS = {"last_7d": "last_7d", "last_30d": "last_30d", "last_90d": "last_90d"}
+
+
+async def panel(date_preset: str = "last_30d") -> dict:
+    """Everything the Admin → Marketing Meta panel needs in one call (fails soft per section)."""
+    if not all(os.environ.get(k) for k in ("META_ACCESS_TOKEN", "META_APP_ID", "META_APP_SECRET")):
+        return {"configured": False}
+    out = {"configured": True, "errors": {}}
+    tok = await _token()
+    try:
+        out["token"] = await token_info(tok)
+        exp = out["token"]["expiresAt"]
+        out["token"]["daysLeft"] = (round((datetime.fromisoformat(exp) - datetime.now(timezone.utc)).total_seconds() / 86400, 1)
+                                    if exp != "never" else None)
+        stored = await db.secrets_store.find_one({"_id": TOKEN_DOC}, {"token": 0})
+        out["usingLongLived"] = bool(stored and datetime.fromisoformat(stored["expiresAt"]) > datetime.now(timezone.utc))
+    except HTTPException as exc:
+        out["errors"]["token"] = exc.detail
+        return out
+    try:
+        accts = (await graph_get("me/adaccounts", {"fields": "id,account_id,name,account_status,currency,business", "limit": 50}, token=tok)).get("data", [])
+        biz = [a for a in accts if (a.get("business") or {}).get("id")] or accts
+        out["adAccounts"] = [{**a, "statusLabel": STATUS.get(a.get("account_status"), str(a.get("account_status")))} for a in accts]
+        primary = biz[0] if biz else None
+        out["primary"] = primary
+        if primary:
+            aid = primary["account_id"]
+            det = await graph_get(f"act_{aid}", {"fields": "amount_spent,balance,spend_cap,currency"}, token=tok)
+            out["primary"] = {**out["primary"], **det, "statusLabel": STATUS.get(primary.get("account_status"), "")}
+            out["campaigns"] = (await graph_get(f"act_{aid}/campaigns", {"fields": "id,name,status,effective_status,objective,daily_budget,lifetime_budget", "limit": 50}, token=tok)).get("data", [])
+            out["insights"] = (await graph_get(f"act_{aid}/insights", {
+                "fields": "campaign_name,impressions,reach,clicks,spend,ctr,cpm,actions",
+                "date_preset": PRESETS.get(date_preset, "last_30d"), "level": "campaign", "limit": 100}, token=tok)).get("data", [])
+    except HTTPException as exc:
+        out["errors"]["account"] = exc.detail
+    return out
+
+
+@router.get("/panel")
+async def panel_route(range: str = "last_30d", _=Depends(require_admin)):
+    return await panel(range)
+
+
+REMIND_DAYS = (7, 3, 1)
+
+
+async def check_token_expiry(run_id: str = "") -> dict:
+    """Daily cron body: email ADMIN_EMAIL once per threshold (7 / 3 / 1 days) before expiry, and when expired."""
+    import emailer
+    if not all(os.environ.get(k) for k in ("META_ACCESS_TOKEN", "META_APP_ID", "META_APP_SECRET")):
+        return {"ok": False, "skipped": "meta not configured"}
+    tok = await _token()
+    try:
+        info = await token_info(tok)
+    except HTTPException as exc:
+        info = {"valid": False, "expiresAt": "unknown", "error": exc.detail}
+    now = datetime.now(timezone.utc)
+    if info.get("valid") and info.get("expiresAt") not in ("never", "unknown"):
+        days_left = (datetime.fromisoformat(info["expiresAt"]) - now).total_seconds() / 86400
+        due = next((d for d in REMIND_DAYS if days_left <= d), None)
+        stage = f"d{due}" if due is not None else None
+    else:
+        days_left, stage = 0, "expired"
+    rec = {"checkedAt": now.isoformat(), "daysLeft": round(days_left, 1), "expiresAt": info.get("expiresAt"),
+           "valid": info.get("valid"), "stage": stage, "runId": run_id}
+    if stage is None:
+        await db.meta_token_checks.replace_one({"_id": "latest"}, {"_id": "latest", **rec, "sent": False}, upsert=True)
+        return {"ok": True, **rec, "sent": False}
+    already = await db.meta_token_checks.find_one({"_id": f"sent:{info.get('expiresAt')}:{stage}"})
+    if already:
+        await db.meta_token_checks.replace_one({"_id": "latest"}, {"_id": "latest", **rec, "sent": False, "dedup": True}, upsert=True)
+        return {"ok": True, **rec, "sent": False, "dedup": True}
+    accts = []
+    try:
+        accts = (await graph_get("me/adaccounts", {"fields": "name,business", "limit": 10}, token=tok)).get("data", [])
+    except HTTPException:
+        pass
+    biz = [a["name"] for a in accts if (a.get("business") or {}).get("id")]
+    ctx = {"daysLeft": max(0, int(days_left)) if stage != "expired" else 0,
+           "expiresAt": (info.get("expiresAt") or "")[:16].replace("T", " ") + " UTC" if stage != "expired" else "already expired",
+           "type": info.get("type", "USER"), "dataAccessExpiresAt": (info.get("dataAccessExpiresAt") or "")[:10],
+           "adAccount": ", ".join(biz) or "Vametra AI Advertising"}
+    res = await emailer.notify_admin("meta_token_expiry", ctx)
+    await db.meta_token_checks.insert_one({"_id": f"sent:{info.get('expiresAt')}:{stage}", **rec, "email": res})
+    await db.meta_token_checks.replace_one({"_id": "latest"}, {"_id": "latest", **rec, "sent": bool(res.get("sent")), "email": res}, upsert=True)
+    return {"ok": True, **rec, "sent": bool(res.get("sent")), "email": res}
+
+
+@router.get("/token-check")
+async def token_check_status(_=Depends(require_admin)):
+    latest = await db.meta_token_checks.find_one({"_id": "latest"})
+    return latest or {"checkedAt": None}
+
+
+@router.post("/token-check/run")
+async def token_check_run(_=Depends(require_admin)):
+    return await check_token_expiry("manual")
